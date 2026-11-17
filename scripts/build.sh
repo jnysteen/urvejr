@@ -42,8 +42,8 @@ else
 fi
 pebble build "$@"
 
-# pebble build names the pbw after the project-directory basename, so it lands
-# as build/urvejr.pbw (or build/<worktree-dir>.pbw in a git worktree)
+# pebble build names the pbw after the project-directory basename, so in a
+# differently named checkout or a git worktree it lands as build/<dir>.pbw
 # rather than the canonical build/urvejr.pbw the install scripts expect.
 # Normalize with mv, not cp: on a case-insensitive filesystem (macOS) the two
 # names are the SAME file, where cp fails with "are identical" and the
@@ -74,7 +74,7 @@ if [[ "$profile" == "dev" ]]; then
 fi
 
 # pebble build also leaves a bundle named after the project directory
-# (build/<directory>.pbw, e.g. build/urvejr.pbw). Drop
+# (build/<directory>.pbw, e.g. build/urvejr-main.pbw). Drop
 # any non-canonical pbw so only the urvejr bundles remain.
 find build -maxdepth 1 -name '*.pbw' \
   ! -name 'urvejr.pbw' ! -name 'urvejr-dev.pbw' -delete
