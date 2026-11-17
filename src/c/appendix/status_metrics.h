@@ -106,11 +106,7 @@ static inline int status_seat_y(int band_h, int content_h) {
 // emery renders the row in Gothic 18, big enough that a symmetric centre reads a hair high, so it
 // takes less clearance -- the whole line drops ~1px toward the forecast (and away from the clock).
 // This is the single per-platform taste knob, tuned on-device.
-#ifdef PBL_PLATFORM_EMERY
 #define STATUS_FORECAST_CLEARANCE 1
-#else
-#define STATUS_FORECAST_CLEARANCE 3
-#endif
 
 // First inked row of a line seated by status_seat_y() in a band whose top edge is `band_y`.
 // The two halves already live above; composing them gives windows/layout.c one call for the
@@ -196,11 +192,7 @@ static inline int status_glyph_center_y(int text_y, int content_h) {
 // highlight (both MEASURED complaints, 2026-08-15). Shared here because TWO consumers
 // must agree on it: windows/layout.c anchors calendar_y with it, and
 // status_row_layout.c's box floor extends by it — one constant so they cannot drift.
-#ifdef PBL_PLATFORM_EMERY
 #define STATUS_STRIP_CAL_GAP 2
-#else
-#define STATUS_STRIP_CAL_GAP 0
-#endif
 
 // Seat the top strip's line: status_seat_y() lifted by STATUS_TOP_STRIP_LIFT. Every element
 // the strip draws goes through this (its slot text via status_row, the rain-alert text and

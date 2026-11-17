@@ -155,10 +155,8 @@ test('the wire bits are one set of numbers on both sides (config.h GRAPH_OPT_*)'
   assert.equal(def('GRAPH_OPT_AXIS_MASK'), forecastAxis.AXIS_MASK);
   assert.equal(forecastAxis.AXIS_MASK & B.LARGE_FONT, 0, 'the mask leaves bit 0 to Larger graph fonts');
   assert.ok(forecastAxis.AXIS_MASK < 0x8000, 'below the int16 read\'s sign bit');
-  // The decode reads the word through the int16 low half, emery only, stored as sent.
-  const c = readC('src/c/appendix/config_wire.c');
-  const emery = c.split('#if defined(PBL_PLATFORM_EMERY)').slice(1)
-    .map((block) => block.split('#endif')[0]).join('\n');
+  // The decode reads the word through the int16 low half, stored as sent.
+  const emery = readC('src/c/appendix/config_wire.c');
   assert.match(emery, /\(uint16_t\)\s*clay_large_graph_font_tuple->value->int16/);
   assert.match(emery, /large_graph_font\s*=\s*\(\s*word\s*&\s*GRAPH_OPT_LARGE_FONT\s*\)\s*!=\s*0/);
   assert.match(emery, /out->forecast_axis\s*=\s*\(uint8_t\)\s*\(\s*word\s*&\s*GRAPH_OPT_AXIS_MASK\s*\)/);

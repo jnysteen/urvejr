@@ -1,10 +1,8 @@
 #pragma once
 #include <pebble.h>
 #include "c/appendix/slot_geometry.h"
-#if defined(PBL_PLATFORM_EMERY)
 // emery: the one slot/time -> x mapping (slot_x.h).
 #include "c/appendix/slot_x.h"
-#endif
 
 // Chart engine — shared types and the one public entry point chart_draw().
 
@@ -72,7 +70,6 @@ static inline int chart_def_pitch(const ChartDef *d) {
     return d->tick_w + 2 * d->bar_pad + d->bar_w;
 }
 
-#if defined(PBL_PLATFORM_EMERY)
 // emery: the def's pitch in 1/256 px, the unit slot_x.h maps in: chart_def_pitch() px.
 static inline int chart_def_pitch_q(const ChartDef *d) {
     return SLOT_X_PITCH_Q(chart_def_pitch(d));
@@ -81,7 +78,6 @@ static inline int chart_def_pitch_q(const ChartDef *d) {
 static inline int chart_def_slot_x(const ChartDef *d, int i) {
     return slot_x(chart_def_pitch_q(d), i);
 }
-#endif
 
 // Every renderer takes a slot's x from these two: slot i's tick column, and its bar bar_dx
 // (tick + pad) right of it. Every pitch is whole px (emery: forecast_span.h), so every column,
@@ -102,25 +98,17 @@ typedef struct {
     const ChartDef *def;
     GRect           outer;
     ChartGeometry   geo;
-#if defined(WW_LINE_STYLE)
     int16_t         zero;   // the current layer's zero row and direction (chart_flip.h),
     int8_t          dir;    // set by chart_draw from ChartLayer.from_top
-#endif
 } ChartRender;
 
 // The zero row and direction of the layer being drawn, for every renderer and for a
 // CUSTOM layer's own bars (the radar's nearby-area pass), so they all hang by the one
 // rule. aplite has no Top (WW_LINE_STYLE): the bottom edge and -1, constant-folded,
 // which is today's "baseline minus height" there.
-#if defined(WW_LINE_STYLE)
 #define CHART_ZERO(r) ((r)->zero)
 #define CHART_DIR(r)  ((r)->dir)
 #define CHART_VERTEX_Y(zero, dir, h, held) chart_flip_vertex_y((zero), (dir), (h), (held))
-#else
-#define CHART_ZERO(r) ((r)->geo.content.origin.y + (r)->geo.content.size.h)
-#define CHART_DIR(r)  (-1)
-#define CHART_VERTEX_Y(zero, dir, h, held) ((void)(dir), (void)(held), (zero) - (h))
-#endif
 
 typedef enum { TICK_NONE, TICK_SMALL, TICK_BIG } ChartTickKind;
 typedef enum { ALIGN_START, ALIGN_MIDDLE }       ChartSlotAlign;
@@ -228,13 +216,11 @@ typedef struct {
     const GPoint    *contour;            // NULL => full-height bands; else per-column top y
     uint16_t         contour_count;
     uint16_t         spacing;            // hatch stride
-#if defined(WW_LINE_STYLE)
     int16_t          extend_top;         // full-height bands only: rows ABOVE the content
                                          // that the hatch covers too
                                          // (the forecast's top stripe band), so the night
                                          // shading runs to the top of the graph. aplite
                                          // compiles it out (no stripes).
-#endif
     uint8_t          num_bands;
     GColor           hatch_color;
     GColor           underlay_color;     // per-column solid fill before hatch (area re-shade)
@@ -246,7 +232,6 @@ typedef struct {
     void  *user;
 } ChartCustomLayer;
 
-#if defined(WW_LINE_STYLE)
 // A metric as a thin band of per-slot cells along the top or bottom edge of the
 // plot, each shaded by its value (chart_stripe.h): a colour ramp from the
 // background toward `color`, or a B&W dither density. aplite compiles it out
@@ -260,7 +245,6 @@ typedef struct {
     GColor         color;             // the line colour; level 4 paints exactly this
     bool           top;               // top edge (else bottom, over the baseline)
 } ChartStripeLayer;
-#endif
 
 typedef enum { CHART_LAYER_FRAME, CHART_LAYER_AXIS, CHART_LAYER_BARS,
                CHART_LAYER_LINE, CHART_LAYER_AREA, CHART_LAYER_HATCH,
@@ -283,17 +267,13 @@ typedef struct {
         ChartAreaLayer   area;
         ChartHatchLayer  hatch;
         ChartCustomLayer custom;
-#if defined(WW_LINE_STYLE)
         ChartStripeLayer stripe;
-#endif
     };
 } ChartLayer;
 
 void chart_draw(GContext *ctx, const ChartDef *def, GRect outer,
                 const ChartLayer *layers, int num_layers);
 
-#if defined(WW_LINE_STYLE) || defined(WW_RAIN_RADAR)
 // One stripe cell at `level` (0..4, chart_stripe.h — 0 draws nothing): the
 // shared look of the forecast's stripe style and the radar's sky rows.
 void chart_stripe_fill_cell(GContext *ctx, GRect cell, GColor color, int level);
-#endif

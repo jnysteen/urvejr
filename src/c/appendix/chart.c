@@ -62,19 +62,8 @@ static inline int chart_clamp_count(const ChartRender *r, int count) {
 // optical-centering geometry, in one place (the engine label convention).
 // emery derives its label boxes from the font tier inside chart_axis_label() below;
 // these constants are the 144 px arm only.
-#ifdef PBL_PLATFORM_EMERY
     // emery: wide pitch — the centered digit already sits on its column, no pull-back.
     #define CHART_LABEL_NUDGE_X     0
-#else
-    #define CHART_LABEL_BOTTOM_DY  (-4)  // GOTHIC_14 top-whitespace pull-up
-    #define CHART_LABEL_BOTTOM_H   10
-    #define CHART_LABEL_NUDGE_X    (-3)  // narrow pitch: a centered GOTHIC_14 digit reads ~3px
-                                         // right of its tick column — pull the box back so the
-                                         // digit sits on the column. Permanent (the stage-2
-                                         // "center on column" experiment misaligned on-device).
-    #define CHART_LABEL_TOP_RAISE  15
-    #define CHART_LABEL_TOP_H      14
-#endif
 
 // Axis-label typography, resolved fresh on every axis render. On emery the "Larger
 // graph fonts" setting steps the hour digits up one tier (GOTHIC_14 -> 18) at runtime
@@ -89,7 +78,6 @@ typedef struct {
     int   top_h;
 } ChartAxisLabel;
 
-#ifdef PBL_PLATFORM_EMERY
 // emery: the hour labels' font, GOTHIC_14, or GOTHIC_18 with Larger graph fonts: the tier
 // chart_axis_label's box geometry below is derived for. Fresh on every call: the setting flips
 // without a relaunch.
@@ -97,10 +85,8 @@ static GFont chart_axis_font(void) {
     return fonts_get_system_font(config_large_graph_font() ? FONT_KEY_GOTHIC_18
                                                            : FONT_KEY_GOTHIC_14);
 }
-#endif
 
 static ChartAxisLabel chart_axis_label(void) {
-#ifdef PBL_PLATFORM_EMERY
     // emery: the only platform offering the toggle (schema.js gates the row on
     // platform == 'emery') and the only one whose strips fit GOTHIC_18. The whole box
     // derives from the tier's content height (== the Gothic nominal size,
@@ -132,15 +118,6 @@ static ChartAxisLabel chart_axis_label(void) {
         .top_raise = content_h + 1,
         .top_h     = content_h,
     };
-#else
-    return (ChartAxisLabel){
-        .font      = fonts_get_system_font(FONT_KEY_GOTHIC_14),
-        .bottom_dy = CHART_LABEL_BOTTOM_DY,
-        .bottom_h  = CHART_LABEL_BOTTOM_H,
-        .top_raise = CHART_LABEL_TOP_RAISE,
-        .top_h     = CHART_LABEL_TOP_H,
-    };
-#endif
 }
 
 static void chart_draw_tick(const ChartRender *r, GraphSide side,
@@ -268,13 +245,11 @@ static void chart_render_bars(const ChartRender *r, const ChartBarsLayer *b) {
             graphics_context_set_stroke_color(r->ctx, theme_fg());
             graphics_context_set_stroke_width(r->ctx, 1);
             graphics_draw_line(r->ctx, GPoint(x0, y_free), GPoint(x1, y_free));  // free end
-#if defined(PBL_PLATFORM_EMERY)
             // emery: a bar under 3 px (the long forecast's 2 px) has no interior between
             // its walls; colour themes keep the cap only so the tier colours show, a bw
             // theme keeps the walls (they ARE the bar). Health (6 px), radar (5 px) and the
             // 12 / 24 h forecast bars are 5 px or wider and unaffected.
             if (w >= 3 || theme_is_bw())
-#endif
             {
                 graphics_draw_line(r->ctx, GPoint(x0, y_free), GPoint(x0, y_base));  // left wall
                 graphics_draw_line(r->ctx, GPoint(x1, y_free), GPoint(x1, y_base));  // right wall
@@ -325,13 +300,8 @@ static void chart_draw_bar_marks(const ChartRender *r, const ChartLineLayer *l) 
     const int   inner_h     = c.size.h - l->inset_top - l->inset_bottom;
     const int   range       = l->hi - l->lo;
     const int   w           = l->width;
-#if defined(WW_LINE_STYLE)
     const bool  is_x        = l->style == CHART_LINE_X;
     const int   half        = w / 2;                   // x arm reach; box = 2*half + 1
-#else
-    const bool  is_x        = false;                   // every x arm below folds out
-    const int   half        = 0;
-#endif
     // Dot height is hardcoded (not derived from width), and keyed on how loud
     // the mark's COLOR is — the watch is metric-agnostic, it only ever receives
     // a color.
@@ -348,14 +318,10 @@ static void chart_draw_bar_marks(const ChartRender *r, const ChartLineLayer *l) 
     // B&W is a fixed 3px, and the color arm is compiled out rather than merely
     // constant-folded: theme_pick/theme_is_bw exist so that no color GColor8 constant
     // is referenced in a B&W image at all (theme.h).
-#ifdef PBL_COLOR
     const bool  achromatic  = gcolor_equal(l->color, theme_fg())
                               || gcolor_equal(l->color, GColorLightGray)
                               || gcolor_equal(l->color, GColorDarkGray);
     const int   dot_h       = theme_is_bw() ? 3 : (achromatic ? 2 : 4);
-#else
-    const int   dot_h       = 3;
-#endif
     if (is_x) {
         graphics_context_set_stroke_color(r->ctx, l->color);
         graphics_context_set_stroke_width(r->ctx, 1);
@@ -379,7 +345,6 @@ static void chart_draw_bar_marks(const ChartRender *r, const ChartLineLayer *l) 
                 // survives over the checkerboard area fill / an fg bar segment and
                 // is a no-op everywhere else.
                 graphics_context_set_fill_color(r->ctx, theme_bg());
-#if defined(PBL_PLATFORM_EMERY)
                 // emery: where the pitch leaves no free column between two x boxes (the
                 // long forecast: a 3 px box at a 3 px pitch) the backing keeps to the
                 // box's own columns, or each x would erase its left neighbour's arm. At
@@ -388,10 +353,6 @@ static void chart_draw_bar_marks(const ChartRender *r, const ChartLineLayer *l) 
                 graphics_fill_rect(r->ctx, GRect(cx - half - mx, cy - half - 1,
                                                  2 * half + 1 + 2 * mx, 2 * half + 3),
                                    0, GCornerNone);
-#else
-                graphics_fill_rect(r->ctx, GRect(cx - half - 1, cy - half - 1,
-                                                 2 * half + 3, 2 * half + 3), 0, GCornerNone);
-#endif
             }
             graphics_draw_line(r->ctx, GPoint(cx - half, cy - half), GPoint(cx + half, cy + half));
             graphics_draw_line(r->ctx, GPoint(cx - half, cy + half), GPoint(cx + half, cy - half));
@@ -468,19 +429,8 @@ static void chart_render_line(const ChartRender *r, const ChartLineLayer *l) {
         if (run == 0) { break; }
         i = start + run;
         if (run >= 2) {
-#ifdef PBL_PLATFORM_APLITE
-            // aplite: stroke the open polyline segment-by-segment instead of via a
-            // GPath. gpath_draw_outline_open allocates a transient transformed-points
-            // buffer that OOMs on aplite's ~2.7 KB boot heap (gpath.c "Unable to
-            // allocate memory for GPath call"); graphics_draw_line is allocation-free
-            // and identical at the 1 px B/W stroke this chart uses.
-            for (int k = start; k + 1 < start + run; ++k) {
-                graphics_draw_line(r->ctx, pts[k], pts[k + 1]);
-            }
-#else
             GPath path = { .num_points = (uint32_t)run, .points = &pts[start] };
             gpath_draw_outline_open(r->ctx, &path);
-#endif
         } else if (run == 1) {
             // A lone reading between two gaps can't form a line; mark it with a
             // small filled square so the value isn't silently dropped. (A JOIN line
@@ -532,7 +482,6 @@ static void chart_render_hatch(const ChartRender *r, const ChartHatchLayer *hl) 
             continue;
         }
         if (hl->contour == NULL) {
-#if defined(WW_LINE_STYLE)
             // The rows above the content first, as bare dots (no-op when extend_top
             // is 0). The phase is absolute (x + y), so they run on seamlessly into
             // the content's hatch below. No B&W backing: nothing lies under these
@@ -540,7 +489,6 @@ static void chart_render_hatch(const ChartRender *r, const ChartHatchLayer *hl) 
             // into the content, over a fill the layers before this one drew there.
             hatch_fill_rect_raw(ctx, GRect(x0, y_top - hl->extend_top, x1 - x0, hl->extend_top),
                                 hl->hatch_color, hl->spacing);
-#endif
             hatch_fill_rect(ctx, GRect(x0, y_top, x1 - x0, c.size.h),
                             hl->hatch_color, hl->spacing);
             continue;
@@ -552,7 +500,7 @@ static void chart_render_hatch(const ChartRender *r, const ChartHatchLayer *hl) 
         // underlay's colour itself, since hatch_fill_rect's B&W backing (a bw theme)
         // changes the fill colour, whatever has_underlay the caller passed. Colour
         // builds only: no caller asks for an underlay on B&W hardware.
-        const bool underlay = PBL_IF_COLOR_ELSE(hl->has_underlay, false);
+        const bool underlay = hl->has_underlay;
         for (int16_t x = x0; x < x1; ++x) {
             int h = chart_flip_h(zero, dir,
                                  chart_contour_y_for_x(hl->contour, hl->contour_count, x));
@@ -594,7 +542,6 @@ static void chart_render_area(const ChartRender *r, const ChartAreaLayer *a) {
                         CHART_VERTEX_Y(zero, dir, h, a->values[i] > a->lo));
     }
 
-#ifdef PBL_COLOR
     // The phone sends a flat GColorLightGray fill_color for bw themes (see
     // forecast-series.js FILL_COLORS' bw entries); real B&W hardware dithers that
     // in silicon, but color hardware just paints it flat gray. Reproduce the
@@ -621,33 +568,15 @@ static void chart_render_area(const ChartRender *r, const ChartAreaLayer *a) {
                 hatch_fill_rect_raw(r->ctx, col, theme_fg(), 2);
             }
         }
-#if defined(PBL_PLATFORM_EMERY)
         // emery: the outline's closing vertex, as the GPath arm below exports it: this
         // fill stops at the last vertex, so its outline drops straight to the zero row
         // there. A contour hatch that reads count + 1 points (the forecast's night
         // re-shade, whose bands reach past the last vertex on emery) ends where it does.
         pts[count] = GPoint(x_hi, zero);
-#endif
         return;
     }
-#endif
 
     graphics_context_set_fill_color(r->ctx, a->fill_color);
-#ifdef PBL_PLATFORM_APLITE
-    const int plot_bottom = c.origin.y + c.size.h;   // aplite has no Top: its zero row
-    // aplite: fill the area under the contour with 1 px columns rather than a GPath.
-    // gpath_draw_filled allocates a transient buffer that OOMs on aplite's ~2.7 KB
-    // heap (gpath.c "Unable to allocate memory for GPath call"); graphics_fill_rect
-    // is allocation-free and still dithers the fill colour, so the shade is identical.
-    const int16_t x_lo = pts[0].x;
-    const int16_t x_hi = pts[count - 1].x;
-    for (int16_t x = x_lo; x <= x_hi; ++x) {
-        const int16_t y = chart_contour_y_for_x(pts, count, x);
-        if (y < plot_bottom) {
-            graphics_fill_rect(r->ctx, GRect(x, y, 1, plot_bottom - y), 0, GCornerNone);
-        }
-    }
-#else
     // Close the path on the zero row: under the axis standing; hanging, the row above
     // the plot (clipped, or the lower gap row under a top stripe band).
     pts[count]     = GPoint(chart_slot_tick_x(&r->geo, r->def->num_slots), zero);
@@ -655,10 +584,8 @@ static void chart_render_area(const ChartRender *r, const ChartAreaLayer *a) {
 
     GPath path = { .num_points = (uint32_t)(count + 2), .points = pts };
     gpath_draw_filled(r->ctx, &path);
-#endif
 }
 
-#if defined(WW_LINE_STYLE) || defined(WW_RAIN_RADAR)
 // One stripe cell shaded for its level (chart_stripe.h). Colour: an opaque
 // background->colour tint with full-colour vertical lines that tighten with the
 // level. B&W: a theme_bg() cell dithered with theme_fg() — on real B&W builds
@@ -684,7 +611,6 @@ void chart_stripe_fill_cell(GContext *ctx, GRect cell, GColor color, int level) 
         }
         return;
     }
-#if defined(PBL_COLOR)
     graphics_context_set_fill_color(ctx, (GColor){ .argb =
         chart_stripe_blend(theme_bg().argb, color.argb, chart_stripe_tint_level(level)) });
     graphics_fill_rect(ctx, cell, 0, GCornerNone);
@@ -696,13 +622,8 @@ void chart_stripe_fill_cell(GContext *ctx, GRect cell, GColor color, int level) 
             }
         }
     }
-#else
-    (void)color;
-#endif
 }
-#endif
 
-#if defined(WW_LINE_STYLE)
 // One cell per slot, a full pitch wide (tick to tick, so the band reads as one
 // continuous strip under the bar columns), shaded by the value's level
 // (chart_stripe_fill_cell).
@@ -720,7 +641,6 @@ static void chart_render_stripe(const ChartRender *r, const ChartStripeLayer *s)
             s->color, chart_stripe_level(s->values[i], s->lo, s->hi));
     }
 }
-#endif
 
 void chart_draw(GContext *ctx, const ChartDef *def, GRect outer,
                 const ChartLayer *layers, int num_layers) {
@@ -732,13 +652,11 @@ void chart_draw(GContext *ctx, const ChartDef *def, GRect outer,
     };
     for (int i = 0; i < num_layers; ++i) {
         const ChartLayer *l = &layers[i];
-#if defined(WW_LINE_STYLE)
         // This layer's zero row and direction (chart_flip.h): standing on the content's
         // bottom, or hanging from its top. FRAME, AXIS and STRIPE ignore both.
         r.zero = (int16_t)chart_flip_zero(l->from_top, r.geo.content.origin.y,
                                           r.geo.content.origin.y + r.geo.content.size.h);
         r.dir  = (int8_t)chart_flip_dir(l->from_top);
-#endif
         switch (l->type) {
             case CHART_LAYER_FRAME:
                 graph_frame_draw(ctx, l->frame.frame, outer);
@@ -762,9 +680,7 @@ void chart_draw(GContext *ctx, const ChartDef *def, GRect outer,
                 chart_render_hatch(&r, &l->hatch);
                 break;
             case CHART_LAYER_STRIPE:
-#if defined(WW_LINE_STYLE)
                 chart_render_stripe(&r, &l->stripe);
-#endif
                 break;
         }
     }

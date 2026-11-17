@@ -172,19 +172,15 @@ void status_row_set_full_date(StatusRow *row, bool full_date) {
     if (row) { s_last_full_date[row->line_id] = full_date; }
 }
 
-#if defined(PBL_HEALTH)
 uint8_t status_row_live_health(const StatusRow *row) {
     return row ? s_live_health[row->line_id] : 0;
 }
-#endif
 
-#if defined(WW_ON_DEMAND)
 static bool s_uses_on_demand[STATUS_LINE_COUNT];
 
 bool status_row_uses_on_demand(const StatusRow *row) {
     return row && s_uses_on_demand[row->line_id];
 }
-#endif
 
 // --- helpers -----------------------------------------------------------------
 
@@ -320,7 +316,6 @@ static void tier_and_full_date_are_change_gated(void) {
     ViewSpec nocal = spec_of(0, STATUS_SRC_FORECAST, STATUS_SRC_NONE, LAYOUT_TIER_NONE);
     status_bar_apply_view(&nocal, &L);
     expect_int("nocal.full_date", s_last_full_date[fc], 1);
-#if defined(WW_VIEW_CYCLE)
     // Colour watches: a radar top carries 3 calendar rows (it compiles at the full
     // tier) but draws no calendar — the full date, not the month.
     ViewSpec cal3 = spec_of(3, STATUS_SRC_FORECAST, STATUS_SRC_NONE, LAYOUT_TIER_FULL);
@@ -330,12 +325,10 @@ static void tier_and_full_date_are_change_gated(void) {
     radar_top.top = TOP_BAND_RADAR;
     status_bar_apply_view(&radar_top, &L);
     expect_int("radar_top.full_date", s_last_full_date[fc], 1);
-#endif
 
     status_bar_destroy_all();
 }
 
-#if defined(PBL_HEALTH)
 // Visible = not hidden: the bars a view shows are the ones status_bar_apply_view left
 // unhidden, so each case applies its view first.
 static void live_health_gate(void) {
@@ -380,9 +373,7 @@ static void live_health_gate(void) {
     memset(s_live_health, 0, sizeof(s_live_health));
     expect_int("destroy.live_health_false", status_bar_visible_live_health(), 0);
 }
-#endif
 
-#if defined(WW_ON_DEMAND)
 // The minute tick (and a radar rescan, and a Bluetooth or battery change) must reach
 // On demand items in ANY visible bar — Quiet time and the rain alert are re-derived
 // only by a refresh — and nothing else: a bar without items, or one the view on screen
@@ -429,17 +420,13 @@ static void tick_on_demand_refreshes_visible_item_bars(void) {
     status_bar_tick_on_demand();
     expect_int("on_demand.shown_again_refreshed", s_refresh_count[fc], 1);
 
-#if defined(PBL_HEALTH)
     // Independent of the live-health gate in both directions.
     expect_int("on_demand.not_live_health", status_bar_visible_live_health(), 0);
-#endif
 
     status_bar_destroy_all();
     memset(s_uses_on_demand, 0, sizeof(s_uses_on_demand));
 }
-#endif
 
-#if defined(WW_RAIN_RADAR)
 // The radar bar is the one that had no test before — and the one carrying the bug.
 static void radar_bar_is_a_first_class_bar(void) {
     Layer parent = {0};
@@ -464,7 +451,6 @@ static void radar_bar_is_a_first_class_bar(void) {
     // the radar bar into the health-refresh set. The old radar owner had no
     // uses-live-health accessor, so it never refreshed on a health update and a
     // Steps slot there froze for an unbounded time.
-#if defined(PBL_HEALTH)
     status_bar_apply_view(&spec, &L);
     s_live_health[rd] = 1;
     expect_int("radar.live_health_seen", status_bar_visible_live_health(), 1);
@@ -478,14 +464,11 @@ static void radar_bar_is_a_first_class_bar(void) {
     ViewSpec radar_only = spec_of(2, STATUS_SRC_RADAR, STATUS_SRC_NONE, LAYOUT_TIER_FULL);
     status_bar_apply_view(&radar_only, &L);
     expect_int("radar.hidden_bar_reads_none", status_bar_visible_live_health(), 1);
-#endif
 
     status_bar_destroy_all();
     memset(s_live_health, 0, sizeof(s_live_health));
 }
-#endif
 
-#if defined(PBL_HEALTH)
 // The Health bar sits in its band like every other bar: 3.0.0 dropped the 2 px it used to
 // give up in the dual-row compact view. A band that moves still repaints through the SDK's
 // own frame-change dirty (emulated by the stub's layer_set_frame), and the row's bounds are
@@ -573,9 +556,7 @@ static void health_bar_refreshes_like_every_bar(void) {
     status_bar_destroy_all();
     memset(s_live_health, 0, sizeof(s_live_health));
 }
-#endif
 
-#if defined(PBL_PLATFORM_EMERY)
 // emery: bars 4 to 6 are bars like the three: each its own layer and line, framed to the
 // band its source takes, hidden on a view that names none of it, drawn through its own
 // trampoline, in the live-health and On demand sets by the same rules.
@@ -628,9 +609,7 @@ static void extra_bars_are_bars_too(void) {
     status_bar_destroy_all();
     memset(s_live_health, 0, sizeof(s_live_health));
 }
-#endif
 
-#if defined(WW_VIEW_CYCLE)
 // A bar no configured view shows is never read (status_bar_set_in_use): create_all, the
 // reframe and every refresh pass it by, so its row stays empty; it is read again the moment
 // a view shows it, with the facts its band got meanwhile.
@@ -646,25 +625,18 @@ static void unused_bars_are_never_read(void) {
     MainLayout L = layout_of(GRect(0, 4, 144, 20), GRect(0, 90, 144, 16));
     status_bar_create_all(&parent, &spec, &L);
     expect_int("unused.forecast_read", s_refresh_count[fc], 1);
-#if defined(WW_RAIN_RADAR)
     const int rd = STATUS_LINE_RADAR;
     expect_int("unused.radar_not_seated", s_apply_count[rd], 0);
     expect_int("unused.radar_not_read", s_refresh_count[rd], 0);
-#endif
-#if defined(PBL_HEALTH)
     const int hl = STATUS_LINE_HEALTH;
     expect_int("unused.health_not_read", s_apply_count[hl] + s_refresh_count[hl], 0);
-#endif
-#if defined(PBL_PLATFORM_EMERY)
     expect_int("unused.extra_not_read", s_refresh_count[STATUS_LINE_BAR4] + s_refresh_count[STATUS_LINE_BAR5]
                + s_refresh_count[STATUS_LINE_BAR6], 0);
-#endif
 
     // The weather / settings checkpoint reads the bar in use alone.
     reset_records();
     status_bar_refresh_all();
     expect_int("unused.refresh_all_forecast", s_refresh_count[fc], 1);
-#if defined(PBL_HEALTH)
     expect_int("unused.refresh_all_skips_health", s_refresh_count[hl], 0);
 
     // A full-tier view: the reframe reads the bar in use and passes the Health bar by.
@@ -693,30 +665,20 @@ static void unused_bars_are_never_read(void) {
     status_bar_refresh_all();
     expect_int("left.forecast_not_read", s_refresh_count[fc], 0);
     expect_int("left.health_read", s_refresh_count[hl], 1);
-#endif
 
     // destroy_all puts every bar back in use for the next window.
     status_bar_destroy_all();
     reset_records();
     status_bar_create_all(&parent, &spec, &L);
     expect_int("destroy.forecast_in_use_again", s_refresh_count[fc], 1);
-#if defined(PBL_HEALTH)
     expect_int("destroy.health_in_use_again", s_refresh_count[hl], 1);
-#endif
     status_bar_destroy_all();
 }
-#endif
 
 // The compact enum is the whole aplite story: without radar and health there is
 // exactly ONE bar, and every loop in status_bar.c folds to today's single-row code.
 static void bar_count_matches_platform(void) {
-#if defined(PBL_PLATFORM_EMERY)
     expect_int("bar_count.emery", STATUS_BAR_COUNT, 6);
-#elif defined(WW_RAIN_RADAR) && defined(PBL_HEALTH)
-    expect_int("bar_count.evolving", STATUS_BAR_COUNT, 3);
-#elif !defined(WW_RAIN_RADAR) && !defined(PBL_HEALTH)
-    expect_int("bar_count.aplite", STATUS_BAR_COUNT, 1);
-#endif
 }
 
 int main(void) {
@@ -724,25 +686,13 @@ int main(void) {
     create_wires_every_bar_in_order();
     apply_view_assigns_bands_and_visibility();
     tier_and_full_date_are_change_gated();
-#if defined(PBL_HEALTH)
     live_health_gate();
-#endif
-#if defined(WW_ON_DEMAND)
     tick_on_demand_refreshes_visible_item_bars();
-#endif
-#if defined(WW_RAIN_RADAR)
     radar_bar_is_a_first_class_bar();
-#endif
-#if defined(PBL_HEALTH)
     health_bar_sits_in_its_band();
     health_bar_refreshes_like_every_bar();
-#endif
-#if defined(PBL_PLATFORM_EMERY)
     extra_bars_are_bars_too();
-#endif
-#if defined(WW_VIEW_CYCLE)
     unused_bars_are_never_read();
-#endif
     if (s_failures) {
         printf("%d status_bar failure(s)\n", s_failures);
         return 1;

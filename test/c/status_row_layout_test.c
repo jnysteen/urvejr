@@ -595,18 +595,9 @@ static void highlight_extent_is_font_sized(void) {
     // Plain digits get 0/0 on both: the screen edge pins the top stroke directly over
     // the first ink row, so 0 is the most air a box can mirror there without moving
     // the line (1/1 would need STATUS_TOP_STRIP_LIFT 1 — a text move, not a box one).
-#ifdef PBL_PLATFORM_EMERY
     expect_extent("hl.strip", 0, 21, 10 - STATUS_TOP_STRIP_LIFT, 24, true, false, 0, 16);
     expect_extent("hl.strip.tail", 0, 21, 10 - STATUS_TOP_STRIP_LIFT, 24, true, true, 0, 19);
     expect_air("air.strip", 0, 21, 10 - STATUS_TOP_STRIP_LIFT, 24, true, 0, 0);
-#else
-    // The owner's complaint: box rows 0..11 around digit ink on rows 1..11 — the top
-    // stroke flush on the digits and the bottom stroke ON their last row (-1). One
-    // more row below (the floor allows two) puts the stroke just clear: 0/0.
-    expect_extent("hl.strip", 0, 17, 8 - STATUS_TOP_STRIP_LIFT, 18, true, false, 0, 13);
-    expect_extent("hl.strip.tail", 0, 17, 8 - STATUS_TOP_STRIP_LIFT, 18, true, true, 0, 14);
-    expect_air("air.strip", 0, 17, 8 - STATUS_TOP_STRIP_LIFT, 18, true, 0, 0);
-#endif
 
     // Out of rows below: a no-tail box gives the top the same cut, so the air stays
     // equal. Gothic 18 at cap_cy 10 in a 17-row band (ink rows 5..15): the bottom

@@ -15,7 +15,6 @@
 // PBL_COLOR only (the capability macro: a 1-bit screen has no alpha to blend with), so on the
 // B/W platforms this header declares nothing, clock_glyphs.c compiles to an empty unit, and
 // every call site is guarded the same way.
-#if defined(PBL_COLOR)
 
 // Whether `time_font` draws through the glyph images: Roboto and Bitham, not LECO. Their ink
 // heights, which the layout solver seats the band with, are in clock_glyphs_ink.h.
@@ -34,4 +33,3 @@ int16_t clock_glyphs_width(int16_t time_font, const char *text);
 void clock_glyphs_draw(GContext *ctx, int16_t time_font, const char *text, GPoint origin,
                        GColor color);
 
-#endif

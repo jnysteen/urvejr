@@ -5,7 +5,6 @@
 #include <pebble.h>
 #include "theme.h"
 
-#if defined(WW_THEME_POLARITY)
 
 bool theme_is_light(void) {
     return config_get()->theme == 1 || config_get()->theme == 3;
@@ -23,7 +22,6 @@ GColor theme_furniture(GColor gray) {
     return theme_is_light() ? GColorBlack : gray;
 }
 
-#ifdef PBL_COLOR
 bool theme_is_bw(void) {
     return config_get()->theme == 2 || config_get()->theme == 3;
 }
@@ -31,6 +29,4 @@ bool theme_is_bw(void) {
 GColor theme_pick(GColor color_arm, GColor bw_arm) {
     return theme_is_bw() ? bw_arm : color_arm;
 }
-#endif
 
-#endif

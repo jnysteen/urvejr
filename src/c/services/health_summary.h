@@ -4,7 +4,6 @@
 
 // Exists only on health-capable hardware; aplite (no sensors) compiles the whole
 // module and its call sites out, mirroring health.c / health_cache.c.
-#if defined(PBL_HEALTH)
 
 // The readings a status slot can show, one bit each: what a row reports for its slots
 // (status_row_live_health) and what health_summary_sync reads.
@@ -50,4 +49,3 @@ int health_summary_sleep_seconds(void);
 /** Most recent live heart rate in BPM (0 if none). */
 int health_summary_hr_bpm(void);
 
-#endif  // PBL_HEALTH

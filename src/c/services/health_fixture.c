@@ -16,7 +16,6 @@
 // graph's HR line stays absent (health_cache.c maps a 0 reading to CHART_ABSENT, so the
 // line draws nothing). This keeps non-emery showcase frames honest to what a real
 // non-emery user sees.
-#if defined(PBL_HEALTH)
 
 #define HOUR_SECS 3600
 
@@ -24,21 +23,17 @@
 #define FIXTURE_STEPS_TODAY   8432
 #define FIXTURE_DISTANCE_M    6324                        // ~0.75 m/step over the canned steps
 #define FIXTURE_SLEEP_SECONDS (7 * HOUR_SECS + 12 * 60)   // 7 h 12 m
-#ifdef PBL_PLATFORM_EMERY
 #define FIXTURE_HR_CURRENT    72
-#endif
 
 // Per-hour-of-day canned curves for the hourly fills (graph). Indexed by tm_hour.
 static const int16_t s_step_curve[24] = {
     0, 0, 0, 0, 0, 0, 120, 300, 650, 500, 400, 700,
     900, 600, 450, 500, 800, 1200, 700, 300, 150, 60, 0, 0,
 };
-#ifdef PBL_PLATFORM_EMERY
 static const int16_t s_hr_curve[24] = {
     58, 56, 55, 54, 55, 57, 62, 70, 75, 72, 74, 78,
     80, 76, 72, 74, 79, 85, 78, 72, 68, 64, 60, 59,
 };
-#endif
 
 bool health_available(void) {
     return true;
@@ -62,11 +57,7 @@ int health_sleep_today_seconds(void) {
 }
 
 int health_hr_current(void) {
-#ifdef PBL_PLATFORM_EMERY
     return FIXTURE_HR_CURRENT;
-#else
-    return 0;   // no HRM off emery — real non-emery hardware reports no reading
-#endif
 }
 
 // WW_HEALTH_FIXTURE=low (wscript): a quiet day for the graph's step axis, the same curve
@@ -89,18 +80,11 @@ void health_fill_hourly_steps(int16_t *out, int count, time_t end_hour) {
 }
 
 void health_fill_hourly_hr(int16_t *out, int count, time_t end_hour) {
-#ifdef PBL_PLATFORM_EMERY
     for (int i = 0; i < count; ++i) {
         time_t t = end_hour - (time_t)(count - 1 - i) * HOUR_SECS;
         struct tm *lt = localtime(&t);
         out[i] = s_hr_curve[lt->tm_hour % 24];
     }
-#else
-    // No HRM off emery: fill 0 (no reading) for every hour. health_cache.c maps a 0
-    // reading to CHART_ABSENT, so the graph's HR line draws nothing — as on real hardware.
-    (void)end_hour;
-    for (int i = 0; i < count; ++i) { out[i] = 0; }
-#endif
 }
 
 void health_fill_hourly_sleep(uint8_t *state_out, int count, time_t end_hour) {
@@ -117,4 +101,3 @@ void health_fill_hourly_sleep(uint8_t *state_out, int count, time_t end_hour) {
     }
 }
 
-#endif  // PBL_HEALTH

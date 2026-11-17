@@ -9,23 +9,19 @@ typedef enum {
     SERIES_FIRST = 0,   // temperature: always on, fixed scale, fixed color, axis chrome
     SERIES_SECOND,      // configurable metric line (+ optional area fill)
     SERIES_THIRD,       // configurable metric, bar-aligned marks (dots by default)
-#if defined(WW_LINE_STYLE)
     SERIES_FOURTH,      // configurable metric, bar-aligned marks (x by default).
                         // aplite compiles the slot out (frozen-lean fork): its
                         // dataset stays four Series and SERIES_BARS shifts down —
                         // safe, SeriesId values are compile-time only, never persisted.
     SERIES_FIFTH,       // configurable metric ("Fourth metric"), x marks by
                         // default. Same feature set as FOURTH, compiled out alike.
-#endif
     SERIES_BARS,        // rain bars, multi-stop palette
     SERIES_COUNT,
-#if defined(PBL_PLATFORM_EMERY)
     // emery: the graph styles' spare trend (graph_style.h GS_TREND_SPARE), a metric row no
     // line of its own draws: a graph style's line reads it through its record's map. An id
     // for the persist and AppMessage calls only, past the dataset's series, so never a
     // Series of ForecastDataset (its loops stop at SERIES_COUNT).
     SERIES_SPARE = SERIES_COUNT,
-#endif
 } SeriesId;
 
 // The half-open range [SERIES_THIRD, SERIES_BARS) is the platform-correct set
@@ -37,31 +33,23 @@ typedef enum {
 // the SeriesLine; aplite loads the caller's frozen constant as an immediate
 // (its styles are fixed and the runtime read would be dead bytes against the
 // exactly-full image ceiling — scripts/check-aplite-size.sh).
-#if defined(WW_LINE_STYLE)
 #define series_style_pick(line, frozen) ((line).style)
-#else
-#define series_style_pick(line, frozen) (frozen)
-#endif
 
 typedef struct {                       // FIRST / SECOND / THIRD (/ FOURTH / FIFTH)
     int16_t values[FORECAST_MAX_ENTRIES];
     GColor  color;                      // stroke (resolved at load)
-#if defined(WW_LINE_STYLE)
     bool    floating;                   // LINE_STYLE_FLOATING: anchors no plot edge (pressure,
                                         // feels, dew). Clear, a line, marks or fill drawn
                                         // from an edge anchors it, and the temperature curve
                                         // pads off that edge (temp_axis_pad.h). Set, its byte 0
                                         // is a missing reading (fit_temp_axis keeps it 0).
                                         // Sits in the padding before `width`.
-#endif
     int     width;                      // stroke px (SOLID) / mark box px (DOTS, X)
     int     inset_y;                    // px: FIRST's fixed inset; a temp-axis metric line (feels, dew) shares it, else 0
     uint8_t style;                      // ChartLineStyle — metric lines only, FIRST stays SOLID
-#if defined(WW_LINE_STYLE)
     bool    from_top;                   // stripe: in the top band (else the bottom one);
                                         // any other style: hangs from the plot's top
                                         // ("Draw from: Top", line_style_top_edge)
-#endif
     bool    fill_on;                    // SECOND only
     GColor  fill_color;                 // SECOND only (B&W override already applied)
 } SeriesLine;

@@ -37,11 +37,7 @@
 // measured content height for a Gothic font is exactly its nominal size (verified on device
 // at 14 / 18 / 24), so the band below can be sized from this number and layout.c stays free
 // of SDK font calls (see test/c/stub/pebble.h).
-#ifdef PBL_PLATFORM_EMERY
 #define STATUS_LARGE_FONT_H 24
-#else
-#define STATUS_LARGE_FONT_H 18
-#endif
 // The band those rows need: the shortest height at which status_seat_y()'s descender clamp
 // stops LIFTING the line off the band centre (17 here, 21 on emery — constant-folded, the
 // argument is a literal). Under it the row reads high and its gaps to the calendar above /
@@ -81,7 +77,6 @@
 // forecast graph keep exactly the pixels they had. Before the strip's band became
 // font-derived the two numbers were one (strip_h was CALENDAR_STATUS_HEIGHT + 1, the +1 a
 // fudge for the descender tails that the font-derived height now covers properly).
-#ifdef PBL_PLATFORM_EMERY
 // emery: pad the window and give the taller screen a taller strip/status/none bands.
 #define LAYOUT_PAD_X 2
 #define LAYOUT_PAD_TOP 2
@@ -107,19 +102,6 @@
 // to the unlifted `time_y`, which is a plain local the solver never touches.
 #define COMPACT_LONE_ROW_INK_LIFT 0
 #define COMPACT_DENSE_ROW_INK_LIFT 1
-#else
-#define LAYOUT_PAD_X 0
-#define LAYOUT_PAD_TOP 0
-#define LAYOUT_PAD_BOTTOM 0
-#define CALENDAR_STATUS_HEIGHT 13
-// none: status band sized for the one-notch-larger Gothic-24 line (tune visually).
-#define NONE_STATUS_HEIGHT 22
-// 144px: the same audit measured compactCal's lone row already centred, so no lone lift. Only
-// the dense upper row sat high (3 above / 6 below its Gothic-14 ink); a negative lift drops it
-// to 4 / 5. As on emery, the clock's own lifts are gone — see the note in the other arm.
-#define COMPACT_LONE_ROW_INK_LIFT 0
-#define COMPACT_DENSE_ROW_INK_LIFT (-1)
-#endif
 
 // ── Strip-adjacent seats ────────────────────────────────────────────────────
 // Two rows the engine seats against the strip — the clock centred under it and the
@@ -303,7 +285,6 @@ void view_spec_apply_ext(ViewSpec *s, uint16_t ext) {
     s->top_size  = (uint8_t)((ext >> 3) & 7);
     s->top_kind  = (uint8_t)((ext >> 6) & 1);
     s->align     = (uint8_t)((ext >> 7) & 3);
-#if defined(PBL_PLATFORM_EMERY)
     // emery: bars 4 to 6 ride a row's source plus 3 (layout.h VIEW_EXT_UPPER_BAR_HI); on a
     // row that is off the bit is ignored, so the row stays off. Applied once: unpack set
     // the rows from the packed value, which never names a source above 3.
@@ -315,7 +296,6 @@ void view_spec_apply_ext(ViewSpec *s, uint16_t ext) {
             && s->status_lower <= STATUS_SRC_HEALTH) {
         s->status_lower += 3;
     }
-#endif
     spec_normalise_ext(s);
     // A sized radar/graph top changes the top area's rows, and so the rows' tier.
     s->status_tier = status_tier_for(s);
@@ -385,7 +365,6 @@ LayerVisibility layout_visibility(const ViewSpec *spec) {
     return v;
 }
 
-#if defined(WW_QUICK_VIEW)
 // Excluded on aplite (Timeline Quick View is compiled out there via WW_QUICK_VIEW, see
 // wscript) so aplite's layout code pays nothing for a view it never renders.
 MainLayout layout_compute_peek(GRect bounds, const ViewSpec *spec, LayoutMetrics m) {
@@ -440,7 +419,6 @@ MainLayout layout_compute_peek(GRect bounds, const ViewSpec *spec, LayoutMetrics
                : L.bottom.origin.y);
     return L;
 }
-#endif
 
 // ── The geometry engine ─────────────────────────────────────────────────────
 // ONE engine for every view — presets, order-0 custom views and every stacked order. A
@@ -861,7 +839,6 @@ MainLayout layout_compute_spec(GRect bounds, const ViewSpec *spec, LayoutMetrics
     return L;
 }
 
-#if defined(WW_VIEW_CYCLE)
 // ── View-cycle cursor (pure) ─────────────────────────────────────────────────
 
 bool view_slot_available(uint32_t word, bool has_radar, bool has_health) {
@@ -920,4 +897,3 @@ bool view_auto_return_due(int32_t now, int32_t flick_since, uint8_t reset_min) {
     if (reset_min == 0) { return false; }
     return (now - flick_since) >= (int32_t) reset_min * 60;
 }
-#endif  // WW_VIEW_CYCLE

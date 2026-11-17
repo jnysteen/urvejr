@@ -5,7 +5,6 @@
 #include "battery_item.h"
 #include "battery_draw.h"
 
-#if defined(WW_ON_DEMAND)
 
 // The body is about 1.7 times as wide as it is high — the Watch battery slot's body
 // (17 x 10) at every tier.
@@ -42,4 +41,3 @@ void battery_item_draw(GContext *ctx, GPoint origin, int h, int level, bool char
     battery_body_draw(ctx, GPoint(x, origin.y), body_w(h), h, level, fg);
 }
 
-#endif

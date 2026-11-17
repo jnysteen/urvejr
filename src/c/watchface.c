@@ -19,9 +19,7 @@ static void init() {
     // reads that cache, and after boot only a radar payload rescans it (app_message.c).
     // Only where the Rain item is built (WW_ON_DEMAND: not aplite), the same guard as
     // that rescan.
-#if defined(WW_ON_DEMAND)
     rain_countdown_refresh(watch_services_now());
-#endif
     main_window_create();
     MEMORY_LOG_HEAP("after_main_window_create");
 }

@@ -1,48 +1,32 @@
 #!/usr/bin/env bash
-# Host-compiled C tests (no Pebble SDK): geometry goldens for src/c/windows/layout.c.
-# layout.c is compiled twice so both platform variants of the #ifdefs are covered.
-# PBL_HEALTH is defined so the dual-status carve compiles on the host.
+# Host-compiled C tests (no Pebble SDK). The watchface targets the Pebble Time 2 (emery) only,
+# so the sources carry no platform #ifdefs and each test is built once.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 mkdir -p build/host
-CFLAGS="-std=c11 -Wall -Wextra -Werror -DPBL_HEALTH -Itest/c/stub -Isrc"
-# WW_QUICK_VIEW / WW_CLOCK_INK are defined for every non-aplite platform (wscript); the host
-# layout test represents that evolving-platform build, so it exercises the peek view/layout and
-# the clock ink centring. The aplite twin build below deliberately defines neither.
-cc $CFLAGS -DWW_QUICK_VIEW -DWW_VIEW_CYCLE -DWW_CLOCK_INK test/c/layout_test.c src/c/windows/layout.c -o build/host/layout_test
-cc $CFLAGS -DWW_QUICK_VIEW -DWW_VIEW_CYCLE -DWW_CLOCK_INK -DPBL_PLATFORM_EMERY test/c/layout_test.c src/c/windows/layout.c -o build/host/layout_test_emery
+CFLAGS="-std=c11 -Wall -Wextra -Werror -Itest/c/stub -Isrc"
+
+# Geometry goldens for src/c/windows/layout.c.
+cc $CFLAGS test/c/layout_test.c src/c/windows/layout.c -o build/host/layout_test
 build/host/layout_test "${1:-}"
-build/host/layout_test_emery "${1:-}"
 # The phone's fit check (view-cycle.js stackNeed) must measure every custom shape exactly as
 # the watch's layout engine lays it out, and the settings page's pictures of the watch
 # (view-cycle.js stackLayout) must put every band where the engine does: dump the engine's
-# block heights and band placements per screen family and compare them line by line
+# block heights and band placements per screen and compare them line by line
 # (scripts/check-fit-lockstep.js).
-cc $CFLAGS -DWW_QUICK_VIEW -DWW_VIEW_CYCLE -DWW_CLOCK_INK test/c/fit_lockstep_dump.c src/c/windows/layout.c -o build/host/fit_lockstep_dump
-cc $CFLAGS -DWW_QUICK_VIEW -DWW_VIEW_CYCLE -DWW_CLOCK_INK -DPBL_PLATFORM_EMERY test/c/fit_lockstep_dump.c src/c/windows/layout.c -o build/host/fit_lockstep_dump_emery
-{ build/host/fit_lockstep_dump; build/host/fit_lockstep_dump_emery; } > build/host/fit_lockstep.txt
+cc $CFLAGS test/c/fit_lockstep_dump.c src/c/windows/layout.c -o build/host/fit_lockstep_dump
+build/host/fit_lockstep_dump > build/host/fit_lockstep.txt
 node scripts/check-fit-lockstep.js build/host/fit_lockstep.txt
-# Aplite lean twin: compiled exactly as the aplite platform build (no PBL_HEALTH,
-# no WW_QUICK_VIEW, no WW_VIEW_CYCLE), goldens equal layout_test.c's forecast cases.
-cc -std=c11 -Wall -Wextra -Werror -Itest/c/stub -Isrc -DPBL_PLATFORM_APLITE \
-   test/c/layout_aplite_test.c src/c/windows/layout_aplite.c -o build/host/layout_aplite_test
-build/host/layout_aplite_test
-# sizeof(Config) <= 64 (persist.c's change-compare buffer) for each platform arm of
-# config.h: the evolving build, emery (large_graph_font), and aplite (no PBL_HEALTH, no
-# !APLITE tail). A compile-time _Static_assert — the run just prints the size.
+# sizeof(Config) <= 64 (persist.c's change-compare buffer). A compile-time _Static_assert —
+# the run just prints the size.
 cc $CFLAGS test/c/config_size_test.c -o build/host/config_size_test
 build/host/config_size_test
-cc $CFLAGS -DPBL_PLATFORM_EMERY test/c/config_size_test.c -o build/host/config_size_test_emery
-build/host/config_size_test_emery
-cc -std=c11 -Wall -Wextra -Werror -Itest/c/stub -Isrc -DPBL_PLATFORM_APLITE \
-   test/c/config_size_test.c -o build/host/config_size_test_aplite
-build/host/config_size_test_aplite
 # The Bluetooth disconnect vibe (services/disconnect_vibe.h): a drop buzzes only while Quiet
 # Time is off.
 cc $CFLAGS test/c/disconnect_vibe_test.c -o build/host/disconnect_vibe_test
 build/host/disconnect_vibe_test
 # Timeline Quick View (services/quick_view.c): one re-render per show or hide, once it settles.
-cc $CFLAGS -DWW_QUICK_VIEW test/c/quick_view_test.c src/c/services/quick_view.c -o build/host/quick_view_test
+cc $CFLAGS test/c/quick_view_test.c src/c/services/quick_view.c -o build/host/quick_view_test
 build/host/quick_view_test
 cc $CFLAGS test/c/health_build_test.c src/c/services/health_build.c -o build/host/health_build_test
 build/host/health_build_test
@@ -60,52 +44,43 @@ cc $CFLAGS test/c/status_line_test.c src/c/appendix/status_line.c -o build/host/
 build/host/status_line_test
 cc $CFLAGS test/c/status_threshold_test.c src/c/appendix/status_threshold.c -o build/host/status_threshold_test
 build/host/status_threshold_test
-# The thresholds blob's On demand bytes: the item cells, their compiled defaults and the
-# Battery byte. Shares test/c/status_threshold_fixtures.h with the test above.
+# The thresholds blob's On demand bytes: the item cells, their compiled defaults, the
+# Battery byte and bars 4 to 6's cells behind the blob (THRESH_SCRATCH_BYTES). Shares
+# test/c/status_threshold_fixtures.h with the test above.
 cc $CFLAGS test/c/status_threshold_on_demand_test.c src/c/appendix/status_threshold.c \
    -o build/host/status_threshold_on_demand_test
 build/host/status_threshold_on_demand_test
-# Again for emery, whose bars 4 to 6 read their cells behind the blob (THRESH_SCRATCH_BYTES).
-cc $CFLAGS -DPBL_PLATFORM_EMERY test/c/status_threshold_on_demand_test.c \
-   src/c/appendix/status_threshold.c -o build/host/status_threshold_on_demand_test_emery
-build/host/status_threshold_on_demand_test_emery
 # The weather alerts' pure half (the entries' parse, item map and text lanes, and the
-# rain alert's text).
-# Its body sits behind WW_ON_DEMAND (wscript: every platform but aplite), so the flag
-# is required here or the module compiles to nothing and the test fails to link; its
-# companion WW_THRESHOLD_HIGHLIGHT too, which alert_set.h requires beside it (every
-# such platform has both). Linked with the thresholds blob reader the entry's box is
-# judged through.
-cc $CFLAGS -DWW_ON_DEMAND -DWW_THRESHOLD_HIGHLIGHT test/c/alert_set_test.c src/c/appendix/alert_set.c \
+# rain alert's text), linked with the thresholds blob reader the entry's box is judged
+# through.
+cc $CFLAGS test/c/alert_set_test.c src/c/appendix/alert_set.c \
    src/c/appendix/status_threshold.c -o build/host/alert_set_test
 build/host/alert_set_test
 # A tomorrow alert and a slot showing tomorrow's peak print the same mark: dump every
 # metric text lane the watch builds (per day code, value and values flag) and check
 # each against the phone's slot text (scripts/check-alert-lane-lockstep.js).
-cc $CFLAGS -DWW_ON_DEMAND -DWW_THRESHOLD_HIGHLIGHT test/c/alert_lane_dump.c src/c/appendix/alert_set.c \
+cc $CFLAGS test/c/alert_lane_dump.c src/c/appendix/alert_set.c \
    src/c/appendix/status_threshold.c -o build/host/alert_lane_dump
 build/host/alert_lane_dump > build/host/alert_lane.txt
 node scripts/check-alert-lane-lockstep.js build/host/alert_lane.txt
 # The long time span's label names the whole hours the watch shows: dump the watch's count
-# (forecast_span.h forecast_span_whole, emery only) for every long feed on every plot width
-# and check each against the settings page's rule (scripts/check-forecast-span-lockstep.js).
-cc $CFLAGS -DPBL_PLATFORM_EMERY test/c/forecast_span_dump.c -o build/host/forecast_span_dump
+# (forecast_span.h forecast_span_whole) for every long feed on every plot width and check
+# each against the settings page's rule (scripts/check-forecast-span-lockstep.js).
+cc $CFLAGS test/c/forecast_span_dump.c -o build/host/forecast_span_dump
 build/host/forecast_span_dump > build/host/forecast_span.txt
 node scripts/check-forecast-span-lockstep.js build/host/forecast_span.txt
-# The On demand layout (appendix/on_demand.c), in five tests sharing
-# test/c/on_demand_fixtures.h: the make-room ladder (one side, looks before slots, the
-# bleed, the drops, the invariants over random bars, down to "a quiet bar is the plain
-# row layout, byte for byte"); two sides at once (the shared middle, the drop order, the
-# far slot, the relax); the Battery stand-in; a weather alert merged into the slot on
-# its side (out while that slot shows, standing in where it hides); and which short
-# form a slot draws (the widest that fits with the gap to its neighbours, on either
-# side, the elastic city's floor, the real date/week/sun families from
-# status_short_text.h). The module's body sits behind WW_ON_DEMAND like alert_set.c's,
-# and it places its slots through the row layout it is linked with.
+# The On demand layout (appendix/on_demand.c), in tests sharing test/c/on_demand_fixtures.h:
+# the make-room ladder (one side, looks before slots, the bleed, the drops, the invariants
+# over random bars, down to "a quiet bar is the plain row layout, byte for byte"); two sides
+# at once (the shared middle, the drop order, the far slot, the relax); the Battery stand-in;
+# a weather alert merged into the slot on its side (out while that slot shows, standing in
+# where it hides); and which short form a slot draws (the widest that fits with the gap to
+# its neighbours, on either side, the elastic city's floor, the real date/week/sun families
+# from status_short_text.h). It places its slots through the row layout it is linked with.
 # on_demand_ladder_test.c includes the engine's source (its middle invariants measure
-# layouts through the engine's own eval()), so the other four link it. OD_TEST_PROBES
-# adds the ladder row each side ends on (OdLayout.stage), which the tests read and the
-# watch build leaves out.
+# layouts through the engine's own eval()), so the others link it. OD_TEST_PROBES adds the
+# ladder row each side ends on (OdLayout.stage), which the tests read and the watch build
+# leaves out.
 # The suites' bars, sweeps and pinned cases are laid out for a 4 px gap between slots
 # (status_row_layout.h STATUS_ROW_GROUP_GAP), the gap they were found at, and for a middle
 # that keeps no more air than that (STATUS_ROW_MIDDLE_GAP at the same 4 px places it as
@@ -114,40 +89,23 @@ node scripts/check-forecast-span-lockstep.js build/host/forecast_span.txt
 # run again at the watch's own gaps (OD_INVARIANTS_ONLY), with the items' tighter
 # OD_ITEM_GAP as the watch has it.
 OD_FIXTURE_GAP="-DSTATUS_ROW_GROUP_GAP=4 -DSTATUS_ROW_MIDDLE_GAP=4"
-cc $CFLAGS $OD_FIXTURE_GAP -DWW_ON_DEMAND -DOD_TEST_PROBES test/c/on_demand_ladder_test.c \
+cc $CFLAGS $OD_FIXTURE_GAP -DOD_TEST_PROBES test/c/on_demand_ladder_test.c \
    src/c/appendix/status_row_layout.c -o build/host/on_demand_ladder_test
 build/host/on_demand_ladder_test
-cc $CFLAGS -DWW_ON_DEMAND -DOD_TEST_PROBES -DOD_INVARIANTS_ONLY test/c/on_demand_ladder_test.c \
+cc $CFLAGS -DOD_TEST_PROBES -DOD_INVARIANTS_ONLY test/c/on_demand_ladder_test.c \
    src/c/appendix/status_row_layout.c -o build/host/on_demand_ladder_test_watch_gap
 build/host/on_demand_ladder_test_watch_gap
-cc $CFLAGS $OD_FIXTURE_GAP -DWW_ON_DEMAND -DOD_TEST_PROBES test/c/on_demand_sides_test.c src/c/appendix/on_demand.c \
-   src/c/appendix/status_row_layout.c -o build/host/on_demand_sides_test
-build/host/on_demand_sides_test
-cc $CFLAGS $OD_FIXTURE_GAP -DWW_ON_DEMAND -DOD_TEST_PROBES test/c/on_demand_battery_test.c src/c/appendix/on_demand.c \
-   src/c/appendix/status_row_layout.c -o build/host/on_demand_battery_test
-build/host/on_demand_battery_test
-cc $CFLAGS $OD_FIXTURE_GAP -DWW_ON_DEMAND -DOD_TEST_PROBES test/c/on_demand_merge_test.c src/c/appendix/on_demand.c \
-   src/c/appendix/status_row_layout.c -o build/host/on_demand_merge_test
-build/host/on_demand_merge_test
-cc $CFLAGS $OD_FIXTURE_GAP -DWW_ON_DEMAND -DOD_TEST_PROBES test/c/on_demand_short_test.c src/c/appendix/on_demand.c \
-   src/c/appendix/status_row_layout.c -o build/host/on_demand_short_test
-build/host/on_demand_short_test
-# The Rain alert's "Replaces the slot" (on_demand.h od_replace_slots): a side with a rain
-# alert lays out as though its own slot were empty; the metric alerts never take it.
-cc $CFLAGS $OD_FIXTURE_GAP -DWW_ON_DEMAND -DOD_TEST_PROBES test/c/on_demand_replace_test.c src/c/appendix/on_demand.c \
-   src/c/appendix/status_row_layout.c -o build/host/on_demand_replace_test
-build/host/on_demand_replace_test
-# Every height a bar asks for has its pixel drawing (status_icon_size.h, the generated tables),
-# on the colour 144-px watch, the black and white ones (PBL_BW) and the Pebble Time 2.
+for od in sides battery merge short replace; do
+  cc $CFLAGS $OD_FIXTURE_GAP -DOD_TEST_PROBES test/c/on_demand_${od}_test.c src/c/appendix/on_demand.c \
+     src/c/appendix/status_row_layout.c -o build/host/on_demand_${od}_test
+  build/host/on_demand_${od}_test
+done
+# Every height a bar asks for has its pixel drawing (status_icon_size.h, the generated table).
 cc $CFLAGS test/c/status_icon_drawings_test.c -o build/host/status_icon_drawings_test
 build/host/status_icon_drawings_test
-cc $CFLAGS -DPBL_BW test/c/status_icon_drawings_test.c -o build/host/status_icon_drawings_test_bw
-build/host/status_icon_drawings_test_bw
-cc $CFLAGS -DPBL_PLATFORM_EMERY test/c/status_icon_drawings_test.c -o build/host/status_icon_drawings_test_emery
-build/host/status_icon_drawings_test_emery
 # The heights the watch asks for, held to the sizes the icon scripts make drawings at, both ways
 # (scripts/check-icon-sizes.js): no height without its drawing, no drawing no height asks for.
-{ build/host/status_icon_drawings_test --sizes; build/host/status_icon_drawings_test_emery --sizes; } > build/host/icon_sizes.txt
+build/host/status_icon_drawings_test --sizes > build/host/icon_sizes.txt
 node scripts/check-icon-sizes.js build/host/icon_sizes.txt
 cc $CFLAGS test/c/hr_scale_test.c src/c/appendix/hr_scale.c -o build/host/hr_scale_test
 build/host/hr_scale_test
@@ -156,133 +114,75 @@ build/host/hr_scale_test
 cc $CFLAGS test/c/step_scale_test.c -o build/host/step_scale_test
 build/host/step_scale_test
 # The forecast plot's layout (only a series with a value above 0 takes a stripe band or
-# anchors an edge), the temperature-axis margins on anchored edges and the hi/lo labels lined
-# up with the curve (header-only, temp_axis_pad.h).
+# anchors an edge), the temperature-axis margins on anchored edges, the hi/lo labels lined
+# up with the curve and read back off the bytes on screen (header-only, temp_axis_pad.h).
 cc $CFLAGS test/c/temp_axis_pad_test.c -o build/host/temp_axis_pad_test
 build/host/temp_axis_pad_test
-# Again for emery, whose 12 h and long spans read the hi/lo labels back off the bytes on
-# screen (temp_axis_byte_temp, emery only).
-cc $CFLAGS -DPBL_PLATFORM_EMERY test/c/temp_axis_pad_test.c -o build/host/temp_axis_pad_test_emery
-build/host/temp_axis_pad_test_emery
 # The forecast's time span (forecast_span.h, header-only) and the hour axis's cadence
-# (forecast_grid.c, #included): built for a 24 h platform and for emery, whose 12 h / 24 h /
-# long classes, the long span's edge (fill) rule and floors, and the edge labels are pinned here.
-cc $CFLAGS -DPBL_PLATFORM_BASALT test/c/forecast_span_test.c -o build/host/forecast_span_test
+# (forecast_grid.c, #included): the 12 h / 24 h / long classes, the long span's edge (fill)
+# rule and floors, and the edge labels.
+cc $CFLAGS test/c/forecast_span_test.c -o build/host/forecast_span_test
 build/host/forecast_span_test
-cc $CFLAGS -DPBL_PLATFORM_EMERY test/c/forecast_span_test.c -o build/host/forecast_span_test_emery
-build/host/forecast_span_test_emery
-cc $CFLAGS -DPBL_PLATFORM_EMERY test/c/graph_style_test.c -o build/host/graph_style_test
+cc $CFLAGS test/c/graph_style_test.c -o build/host/graph_style_test
 build/host/graph_style_test
-# Compiled twice like layout_test: status_highlight_extent's strip floor depends on the
-# per-platform STATUS_STRIP_CAL_GAP.
 cc $CFLAGS test/c/status_row_layout_test.c src/c/appendix/status_row_layout.c -o build/host/status_row_layout_test
+build/host/status_row_layout_test
 # The row layout with the short forms swapped in, over a sweep of slots, checked against the
 # settings page's copy (scripts/check-row-swap-lockstep.js).
 cc $CFLAGS test/c/row_swap_dump.c src/c/appendix/status_row_layout.c -o build/host/row_swap_dump
 build/host/row_swap_dump > build/host/row_swap.txt
 node scripts/check-row-swap-lockstep.js build/host/row_swap.txt
-build/host/status_row_layout_test
-cc $CFLAGS -DPBL_PLATFORM_EMERY test/c/status_row_layout_test.c src/c/appendix/status_row_layout.c -o build/host/status_row_layout_test_emery
-build/host/status_row_layout_test_emery
 cc $CFLAGS test/c/status_row_alloc_test.c src/c/appendix/status_row_alloc.c -o build/host/status_row_alloc_test
 build/host/status_row_alloc_test
 # Header-only pure date-slot formatters (static inline in date_format.h, no .c file —
-# the status_icon_size.h pattern). Built once: no platform #ifdefs inside; aplite
-# never compiles the caller (its status_row twin keeps the hardcoded formats).
+# the status_icon_size.h pattern).
 cc $CFLAGS test/c/date_format_test.c -o build/host/date_format_test
 build/host/date_format_test
 # The status slots' short forms (status_short_text.h, header-only like date_format.h):
 # every kind's family, the date's year and day members over date_format.h's real
 # outputs, the city's word ladder, whose vector table test/status-bars/domain/city-ladder.test.js also
 # runs the phone's twin over, and that no family outgrows on_demand.h's OD_VARIANTS.
-# Only On demand's callers include it, so aplite never does.
 cc $CFLAGS test/c/status_short_text_test.c -o build/host/status_short_text_test
 build/host/status_short_text_test
-# The fixed Quiet Time / Bluetooth / snooze indicators, which only aplite's strip twin
-# (top_status_layer_aplite.c) still resolves; every other platform draws them as On
-# demand items.
-cc $CFLAGS test/c/top_status_indicators_test.c -o build/host/top_status_indicators_test
-build/host/top_status_indicators_test
-# Header-only pure curve (static inline in hatch.h, no .c file — same pattern as
-# top_status_indicators_test above). Compiled twice so both arms of
-# HATCH_BASE_PLOT_H's emery #ifdef are covered.
+# Header-only pure curve (static inline in hatch.h, no .c file).
 cc $CFLAGS test/c/hatch_stride_test.c -o build/host/hatch_stride_test
 build/host/hatch_stride_test
-cc $CFLAGS -DPBL_PLATFORM_EMERY test/c/hatch_stride_test.c -o build/host/hatch_stride_test_emery
-build/host/hatch_stride_test_emery
 # The hatch's absolute phase (hatch.h hatch_first_y): split at the top stripe band's
 # edge, the night hatch draws exactly the dots of one unsplit pass (chart.c extend_top).
 cc $CFLAGS test/c/hatch_seam_test.c -o build/host/hatch_seam_test
 build/host/hatch_seam_test
-# The band status rows (forecast / radar / health) share ONE owner, so one test
-# covers all three — including the radar row, which had no test of its own before
-# and was the one carrying the missing-live-health bug. Built TWICE: the evolving
-# build (all three bars) and an aplite-flavoured one with neither WW_RAIN_RADAR nor
-# PBL_HEALTH, which is the only place STATUS_BAR_COUNT == 1 and a stray unguarded
-# STATUS_BAR_RADAR / STATUS_BAR_HEALTH becomes a compile error — the shared CFLAGS
-# force -DPBL_HEALTH everywhere else.
-cc $CFLAGS -DWW_RAIN_RADAR -DWW_VIEW_CYCLE -DWW_ON_DEMAND test/c/status_bar_test.c src/c/layers/status_bar.c -o build/host/status_bar_test
+# The band status rows (forecast / radar / health, and bars 4 to 6) share ONE owner, so one
+# test covers them all.
+cc $CFLAGS test/c/status_bar_test.c src/c/layers/status_bar.c -o build/host/status_bar_test
 build/host/status_bar_test
-# emery: bars 4 to 6 are three more of them (STATUS_BAR_COUNT == 6).
-cc $CFLAGS -DWW_RAIN_RADAR -DWW_VIEW_CYCLE -DWW_ON_DEMAND -DPBL_PLATFORM_EMERY test/c/status_bar_test.c \
-   src/c/layers/status_bar.c -o build/host/status_bar_test_emery
-build/host/status_bar_test_emery
-cc -std=c11 -Wall -Wextra -Werror -Itest/c/stub -Isrc -DPBL_PLATFORM_APLITE \
-   test/c/status_bar_test.c src/c/layers/status_bar.c -o build/host/status_bar_test_aplite
-build/host/status_bar_test_aplite
-
 # Header-only pure predicate (static inline in persist.h, no .c file — the
 # date_format_test pattern): the acceptance rule for the inbound
 # CLAY_NIGHT_LIGHT_UINT8 "Dim backlight" tuple, which is the one decision in
 # app_message.c's unpack path that is not an SDK call (app_message.c itself needs
-# the whole AppMessage + layer surface, so it cannot be host-compiled). Built THREE
-# times: the wire itself is platform-independent, but persist.h's night-light
-# accessors sit behind NIGHT_LIGHT_SUPPORTED, and both of that gate's terms
-# (PBL_RGB_BACKLIGHT, the SDK capability, and PBL_PLATFORM_EMERY, the board that has
-# it today) have to declare them — the test's own #error pins that, and each gated
-# build proves the declarations parse.
+# the whole AppMessage + layer surface, so it cannot be host-compiled).
 cc $CFLAGS test/c/night_light_wire_test.c -o build/host/night_light_wire_test
 build/host/night_light_wire_test
-cc $CFLAGS -DPBL_RGB_BACKLIGHT test/c/night_light_wire_test.c -o build/host/night_light_wire_test_rgb
-build/host/night_light_wire_test_rgb
-cc $CFLAGS -DPBL_PLATFORM_EMERY test/c/night_light_wire_test.c -o build/host/night_light_wire_test_emery
-build/host/night_light_wire_test_emery
-
 # The other end of the same feature: the window predicate that decides, from the
 # clock, whether the "Dim backlight" tint should be burning right now, plus its
 # colour packer. Both are static inlines in appendix/night_light.h — the module's .c
 # drives the LED through applib and reads flash through persist.h, so it cannot be
-# host-compiled, and this is the only executable check the apply path gets. Built
-# TWICE: without the gate (every platform but emery, where the header must still
-# compile down to just these two helpers) and with -DWW_COLOR_BACKLIGHT, the flag
-# wscript sets for emery, which additionally declares night_light_init/refresh/deinit.
-# The runtime assertions are identical — the window arithmetic is not platform-bound.
+# host-compiled, and this is the only executable check the apply path gets.
 cc $CFLAGS test/c/night_light_window_test.c -o build/host/night_light_window_test
 build/host/night_light_window_test
-cc $CFLAGS -DWW_COLOR_BACKLIGHT test/c/night_light_window_test.c -o build/host/night_light_window_test_color
-build/host/night_light_window_test_color
-
 # The third side of the same feature: the NIGHT_LIGHT persist accessors, run for
 # real. appendix/persist.c (through persist_store.c) needs nothing from the SDK but the
 # persistent-storage syscalls, so the test fakes those over a RAM map and EXECUTES
 # persist_set/get_night_light — which is what pins the change gating (a re-save of
 # identical bytes must not reach flash) and the getter's short-read guard, neither
-# of which any header-only test can reach. Built TWICE, once per term of persist.h's
-# NIGHT_LIGHT_SUPPORTED gate, so both spellings are proven to DEFINE the accessors
-# rather than merely declare them.
-cc $CFLAGS -DPBL_RGB_BACKLIGHT test/c/night_light_persist_test.c src/c/appendix/persist.c \
-   src/c/appendix/persist_store.c -o build/host/night_light_persist_test
+# of which any header-only test can reach.
+cc $CFLAGS test/c/night_light_persist_test.c src/c/appendix/persist.c \
+   src/c/appendix/persist_store.c test/c/stub/theme_stub.c -o build/host/night_light_persist_test
 build/host/night_light_persist_test
-cc $CFLAGS -DPBL_PLATFORM_EMERY -DPBL_COLOR test/c/night_light_persist_test.c src/c/appendix/persist.c \
-   src/c/appendix/persist_store.c -o build/host/night_light_persist_test_emery
-build/host/night_light_persist_test_emery
-
 # The LINE_STYLES byte decode (per-line marker styles, wire bytes [9..11] of
 # CLAY_LINE_STYLE_UINT8): header-only static inlines in persist.h, mirrored
 # against the JS packer's pins in test/forecast-graphs/domain/line-style.test.js so the two wire ends
-# cannot drift. Built with WW_LINE_STYLE — the only configuration that declares
-# the helpers; aplite compiles them out together with their callers.
-cc $CFLAGS -DWW_LINE_STYLE test/c/line_style_decode_test.c \
+# cannot drift.
+cc $CFLAGS test/c/line_style_decode_test.c \
    -o build/host/line_style_decode_test
 build/host/line_style_decode_test
 # The solid line's gap/run kernel (chart_runs.h, header-only): segmentation of
@@ -315,24 +215,20 @@ build/host/radar_sky_test
 # bound). The accessors are unguarded, so the plain host build must define them.
 cc $CFLAGS test/c/radar_limit_test.c -o build/host/radar_limit_test
 build/host/radar_limit_test
-cc $CFLAGS test/c/radar_notice_persist_test.c src/c/appendix/persist.c src/c/appendix/persist_store.c \
+cc $CFLAGS test/c/radar_notice_persist_test.c src/c/appendix/persist.c src/c/appendix/persist_store.c test/c/stub/theme_stub.c \
    -o build/host/radar_notice_persist_test
 build/host/radar_notice_persist_test
 # Where the status lines live in flash: the first four side by side, bars 4 to 6's lines and
-# On demand cells in the slots appended for them (emery). Built for emery, with On demand
-# (whose accessors the cells ride), and plain.
-cc $CFLAGS -DPBL_PLATFORM_EMERY -DPBL_COLOR -DWW_ON_DEMAND test/c/status_line_persist_test.c \
-   src/c/appendix/persist.c src/c/appendix/persist_store.c -o build/host/status_line_persist_test_emery
-build/host/status_line_persist_test_emery
-cc $CFLAGS test/c/status_line_persist_test.c src/c/appendix/persist.c src/c/appendix/persist_store.c \
+# On demand cells in the slots appended for them.
+cc $CFLAGS test/c/status_line_persist_test.c src/c/appendix/persist.c src/c/appendix/persist_store.c test/c/stub/theme_stub.c \
    -o build/host/status_line_persist_test
 build/host/status_line_persist_test
-# persist_store.c's RAM copy of the store (emery only): a key's second read costs no flash
+# persist_store.c's RAM copy of the store: a key's second read costs no flash
 # call, absent keys too, and every write keeps the copy exact. Built again with an arena the
 # test fills, so the way back to the flash runs too.
-cc $CFLAGS -DPBL_PLATFORM_EMERY -DPBL_COLOR test/c/persist_store_test.c src/c/appendix/persist_store.c \
-   -o build/host/persist_store_test_emery
-build/host/persist_store_test_emery
-cc $CFLAGS -DPBL_PLATFORM_EMERY -DPBL_COLOR -DSTORE_CACHE_BYTES=384 test/c/persist_store_test.c \
+cc $CFLAGS test/c/persist_store_test.c src/c/appendix/persist_store.c \
+   -o build/host/persist_store_test
+build/host/persist_store_test
+cc $CFLAGS -DSTORE_CACHE_BYTES=384 test/c/persist_store_test.c \
    src/c/appendix/persist_store.c -o build/host/persist_store_test_small
 build/host/persist_store_test_small

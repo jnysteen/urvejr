@@ -186,11 +186,7 @@ static GColor read_color(const uint32_t key, const GColor fallback) {
 
 // The compare buffer of write_data_if_changed: the largest blob it skips a no-op write of.
 // A forecast trend is one byte per hour, FORECAST_MAX_ENTRIES of them (68 on emery).
-#if defined(PBL_PLATFORM_EMERY)
 #define PERSIST_COMPARE_BYTES 72   // emery: the long span's 68-byte trends
-#else
-#define PERSIST_COMPARE_BYTES 64
-#endif
 _Static_assert(FORECAST_MAX_ENTRIES <= PERSIST_COMPARE_BYTES,
                "a forecast trend must fit write_data_if_changed's compare buffer");
 
@@ -224,8 +220,6 @@ static bool write_sized_data_if_changed(const uint32_t key, const void *data,
     return true;
 }
 
-#if defined(WW_RAIN_RADAR) || defined(WW_ON_DEMAND) || defined(WW_THRESHOLD_HIGHLIGHT) \
-    || defined(PBL_PLATFORM_EMERY)
 // A blob stored only while it has content (the radar's sky rows, the weather alert
 // entries): a read gives its bytes, 0 while it is absent; an empty write deletes it.
 // The thresholds blob is read the same way.
@@ -234,14 +228,11 @@ static int read_present_blob(const uint32_t key, uint8_t *out, const size_t cap)
     const int n = store_read_data(key, out, cap);
     return n > 0 ? n : 0;
 }
-#endif
 
-#if defined(WW_RAIN_RADAR) || defined(WW_ON_DEMAND) || defined(PBL_PLATFORM_EMERY)
 static bool write_present_blob(const uint32_t key, const uint8_t *data, const size_t len) {
     if (len == 0) { return delete_if_present(key); }
     return write_sized_data_if_changed(key, data, len);
 }
-#endif
 
 // Trends are stored as uint8 (0..250) but the shared chart engine consumes
 // int16 (it also serves the radar at 0..1000). The bytes are read into the front
@@ -295,13 +286,9 @@ bool persist_series_present(SeriesId id) {
     switch (id) {
         case SERIES_SECOND: return persist_get_line_count() > 0;
         case SERIES_THIRD:  return persist_third_line_present();
-#if defined(WW_LINE_STYLE)
         case SERIES_FOURTH: return store_exists(FOURTH_LINE_TREND);
         case SERIES_FIFTH:  return store_exists(FIFTH_LINE_TREND);
-#endif
-#if defined(PBL_PLATFORM_EMERY)
         case SERIES_SPARE:  return store_exists(SPARE_LINE_TREND);   // emery: graph styles
-#endif
         case SERIES_BARS:   return persist_get_bar_count() > 0;
         default:            return false;  // FIRST: caller uses num_entries > 0
     }
@@ -312,13 +299,9 @@ int persist_series_trend(SeriesId id, int16_t *out, size_t n) {
         case SERIES_FIRST:  return persist_get_temp_trend(out, n);
         case SERIES_SECOND: return persist_get_line_trend(out, n);
         case SERIES_THIRD:  return persist_get_third_line_trend(out, n);
-#if defined(WW_LINE_STYLE)
         case SERIES_FOURTH: return read_trend_widened(FOURTH_LINE_TREND, out, n);
         case SERIES_FIFTH:  return read_trend_widened(FIFTH_LINE_TREND, out, n);
-#endif
-#if defined(PBL_PLATFORM_EMERY)
         case SERIES_SPARE:  return read_trend_widened(SPARE_LINE_TREND, out, n);   // emery
-#endif
         case SERIES_BARS:   return persist_get_bar_trend(out, n);
         default:            return 0;
     }
@@ -328,13 +311,9 @@ bool persist_series_set_trend(SeriesId id, uint8_t *data, size_t size) {
     switch (id) {
         case SERIES_SECOND: return persist_set_line_trend(data, size);
         case SERIES_THIRD:  return persist_set_third_line_trend(data, size);
-#if defined(WW_LINE_STYLE)
         case SERIES_FOURTH: return set_existence_keyed_trend(FOURTH_LINE_TREND, data, size);
         case SERIES_FIFTH:  return set_existence_keyed_trend(FIFTH_LINE_TREND, data, size);
-#endif
-#if defined(PBL_PLATFORM_EMERY)
         case SERIES_SPARE:  return set_existence_keyed_trend(SPARE_LINE_TREND, data, size);   // emery
-#endif
         case SERIES_BARS:   return persist_set_bar_trend(data, size);
         default:            return false;  // FIRST/temp is handled bespoke
     }
@@ -344,10 +323,8 @@ bool persist_series_set_color(SeriesId id, GColor c) {
     switch (id) {
         case SERIES_SECOND: return persist_set_line_color(c);
         case SERIES_THIRD:  return persist_set_third_line_color(c);
-#if defined(WW_LINE_STYLE)
         case SERIES_FOURTH: return persist_set_fourth_line_color(c);
         case SERIES_FIFTH:  return persist_set_fifth_line_color(c);
-#endif
         default:            return false;  // BARS has a palette, not a single color
     }
 }
@@ -428,7 +405,6 @@ bool persist_set_line_fill(bool fill) {
     return write_bool_if_changed(LINE_FILL, fill);
 }
 
-#if defined(WW_LINE_STYLE)
 // The fourth line's trend has no per-name accessors: the persist_series_*
 // dispatchers above read and write FOURTH_LINE_TREND directly through the
 // shared helpers. Only the colour keeps named accessors (forecast_layer.c
@@ -477,7 +453,6 @@ void persist_get_line_styles(uint8_t out[LINE_STYLE_STYLE_BYTES]) {
     out[1] = (uint8_t) CHART_LINE_DOTS;
     out[2] = (uint8_t) CHART_LINE_X;
 }
-#endif  // WW_LINE_STYLE
 
 int persist_get_rain_radar_trend(uint8_t *buffer, const size_t buffer_size) {
     return store_read_data(RAIN_RADAR_TREND, (void*) buffer, buffer_size * sizeof(uint8_t));
@@ -515,10 +490,8 @@ bool persist_set_radar_palette(uint8_t *data, const size_t size) {
 // bars 4 to 6 (emery) after every other key, from STATUS_LINE_5. The caller has checked
 // line_id < STATUS_LINE_COUNT.
 static uint32_t status_line_key(uint8_t line_id) {
-#if defined(PBL_PLATFORM_EMERY)
     // emery: bars 4 to 6's lines were appended long after the first four's slots.
     if (line_id >= STATUS_LINE_BAR4) { return STATUS_LINE_5 + (line_id - STATUS_LINE_BAR4); }
-#endif
     return STATUS_LINE_1 + line_id;
 }
 
@@ -593,7 +566,6 @@ int persist_get_norain_text(char *buffer, size_t buffer_size) {
     return read_text(NORAIN_TEXT, buffer, buffer_size);
 }
 
-#if defined(WW_RAIN_RADAR)
 int persist_get_radar_sky(uint8_t *buffer, size_t buffer_size) {
     return read_present_blob(RADAR_SKY, buffer, buffer_size);
 }
@@ -601,7 +573,6 @@ int persist_get_radar_sky(uint8_t *buffer, size_t buffer_size) {
 bool persist_set_radar_sky(const uint8_t *data, size_t size) {
     return write_present_blob(RADAR_SKY, data, size);
 }
-#endif
 
 // Unguarded on purpose (see persist.h), like the no-rain text above:
 // rain_radar_layer.c compiles on every platform and reads the getters; on aplite
@@ -622,7 +593,6 @@ bool persist_set_radar_notice(const char *text) {
     return write_bounded_text(RADAR_NOTICE, text, RADAR_NOTICE_BUF_BYTES);
 }
 
-#if defined(PBL_PLATFORM_EMERY)
 // emery: the records ride write_present_blob's compare buffer (write_sized_data_if_changed).
 _Static_assert(GRAPH_STYLE_MAX_BYTES <= STATUS_LINE_MAX_BYTES,
                "a graph style record must fit the sized blob compare buffer");
@@ -634,7 +604,6 @@ int persist_get_graph_style(uint8_t k, uint8_t *buffer, size_t cap) {
 bool persist_set_graph_style(uint8_t k, const uint8_t *data, size_t len) {
     return k < GRAPH_STYLE_COUNT && write_present_blob(GRAPH_STYLE_1 + k, data, len);
 }
-#endif
 
 time_t persist_get_rain_radar_start() {
     return (time_t) store_read_int(RAIN_RADAR_START);
@@ -791,7 +760,6 @@ time_t persist_get_health_cache_end_hour(void) {
     return (time_t) store_read_int(HEALTH_CACHE_END_HOUR);
 }
 
-#if defined(WW_THRESHOLD_HIGHLIGHT)
 int persist_get_status_levels(void) {
     return store_read_int(STATUS_LEVELS);
 }
@@ -807,9 +775,7 @@ int persist_get_threshold_settings(uint8_t *buffer, size_t buffer_size) {
 bool persist_set_threshold_settings(const uint8_t *data, size_t len) {
     return write_sized_data_if_changed(THRESHOLD_SETTINGS, data, len);
 }
-#endif  // WW_THRESHOLD_HIGHLIGHT
 
-#if defined(WW_ON_DEMAND)
 int persist_get_alert_entries(uint8_t *out, size_t cap) {
     return out ? read_present_blob(ALERT_ENTRIES, out, cap) : 0;
 }
@@ -819,7 +785,6 @@ bool persist_set_alert_entries(const uint8_t *data, size_t len) {
     return write_present_blob(ALERT_ENTRIES, data, len);
 }
 
-#if defined(PBL_PLATFORM_EMERY)
 // emery: bars 4 to 6's On demand cells (status_threshold.h THRESH_OD_EXTRA_BYTES).
 int persist_get_od_extra_cells(uint8_t *out, size_t cap) {
     return out ? read_present_blob(OD_EXTRA_CELLS, out, cap) : 0;
@@ -828,10 +793,7 @@ int persist_get_od_extra_cells(uint8_t *out, size_t cap) {
 bool persist_set_od_extra_cells(const uint8_t *data, size_t len) {
     return write_present_blob(OD_EXTRA_CELLS, data, len);
 }
-#endif
-#endif  // WW_ON_DEMAND
 
-#if defined(WW_CURVE_INSET)
 // The blob's size before the tuple grew the FOURTH/FIFTH channels.
 #define CURVE_INSET_LEGACY_BYTES 3
 
@@ -866,9 +828,7 @@ void persist_get_curve_insets(uint8_t out[CURVE_INSET_BYTES]) {
     }
     memcpy(out, stored, (size_t) size);
 }
-#endif  // WW_CURVE_INSET
 
-#if defined(PBL_COLOR)
 // The prefix compare is safe here: an older build's 6 B blob reads by its first four bytes.
 bool persist_set_night_colors(const uint8_t colors[NIGHT_COLOR_BYTES]) {
     return write_data_if_changed(NIGHT_COLORS, colors, NIGHT_COLOR_BYTES);
@@ -891,7 +851,6 @@ void persist_get_night_colors(uint8_t out[NIGHT_COLOR_BYTES]) {
     }
     memcpy(out, stored, sizeof(stored));
 }
-#endif  // PBL_COLOR
 
 #if defined(NIGHT_LIGHT_SUPPORTED)
 bool persist_set_night_light(const uint8_t bytes[NIGHT_LIGHT_BYTES]) {

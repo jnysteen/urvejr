@@ -5,7 +5,6 @@
 // shadowing the SDK's uint32_t globals so --gc-sections drops them.
 #include "message_key_ids.auto.h"
 
-#if !defined(PBL_PLATFORM_APLITE)
 // One CLAY_VIEW_n tuple → the view's 16-bit spec (low half) and its 16-bit EXT word
 // (high half: custom layout v2's sizes / top-graph kind / Position — view-cycle.js
 // packWire). PKJS sends every JS number as a 4-byte int (pypkjs Int32; libpebble3
@@ -30,7 +29,6 @@ static void read_view_tuple(const Tuple *t, int i, uint16_t *spec, uint16_t *ext
     (void) i;
 #endif
 }
-#endif
 
 // How a core key's tuple fills its Config field.
 enum {
@@ -111,26 +109,15 @@ bool config_parse_wire(DictionaryIterator *iterator, Config *out) {
     // the tier bits 8-9 live above the low byte). See config.h view_spec2 / view_spec_unpack.
     // Without them the phone re-sends the real cycle on connect. Off aplite the high half
     // carries the view's ext word too (read_view_tuple above).
-#if !defined(PBL_PLATFORM_APLITE)
     read_view_tuple(dict_find(iterator, MESSAGE_KEY_CLAY_VIEW_0), 0, &out->view_spec2[0], &out->view_ext[0]);
     read_view_tuple(dict_find(iterator, MESSAGE_KEY_CLAY_VIEW_1), 1, &out->view_spec2[1], &out->view_ext[1]);
     read_view_tuple(dict_find(iterator, MESSAGE_KEY_CLAY_VIEW_2), 2, &out->view_spec2[2], &out->view_ext[2]);
-#else
-    const Tuple *clay_view_0_tuple = dict_find(iterator, MESSAGE_KEY_CLAY_VIEW_0);
-    if (clay_view_0_tuple) { out->view_spec2[0] = (uint16_t) clay_view_0_tuple->value->int16; }
-    const Tuple *clay_view_1_tuple = dict_find(iterator, MESSAGE_KEY_CLAY_VIEW_1);
-    if (clay_view_1_tuple) { out->view_spec2[1] = (uint16_t) clay_view_1_tuple->value->int16; }
-    const Tuple *clay_view_2_tuple = dict_find(iterator, MESSAGE_KEY_CLAY_VIEW_2);
-    if (clay_view_2_tuple) { out->view_spec2[2] = (uint16_t) clay_view_2_tuple->value->int16; }
-#endif
     const Tuple *clay_view_reset_tuple = dict_find(iterator, MESSAGE_KEY_CLAY_VIEW_RESET_MIN);
     if (clay_view_reset_tuple) {
         // Low byte: the auto-return minutes; the cast drops the flag bits (config_wire.h).
         out->view_reset_min = (uint8_t) clay_view_reset_tuple->value->int16;
-#if !defined(PBL_PLATFORM_APLITE)
         // Bit 8: Double flick (an older phone never sets it).
         out->view_double_flick = (clay_view_reset_tuple->value->int16 & VIEW_RESET_DOUBLE_FLICK) != 0;
-#endif
     }
     // Without it, config.theme stays 0 = dark.
     const Tuple *clay_theme_tuple = dict_find(iterator, MESSAGE_KEY_CLAY_THEME);
@@ -144,7 +131,6 @@ bool config_parse_wire(DictionaryIterator *iterator, Config *out) {
     if (clay_date_month_first_tuple) {
         out->date_month_first = (bool) (clay_date_month_first_tuple->value->int16);
     }
-#if defined(PBL_PLATFORM_EMERY)
     // emery-only, like the field (config.h): the tuple still RIDES to every platform,
     // but only emery pays the dict_find to look it up.
     const Tuple *clay_large_graph_font_tuple = dict_find(iterator, MESSAGE_KEY_CLAY_LARGE_GRAPH_FONT);
@@ -157,8 +143,6 @@ bool config_parse_wire(DictionaryIterator *iterator, Config *out) {
         out->large_graph_font = (word & GRAPH_OPT_LARGE_FONT) != 0;
         out->forecast_axis = (uint8_t) (word & GRAPH_OPT_AXIS_MASK);
     }
-#endif
-#if !defined(PBL_PLATFORM_APLITE)
     // Not on aplite, like the fields (config.h): the phone omits the tuple for an
     // aplite watch too (clay-payload gates it with the threshold blob). Without it,
     // both date formats stay 0 = Auto.
@@ -171,8 +155,6 @@ bool config_parse_wire(DictionaryIterator *iterator, Config *out) {
         out->date_month_format = clay_date_format_tuple->value->data[0];
         out->date_full_format = clay_date_format_tuple->value->data[1];
     }
-#endif
-#if defined(PBL_HEALTH)
     // Without it, hr_scale stays 0 = unset, and health_graph_layer falls back to its own
     // HEALTH_HR_LO/HEALTH_HR_HI.
     const Tuple *clay_hr_scale_tuple = dict_find(iterator, MESSAGE_KEY_CLAY_HR_SCALE);
@@ -181,6 +163,5 @@ bool config_parse_wire(DictionaryIterator *iterator, Config *out) {
         // and the packed value can exceed int16's range (hi 220 -> 56 3xx).
         out->hr_scale = (uint16_t) clay_hr_scale_tuple->value->int32;
     }
-#endif
     return true;
 }

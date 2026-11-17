@@ -227,6 +227,5 @@ test('shownHours: the hours each span draws, as the watch fits its grid to the p
   assert.equal(cDefine(span, 'FORECAST_SPAN_DAY_SENT'), 26);
   assert.equal(require('../../../src/pkjs/weather/domain/forecast-span.js').DAY_WIDE_HOURS, 26);
   const grid = read('src/c/appendix/forecast_grid.h');
-  const small = grid.slice(grid.indexOf('DISPLAY_WIDTH_144'));
-  assert.equal(1 + 2 * cDefine(small, 'FORECAST_GRID_PAD') + cDefine(small, 'FORECAST_GRID_BAR_W'), 7);
+  assert.equal(1 + 2 * cDefine(grid, 'FORECAST_GRID_PAD') + cDefine(grid, 'FORECAST_GRID_BAR_W'), 8);
 });

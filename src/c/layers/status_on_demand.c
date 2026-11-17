@@ -23,7 +23,6 @@
 #include "../appendix/theme.h"
 #include "../services/watch_services.h"
 
-#if defined(WW_ON_DEMAND)
 
 // Glyph keys: the metric icons are their StatusIconId (to STATUS_ICON_MAX), the system
 // glyphs and Heavy rain their in-memory ids (status_icon_size.h); the rain alert's glyph is
@@ -493,4 +492,3 @@ void status_on_demand_paint(GContext *ctx, const StatusOnDemandRow *row,
     }
 }
 
-#endif

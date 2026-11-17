@@ -6,7 +6,6 @@
 #include "c/appendix/chart.h"
 #include "c/appendix/forecast_grid.h"
 #include "c/appendix/series.h"          // MAX_BOTTOM_VIEW_ENTRIES
-#include "c/appendix/display_width.h"
 #include "c/appendix/bottom_view.h"
 #include "c/services/health.h"
 #include "c/services/health_cache.h"
@@ -20,15 +19,10 @@
 // entirely — its code + per-redraw scratch would otherwise burn ~scarce RAM
 // for a view that can never activate. main_window.c gates the create/toggle
 // calls behind the same guard.
-#if defined(PBL_HEALTH)
 
 // Sleep stripe height: a fixed band at the bottom of the plot. Bucketed per
 // display width — 6 px on 144, taller on the larger emery screen.
-#if defined(DISPLAY_WIDTH_200)
 #define SLEEP_STRIPE_H            9
-#else
-#define SLEEP_STRIPE_H            6
-#endif
 
 // HR scale fallback (resting..high): 40..180 BPM. The user can narrow or widen this
 // per install (Health tab -> "Heart-rate scale", packed into config.hr_scale); these
@@ -503,4 +497,3 @@ void health_graph_layer_destroy(void) {
     s_health_graph_layer = NULL;
 }
 
-#endif  // PBL_HEALTH

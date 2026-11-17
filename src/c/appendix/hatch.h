@@ -35,11 +35,7 @@
 // (layout_compute_peek) draws forecast plots well below this baseline — they simply
 // clamp to the base stride like any other sub-baseline height (see
 // hatch_stride_scaled() below).
-#ifdef PBL_PLATFORM_EMERY
 #define HATCH_BASE_PLOT_H 48
-#else
-#define HATCH_BASE_PLOT_H 41
-#endif
 
 // Stride for a plot `plot_h` px tall, given the unscaled `base_stride` and the baseline
 // height `min_plot_h` at which that base applies.
@@ -51,7 +47,7 @@
 // Pure: no SDK calls, no theme/config reads, integer math only — the base stride (the
 // theme's 6 or 7) and the baseline are supplied by the caller. That is what lets
 // test/c/hatch_stride_test.c compile this header standalone against the geometry-only
-// stub, the same arrangement as layers/top_status_indicators.h.
+// stub.
 static inline int hatch_stride_scaled(int base_stride, int min_plot_h, int plot_h) {
     if (plot_h <= min_plot_h || min_plot_h <= 0) {
         return base_stride;

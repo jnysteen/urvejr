@@ -75,17 +75,10 @@
 // measured fullCal ink in the design spec (63..97 and 65..93) from a DIFFERENT band position,
 // which is what confirms centre_off is band-independent; and the resulting gaps reproduce the
 // spec's measured table exactly (basalt noCal 9/8, emery noCal 14/14, basalt leco 11/12).
-#if defined(WW_CLOCK_INK)
 ClockInk clock_ink_for(int16_t time_font);
-#endif
 
 // Build the layout's font metrics for RIGHT NOW. The platform arms live here, in the leaf file,
 // so main_window.c stays free of #ifdefs and simply writes `LAYOUT_METRICS_NOW()`.
-#if defined(WW_CLOCK_INK)
 #define LAYOUT_METRICS_NOW()                                                  \
     ((LayoutMetrics){ (int16_t) status_forecast_band_h(status_full_tier_font()), \
                       clock_ink_for(config_get()->time_font) })
-#else
-#define LAYOUT_METRICS_NOW()                                                  \
-    ((LayoutMetrics){ (int16_t) status_forecast_band_h(status_full_tier_font()) })
-#endif

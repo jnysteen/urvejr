@@ -24,7 +24,6 @@
 #include <pebble.h>
 #include "config.h"
 
-#if defined(WW_THEME_POLARITY)
 // Out of line (appendix/theme.c) wherever the light polarity exists: every platform
 // but aplite. As static inlines, -Os kept them as calls and emitted a private copy in
 // every file that used one — about 30 copies, some 0.9 KB of image on basalt — and on
@@ -42,40 +41,7 @@ GColor theme_bg(void);
  * dark/bw keep the given gray unchanged.
  */
 GColor theme_furniture(GColor gray);
-#else
-// Without the light polarity — aplite, and the host tests, which build without the
-// flag — the accessors are static inlines over a constant-false theme_is_light(),
-// so every light arm folds away.
-/** True in the light theme (black-on-white polarity): light or bw-light. */
-static inline bool theme_is_light(void) {
-    // aplite (frozen-lean fork, docs/adr/0001): the light polarity is compiled out —
-    // see WW_THEME_POLARITY in wscript. Constant false folds every light arm and the
-    // out-of-line theme_fg/theme_bg copies out of the image; a stored light/bw-light
-    // theme byte is ignored and renders as the classic white-on-black.
-    return false;
-}
 
-/** dark/bw polarity: white. light polarity: black. Default foreground. */
-static inline GColor theme_fg(void) {
-    return theme_is_light() ? GColorBlack : GColorWhite;
-}
-
-/** dark/bw polarity: black. light polarity: white. Window/panel background. */
-static inline GColor theme_bg(void) {
-    return theme_is_light() ? GColorWhite : GColorBlack;
-}
-
-/**
- * Chart-furniture gray (axis/tick/grid-line constants): light theme flattens
- * them to black (a midtone gray reads too close to a white background);
- * dark/bw keep the given gray unchanged.
- */
-static inline GColor theme_furniture(GColor gray) {
-    return theme_is_light() ? GColorBlack : gray;
-}
-#endif
-
-#if defined(PBL_COLOR) && defined(WW_THEME_POLARITY)
 // Out of line (appendix/theme.c), as above.
 /** True when this color build is rendering the Black & White theme (bw or bw-light). */
 bool theme_is_bw(void);
@@ -85,27 +51,3 @@ bool theme_is_bw(void);
  * color_arm renders. See theme_is_bw().
  */
 GColor theme_pick(GColor color_arm, GColor bw_arm);
-#elif defined(PBL_COLOR)
-// A color build without WW_THEME_POLARITY is no watch (every color platform defines
-// it); only a host test compiles this arm (night_light_persist_test's emery build,
-// -DPBL_COLOR, through persist.c).
-/** True when this color build is rendering the Black & White theme (bw or bw-light). */
-static inline bool theme_is_bw(void) {
-    return config_get()->theme == 2 || config_get()->theme == 3;
-}
-/**
- * Effective-color pick: on a color build, a bw theme takes bw_arm (the exact
- * value a real B&W watch would use for this constant) at runtime; otherwise
- * color_arm renders. See theme_is_bw().
- */
-static inline GColor theme_pick(GColor color_arm, GColor bw_arm) {
-    return theme_is_bw() ? bw_arm : color_arm;
-}
-#else
-// B&W hardware (aplite/diorite/flint) IS the bw drawing path already: theme_is_bw()
-// is always true and theme_pick() always resolves to bw_arm. Macros (not inline
-// functions) so color_arm is never even referenced on these builds — no color
-// GColor8 constant, no branch, in the aplite image.
-#define theme_is_bw() true
-#define theme_pick(color_arm, bw_arm) (bw_arm)
-#endif

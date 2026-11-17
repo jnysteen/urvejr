@@ -109,12 +109,11 @@ test('signature: empty for the default and an absent key, the stored option othe
   });
 });
 
-test('lockstep: FORECAST_MAX_ENTRIES in forecast_span.h is MAX_FORECAST_HOURS on emery, 24 elsewhere', () => {
+test('lockstep: FORECAST_MAX_ENTRIES in forecast_span.h is MAX_FORECAST_HOURS', () => {
   const src = fs.readFileSync(path.join(__dirname, '..', '..', '../src/c/appendix/forecast_span.h'), 'utf8');
-  const m = src.match(/#if defined\(PBL_PLATFORM_EMERY\)[\s\S]*?#define FORECAST_MAX_ENTRIES (\d+)[\s\S]*?#else\s*#define FORECAST_MAX_ENTRIES (\d+)/);
-  assert.ok(m, 'forecast_span.h keeps its emery / else FORECAST_MAX_ENTRIES arms');
+  const m = src.match(/#define FORECAST_MAX_ENTRIES (\d+)/);
+  assert.ok(m, 'forecast_span.h defines FORECAST_MAX_ENTRIES');
   assert.equal(Number(m[1]), hourlyWindow.MAX_FORECAST_HOURS);
-  assert.equal(Number(m[2]), hourlyWindow.FORECAST_HOURS);
   assert.equal(forecastSpan.DAY_HOURS, hourlyWindow.FORECAST_HOURS);
   // forecast-span-hours.js' 24 h span (the webview loads it, and it cannot read
   // hourly-window.js) is the same 24.
@@ -132,9 +131,6 @@ test('lockstep: FORECAST_MAX_ENTRIES in forecast_span.h is MAX_FORECAST_HOURS on
   const day = src.match(/#define FORECAST_SPAN_DAY_SENT\s+(\d+)/);
   assert.ok(day, 'forecast_span.h defines FORECAST_SPAN_DAY_SENT');
   assert.equal(Number(day[1]), forecastSpan.DAY_WIDE_HOURS);
-  // The platform fact and the C arm name the same watch.
-  const fact = fs.readFileSync(path.join(__dirname, '..', '..', '../src/pkjs/config-ui/lib/platform.js'), 'utf8');
-  assert.match(fact, /var FORECAST_SPAN_PLATFORMS = \{ emery: true \};/);
 });
 
 test('lockstep: the schema\'s forecastHours options are CHOICES, its default the long span', () => {

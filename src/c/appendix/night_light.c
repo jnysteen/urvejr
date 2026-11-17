@@ -13,7 +13,6 @@
 // emits no code, so the gated-out platforms still compile to an empty object.
 #include <pebble.h>
 
-#if defined(WW_COLOR_BACKLIGHT)
 
 #include "persist.h"
 #include "c/services/watch_services.h"
@@ -145,10 +144,3 @@ void night_light_deinit(void) {
     s_applied = NIGHT_LIGHT_UNAPPLIED;
 }
 
-#else
-// No colour backlight on this platform (WW_COLOR_BACKLIGHT undefined — wscript sets
-// it for emery only). Every call site is guarded, so nothing here is defined at all
-// and --gc-sections has nothing left to reap. Keep the translation unit non-empty so
-// a -pedantic build never warns on an empty TU — quick_view.c's convention.
-typedef int night_light_excluded_without_color_backlight;
-#endif  // WW_COLOR_BACKLIGHT

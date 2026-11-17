@@ -16,12 +16,6 @@
 #include "c/appendix/temp_axis_pad.h"
 #include "c/appendix/theme.h"
 
-#if defined(PBL_PLATFORM_EMERY)
-#if !defined(WW_LINE_STYLE)
-// emery: the numbers on the graph keep inside the rows under the top stripe band
-// (forecast_update_proc's top_band, `top` here), which only a WW_LINE_STYLE build lays out.
-#error "emery's left-axis numbers read top_band, which needs WW_LINE_STYLE"
-#endif
 
 // emery: whether the hi/lo numbers' extremes run over series s: the temperature always, and
 // with the numbers naming the scale (GRAPH_OPT_SCALE_NUMS) every present line fit_temp_axis
@@ -203,4 +197,3 @@ static __attribute__((noinline)) void forecast_numbers_relabel(const ForecastDat
     snprintf(hi, cap, "%d", config_localize_temp(temp_axis_byte_temp(r.hi, g, t_lo, t_hi)));
 }
 
-#endif  // PBL_PLATFORM_EMERY

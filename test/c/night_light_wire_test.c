@@ -24,13 +24,9 @@
 // persist accessors and the apply cannot drift apart. Pin both of its terms: either
 // one alone must light it up (an SDK too old for the capability macro must still
 // build the feature on the board that has the hardware), and neither must not.
-#if defined(PBL_RGB_BACKLIGHT) || defined(PBL_PLATFORM_EMERY)
 #  if !defined(NIGHT_LIGHT_SUPPORTED)
 #    error "NIGHT_LIGHT_SUPPORTED must follow PBL_RGB_BACKLIGHT / PBL_PLATFORM_EMERY"
 #  endif
-#elif defined(NIGHT_LIGHT_SUPPORTED)
-#  error "NIGHT_LIGHT_SUPPORTED lit up on a build with no colour backlight"
-#endif
 
 static int s_failures = 0;
 

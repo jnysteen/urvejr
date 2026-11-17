@@ -19,11 +19,7 @@
 #define MAX_BOTTOM_VIEW_ENTRIES 24
 
 #define BOTTOM_VIEW_AXIS_H 10            // height reserved for the bottom hour-label row
-#ifdef PBL_PLATFORM_EMERY
 #define BOTTOM_VIEW_BOTTOM_PAD 10        // emery: larger hour labels + tick marks
-#else
-#define BOTTOM_VIEW_BOTTOM_PAD 0
-#endif
 
 // --- Left-axis label strip (group C) ---
 #define BOTTOM_VIEW_LABEL_STRIP_MIN_W 15 // floor; a graph's strip grows with its labels

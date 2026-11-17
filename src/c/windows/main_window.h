@@ -23,7 +23,6 @@ void main_window_apply_theme(void);
 // actually uses. Constant-false on aplite (radar is compiled out).
 bool main_window_radar_has_data(void);
 
-#if defined(PBL_HEALTH)
 // Read the health readings the status rows on screen show that this minute has not read
 // yet (services/health_summary.h health_summary_sync), and repaint the rows a changed
 // reading feeds. Call after the rows are refreshed: a line that newly shows a reading (a
@@ -39,6 +38,5 @@ void main_window_sync_health(void);
 // re-measures the graph's own left-axis strip (bottom_view.h), and the repaint
 // half is free while hidden (a mark_dirty on a hidden layer is a no-op).
 void main_window_refresh_health_graph(void);
-#endif
 
 void main_window_destroy();

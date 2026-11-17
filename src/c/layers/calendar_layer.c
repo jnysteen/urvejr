@@ -15,13 +15,8 @@
 #define EMERY_CALENDAR_TEXT_SHIFT_X 1
 
 // emery: render calendar dates with larger fonts
-#ifdef PBL_PLATFORM_EMERY
 #define CALENDAR_FONT_KEY FONT_KEY_GOTHIC_24
 #define CALENDAR_FONT_KEY_BOLD FONT_KEY_GOTHIC_24_BOLD
-#else
-#define CALENDAR_FONT_KEY FONT_KEY_GOTHIC_18
-#define CALENDAR_FONT_KEY_BOLD FONT_KEY_GOTHIC_18_BOLD
-#endif
 
 static Layer *s_calendar_layer;
 
@@ -38,7 +33,6 @@ static GRect calendar_cell_rect(GRect bounds, int i, int rows) {
                  box_w, box_h);
 }
 
-#ifdef PBL_PLATFORM_EMERY
 // Apply a tiny Emery-only horizontal tweak for two-digit dates that start with "1"
 // to ensure they stay visually centered within calendar boxes.
 static int emery_calendar_text_shift_x(const char *text) {
@@ -48,9 +42,7 @@ static int emery_calendar_text_shift_x(const char *text) {
 
     return 0;
 }
-#endif
 
-#ifdef PBL_PLATFORM_EMERY
 static GRect calendar_text_rect(GRect cell_rect, const char *text, GFont font) {
     // emery: measure real glyph bounds and vertically center text in each date cell.
     const GRect measure_box = GRect(0, 0, cell_rect.size.w, cell_rect.size.h);
@@ -59,16 +51,6 @@ static GRect calendar_text_rect(GRect cell_rect, const char *text, GFont font) {
     const int text_top = calendar_text_top(cell_rect.origin.y, cell_rect.size.h, text_size.h);
     return GRect(cell_rect.origin.x - emery_calendar_text_shift_x(text), text_top, cell_rect.size.w, text_size.h);
 }
-#else
-static GRect calendar_text_rect(GRect cell_rect, const char *text, GFont font) {
-    (void)text;
-    (void)font;
-    return GRect(cell_rect.origin.x,
-                 calendar_text_top(cell_rect.origin.y, cell_rect.size.h, 0),
-                 cell_rect.size.w,
-                 cell_rect.size.h + CALENDAR_FONT_OFFSET);
-}
-#endif
 
 // The moment a paint's cells count their days from: today at an arbitrary hour well
 // inside the day, so that whole days from it never round onto another date over a
@@ -83,9 +65,7 @@ static time_t today_anchor(void) {
 // static buffer — see localtime(3). Kept out of line on the colour watches, where
 // today's colour reads a date too and two inlined copies cost more than the call; on
 // the B&W ones the loop is its only caller.
-#if defined(PBL_COLOR)
 __attribute__((noinline))
-#endif
 static struct tm relative_tm(time_t anchor, int days_from_today) {
     time_t timestamp = anchor + days_from_today * SECONDS_PER_DAY;
     return *localtime(&timestamp);

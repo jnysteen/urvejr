@@ -16,19 +16,10 @@ bool status_row_refresh(StatusRow *row);
 // ("Jul 4. 2026") instead of month-year ("Jul 2026"). Pushed window -> owner ->
 // row (tier push); the resolver reads only row state.
 void status_row_set_full_date(StatusRow *row, bool full_date);
-#if defined(PBL_HEALTH)
 // The health readings the row's slots show (services/health_summary.h HEALTH_SUMMARY_*),
 // as of its last refresh; 0 when it shows none. Health watches only: aplite's lean twin
 // need not answer it.
 uint8_t status_row_live_health(const StatusRow *row);
-#endif
-#if !defined(WW_ON_DEMAND)
-// Aplite only (its lean twin, status_row_aplite.c): when active, the row's right
-// slot (index 2) draws the battery glyph in place of its packed content — the top
-// strip's low-battery takeover. Every other platform shows a low charge through the
-// On demand Battery item instead.
-void status_row_set_battery_override(StatusRow *row, bool active);
-#else
 // Declared only where On demand exists: aplite has none, so its lean twin need not
 // answer it.
 //
@@ -52,5 +43,4 @@ bool status_row_uses_on_demand(const StatusRow *row);
 // measures the slots' short members through it, so a member and the full form
 // compare like for like.
 int16_t status_row_text_w(const char *text, GFont font, int16_t content_w, int16_t h);
-#endif
 void status_row_draw(StatusRow *row, GContext *ctx);

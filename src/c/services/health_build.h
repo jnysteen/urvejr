@@ -3,7 +3,6 @@
 
 // Pure scheduling math for the incremental health-cache build. No HealthService
 // calls — host-testable (see test/c/health_build_test.c). Health-only.
-#if defined(PBL_HEALTH)
 
 // Buckets to fill this chunk: clamp(build_end - next, 0, chunk).
 int health_build_chunk_len(int next, int build_end, int chunk);
@@ -21,4 +20,3 @@ time_t health_build_range_end(time_t fa, int n, int step, int start, int len);
 bool health_build_rollover(time_t old_end_hour, time_t now_hour, int step, int n,
                            int *keep, int *recalc_count);
 
-#endif  // PBL_HEALTH

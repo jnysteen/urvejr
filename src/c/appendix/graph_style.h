@@ -38,7 +38,6 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-#if defined(PBL_PLATFORM_EMERY)
 #define GRAPH_STYLE_COUNT      3
 #define GS_HOURS               0
 #define GS_FLAGS               1
@@ -103,4 +102,3 @@ static inline uint8_t graph_style_trend(const uint8_t *rec, int line) {
 static inline bool graph_style_bars(int len) {
     return len > GS_PALETTE;
 }
-#endif  // PBL_PLATFORM_EMERY

@@ -101,9 +101,7 @@ typedef struct {
     // entirely, so the field would be dead weight on the platform with the least
     // room. That makes sizeof(Config) 2 B smaller there, which is safe — a config
     // blob is written and read by one install on one platform, never shared.
-#if defined(PBL_HEALTH)
     uint16_t hr_scale;
-#endif
     // --- larger graph fonts (emery only): step every graph axis label up one Gothic
     // tier (left axes 18 -> 24, hour labels 14 -> 18). ON by default since the tier
     // stopped being an opt-in. Appended at the END to honour the append-only persist
@@ -122,9 +120,7 @@ typedef struct {
     // ceiling (scripts/check-aplite-size.sh). Guarding costs every non-emery platform
     // exactly 0 B. A config blob is written and read by one install on one platform,
     // never shared, so a per-platform sizeof(Config) is safe.
-#if defined(PBL_PLATFORM_EMERY)
     bool large_graph_font;
-#endif
     // --- date slot formats (v1.16): how SLOT_LIVE_DATE prints, one enum per string
     // (date_format.h DateMonthFormat / DateFullFormat; 0 = Auto = the pre-setting
     // behavior). Appended at the END to honour the append-only persist offsets;
@@ -137,7 +133,6 @@ typedef struct {
     // the fields and their wire parse would be dead weight against the launch-size
     // ceiling. A config blob never crosses installs, so a per-platform
     // sizeof(Config) is safe.
-#if !defined(PBL_PLATFORM_APLITE)
     uint8_t date_month_format;
     uint8_t date_full_format;
     // --- custom layout v2 (v1.22): each view's EXT word — the high 16 bits of the
@@ -156,7 +151,6 @@ typedef struct {
     // phone sends the bit. !PBL_PLATFORM_APLITE like the fields above: aplite has no flick.
     // A config blob never crosses installs, so the per-platform sizeof(Config) is safe.
     bool view_double_flick;
-#endif
     // --- forecast left axis (v2.2, emery only): bits 1-7 of the CLAY_LARGE_GRAPH_FONT
     // graph-options word as sent (GRAPH_OPT_* below); 0 = every option at its default, today's
     // graph. Appended at the END (append-only persist offsets). It fills the struct's former
@@ -168,9 +162,7 @@ typedef struct {
     // writer of a Config must keep that memset, or its stack garbage here reads back as axis
     // options after an upgrade. PBL_PLATFORM_EMERY-guarded for large_graph_font's reason above;
     // a config blob never crosses installs.
-#if defined(PBL_PLATFORM_EMERY)
     uint8_t forecast_axis;
-#endif
 } Config;
 
 // Read-only view of the loaded config. Non-NULL from config_load() until
@@ -184,12 +176,8 @@ const Config *config_get(void);
 // exactly 0 B (the aplite ceiling argument above). Call sites need no #ifdef of their
 // own -- this is the single place that knows the field only exists on emery.
 static inline bool config_large_graph_font(void) {
-#if defined(PBL_PLATFORM_EMERY)
     // emery: the only platform with the field (and the settings-UI row).
     return config_get()->large_graph_font;
-#else
-    return false;
-#endif
 }
 
 // The CLAY_LARGE_GRAPH_FONT graph-options word, which only emery reads (every other watch
@@ -213,12 +201,8 @@ static inline bool config_large_graph_font(void) {
 // The left-axis options, the config_large_graph_font pattern: constant 0 (every option at its
 // default, today's graph) off emery, so call-site branches fold away there.
 static inline uint8_t config_forecast_axis(void) {
-#if defined(PBL_PLATFORM_EMERY)
     // emery: the only platform with the field (and the settings rows).
     return config_get()->forecast_axis;
-#else
-    return 0;
-#endif
 }
 
 void config_load();

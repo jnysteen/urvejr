@@ -193,7 +193,6 @@ static inline void temp_axis_range_widen(TempAxisRange *r, const int16_t *values
     }
 }
 
-#if defined(PBL_PLATFORM_EMERY)
 // emery: byte b of a temperature-axis line read back to whole degrees, on the straight line
 // through the global extremes g (every hour sent) and the phone's TEMP_MIN / TEMP_MAX (lo,
 // hi), rounded half up; the ends exact. The 12 h and long grids name the hours on screen
@@ -207,7 +206,6 @@ static inline int temp_axis_byte_temp(int b, TempAxisRange g, int lo, int hi) {
     const int span = g.hi - g.lo;
     return lo + (int)((unsigned)(2 * (b - g.lo) * (hi - lo) + span) / (unsigned)(2 * span));
 }
-#endif
 
 // The fit for one redraw (THE SCALE): the joint range's lowest byte `r.lo` lands on the bottom
 // margin's row, its highest `r.hi` on the top margin's, and every byte lies on the straight

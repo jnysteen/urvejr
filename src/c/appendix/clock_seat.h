@@ -37,9 +37,7 @@ typedef struct {
 // through LAYOUT_METRICS_NOW() in layers/clock_ink.h, which has the platform arms.
 typedef struct {
     int16_t fc_band_h;   // status_forecast_band_h(status_full_tier_font())
-#if defined(WW_CLOCK_INK)
     ClockInk clock;      // the active time font's measured ink
-#endif
 } LayoutMetrics;
 
 // ── Clock seating ────────────────────────────────────────────────────────────

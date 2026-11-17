@@ -82,7 +82,6 @@ static inline uint32_t night_light_rgb888(uint8_t r, uint8_t g, uint8_t b) {
     return ((uint32_t) r << 16) | ((uint32_t) g << 8) | (uint32_t) b;
 }
 
-#if defined(WW_COLOR_BACKLIGHT)
 
 // Start driving the backlight and apply the current state immediately. Subscribes to
 // the app focus service, so call once from the window's _load; pairs with
@@ -99,4 +98,3 @@ void night_light_refresh(void);
 // user's own colour if we had tinted it. Call from the window's _unload.
 void night_light_deinit(void);
 
-#endif  // WW_COLOR_BACKLIGHT

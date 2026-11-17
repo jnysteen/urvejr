@@ -30,9 +30,6 @@
 // The two macros gate different wire concerns (WW_THRESHOLD_HIGHLIGHT the thresholds
 // blob and levels word, WW_ON_DEMAND the entries tuple), but On demand cannot stand
 // without the first: its alert items are judged and painted by the threshold looks.
-#if defined(WW_ON_DEMAND) && !defined(WW_THRESHOLD_HIGHLIGHT)
-#error "WW_ON_DEMAND needs WW_THRESHOLD_HIGHLIGHT: the alert items paint the threshold looks"
-#endif
 
 #define ALERT_SET_MAX 5   // the five metric kinds
 

@@ -2,7 +2,6 @@
 #include "../appendix/theme.h"
 
 // Not built on aplite: its lean status row (status_row_aplite.c) draws bit masks.
-#if !defined(PBL_PLATFORM_APLITE)
 
 #include "status_pixel_icons.generated.h"
 
@@ -44,4 +43,3 @@ void status_row_icons_destroy(GDrawCommandImage *image) {
     if (image) { gdraw_command_image_destroy(image); }
 }
 
-#endif

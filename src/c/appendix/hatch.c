@@ -34,12 +34,10 @@ static void hatch_fill(GContext *ctx, GRect rect, GColor color, int stride, bool
 
 // Only chart.c's line-style extension and its colour-only area dither call the bare
 // emitter; elsewhere (aplite) hatch_fill keeps its one caller and folds `backing`.
-#if defined(PBL_COLOR) || defined(WW_LINE_STYLE)
 void hatch_fill_rect_raw(GContext *ctx, GRect rect, GColor color, int stride)
 {
     hatch_fill(ctx, rect, color, stride, false);
 }
-#endif
 
 void hatch_fill_rect(GContext *ctx, GRect rect, GColor color, int stride)
 {

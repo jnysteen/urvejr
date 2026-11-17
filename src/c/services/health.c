@@ -5,7 +5,6 @@
 // callers — the health view that used these accessors is itself compiled out
 // (see health_graph_layer.c / health_status_layer.c / main_window.c) — so the
 // whole module drops out rather than shipping unreachable stubs.
-#if defined(PBL_HEALTH)
 
 #define HOUR_SECS 3600
 
@@ -275,4 +274,3 @@ void health_fill_hourly_sleep(uint8_t *state_out, int count, time_t end_hour) {
     health_release_service_cache();
 }
 
-#endif  // PBL_HEALTH

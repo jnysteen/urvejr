@@ -7,19 +7,13 @@
 #include "status_icon_size.h"
 #include "../appendix/theme.h"
 
-#if defined(WW_THRESHOLD_HIGHLIGHT)
 
 // The drawable colour for a look's RAW accent byte. On effective B&W (real hardware
 // or the bw/bw-light theme) the escalation is polarity, not hue: outline fg, fill fg
 // (danger, or a warn look of fill — drawn solid, as picked). The user hues only apply
 // on the colour path.
 static GColor accent(uint8_t color8) {
-#ifdef PBL_COLOR
     return theme_pick((GColor){ .argb = color8 }, theme_fg());
-#else
-    (void)color8;
-    return theme_fg();
-#endif
 }
 
 GColor status_highlight_paint(GContext *ctx, GRect frame, ThreshLook look) {
@@ -60,4 +54,3 @@ void status_highlight_draw_glyph(GContext *ctx, GDrawCommandImage *image, int16_
     if (restroke) { set_stroke(image, fg); }
 }
 
-#endif
