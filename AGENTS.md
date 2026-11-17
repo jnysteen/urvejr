@@ -19,6 +19,16 @@ Other references:
 - For Pebble C SDK lookups, use the `pebble` skill in `.agents/skills/`. The C API is not in
   your training data, so look up any SDK call you aren't certain of before using it.
 
+## Rules
+
+- PR descriptions MUST be concise: what changed and how it was tested, in a few bullets. No essays.
+- New code comments MUST be concise: one short line saying _why_, only where it isn't obvious.
+- If a change affects what data the app sends or keeps, which outside services it calls, or
+  telemetry, update the privacy text in the settings (`PRIVACY_TEXT` in
+  `src/pkjs/page/settings/schema.js`) and README.md's "Privacy and data sources" to match.
+- urvejr is a GPL-3.0 fork of WarnWeather by Toasbi. Keep `LICENSE` and the credits to the
+  original authors (README.md, STORE_LISTING.md, the settings page's Credits row).
+
 ## Build and verify loop
 
 - After any change, run `mise build` to check that it builds.
@@ -41,6 +51,13 @@ Other references:
   plugins). Last it runs `scripts/test-c.sh` (host-compiled C layout tests).
 - Tests that touch storage must install a `global.localStorage` mock before the watch
   modules load. `test/wire/adapter/change-detector.test.js` shows the pattern.
+- Without `mise` (e.g. a cloud session), set up the generated inputs by hand first:
+  `bash scripts/prepare-package.sh dev`, `npm ci --ignore-scripts`,
+  `node scripts/prepare-fixture.js` and `node scripts/build-config-page.js`.
+- While iterating, run only the tests you touched (`node --test <file>` or
+  `node --test --test-name-pattern='<name>' <file>`); run the full suite once before pushing.
+- Merge tests only if they cover the same code; keep look-alikes that take different paths.
+  Cut a test only if another one checks the same thing.
 
 ## Generated files: never edit by hand
 
@@ -356,3 +373,15 @@ Third-party weather and geocoding APIs (met.no, DWD, Open-Meteo, LocationIQ, tom
 When you add, remove or rename a user-visible feature, weather provider or setting, update
 the feature lists in both `README.md` and `STORE_LISTING.md`. They are parallel copies that
 drift easily. The live appstore listing is a third copy, updated by hand at release time.
+
+## Finishing a task
+
+Do this unprompted after opening or updating a PR:
+
+1. Review your own diff as a strict reviewer (run `/code-review`): bugs, edge cases, the rules
+   above, the ES5 and inbox-size limits, aplite heap. Ask yourself "am I proud of this?"
+2. Fix what you find, rerun the checks, push.
+3. Tell the user in a few bullets what the review found and what you fixed (or that it found
+   nothing).
+4. When PR checks are green, ask the user for permission to merge. Never merge without their
+   explicit yes.
