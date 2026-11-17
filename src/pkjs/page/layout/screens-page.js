@@ -85,6 +85,8 @@ var PConf = (typeof global !== 'undefined' && global.PConf) ? global.PConf
     // How to reorder, under the Screens card's screens and the screen editor's rows; "Drag ≡" kept
     // on one line (a no-break space).
     var REORDER_HINT = 'Each flick shows the next one. Drag\u00a0≡ to change the order.';
+    // The same on a touch watch (env.touch: emery), which switches with a tap on the screen.
+    var REORDER_HINT_TOUCH = 'Each tap on the screen shows the next one. Drag\u00a0≡ to change the order.';
     var ROWS_HINT = 'Drag\u00a0≡ to change the order.';
     // The screen editor's Add groups, in the order they show (the owner's ask, 2026-11-09: the
     // chips grouped by what they add), each with its caption, or capOf, which writes it from the
@@ -1087,7 +1089,7 @@ var PConf = (typeof global !== 'undefined' && global.PConf) ? global.PConf
                 + '</div>';
         }).join('');
         var add = lists.length < M.MAX_SCREENS ? kit.newRow('Add screen', '', { 'data-action': 'addScreen' }) : '';
-        var hint = many ? '<div class="ui-row ui-foot" id="scrHint">' + REORDER_HINT + '</div>' : '';
+        var hint = many ? '<div class="ui-row ui-foot" id="scrHint">' + (env && env.touch ? REORDER_HINT_TOUCH : REORDER_HINT) + '</div>' : '';
         var note = UI.note.v ? kit.note(UI.note.v) : '';
         var toast = UI.toast.v ? kit.undoToast(UI.toast.v.text, { 'data-action': 'undoDeleteScreen' }) : '';
         return '<div class="ui-list scr-list">' + rows + add + hint + note + toast + '</div>';
@@ -2687,6 +2689,7 @@ var PConf = (typeof global !== 'undefined' && global.PConf) ? global.PConf
         NO_GRAPH_ROOM: NO_GRAPH_ROOM,
         TEMPLATE_NOTE: TEMPLATE_NOTE,
         REORDER_HINT: REORDER_HINT,
+        REORDER_HINT_TOUCH: REORDER_HINT_TOUCH,
         ROWS_HINT: ROWS_HINT,
         hasScreens: hasScreens,
         ensureCustom: ensureCustom,

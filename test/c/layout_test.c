@@ -2925,6 +2925,48 @@ static void view_flick_tests(void) {
     expect("flick.wrap.pair_fires", view_flick_accept(&g, 0x00000300u, true), true);
 }
 
+static void view_tap_tests(void) {
+    // The screen-tap gate (view_tap_down/move/up, touch watches): a short touch that lifts
+    // near where it landed switches; a swipe, a long press or a stray Liftoff does not.
+    const uint32_t t0 = 1700000000u;
+    ViewTapGate g = {0};
+    expect("tap.liftoff_without_touchdown", view_tap_up(&g, 50, 50, t0), false);
+    view_tap_down(&g, 100, 100, t0);
+    expect("tap.clean_tap_fires", view_tap_up(&g, 102, 99, t0 + 120), true);
+    expect("tap.liftoff_consumes", view_tap_up(&g, 102, 99, t0 + 130), false);
+    // Jitter inside the slop keeps it a tap; the slop edge still counts.
+    view_tap_down(&g, 100, 100, t0);
+    view_tap_move(&g, 105, 103);
+    expect("tap.jitter_still_fires", view_tap_up(&g, 100 + VIEW_TAP_SLOP_PX, 100, t0 + 200), true);
+    // A slide out of the slop is no tap, even if it slides back before lifting.
+    view_tap_down(&g, 100, 100, t0);
+    view_tap_move(&g, 100 + VIEW_TAP_SLOP_PX + 1, 100);
+    view_tap_move(&g, 100, 100);
+    expect("tap.slide_out_and_back_no_tap", view_tap_up(&g, 100, 100, t0 + 200), false);
+    view_tap_down(&g, 100, 100, t0);
+    expect("tap.lift_far_no_tap", view_tap_up(&g, 100, 140, t0 + 150), false);
+    // Diagonal: 12,12 is ~17 px, out of a 16 px slop.
+    view_tap_down(&g, 100, 100, t0);
+    expect("tap.diagonal_out_no_tap", view_tap_up(&g, 112, 112, t0 + 150), false);
+    // Held too long.
+    view_tap_down(&g, 100, 100, t0);
+    expect("tap.just_under_max_fires", view_tap_up(&g, 100, 100, t0 + VIEW_TAP_MAX_MS - 1), true);
+    view_tap_down(&g, 100, 100, t0);
+    expect("tap.long_press_no_tap", view_tap_up(&g, 100, 100, t0 + VIEW_TAP_MAX_MS), false);
+    // Wall clock stepped back between down and up: no tap.
+    view_tap_down(&g, 100, 100, t0);
+    expect("tap.clock_back_no_tap", view_tap_up(&g, 100, 100, t0 - 1000), false);
+    // Across the 32-bit ms wrap.
+    view_tap_down(&g, 100, 100, 0xFFFFFF00u);
+    expect("tap.wrap_fires", view_tap_up(&g, 100, 100, 0x00000010u), true);
+    // Two quick taps switch twice (no debounce between separate touches).
+    view_tap_down(&g, 100, 100, t0);
+    int fires = view_tap_up(&g, 100, 100, t0 + 80);
+    view_tap_down(&g, 100, 100, t0 + 200);
+    fires += view_tap_up(&g, 100, 100, t0 + 280);
+    expect("tap.double_tap_switches_twice", fires == 2, true);
+}
+
 // ── Seating invariant: no band the layout produces may clamp ─────────────────
 // Content height of the font each band's row renders in — mirrors row_font() in
 // src/c/layers/status_row.c. A Gothic font's measured content height is exactly its nominal
@@ -3873,6 +3915,7 @@ int main(int argc, char **argv) {
     if (!s_dump) view_cursor_tests();
     if (!s_dump) view_timer_tests();
     if (!s_dump) view_flick_tests();
+    if (!s_dump) view_tap_tests();
     if (!s_dump) radar_placement_tests();
     if (!s_dump) test_geometry_lower_only();
     if (!s_dump) test_resolve_tier_lower_only();

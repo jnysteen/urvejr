@@ -1532,7 +1532,8 @@ module.exports = {
                 showWhen: {key: 'layoutPreset', nin: ['fullCal', 'noCal']}
             }]
         }, {
-            // How the watch switches screens, once there is a screen to flick to.
+            // How the watch switches screens (a flick, or a tap on a touch watch), once there is a
+            // screen to switch to.
             id: 'screenSwitching',
             title: 'Screen switching',
             showWhen: {all: [VIEW_FLICK_WHEN, {when: 'manyScreens'}]},
@@ -1544,7 +1545,10 @@ module.exports = {
                 // an upgrade too (seedDefaults backfills the missing key); off leaves
                 // CLAY_VIEW_RESET_MIN's word unchanged, so an upgrade resends nothing.
                 defaultValue: false,
-                hint: 'Switch only on a second flick within a few seconds of the first.'
+                hint: 'Switch only on a second flick within a few seconds of the first.',
+                // A touch watch switches with a tap on the screen (env.touch: emery), where
+                // one tap always switches and the toggle does nothing.
+                showWhen: {not: {env: 'touch'}}
             }, {
                 type: 'segmented',
                 messageKey: 'viewResetMin',

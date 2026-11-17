@@ -43,10 +43,13 @@ static uint32_t s_applied_view_word[3];
 // Epoch of the last view-switching flick (or relaunch-restore to a non-default view),
 // seeding the auto-return-to-default timer. 0 = on the default view / no timer running.
 static time_t s_flick_epoch;
+#if !defined(PBL_TOUCH)
 // Wrist-flick gate state (rules: layout.h view_flick_accept). RAM only, zeroed at launch:
 // a relaunch starts with no flick pending.
 static ViewFlickGate s_flick_gate;
-// Whether tap_handler is subscribed: only while the cycle can move (tap_follow_cycle).
+#endif
+// Whether tap_handler (touch_handler on a touch watch) is subscribed: only while the
+// cycle can move (tap_follow_cycle).
 static bool s_tap_subscribed;
 #endif
 
@@ -366,37 +369,82 @@ static void show_view(void) {
 }
 
 #if defined(WW_VIEW_CYCLE)
+// Advance to the next view after an accepted flick or tap. `now_s` is time_ms's seconds
+// (time(NULL)'s UTC epoch).
+static void advance_view(time_t now_s) {
+    uint8_t next = next_view_index(s_view_index);
+    if (next == s_view_index) { return; }   // nothing else enabled/available
+    s_view_index = next;
+    s_flick_epoch = now_s;                   // restart the auto-return timer
+    show_view();
+}
+
+#if defined(PBL_TOUCH)
+// emery: the Pebble Time 2 has a touchscreen, so a tap on the screen switches views in
+// place of the wrist flick (which fired on ordinary arm movement and missed real flicks).
+// view_tap_down/move/up (layout.h) decide what counts as a tap. Taps on an idle face
+// (event->non_navigational) count too: a watchface has no "wake first" step, and the
+// auto-return timer takes a brushed screen back to the default view. Double flick does
+// not apply: one tap switches.
+static ViewTapGate s_tap_gate;
+
+static void touch_handler(const TouchEvent *event, void *context) {
+    (void) context;
+    time_t now_s;
+    uint16_t now_ms_part = time_ms(&now_s, NULL);
+    const uint32_t now_ms = (uint32_t) now_s * 1000u + now_ms_part;
+    switch (event->type) {
+        case TouchEvent_Touchdown:
+            view_tap_down(&s_tap_gate, event->x, event->y, now_ms);
+            break;
+        case TouchEvent_PositionUpdate:
+            view_tap_move(&s_tap_gate, event->x, event->y);
+            break;
+        case TouchEvent_Liftoff:
+            if (view_tap_up(&s_tap_gate, event->x, event->y, now_ms)) { advance_view(now_s); }
+            break;
+    }
+}
+#else
 static void tap_handler(AccelAxisType axis, int32_t direction) {
     // view_flick_accept (layout.h) debounces one flick's per-axis echoes and, with Double
     // flick on, passes only a pair's second flick. A rejected flick changes nothing here:
     // no view, no auto-return restart, no health warm.
+    (void) axis;
+    (void) direction;
     time_t now_s;
     uint16_t now_ms_part = time_ms(&now_s, NULL);
     if (!view_flick_accept(&s_flick_gate, (uint32_t) now_s * 1000u + now_ms_part,
                            config_get()->view_double_flick)) {
         return;
     }
-
-    uint8_t next = next_view_index(s_view_index);
-    if (next == s_view_index) { return; }   // nothing else enabled/available (pair consumed)
-    s_view_index = next;
-    s_flick_epoch = now_s;                   // restart the auto-return timer (time_ms's
-                                             // seconds are time(NULL)'s UTC epoch)
-    show_view();
+    advance_view(now_s);
 }
+#endif
 
-// Take tap events only while a flick can move the cursor (layout.h view_cycle_flickable),
-// so a face with one view is not woken by every wrist flick. The cycle changes only with a
-// settings apply, and each one calls this, as the load does; the unload passes NULL.
+// Take flick (or, on a touch watch, touch) events only while one can move the cursor
+// (layout.h view_cycle_flickable), so a face with one view is not woken by every wrist
+// flick and does not keep the touch sensor powered. The cycle changes only with a settings
+// apply, and each one calls this, as the load does; the unload passes NULL.
 static void tap_follow_cycle(const uint32_t *words) {
     const bool want = words && view_cycle_flickable(words);
     if (want == s_tap_subscribed) { return; }
     s_tap_subscribed = want;
+#if defined(PBL_TOUCH)
+    // emery: touch replaces the accelerometer tap (see touch_handler).
+    if (want) {
+        s_tap_gate = (ViewTapGate){0};
+        touch_service_subscribe(touch_handler, NULL);
+    } else {
+        touch_service_unsubscribe();
+    }
+#else
     if (want) {
         accel_tap_service_subscribe(tap_handler);
     } else {
         accel_tap_service_unsubscribe();
     }
+#endif
 }
 #endif
 

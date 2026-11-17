@@ -197,4 +197,38 @@ static inline bool view_flick_accept(ViewFlickGate *gate, uint32_t now_ms, bool 
     gate->armed = !fire;
     return fire;
 }
+
+// ── Screen-tap gate (pure) ── raw touch events -> view switches (touch watches: emery).
+// A tap is a touch that lifts off near where it touched down, soon after. A finger that
+// slides further than VIEW_TAP_SLOP_PX at any point (a swipe, a drag, a palm or sleeve
+// sliding over the glass) or stays down VIEW_TAP_MAX_MS or longer (a press, a resting
+// finger) is not a tap and switches nothing.
+#define VIEW_TAP_SLOP_PX 16
+#define VIEW_TAP_MAX_MS 700
+typedef struct {
+    uint32_t down_ms;  // ms clock at Touchdown
+    int16_t x, y;      // Touchdown position
+    bool down;         // a touch is in progress and can still be a tap
+} ViewTapGate;
+static inline bool view_tap_near(const ViewTapGate *gate, int16_t x, int16_t y) {
+    int dx = x - gate->x, dy = y - gate->y;
+    return dx * dx + dy * dy <= VIEW_TAP_SLOP_PX * VIEW_TAP_SLOP_PX;
+}
+// A finger touched the screen: start a candidate tap.
+static inline void view_tap_down(ViewTapGate *gate, int16_t x, int16_t y, uint32_t now_ms) {
+    *gate = (ViewTapGate){ .down_ms = now_ms, .x = x, .y = y, .down = true };
+}
+// The finger moved: drop the candidate once it slides out of the slop.
+static inline void view_tap_move(ViewTapGate *gate, int16_t x, int16_t y) {
+    if (gate->down && !view_tap_near(gate, x, y)) { gate->down = false; }
+}
+// The finger lifted: true = it was a tap, advance the view. A Liftoff with no Touchdown
+// before it (a touch that began before the subscription) is not a tap. The unsigned
+// elapsed time reads a wall-clock step back as "long ago", so that lift is no tap either.
+static inline bool view_tap_up(ViewTapGate *gate, int16_t x, int16_t y, uint32_t now_ms) {
+    bool tap = gate->down && view_tap_near(gate, x, y)
+               && (uint32_t) (now_ms - gate->down_ms) < VIEW_TAP_MAX_MS;
+    gate->down = false;
+    return tap;
+}
 #endif  // WW_VIEW_CYCLE

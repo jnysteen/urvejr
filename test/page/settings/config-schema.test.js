@@ -1404,7 +1404,13 @@ test('Screen switching: Double flick and Back to Default after, once there is a 
   assert.equal(reset.label, 'Back to Default after');
   assert.equal(reset.defaultValue, '2');
   assert.deepEqual(reset.options, [['Never', '0'], ['1m', '1'], ['2m', '2'], ['5m', '5'], ['10m', '10']]);
-  [flick, reset].forEach((i) => assert.equal(i.showWhen, undefined, i.messageKey + ': the card\'s gate alone'));
+  assert.equal(reset.showWhen, undefined, 'viewResetMin: the card\'s gate alone');
+  // A touch watch (emery) switches with a tap, where one tap always switches: no Double flick.
+  assert.deepEqual(flick.showWhen, { not: { env: 'touch' } });
+  ['basalt', 'diorite', 'flint'].forEach((p) => assert.equal(
+    showWhen.isVisible(flick, { env: platform.computeEnv({ platform: p }) }), true, p + ': Double flick'));
+  assert.equal(showWhen.isVisible(flick, { env: platform.computeEnv({ platform: 'emery' }) }), false,
+    'emery: no Double flick');
   // Shown on a watch with flick screens while there are two screens or more (manyScreens).
   const custom = (viewCount) => ({ layoutPreset: 'custom', customLayoutSeeded: true, viewCount,
     viewTop1: 'none', viewBody1: 'forecast', viewUpper1: 'weather', viewLower1: 'off' });
