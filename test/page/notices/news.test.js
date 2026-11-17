@@ -149,14 +149,14 @@ test('renderNewsBellHtml is accessible and preserves unread state', () => {
   assert.match(html, /<span class="news-badge"><\/span>/);
 });
 
-test('renderNewsListHtml has no message form: it links to the store listing and GitHub issues', () => {
+test('renderNewsListHtml has no message form: it links to GitHub issues', () => {
   [true, false].forEach((canReply) => {
     const html = news.renderNewsListHtml([
       { id: 4, title: 'Hello', created_at: '2026-07-19T00:00:00Z', body_md: 'Body' }
     ], canReply);
     assert.doesNotMatch(html, /textarea|data-news-reply|data-news-send|Write a message/);
-    assert.match(html, /https:\/\/apps\.repebble\.com\/67d6f1fcdb264341b850f79a/);
-    assert.match(html, /https:\/\/github\.com\/Toasbi\/WarnWeather\/issues/);
+    assert.doesNotMatch(html, /apps\.repebble\.com/);
+    assert.match(html, /https:\/\/github\.com\/jnysteen\/urvejr\/issues/);
     assert.ok(html.indexOf('news-message-hint') > html.lastIndexOf('news-title'), 'the line sits below the items');
   });
 });
@@ -200,7 +200,7 @@ test('renderNewsListHtml wraps items in a scroll container between the pinned he
   // leaving only the news items to scroll.
   assert.match(html, /<div class="news-scroll">/);
   assert.ok(html.startsWith(require('../../../src/pkjs/config-ui/lib/ui.js').popupHeader('News', { 'data-news-close': '1' })),
-    'the popup header Support has too');
+    'the shared popup header');
   const hdr = html.indexOf('ui-pop-hdr');
   const scroll = html.indexOf('news-scroll');
   const item = html.indexOf('news-item');

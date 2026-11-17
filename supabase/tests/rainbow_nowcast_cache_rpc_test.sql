@@ -1,6 +1,6 @@
 -- pgtap tests for public.get_rainbow_nowcast_cache (supabase/schemas/rainbow.sql) and for
 -- public.rainbow_prune, the hourly prune of the cache rows and IP buckets (keys.ts formats).
--- Run: docker exec -i supabase_db_warnweather psql -U postgres -d postgres -X -q \
+-- Run: docker exec -i supabase_db_urvejr psql -U postgres -d postgres -X -q \
 --        < supabase/tests/rainbow_nowcast_cache_rpc_test.sql   (grep 'not ok')
 -- or:  supabase test db
 begin;

@@ -280,7 +280,7 @@ WeatherProvider.prototype.withCityName = function(lat, lon, callback) {
     );
 };
 
-// https://github.com/Toasbi/WarnWeather/issues/59#issue-1317582743
+// https://github.com/jnysteen/urvejr/issues/59#issue-1317582743
 
 /**
  * Resolve coordinates from the location override: pass through manual lat/lon,

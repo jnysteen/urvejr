@@ -21,7 +21,7 @@
 // The injected endpoints' entry: the default radar outside Germany and the Nordics (the Rainbow
 // proxy), the settings page's news and the telemetry, which is on unless the user turns it off.
 // Required: a fresh install shows the radar, and the page's domains are fixed when it opens.
-const ENDPOINTS_REASON = 'WarnWeather server: rain radar, news and anonymous telemetry';
+const ENDPOINTS_REASON = 'urvejr server: rain radar, news and anonymous telemetry';
 
 /**
  * The hostname of an http(s) URL.

@@ -1,6 +1,6 @@
-# Agent guide: WarnWeather
+# Agent guide: urvejr
 
-WarnWeather is a Pebble weather watchface: a C watchface (`src/c/`) driven by
+urvejr is a Pebble weather watchface: a C watchface (`src/c/`) driven by
 phone-side PebbleKit JS (`src/pkjs/`), with a Clay config UI and a Supabase
 telemetry backend. This file is the rulebook for any AI agent or contributor tool
 working in this repo. Claude Code reads it through `CLAUDE.md`'s `@AGENTS.md` import;
@@ -170,8 +170,8 @@ README.md.
     for ("DWD weather provider"), with a few more words only where the name doesn't say it.
   - Required: every weather service the app can fetch from (forecast and radar, keyed or
     not, air quality, pollen), the town's name and the settings' place search, the public
-    holidays (Nager.Date), Buy Me a Coffee (the Support me link: only linked, declared at
-    the owner's wish) and the app's own backend. Optional: LocationIQ (a typed Manual
+    holidays (Nager.Date), Buy Me a Coffee (the credits' link
+    to support the original authors: only linked) and the app's own backend. Optional: LocationIQ (a typed Manual
     location), the update check, notifications and Health.
   - A settings-page link to another site opens through `Pebble.openUrl` where the app
     offers it, declared or not (`config-ui/lib/links.js`).

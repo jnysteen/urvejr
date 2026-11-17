@@ -43,15 +43,15 @@ fi
 if [[ "$profile" == "dev" ]]; then
   mise run build -- dev
   if ((${#install_args[@]})); then
-    pebble install build/warnweather-dev.pbw --phone "$ip" "${install_args[@]}"
+    pebble install build/urvejr-dev.pbw --phone "$ip" "${install_args[@]}"
   else
-    pebble install build/warnweather-dev.pbw --phone "$ip"
+    pebble install build/urvejr-dev.pbw --phone "$ip"
   fi
 else
   mise run build -- release
   if ((${#install_args[@]})); then
-    pebble install build/warnweather.pbw --phone "$ip" "${install_args[@]}"
+    pebble install build/urvejr.pbw --phone "$ip" "${install_args[@]}"
   else
-    pebble install build/warnweather.pbw --phone "$ip"
+    pebble install build/urvejr.pbw --phone "$ip"
   fi
 fi

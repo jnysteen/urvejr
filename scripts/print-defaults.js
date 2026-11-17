@@ -414,7 +414,7 @@ function renderUnseeded() {
 function render() {
   const out = [];
   out.push('='.repeat(WIDTH));
-  out.push(' WarnWeather settings defaults — where each one comes from');
+  out.push(' urvejr settings defaults — where each one comes from');
   out.push('='.repeat(WIDTH));
   out.push(...wrap('Rendered from the code that decides them, so this page cannot drift: the rules '
     + 'come from defaults-policy.js, the flat defaults from schema.js via deriveDefaults(), the '

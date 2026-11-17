@@ -1,4 +1,4 @@
-// src/pkjs/page/settings/blocks.js — ES5, WebView. WarnWeather's threshold-sheet
+// src/pkjs/page/settings/blocks.js — ES5, WebView. urvejr's threshold-sheet
 // machinery (ranges, auto colors, the warn-look default, the two reset
 // actions, the sheet/badge resolvers) and the small option/default/recommend
 // resolvers. The BLOCK RENDERERS live one file per concern —

@@ -3,8 +3,8 @@
 // where the XHR runtime forbids setting User-Agent. Deliberately version-free
 // so no watch-runtime module needs to require package.json.
 var HEADERS = {
-    'User-Agent': 'WarnWeather github.com/Toasbi/WarnWeather',
-    'Origin': 'https://github.com/Toasbi/WarnWeather'
+    'User-Agent': 'urvejr github.com/jnysteen/urvejr',
+    'Origin': 'https://github.com/jnysteen/urvejr'
 };
 
 /**

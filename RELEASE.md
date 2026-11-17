@@ -1,6 +1,6 @@
 # Releasing
 
-RELEASE.md is the release checklist for WarnWeather that covers how a release is cut, what each release needs besides the code, and how to refresh the store assets.
+RELEASE.md is the release checklist for urvejr that covers how a release is cut, what each release needs besides the code, and how to refresh the store assets.
 
 ## Automatic GitHub releases (Release Please)
 
@@ -10,7 +10,7 @@ RELEASE.md is the release checklist for WarnWeather that covers how a release is
 2. Release Please opens or updates a release PR that bumps the version in
    `package.template.json` (`$.version`).
 3. Merge the release PR. That tags the release.
-4. The workflow creates a GitHub release and uploads `build/warnweather.pbw`.
+4. The workflow creates a GitHub release and uploads `build/urvejr.pbw`.
 
 The commit prefixes decide the version bump, so they matter. The weather plugins are
 versioned on their own: release-please skips commits that touch only `plugins/` (see

@@ -1,4 +1,4 @@
-// src/pkjs/page/settings/onbuild.js — ES5, WebView. Registers WarnWeather's onBuild hooks.
+// src/pkjs/page/settings/onbuild.js — ES5, WebView. Registers urvejr's onBuild hooks.
 /* global PConf */
 var PConf = (typeof global !== 'undefined' && global.PConf) ? global.PConf
     : (typeof window !== 'undefined' && window.PConf) ? window.PConf

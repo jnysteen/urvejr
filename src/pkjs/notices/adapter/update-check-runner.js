@@ -112,7 +112,7 @@ function runDailyUpdateCheck(opts) {
         console.log(decision.logLine);
         if (decision.shouldNotify) {
             opts.notify(
-                'WarnWeather update',
+                'urvejr update',
                 'A new version is available. Open the Pebble app on your phone to install it.',
                 function (decided) {
                     // Dropped while the phone asked for ShowNotifications: unremembered,

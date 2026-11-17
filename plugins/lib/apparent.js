@@ -1,7 +1,7 @@
 'use strict';
 
 // Humidity and "feels like" for feeds that don't report them (Bright Sky's forecast records carry a
-// dew point but no relative humidity). The formulas are the ones the WarnWeather watchface uses
+// dew point but no relative humidity). The formulas are the ones the urvejr watchface uses
 // (src/pkjs/weather/domain/feels-like.js), so a plugin and the face agree on the same inputs:
 //
 //   apparent temperature (Steadman):  AT = T + 0.33·e − 0.70·v − 4.00   (T in °C, v in m/s)

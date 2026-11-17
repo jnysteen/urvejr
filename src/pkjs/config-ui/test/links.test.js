@@ -29,8 +29,8 @@ function click(target, handled) {
 }
 
 test('externalHref: an absolute http(s) link only', () => {
-  assert.equal(links.externalHref(tapOn('https://github.com/Toasbi/WarnWeather/issues')),
-    'https://github.com/Toasbi/WarnWeather/issues');
+  assert.equal(links.externalHref(tapOn('https://github.com/jnysteen/urvejr/issues')),
+    'https://github.com/jnysteen/urvejr/issues');
   assert.equal(links.externalHref(tapOn('HTTP://example.org')), 'HTTP://example.org');
   ['#', '#news', 'javascript:void(0)', 'data:text/html,x', '/relative', '', 'pebblejs://close#'].forEach((href) => {
     assert.equal(links.externalHref(tapOn(href)), null, href);

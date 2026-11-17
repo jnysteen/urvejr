@@ -63,12 +63,12 @@ if [ ! -f "$screenshot" ]; then
   exit 66
 fi
 
-tmp_svg="$(mktemp "${TMPDIR:-/tmp}/warnweather-frame.XXXXXX")"
+tmp_svg="$(mktemp "${TMPDIR:-/tmp}/urvejr-frame.XXXXXX")"
 trap 'rm -f "$tmp_svg"' EXIT
 
 screenshot_base64="$(base64 < "$screenshot" | tr -d '\n')"
 
-shadow_filter_def='<filter id="warnweather-device-shadow" x="-12%" y="-12%" width="124%" height="124%"><feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="#000000" flood-opacity="0.18"/></filter>'
+shadow_filter_def='<filter id="urvejr-device-shadow" x="-12%" y="-12%" width="124%" height="124%"><feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="#000000" flood-opacity="0.18"/></filter>'
 
 awk \
   -v image="$screenshot_base64" \
@@ -118,12 +118,12 @@ awk \
 
     /<\/svg>[[:space:]]*$/ {
       $0 = expand_root($0)
-      sub(/<\/defs>/, shadow_filter_def "</defs><g filter=\"url(#warnweather-device-shadow)\">")
+      sub(/<\/defs>/, shadow_filter_def "</defs><g filter=\"url(#urvejr-device-shadow)\">")
       sub(/<\/svg>[[:space:]]*$/, "")
       print
       print "  </g>"
       print "  <defs>"
-      print "    <clipPath id=\"warnweather-screen-clip\">"
+      print "    <clipPath id=\"urvejr-screen-clip\">"
       print "      <rect x=\"" x "\" y=\"" y "\" width=\"" width "\" height=\"" height "\" rx=\"" rx "\" ry=\"" rx "\"/>"
       print "    </clipPath>"
       print "  </defs>"
@@ -133,7 +133,7 @@ awk \
       print "    width=\"" width "\""
       print "    height=\"" height "\""
       print "    preserveAspectRatio=\"none\""
-      print "    clip-path=\"url(#warnweather-screen-clip)\""
+      print "    clip-path=\"url(#urvejr-screen-clip)\""
       print "    href=\"data:image/png;base64," image "\"/>"
       print "</svg>"
       next
@@ -142,7 +142,7 @@ awk \
       if (NR == 1) {
         $0 = expand_root($0)
       }
-      sub(/<\/defs>/, shadow_filter_def "</defs><g filter=\"url(#warnweather-device-shadow)\">")
+      sub(/<\/defs>/, shadow_filter_def "</defs><g filter=\"url(#urvejr-device-shadow)\">")
       print
     }
   ' "$frame_svg" > "$tmp_svg"

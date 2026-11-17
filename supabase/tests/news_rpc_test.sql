@@ -1,6 +1,6 @@
 -- pgtap tests for the news edge function's RPCs (supabase/schemas/news.sql): news_list,
 -- news_mark_seen, news_recent_action_count, and their API surface.
--- Run: docker exec -i supabase_db_warnweather psql -U postgres -d postgres -X -q \
+-- Run: docker exec -i supabase_db_urvejr psql -U postgres -d postgres -X -q \
 --        < supabase/tests/news_rpc_test.sql   (grep 'not ok')
 -- or:  supabase test db
 begin;

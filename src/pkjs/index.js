@@ -71,10 +71,17 @@ var KEY_UPDATE_NOTIFIED_VERSION = storageKeys.UPDATE_NOTIFIED_VERSION_KEY;
 var KEY_LAST_UPDATE_CHECK = storageKeys.LAST_UPDATE_CHECK_KEY;
 // Public appstore APIs; latest version lives at data[0].latest_release.version.
 // Announce the min across stores so the target is installable from either one.
-var UPDATE_CHECK_STORES = [
-    'https://appstore-api.repebble.com/api/v1/apps/id/67d6f1fcdb264341b850f79a',
-    'https://appstore-api.rebble.io/api/v1/apps/id/6a3645239d979d000abc99db'
+// urvejr has no store listings yet: put its appstore ids here once it is listed.
+// A store with an empty id is left out; with none, the check never notifies.
+var UPDATE_CHECK_STORE_APIS = [
+    { api: 'https://appstore-api.repebble.com/api/v1/apps/id/', id: '' },
+    { api: 'https://appstore-api.rebble.io/api/v1/apps/id/', id: '' }
 ];
+var UPDATE_CHECK_STORES = UPDATE_CHECK_STORE_APIS.filter(function (s) {
+    return Boolean(s.id);
+}).map(function (s) {
+    return s.api + s.id;
+});
 // Read here only for the settings page's userData; the fetch cycle owns them.
 var KEY_LAST_FETCH_SUCCESS = storageKeys.LAST_FETCH_SUCCESS_KEY;
 var KEY_LAST_FETCH_ATTEMPT = storageKeys.LAST_FETCH_ATTEMPT_KEY;

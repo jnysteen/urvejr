@@ -51,7 +51,7 @@ var PConf = (typeof global !== 'undefined' && global.PConf) ? global.PConf
      * the last step's rows.
      */
     var STEPS = [
-        { id: 'welcome', title: 'Welcome to WarnWeather', body: stepWelcome, summary: welcomeRows },
+        { id: 'welcome', title: 'Welcome to urvejr', body: stepWelcome, summary: welcomeRows },
         { id: 'forecast', when: 'lineStyles', title: 'Choose a forecast graph', body: stepForecast, summary: forecastRow },
         { id: 'layout', title: 'Choose your layout', body: stepLayout, summary: pickerRow('Layout', 'layoutPreset', 'layout') },
         { id: 'screens', when: 'radar', title: 'Flick to switch screens', body: stepScreens, summary: screensRows },
@@ -848,7 +848,7 @@ var PConf = (typeof global !== 'undefined' && global.PConf) ? global.PConf
         var lead = radar ? 'This watchface shows the forecast, the rain radar and your calendar.'
             : 'This watchface shows the forecast and your calendar.';
         var region = FINISH.findItem(run.ctx.schema, 'holidayRegion');
-        var h = '<div class="wiz-stage">' + watchHtml('WarnWeather on your watch') + '</div>'
+        var h = '<div class="wiz-stage">' + watchHtml('urvejr on your watch') + '</div>'
             + stepHead('welcome')
             + '<p class="wiz-lead">' + lead + ' Setup takes a minute. You can change everything later.</p>'
             + '<div class="wiz-card"><div class="wiz-card-hd">Your country</div>'
@@ -951,8 +951,8 @@ var PConf = (typeof global !== 'undefined' && global.PConf) ? global.PConf
             + '<b>Setup&nbsp;›&nbsp;Misc&nbsp;›&nbsp;Run&nbsp;setup&nbsp;again</b>.</p>'
             + summaryHtml()
             + ((item && UPSELL.offered(run.ctx.S)) ? UPSELL.html(item, run.ctx.S) : '')
-            + '<p class="wiz-fine">If you like WarnWeather, a ♥ on the Pebble appstore helps a lot. For questions or ideas, '
-            + 'open an issue on <a href="https://github.com/Toasbi/WarnWeather/issues">GitHub</a> or use '
+            + '<p class="wiz-fine">If you like urvejr, a ♥ on the Pebble appstore helps a lot. For questions or ideas, '
+            + 'open an issue on <a href="https://github.com/jnysteen/urvejr/issues">GitHub</a> or use '
             + '“Message the developer” in the appstore.</p>';
     }
 

@@ -269,7 +269,7 @@ for fixture in "${build_fixtures[@]}"; do
   fi
   printf '\n==> build %s\n' "$base"
   FIXTURE="$base" mise run build -- dev
-  cp build/warnweather-dev.pbw "$pbw_dir/$base.pbw"
+  cp build/urvejr-dev.pbw "$pbw_dir/$base.pbw"
 done
 
 # capture_platform <platform> — capture every frame of one platform, reusing

@@ -119,7 +119,7 @@ for platform in "${platforms[@]}"; do
   for attempt in 1 2 3; do
     # Bound the install so a wedged emulator can't hang the run; 60s clears a
     # cold boot but catches a wedge, after which we reap and retry.
-    if run_bounded 60 pebble install build/warnweather-dev.pbw --emulator "$platform"; then
+    if run_bounded 60 pebble install build/urvejr-dev.pbw --emulator "$platform"; then
       break
     fi
     if [[ $attempt -eq 3 ]]; then

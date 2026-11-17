@@ -159,7 +159,7 @@ test('withProviderData populates the provider and passes the Met.no headers', ()
   assert.equal(p.tempTrend.length, 24);
   assert.equal(p.currentTemp, 50);
   assert.equal(p.startTime, HOUR0, 'startTime anchors at the floored current hour');
-  assert.equal(seenHeaders['User-Agent'], 'WarnWeather github.com/Toasbi/WarnWeather');
+  assert.equal(seenHeaders['User-Agent'], 'urvejr github.com/jnysteen/urvejr');
   assert.deepEqual(p.uvTrend, [], 'uvTrend untouched without fetchUv (opt-in, matches the base default)');
 });
 

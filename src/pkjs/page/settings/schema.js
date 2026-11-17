@@ -1,6 +1,5 @@
-// src/pkjs/page/settings/schema.js — ES5, PKJS-parsed. WarnWeather's settings SoT.
+// src/pkjs/page/settings/schema.js — ES5, PKJS-parsed. urvejr's settings SoT.
 var meta = require('../../../../package.json');
-var BMC_BADGE = require('./bmc-badge.js');
 var holidayData = require('../calendar/holiday-data.js');
 // The per-kind "Show unit" defaults come from the catalog's UNIT_TOGGLES
 // table (shared with the baker, the reset, and renderSignature).
@@ -714,7 +713,7 @@ var BW_LEGEND = 'The bars don\'t scale linearly. Their height is split into 5 pa
 var TOMORROWIO_CREDIT = 'Powered by <a target=\'_blank\' href=\'https://www.tomorrow.io\'>Tomorrow.io</a>.';
 var OPENMETEO_AQI_CREDIT = 'Data from Open-Meteo.com and the Copernicus Atmosphere Monitoring Service.';
 var WAQI_CREDIT = 'Data from the World Air Quality Index Project and the environmental agencies of its stations.';
-var PRIVACY_TEXT = '<b>Privacy</b><br>While Share anonymous telemetry is on, WarnWeather sends: whether each '
+var PRIVACY_TEXT = '<b>Privacy</b><br>While Share anonymous telemetry is on, urvejr sends: whether each '
     + 'weather update worked and how long it took, the weather provider, a rough country, the app and watch '
     + 'versions, and which settings are used. It never sends your location, the places you type, your API keys '
     + 'or any health data: steps, sleep and heart rate stay on the watch. Your account and watch are stored only '
@@ -1410,12 +1409,12 @@ function graphDialog() {
 }
 
 module.exports = {
-    appName: 'WarnWeather',
+    appName: 'urvejr',
     themeKey: 'configTheme',
     // The Misc card's "Hide info text" (page-only): the engine draws the hints and intros
     // in view while it is off, and behind '?' buttons once it is on.
     infoIconsKey: 'hideInfoText',
-    versionLabel: versionLabel + ' <a href="https://github.com/Toasbi/WarnWeather">GitHub source</a>',
+    versionLabel: versionLabel + ' <a href="https://github.com/jnysteen/urvejr">GitHub source</a>',
     tabs: [{
         // The Weather tab is content, not configuration: live graphs + a
         // 5-day outlook for the active location, fetched by the page itself
@@ -2777,10 +2776,10 @@ module.exports = {
                 defaultValue: false
             }, {
                 type: 'staticText',
-                text: '<div style="display:flex;justify-content:space-between;align-items:center;gap:18px;">' + '<span style="font-size:14.5px;font-weight:600;color:var(--lbl);">Help</span>' + '<a href="https://github.com/Toasbi/WarnWeather/issues">GitHub</a></div>'
+                text: '<div style="display:flex;justify-content:space-between;align-items:center;gap:18px;">' + '<span style="font-size:14.5px;font-weight:600;color:var(--lbl);">Help</span>' + '<a href="https://github.com/jnysteen/urvejr/issues">GitHub</a></div>'
             }, {
                 type: 'staticText',
-                text: '<div style="display:flex;justify-content:space-between;align-items:center;gap:18px;">' + '<span style="font-size:14.5px;font-weight:600;color:var(--lbl);">Support me <3</span>' + '<a href="https://buymeacoffee.com/toaster2"><img alt="Buy me a coffee" style="height:40px;width:auto;display:block;" src="' + BMC_BADGE + '"></a></div>'
+                text: '<div style="font-size:13px;line-height:1.5;"><span style="font-size:14.5px;font-weight:600;color:var(--lbl);">Credits</span><br>' + 'urvejr is built on <a href="https://github.com/Toasbi/WarnWeather">WarnWeather</a> by Toasbi, which was inspired by ForecasWatch2. ' + 'If you enjoy urvejr, please support the original authors, for example with a coffee for Toasbi at ' + '<a href="https://buymeacoffee.com/toaster2">buymeacoffee.com/toaster2</a>.</div>'
             }]
         }, {
             // What the app sends and whose data it shows: the telemetry switch and its summary, and every data
