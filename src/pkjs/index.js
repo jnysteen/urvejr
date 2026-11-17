@@ -348,11 +348,11 @@ Pebble.addEventListener('ready',
         // than a week are dropped instead of building up (stale notices).
         try {
             notices.gc(Date.now());
+            storageKeys.RETIRED_KEYS.forEach(function (key) { localStorage.removeItem(key); });
         }
         catch (ex2) {
             console.log('cache gc failed: ' + ex2.message);
         }
-        storageKeys.RETIRED_KEYS.forEach(function (key) { localStorage.removeItem(key); });
         if (activeFixture) {
             var sendFixture = function () {
                 fixtureWeather.sendFixtureWeather(activeFixture, { settings: app.settings, watchInfo: app.watchInfo,

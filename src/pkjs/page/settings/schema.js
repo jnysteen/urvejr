@@ -714,8 +714,8 @@ var TOMORROWIO_CREDIT = 'Powered by <a target=\'_blank\' href=\'https://www.tomo
 var OPENMETEO_AQI_CREDIT = 'Data from Open-Meteo.com and the Copernicus Atmosphere Monitoring Service.';
 var WAQI_CREDIT = 'Data from the World Air Quality Index Project and the environmental agencies of its stations.';
 var PRIVACY_TEXT = '<b>Privacy</b><br>urvejr collects no usage data. Your location goes only to the weather, '
-    + 'radar and place services you use, to fetch the weather there; the Rainbow radar goes through urvejr\'s own '
-    + 'server, with the position rounded to about 100 m. Steps, sleep and heart rate stay on the watch.';
+    + 'radar and place services you use, to fetch the weather there; the shared Rainbow radar (Rainbow, limited) goes '
+    + 'through urvejr\'s own server, with the position rounded to about 100 m. Steps, sleep and heart rate stay on the watch.';
 var CC_BY = '<a target=\'_blank\' href=\'https://creativecommons.org/licenses/by/4.0/\'>CC BY 4.0</a>';
 var DATA_SOURCES_TEXT = '<b>Data sources</b><br>'
     + 'Weather: Open-Meteo.com, MET Norway, Deutscher Wetterdienst (via Bright Sky), OpenWeather, Tomorrow.io, '

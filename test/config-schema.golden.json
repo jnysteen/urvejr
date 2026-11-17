@@ -15647,7 +15647,7 @@
             "items": [
               {
                 "type": "staticText",
-                "text": "<b>Privacy</b><br>urvejr collects no usage data. Your location goes only to the weather, radar and place services you use, to fetch the weather there; the Rainbow radar goes through urvejr's own server, with the position rounded to about 100 m. Steps, sleep and heart rate stay on the watch."
+                "text": "<b>Privacy</b><br>urvejr collects no usage data. Your location goes only to the weather, radar and place services you use, to fetch the weather there; the shared Rainbow radar (Rainbow, limited) goes through urvejr's own server, with the position rounded to about 100 m. Steps, sleep and heart rate stay on the watch."
               },
               {
                 "type": "staticText",
