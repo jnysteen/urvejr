@@ -172,7 +172,12 @@
                 "messageKey": "doubleFlick",
                 "label": "Double flick to switch",
                 "defaultValue": false,
-                "hint": "Switch only on a second flick within a few seconds of the first."
+                "hint": "Switch only on a second flick within a few seconds of the first.",
+                "showWhen": {
+                  "not": {
+                    "env": "touch"
+                  }
+                }
               },
               {
                 "type": "segmented",

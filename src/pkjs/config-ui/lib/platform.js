@@ -89,6 +89,11 @@ var GRAPH_STYLE_PLATFORMS = { emery: true };
 // other watch keeps three and is never sent their lines. Unknown platforms have three (fail
 // closed, as GRAPH_STYLE_PLATFORMS: the lines would cost inbox bytes a 640 B inbox lacks).
 var EXTRA_BARS_PLATFORMS = { emery: true };
+// Platforms that switch screens with a tap on the screen instead of a wrist flick: emery
+// (Pebble Time 2, the touchscreen watch) only. Keep in lockstep with the C
+// `#if defined(PBL_TOUCH)` arm of src/c/windows/main_window.c tap_follow_cycle. Unknown
+// platforms flick.
+var TOUCH_PLATFORMS = { emery: true };
 /**
  * Whether a Pebble platform has a color display (false for the B/W platforms).
  * @param {string} platform Platform name (e.g. 'basalt', 'aplite').
@@ -186,12 +191,19 @@ function isGraphStylePlatform(platform) { return Boolean(GRAPH_STYLE_PLATFORMS[p
  */
 function isExtraBarsPlatform(platform) { return Boolean(EXTRA_BARS_PLATFORMS[platform]); }
 /**
+ * Whether a Pebble platform switches screens with a tap on the screen (emery only). Unknown
+ * platforms are treated as switching with a wrist flick.
+ * @param {string} platform Platform name (e.g. 'emery', 'basalt').
+ * @returns {boolean} True if a tap, not a flick, switches the screens.
+ */
+function isTouchPlatform(platform) { return Boolean(TOUCH_PLATFORMS[platform]); }
+/**
  * Derive the config-UI environment facts from a Pebble watchInfo object.
  * @param {Object} watchInfo Pebble watchInfo; its .platform names the model.
- * @returns {{color: boolean, platform: string, health: boolean, radar: boolean, themePolarity: boolean, hr: boolean, thresholds: boolean, colorBacklight: boolean, lineStyles: boolean, onDemand: boolean, fineBattery: boolean, forecastSpan: boolean, graphStyles: boolean, extraBars: boolean}} Env: color display, platform name, health support, radar support, theme light-polarity support, heart-rate sensor support, threshold-highlight support, RGB-backlight-LED support, third-metric-line + per-line-style support, On demand support, 5 % battery-charge steps, the 12 h / 24 h / long forecast span, a graph style per screen, and bars 4 to 6.
+ * @returns {{color: boolean, platform: string, health: boolean, radar: boolean, themePolarity: boolean, hr: boolean, thresholds: boolean, colorBacklight: boolean, lineStyles: boolean, onDemand: boolean, fineBattery: boolean, forecastSpan: boolean, graphStyles: boolean, extraBars: boolean, touch: boolean}} Env: color display, platform name, health support, radar support, theme light-polarity support, heart-rate sensor support, threshold-highlight support, RGB-backlight-LED support, third-metric-line + per-line-style support, On demand support, 5 % battery-charge steps, the 12 h / 24 h / long forecast span, a graph style per screen, bars 4 to 6, and tap (not flick) to switch screens.
  */
 function computeEnv(watchInfo) {
   var p = watchInfo && watchInfo.platform ? watchInfo.platform : '';
-  return { color: isColorPlatform(p), platform: p, health: isHealthPlatform(p), radar: isRadarPlatform(p), themePolarity: isThemePolarityPlatform(p), hr: isHrPlatform(p), thresholds: isThresholdPlatform(p), colorBacklight: isColorBacklightPlatform(p), lineStyles: isLineStylePlatform(p), onDemand: isOnDemandPlatform(p), fineBattery: isFineBatteryPlatform(p), forecastSpan: isForecastSpanPlatform(p), graphStyles: isGraphStylePlatform(p), extraBars: isExtraBarsPlatform(p) };
+  return { color: isColorPlatform(p), platform: p, health: isHealthPlatform(p), radar: isRadarPlatform(p), themePolarity: isThemePolarityPlatform(p), hr: isHrPlatform(p), thresholds: isThresholdPlatform(p), colorBacklight: isColorBacklightPlatform(p), lineStyles: isLineStylePlatform(p), onDemand: isOnDemandPlatform(p), fineBattery: isFineBatteryPlatform(p), forecastSpan: isForecastSpanPlatform(p), graphStyles: isGraphStylePlatform(p), extraBars: isExtraBarsPlatform(p), touch: isTouchPlatform(p) };
 }
-module.exports = { isColorPlatform: isColorPlatform, isHealthPlatform: isHealthPlatform, isRadarPlatform: isRadarPlatform, isThemePolarityPlatform: isThemePolarityPlatform, isHrPlatform: isHrPlatform, isThresholdPlatform: isThresholdPlatform, isColorBacklightPlatform: isColorBacklightPlatform, isLineStylePlatform: isLineStylePlatform, isOnDemandPlatform: isOnDemandPlatform, isFineBatteryPlatform: isFineBatteryPlatform, isForecastSpanPlatform: isForecastSpanPlatform, isGraphStylePlatform: isGraphStylePlatform, isExtraBarsPlatform: isExtraBarsPlatform, computeEnv: computeEnv };
+module.exports = { isColorPlatform: isColorPlatform, isHealthPlatform: isHealthPlatform, isRadarPlatform: isRadarPlatform, isThemePolarityPlatform: isThemePolarityPlatform, isHrPlatform: isHrPlatform, isThresholdPlatform: isThresholdPlatform, isColorBacklightPlatform: isColorBacklightPlatform, isLineStylePlatform: isLineStylePlatform, isOnDemandPlatform: isOnDemandPlatform, isFineBatteryPlatform: isFineBatteryPlatform, isForecastSpanPlatform: isForecastSpanPlatform, isGraphStylePlatform: isGraphStylePlatform, isExtraBarsPlatform: isExtraBarsPlatform, isTouchPlatform: isTouchPlatform, computeEnv: computeEnv };

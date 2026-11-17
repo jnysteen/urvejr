@@ -496,7 +496,7 @@ test('the screens setup offers show the Layout\'s calendar; a layout picked late
 test('on emery the second forecast takes the other length: beside a Default of the long span, 24 hours', () => {
   const { ctx, dom } = openSetup({ platform: 'emery', fresh: true });
   assert.equal(FORECAST.spanOf(ctx.S), '48', 'premise: a new install\'s graph shows the long span');
-  walkToTitle(dom, 'Flick to switch screens');
+  walkToTitle(dom, 'Tap to switch screens');
   assert.deepEqual(dom.findAll('[data-wiz-scr-add]').map((b) => b.getAttribute('data-wiz-scr-add')),
     ['forecast2', 'health', 'radar']);
   assert.equal(dom.find('[data-wiz-scr-add="forecast2"]').getAttribute('aria-label'), 'Add the 24 h forecast screen',
@@ -541,7 +541,7 @@ test('on emery the second forecast takes the other length: beside a Default of t
 test('on emery a Default graph of 12 or 24 hours gets a Long forecast beside it, and keeps its length', () => {
   ['12', '24'].forEach((span) => {
     const { ctx, dom } = openSetup({ platform: 'emery', saved: { forecastHours: span } });
-    walkToTitle(dom, 'Flick to switch screens');
+    walkToTitle(dom, 'Tap to switch screens');
     assert.equal(dom.find('[data-wiz-scr-add="forecast2"]').getAttribute('aria-label'), 'Add the Long forecast screen', span);
     addScreen(dom, 'forecast2');
     assert.deepEqual(screenNames(ctx), ['Default', 'Long forecast'], span);

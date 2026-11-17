@@ -234,6 +234,24 @@ test('a screen in a line, for its row on the Screens card: the Watch bar left ou
   assert.equal(SP.contents([b('strip')], {}), 'Nothing yet');
 });
 
+test('a touch watch (emery) says tap where the others say flick, and hides Double flick', () => {
+  const EMERY = platform.computeEnv({ platform: 'emery' });
+  const hint = (env) => SP.screensCard(preset(), env);
+  assert.ok(hint(EMERY).indexOf(SP.REORDER_HINT_TOUCH) !== -1, 'emery: the tap line');
+  assert.equal(hint(EMERY).indexOf(SP.REORDER_HINT), -1);
+  assert.ok(hint(BASALT).indexOf(SP.REORDER_HINT) !== -1, 'basalt: the flick line');
+  assert.equal(SP.REORDER_HINT_TOUCH, 'Each tap on the screen shows the next one. Drag\u00a0≡ to change the order.');
+  const showWhen = require('../../../src/pkjs/config-ui/lib/show-when.js');
+  const SCHEMA = require('../../../src/pkjs/page/settings/schema.js');
+  let dbl = null;
+  require('../../../src/pkjs/config-ui/lib/schema-walk.js').eachItem(SCHEMA, (it) => {
+    if (it.messageKey === 'doubleFlick') { dbl = it; }
+  });
+  assert.ok(dbl, 'the Double flick toggle');
+  assert.equal(showWhen.isVisible(dbl, { env: EMERY }), false);
+  assert.equal(showWhen.isVisible(dbl, { env: BASALT }), true);
+});
+
 test('aplite has no screens: no card, and its layout and modes stay its own', () => {
   assert.equal(SP.hasScreens(APLITE), false);
   assert.equal(SP.screensCard(preset(), APLITE), '');

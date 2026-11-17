@@ -54,7 +54,8 @@ var PConf = (typeof global !== 'undefined' && global.PConf) ? global.PConf
         { id: 'welcome', title: 'Welcome to WarnWeather', body: stepWelcome, summary: welcomeRows },
         { id: 'forecast', when: 'lineStyles', title: 'Choose a forecast graph', body: stepForecast, summary: forecastRow },
         { id: 'layout', title: 'Choose your layout', body: stepLayout, summary: pickerRow('Layout', 'layoutPreset', 'layout') },
-        { id: 'screens', when: 'radar', title: 'Flick to switch screens', body: stepScreens, summary: screensRows },
+        { id: 'screens', when: 'radar', title: 'Flick to switch screens', touchTitle: 'Tap to switch screens',
+            body: stepScreens, summary: screensRows },
         { id: 'theme', when: 'themePolarity', title: 'Choose a theme', body: stepTheme,
             summary: pickerRow('Theme', 'theme', 'theme') },
         { id: 'done', title: 'You’re all set', body: stepDone }
@@ -700,7 +701,7 @@ var PConf = (typeof global !== 'undefined' && global.PConf) ? global.PConf
             + '<div class="wiz-flick-track"><span data-wiz-flick-dots>' + flickDotsHtml(list.length, i) + '</span>'
             + '<span class="wiz-flick-label" data-wiz-flick-label aria-live="polite">' + esc(name) + '</span></div>'
             + '<button type="button" class="wiz-try" data-wiz-flick' + (many ? '' : ' disabled') + '>' + CSS.ICON_FLICK
-            + 'Try a flick</button>';
+            + (run.env.touch ? 'Try a tap' : 'Try a flick') + '</button>';
     }
     /**
      * Every screen small: each in full, a ✕ on each flick screen; then each screen setup offers
@@ -833,7 +834,9 @@ var PConf = (typeof global !== 'undefined' && global.PConf) ? global.PConf
 
     // --- step bodies ---
     function stepHead(id) {
-        return '<h2 class="wiz-title" id="wiz-title" data-wiz-title tabindex="-1">' + esc(STEP[id].title) + '</h2>';
+        // A touch watch (env.touch: emery) switches screens with a tap, so its step says so.
+        var title = run.env.touch && STEP[id].touchTitle ? STEP[id].touchTitle : STEP[id].title;
+        return '<h2 class="wiz-title" id="wiz-title" data-wiz-title tabindex="-1">' + esc(title) + '</h2>';
     }
     // The country rows are the settings page's own searchSelects, their options resolved (the region
     // derives from the country), so they look and behave like Settings.
@@ -872,7 +875,7 @@ var PConf = (typeof global !== 'undefined' && global.PConf) ? global.PConf
         var cycle = VC.screensCycle(run.ctx.S, run.env), list = screens(cycle);
         if (run.screenIdx >= list.length) { run.screenIdx = 0; }
         return stepHead('screens')
-            + '<p class="wiz-lead">Add the screens you want to flick to. '
+            + '<p class="wiz-lead">Add the screens you want to ' + (run.env.touch ? 'tap' : 'flick') + ' to. '
             + 'The watch goes back to the Default screen by itself.</p>'
             + '<div class="wiz-flick">' + bigScreenHtml(list, cycle) + '</div>'
             + '<div class="wiz-scrs" role="group" aria-label="Your screens">' + smallScreensHtml(list, cycle) + '</div>'

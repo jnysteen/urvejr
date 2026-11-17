@@ -37,7 +37,7 @@ CALENDAR
 - Two or three weeks, with holidays for 150+ countries
 
 WATCH
-- Up to three screens, switched with a wrist flick*
+- Up to three screens, switched with a wrist flick (a tap on the screen on Pebble Time 2)*
 - Dark, light and black & white themes, with a night theme
 - 12h/24h, clock color, smooth digits*
 - Battery saver hours, night backlight*
