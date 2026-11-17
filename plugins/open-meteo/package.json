@@ -1,11 +1,11 @@
 {
   "name": "open-meteo-weather",
-  "author": "Toasbi",
+  "author": "protopoc",
   "version": "1.0.0",
   "private": true,
   "pebble": {
     "displayName": "Open-Meteo Weather",
-    "uuid": "24ea078a-a2c4-4161-a5fa-b61fca7163c8",
+    "uuid": "21751c6e-1551-4d2d-9f58-f3d15f19b3b3",
     "sdkVersion": "3",
     "projectType": "plugin",
     "usesPermissions": [

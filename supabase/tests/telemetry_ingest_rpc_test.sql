@@ -1,6 +1,6 @@
 -- pgtap tests for the telemetry-ingest edge function's RPC (supabase/schemas/telemetry.sql):
 -- telemetry_recent_insert_count, the hourly rate check, and its API surface.
--- Run: docker exec -i supabase_db_warnweather psql -U postgres -d postgres -X -q \
+-- Run: docker exec -i supabase_db_urvejr psql -U postgres -d postgres -X -q \
 --        < supabase/tests/telemetry_ingest_rpc_test.sql   (grep 'not ok')
 -- or:  supabase test db
 begin;

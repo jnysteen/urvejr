@@ -1,5 +1,5 @@
 // src/pkjs/page/weather/weather-tab/weather-tab-charts.js — SVG renderers for the Weather
-// tab, matching the WarnWeather app's chart layout: every panel is ONE
+// tab, matching the urvejr app's chart layout: every panel is ONE
 // continuous multi-day canvas (the location's today 00:00 through up to five
 // local days) that weather-tab.js pans one day per viewport with day
 // snapping, so series flow across midnight with no seam. Axis labels live

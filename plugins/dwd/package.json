@@ -1,11 +1,11 @@
 {
   "name": "dwd-weather",
-  "author": "Toasbi",
+  "author": "protopoc",
   "version": "1.0.0",
   "private": true,
   "pebble": {
     "displayName": "DWD Weather (Bright Sky)",
-    "uuid": "8e297cbf-3863-4d4e-b26a-f4ea09d62574",
+    "uuid": "ac55ace2-1097-4d63-b798-bb78cf13a015",
     "sdkVersion": "3",
     "projectType": "plugin",
     "usesPermissions": [

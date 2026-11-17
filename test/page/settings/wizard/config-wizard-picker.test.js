@@ -162,7 +162,7 @@ test('the progress bar has a segment per step and marks the current one; Back sh
 test('the dialog is named by its step title, which takes focus on every step', () => {
   const { dom } = openSetup();
   assert.deepEqual(dom.overlay.attributes, { role: 'dialog', 'aria-modal': 'true', 'aria-labelledby': 'wiz-title' });
-  assert.match(dom.body.innerHTML, /<h2 class="wiz-title" id="wiz-title" data-wiz-title tabindex="-1">Welcome to WarnWeather<\/h2>/);
+  assert.match(dom.body.innerHTML, /<h2 class="wiz-title" id="wiz-title" data-wiz-title tabindex="-1">Welcome to urvejr<\/h2>/);
   const opened = dom.titleFocus;
   assert.ok(opened >= 1, 'focused when the wizard opens');
   dom.nav('next');
@@ -317,7 +317,7 @@ test('two quick picks end on the second one\'s watch (A, B, back to A before the
 test('the welcome shows the Default screen too; emery\'s at its own width', () => {
   const { ctx, dom } = openSetup({});
   assert.equal(dom.find('[data-wiz-watch]').innerHTML, defaultScreen(ctx), 'the watch as it starts');
-  assert.equal(dom.find('[data-wiz-watch]').getAttribute('aria-label'), 'WarnWeather on your watch');
+  assert.equal(dom.find('[data-wiz-watch]').getAttribute('aria-label'), 'urvejr on your watch');
   const emery = openSetup({ platform: 'emery' });
   assert.match(emery.dom.find('[data-wiz-watch]').innerHTML, /^<svg class="wiz-scr" viewBox="-12 -12 224 252"/);
   assert.equal(emery.dom.overlay.className, 'w200', 'the CSS sizes it by its 200 px screen');

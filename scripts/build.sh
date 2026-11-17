@@ -42,9 +42,9 @@ else
 fi
 pebble build "$@"
 
-# pebble build names the pbw after the project-directory basename, so it lands
-# as build/WarnWeather.pbw (or build/<worktree-dir>.pbw in a git worktree)
-# rather than the canonical build/warnweather.pbw the install scripts expect.
+# pebble build names the pbw after the project-directory basename, so in a
+# differently named checkout or a git worktree it lands as build/<dir>.pbw
+# rather than the canonical build/urvejr.pbw the install scripts expect.
 # Normalize with mv, not cp: on a case-insensitive filesystem (macOS) the two
 # names are the SAME file, where cp fails with "are identical" and the
 # case-sensitive find below would delete the freshly built pbw — mv is a plain
@@ -54,27 +54,27 @@ if [[ -z "$pbw_built" ]]; then
   echo "build.sh: no .pbw produced by pebble build" >&2
   exit 1
 fi
-if [[ "$pbw_built" != "build/warnweather.pbw" ]]; then
-  mv "$pbw_built" build/warnweather.pbw
+if [[ "$pbw_built" != "build/urvejr.pbw" ]]; then
+  mv "$pbw_built" build/urvejr.pbw
 fi
 
 # The appstore's upload runs behind a 4.5 MB request limit (FUNCTION_PAYLOAD_TOO_LARGE;
 # the 2.0.0 .pbw hit it at 5.5 MB with the JS source map bundled, see wscript). Stop here,
 # with headroom for the upload form, rather than at the store.
 pbw_limit=4400000
-pbw_size=$(wc -c < build/warnweather.pbw | tr -d ' ')
+pbw_size=$(wc -c < build/urvejr.pbw | tr -d ' ')
 if (( pbw_size >= pbw_limit )); then
-  echo "build.sh: build/warnweather.pbw is $pbw_size bytes; the appstore upload takes under $pbw_limit." >&2
-  echo "build.sh: list it with 'unzip -lv build/warnweather.pbw' to see what grew." >&2
+  echo "build.sh: build/urvejr.pbw is $pbw_size bytes; the appstore upload takes under $pbw_limit." >&2
+  echo "build.sh: list it with 'unzip -lv build/urvejr.pbw' to see what grew." >&2
   exit 1
 fi
 
 if [[ "$profile" == "dev" ]]; then
-  cp build/warnweather.pbw build/warnweather-dev.pbw
+  cp build/urvejr.pbw build/urvejr-dev.pbw
 fi
 
 # pebble build also leaves a bundle named after the project directory
-# (build/<directory>.pbw, e.g. build/WarnWeather.pbw). Drop
-# any non-canonical pbw so only the warnweather bundles remain.
+# (build/<directory>.pbw, e.g. build/urvejr-main.pbw). Drop
+# any non-canonical pbw so only the urvejr bundles remain.
 find build -maxdepth 1 -name '*.pbw' \
-  ! -name 'warnweather.pbw' ! -name 'warnweather-dev.pbw' -delete
+  ! -name 'urvejr.pbw' ! -name 'urvejr-dev.pbw' -delete

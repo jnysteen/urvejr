@@ -1,6 +1,6 @@
 # Quality goals
 
-These are WarnWeather's quality goals where it differs from an ordinary app. Each row names the check that guards it.
+These are urvejr's quality goals where it differs from an ordinary app. Each row names the check that guards it.
 When a change trips a check, fix the change and leave the check as it is.
 
 | Top Level Dimension | Short Description | Expected Values | Measure | Acceptance Criteria |

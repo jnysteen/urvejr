@@ -2462,7 +2462,7 @@ test('boot(): picking a modal option fires the item\'s registered onChange hook 
 
 // A text item's onChange fires on COMMIT (change = blur / Enter), never per keystroke:
 // the `input` listener keeps S live while typing, and only `change` dispatches the hook.
-// A reverting hook (WarnWeather's validateThresholdPair) would otherwise be unable to let
+// A reverting hook (urvejr's validateThresholdPair) would otherwise be unable to let
 // the user type "999" past an invalid "9". oldValue comes from the focusin sample, because
 // `input` has already overwritten S[key] by commit time.
 const TEXT_SCHEMA = {
@@ -2527,7 +2527,7 @@ test('boot(): committing a text item with no onChange hook keeps the typed value
 });
 
 // A text commit relabels select triggers IN PLACE: an optionsFrom resolver may name its
-// options from a text key (WarnWeather's radar picker calls its Rainbow entry "limited"
+// options from a text key (urvejr's radar picker calls its Rainbow entry "limited"
 // until an own key is typed), and commitTextChange deliberately skips render() — a full
 // re-render there swallows the next tap. So on commit the engine rewrites only each
 // rendered trigger's label span + aria-label, never the markup around it.

@@ -1,6 +1,6 @@
 {
-  "name": "warnweather",
-  "author": "Toasbi",
+  "name": "urvejr",
+  "author": "protopoc",
   "version": "3.2.4",
   "buildProfile": "{{buildProfile}}",
   "keywords": [
@@ -1914,7 +1914,7 @@
             "buymeacoffee.com"
           ]
         },
-        "reason": "Buy Me a Coffee, the Support me link",
+        "reason": "Buy Me a Coffee, the credits' link to support the original authors",
         "required": true
       },
       {

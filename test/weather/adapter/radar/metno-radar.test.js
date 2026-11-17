@@ -57,8 +57,8 @@ test('builds the nowcast URL with 4-decimal coords and passes the Met.no headers
   metnoRadar.fetchRadarTuplesAt(59.913868, 10.7522454, SLOT0, function() {});
   assert.equal(seenUrl, 'https://api.met.no/weatherapi/nowcast/2.0/complete?lat=59.9139&lon=10.7522');
   assert.equal(seenType, 'GET');
-  assert.equal(seenHeaders['User-Agent'], 'WarnWeather github.com/Toasbi/WarnWeather');
-  assert.equal(seenHeaders['Origin'], 'https://github.com/Toasbi/WarnWeather');
+  assert.equal(seenHeaders['User-Agent'], 'urvejr github.com/jnysteen/urvejr');
+  assert.equal(seenHeaders['Origin'], 'https://github.com/jnysteen/urvejr');
 });
 
 test('copies 23 frames 1:1 by index (mm/h ×10); slot 23 stays 0', () => {

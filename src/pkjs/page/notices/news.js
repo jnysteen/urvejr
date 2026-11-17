@@ -217,9 +217,8 @@
             html += '</div>';
         }
         html += '</div>'; // .news-scroll
-        html += '<div class="news-message"><div class="news-message-hint">Questions or ideas? Write to me through the '
-            + '<a href="https://apps.repebble.com/67d6f1fcdb264341b850f79a" target="_blank" rel="noopener">Pebble Store listing</a> or open a '
-            + '<a href="https://github.com/Toasbi/WarnWeather/issues" target="_blank" rel="noopener">GitHub issue</a>.</div></div>';
+        html += '<div class="news-message"><div class="news-message-hint">Questions or ideas? Open a '
+            + '<a href="https://github.com/jnysteen/urvejr/issues" target="_blank" rel="noopener">GitHub issue</a>.</div></div>';
         return html;
     }
 
@@ -270,7 +269,6 @@
                 + '#newsHint.muted { opacity: 0.65; }'
                 + '#newsHint .news-bell { display: block; width: 20px; height: 20px; fill: none;'
                 +   ' stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }'
-                // -7px, not -9px: at -9px the dot crowds the support mug beside it.
                 + '#newsHint .news-badge { position: absolute; top: -2px; right: -7px; width: 7px; height: 7px;'
                 +   ' border-radius: 50%; background: #FA4A35; }'
                 + '@keyframes news-bell-shake {'

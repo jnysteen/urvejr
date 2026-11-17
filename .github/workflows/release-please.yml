@@ -81,11 +81,11 @@ jobs:
 
       - name: Verify release asset exists
         if: ${{ steps.target.outputs.tag }}
-        run: test -f build/warnweather.pbw
+        run: test -f build/urvejr.pbw
 
       - name: Upload .pbw to release
         if: ${{ steps.target.outputs.tag }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAG: ${{ steps.target.outputs.tag }}
-        run: gh release upload "$TAG" build/warnweather.pbw --clobber
+        run: gh release upload "$TAG" build/urvejr.pbw --clobber

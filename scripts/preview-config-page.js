@@ -1,5 +1,5 @@
 // scripts/preview-config-page.js — repo-root wrapper: renders a browser-openable preview of
-// WarnWeather's config page (real schema + blocks + onBuild hooks injected) so the settings UI
+// urvejr's config page (real schema + blocks + onBuild hooks injected) so the settings UI
 // can be eyeballed in a desktop browser without the emulator. The output IS the live page —
 // tabs, toggles, selects, and the color picker all work. Reads shell.html + lib + app files fresh
 // each run, so it always reflects the current source (no need to regenerate page.generated.js).

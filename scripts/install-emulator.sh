@@ -42,10 +42,10 @@ done
 
 if [[ "$profile" == "dev" ]]; then
   mise run build -- dev
-  pbw_path="build/warnweather-dev.pbw"
+  pbw_path="build/urvejr-dev.pbw"
 else
   mise run build -- release
-  pbw_path="build/warnweather.pbw"
+  pbw_path="build/urvejr.pbw"
 fi
 
 if ((${#install_args[@]})); then

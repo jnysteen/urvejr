@@ -1,9 +1,9 @@
-# WarnWeather Pebble appstore listing
+# urvejr Pebble appstore listing
 
 ## Full description (plain text, paste as is)
 
 ```
-WarnWeather is a weather watchface for Pebble, inspired by ForecasWatch2.
+urvejr is a weather watchface for Pebble, based on WarnWeather by Toasbi (inspired by ForecasWatch2).
 
 FORECAST
 - Hourly forecast graph: temperature plus up to four lines*
@@ -48,8 +48,9 @@ SETTINGS
 
 * Depends on your watch model.
 
-If you like this watchface, press the ❤️ button. You can support its development at
-https://www.buymeacoffee.com/toaster2.
+If you like this watchface, press the ❤️ button, and please support the original
+authors: WarnWeather by Toasbi, https://www.buymeacoffee.com/toaster2.
+Source code (GPL-3.0): https://github.com/jnysteen/urvejr
 ```
 
 ## Screenshots

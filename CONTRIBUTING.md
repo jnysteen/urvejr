@@ -1,6 +1,6 @@
 # Contributing
 
-CONTRIBUTING.md is the setup walkthrough for WarnWeather that takes you through building the watchface, running the Supabase telemetry backend locally and in the cloud, installing builds, and the local dev config. The commands, config and their options are in [DEV.md](DEV.md).
+CONTRIBUTING.md is the setup walkthrough for urvejr that takes you through building the watchface, running the Supabase telemetry backend locally and in the cloud, installing builds, and the local dev config. The commands, config and their options are in [DEV.md](DEV.md).
 
 ## Building
 

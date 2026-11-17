@@ -1,5 +1,5 @@
-// scripts/build-config-page.js — repo-root wrapper: builds WarnWeather's config page.
-// Calls the generic library builder with WarnWeather's app files + out path.
+// scripts/build-config-page.js — repo-root wrapper: builds urvejr's config page.
+// Calls the generic library builder with urvejr's app files + out path.
 'use strict';
 var path = require('path');
 var build = require('../src/pkjs/config-ui/scripts/build-page.js');
@@ -259,9 +259,6 @@ var APP_FILES = [
   path.join(ROOT, 'src/pkjs/page/weather/keys/rainbow-key-test.js'),
   path.join(ROOT, 'src/pkjs/notices/domain/news-protocol.js'),
   path.join(ROOT, 'src/pkjs/page/notices/news.js'),
-  // support.js must FOLLOW news.js: it appends its header button into the
-  // .news-hdr-left group news.js builds.
-  path.join(ROOT, 'src/pkjs/page/settings/support.js'),
   path.join(ROOT, 'src/pkjs/page/theme/theme-convert.js'),
   path.join(ROOT, 'src/pkjs/page/status-bars/reset-status-defaults.js'),
   path.join(ROOT, 'src/pkjs/page/notices/notices-panel.js'),

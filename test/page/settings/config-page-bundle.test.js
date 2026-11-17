@@ -625,28 +625,6 @@ test('the Status bars preview and the Night hours reach the page, in dependency 
     assert.ok(src.indexOf(needle) !== -1, 'the generated page lacks ' + needle));
 });
 
-// support.js is the quietest omission of the lot: nothing else in the page references it,
-// so leaving it out of APP_FILES just means the coffee mug never appears — no throw, no
-// warning, and every Node test still green through the require() branch.
-test('the support mug reaches the generated page, after news.js', () => {
-  const appFiles = require('../../../scripts/build-config-page.js').APP_FILES;
-  const idx = (suffix) => {
-    const at = appFiles.findIndex((f) => f.endsWith('/' + suffix));
-    assert.notEqual(at, -1, suffix + ' is not in APP_FILES at all');
-    return at;
-  };
-  assert.ok(idx('page/notices/news.js') < idx('page/settings/support.js'),
-    'news.js must precede support.js, which appends its button into the .news-hdr-left ' +
-    'header group news.js builds');
-  const src = page();
-  assert.ok(src.indexOf('buymeacoffee.com/toaster2') !== -1,
-    'the support popup\'s Buy Me a Coffee link is not in page.generated.js — support.js is ' +
-    'probably missing from APP_FILES in scripts/build-config-page.js');
-  assert.ok(src.indexOf('bmc-steam-rise') !== -1,
-    'the steam keyframes are not in page.generated.js — the mug would render without its ' +
-    'animation');
-});
-
 // APP_FILES is SHARED — build-config-page.js ships the page and
 // preview-config-page.js requires that same array to render `mise
 // preview-config`, so the two can no longer drift. test/scripts/preview-config-page.test.js's

@@ -2,7 +2,7 @@
 
 ## Context
 
-WarnWeather is one repository with five deployables that talk to each other only through wire
+urvejr is one repository with five deployables that talk to each other only through wire
 contracts:
 
 | Deployable | Runs on | Language |
@@ -94,7 +94,7 @@ checks that no other module queries Supabase.
   contract files follow ADR 0001. Inside each layer, files group by domain context where the
   code has one (chart and graph, radar and rain, status row, calendar, palette and theme).
 - Settings page: `config-ui/` is the engine (rendering, show-when, controls) and knows
-  nothing of WarnWeather's settings; `src/pkjs/page/<context>/` holds the schema, pages and
+  nothing of urvejr's settings; `src/pkjs/page/<context>/` holds the schema, pages and
   previews that use it, grouped by context. A module both the page and the phone app use (a
   palette, the news protocol, the weather tab's model) is domain code of its context. Previews draw what the watch would draw by calling the phone
   app's domain modules, never by copying their rules. It stays plain ES5 without a framework: the
@@ -171,7 +171,7 @@ a test is checked in review.
 | Hexagonal on the watch | the phone bakes the decisions; the watch renders | the watch starts deciding what the phone does not bake for it |
 | A framework for the settings page | old Android webviews | the oldest webview the Pebble app supports runs ES2015 |
 | Domain events, outbox and inbox tables, messaging, CQRS, audit trail | no message broker, no database aggregates; the phone app's `outbox.js` is a send queue, not a transactional outbox | a second backend service consumes the app's data |
-| GraphQL rules | WarnWeather serves no GraphQL; it only calls Yandex's | – |
+| GraphQL rules | urvejr serves no GraphQL; it only calls Yandex's | – |
 
 ## Consequences
 

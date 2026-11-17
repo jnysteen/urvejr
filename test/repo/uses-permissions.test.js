@@ -34,9 +34,8 @@ const NOT_REQUESTED = {
   'creativecommons.org': 'the CC BY 4.0 licence link in Setup › Privacy & data sources',
   'openweathermap.org': 'the OpenWeatherMap signup and plan links',
   'yandex.com': 'the Yandex Weather API key link',
-  'apps.repebble.com': 'the store listing link in the news panel',
   'github.com': 'the issues links, and the User-Agent and Origin values met.no asks for',
-  'toasbi.github.io': 'the emulator\'s settings page helper, opened with Pebble.openURL under the emulator only',
+  'jnysteen.github.io': 'the emulator\'s settings page helper, opened with Pebble.openURL under the emulator only',
   'developer.repebble.com': 'a source comment',
   'tabler.io': 'the icons\' attribution comment',
   'www.w3.org': 'the XLink namespace',
@@ -218,7 +217,7 @@ test('the build adds the injected endpoints\' hosts as a required entry of their
   assert.throws(() => perms.addEndpointHosts({ usesPermissions: [{ name: 'Location' }] }, ['https://x.y']), /no Internet permission/);
   assert.equal(perms.hostOf('HTTPS://Abc.Supabase.co:443/f'), 'abc.supabase.co');
   assert.equal(perms.hostOf(''), null);
-  assert.match(perms.ENDPOINTS_REASON, /^WarnWeather server: /, 'the label names the server');
+  assert.match(perms.ENDPOINTS_REASON, /^urvejr server: /, 'the label names the server');
   const script = fs.readFileSync(path.join(ROOT, 'scripts/prepare-package.sh'), 'utf8');
   assert.match(script, /addEndpointHosts\(pkg\.pebble,\s*\[telemetryEndpoint, rainbowEndpoint, newsEndpoint\]\)/,
     'prepare-package.sh passes all three endpoints');

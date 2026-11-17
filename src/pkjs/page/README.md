@@ -1,9 +1,9 @@
 # The settings page
 
-The settings page is WarnWeather's own use of the page engine in `src/pkjs/config-ui/`. The
+The settings page is urvejr's own use of the page engine in `src/pkjs/config-ui/`. The
 engine renders tabs, controls and dialogs from a schema and knows nothing about weather; this
 folder holds the schema, the custom blocks, the hooks and the previews that make it
-WarnWeather's settings. The engine's own reference is `src/pkjs/config-ui/README.md`.
+urvejr's settings. The engine's own reference is `src/pkjs/config-ui/README.md`.
 
 ## Where things are
 

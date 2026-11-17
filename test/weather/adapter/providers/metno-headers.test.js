@@ -7,8 +7,8 @@ const assert = require('node:assert/strict');
 const metnoHeaders = require('../../../../src/pkjs/weather/adapter/providers/metno-headers.js');
 
 test('HEADERS identify the app via User-Agent and Origin', () => {
-  assert.equal(metnoHeaders.HEADERS['User-Agent'], 'WarnWeather github.com/Toasbi/WarnWeather');
-  assert.equal(metnoHeaders.HEADERS['Origin'], 'https://github.com/Toasbi/WarnWeather');
+  assert.equal(metnoHeaders.HEADERS['User-Agent'], 'urvejr github.com/jnysteen/urvejr');
+  assert.equal(metnoHeaders.HEADERS['Origin'], 'https://github.com/jnysteen/urvejr');
 });
 
 test('trunc4 limits coordinates to 4 decimals', () => {

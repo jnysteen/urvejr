@@ -1,6 +1,6 @@
 # Developer reference
 
-DEV.md is the reference for WarnWeather's commands, scripts and config. The setup walkthrough is in [CONTRIBUTING.md](CONTRIBUTING.md), and the release-time steps are in [RELEASE.md](RELEASE.md).
+DEV.md is the reference for urvejr's commands, scripts and config. The setup walkthrough is in [CONTRIBUTING.md](CONTRIBUTING.md), and the release-time steps are in [RELEASE.md](RELEASE.md).
 
 ## Prerequisites
 
@@ -25,7 +25,7 @@ Claude Code cloud sessions run on the "Pebble" cloud environment, whose setup sc
 
 It runs from the directory that holds the checkout, and it restores `mise.lock` after installing (a newer mise rewrites the lock's format), so commit a lock change before you re-run it in a session:
 ```bash
-cd .. && bash WarnWeather/scripts/cloud-setup.sh
+cd .. && bash urvejr/scripts/cloud-setup.sh
 ```
 
 ## mise tasks
