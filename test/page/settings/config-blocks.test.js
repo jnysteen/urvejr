@@ -11,7 +11,7 @@ const B = require('../../../src/pkjs/page/settings/blocks.js');
 // The watch preview has its own files — test/page/layout/preview-watch.test.js and test/page/layout/watch-preview-cycle.test.js.
 const FC = require('../../../src/pkjs/page/forecast-graphs/preview-forecast.js');
 const RD = require('../../../src/pkjs/page/weather/preview-radar.js');
-const DG = require('../../../src/pkjs/page/telemetry/preview-diagnostics.js');
+const DG = require('../../../src/pkjs/page/weather/last-fetch.js');
 const RAIN = require('../../../src/pkjs/page/forecast-graphs/preview-rain.js');
 // The graph-colour key vocabulary and its built-in table — the preview resolves through
 // it, so the graph-colour cases below derive their keys and defaults from it too.
@@ -50,72 +50,6 @@ test('forecastPreview forces white rain bars on B/W even when setting says multi
   const bw    = FC.forecastPreview(state, { color: false });
   assert.ok(color.indexOf(GREEN_BAND) >= 0, 'color watch keeps multicolor rain bands');
   assert.equal(bw.indexOf(GREEN_BAND), -1, 'B/W watch draws no color rain bands');
-});
-/**
- * The userData.devStats shape index.js injects (dev-stats.js summarize()).
- * @param {Object[]} days Day buckets, oldest first.
- * @param {Object[]} events Newest raw events, oldest first.
- * @param {number} [total] Events in the whole window.
- * @returns {Object} Summary.
- */
-function dsSummary(days, events, total) {
-  return { days: days, events: events, total: typeof total === 'number' ? total : events.length };
-}
-/**
- * One summarize() day bucket with no settings sends.
- * @param {string} d 'MM-DD'.
- * @param {Object} weather {ack, nack, skip}.
- * @param {Object} cats Category name -> {sent, cached}.
- * @returns {Object} Day bucket.
- */
-function dsDay(d, weather, cats) {
-  return { d: d, weather: weather, setting: { ack: 0, nack: 0, skip: 0 }, cats: cats };
-}
-test('devStats: table only, no clear button; empty when disabled', () => {
-  const ev = { t: Date.now(), k: 'weather', ok: 1, c: { forecast: 1 } };
-  const summary = dsSummary([dsDay('09-23', { ack: 1, nack: 0, skip: 0 }, { forecast: { sent: 1, cached: 0 } })], [ev]);
-  const ds = DG.devStats({ devStatsEnabled: true }, {}, { devStats: summary });
-  assert.ok(ds.indexOf('Daily summary') >= 0);
-  assert.equal(ds.indexOf('devStatsClearBtn'), -1, 'no live Clear button (now a toggle)');
-  assert.equal(DG.devStats({ devStatsEnabled: false }, {}, { devStats: summary }), '');
-  assert.equal(DG.devStats({ devStatsEnabled: true }, {}, { devStats: dsSummary([], []) }), '', 'nothing recorded');
-  assert.equal(DG.devStats({ devStatsEnabled: true }, {}, {}), '', 'no summary handed over');
-});
-test('devStats: a notice-only weather send shows in its own column, not as an empty send', () => {
-  // NOTICE_TEXT rides alone (an auth-failure overlay, or its dismissal). Without a
-  // notice column the row read "delivered, nothing in the payload".
-  const ev = { t: Date.now(), k: 'weather', ok: 1, c: { notice: 1 } };
-  const summary = dsSummary([dsDay('09-23', { ack: 1, nack: 0, skip: 0 }, { notice: { sent: 1, cached: 0 } })], [ev]);
-  const ds = DG.devStats({ devStatsEnabled: true }, {}, { devStats: summary });
-  const headers = (ds.match(/<tr><th[\s\S]*?<\/tr>/g) || [])
-    .map((row) => (row.match(/<th[^>]*>([^<]*)<\/th>/g) || []).map((th) => th.replace(/<[^>]*>/g, '')));
-  assert.equal(headers.length, 2);
-  headers.forEach((h) => assert.equal(h[h.length - 2], 'ntc', 'notice column sits before setting'));
-  const eventRow = ds.slice(ds.lastIndexOf('<tr>'));
-  const cells = (eventRow.match(/<td[^>]*>([^<]*)<\/td>/g) || []).map((td) => td.replace(/<[^>]*>/g, ''));
-  assert.equal(cells[cells.length - 2], '●', 'the notice was sent');
-  assert.ok(ds.indexOf('1●<br>0–</td><td') >= 0, 'the day row counts it too');
-});
-test('devStats: the panel shows every weather category the outbox sends', () => {
-  const outbox = require('../../../src/pkjs/wire/adapter/outbox.js');
-  assert.deepEqual(DG.CATEGORIES, outbox.WEATHER_CATEGORIES.map((c) => c.name));
-});
-test('devStats: the daily table shows the phone-side day totals, not a count of the capped raw list', () => {
-  // The phone side hands over day totals for the whole window plus only the newest 100
-  // events (the raw 7-day log overflowed the page's data: URL). The day row must still
-  // say 150 delivered, and the footer must say how many events were left out.
-  const events = [];
-  for (let i = 0; i < 100; i += 1) { events.push({ t: Date.now() - (100 - i) * 1000, k: 'weather', ok: 1, c: { forecast: 1 } }); }
-  const summary = dsSummary([
-    dsDay('09-22', { ack: 40, nack: 2, skip: 0 }, { forecast: { sent: 40, cached: 0 } }),
-    dsDay('09-23', { ack: 150, nack: 0, skip: 3 }, { forecast: { sent: 120, cached: 33 } })
-  ], events, 195);
-  const ds = DG.devStats({ devStatsEnabled: true }, {}, { devStats: summary });
-  assert.ok(ds.indexOf('150✓<br>3c') >= 0, 'day outcome totals come from the summary');
-  assert.ok(ds.indexOf('120●<br>33–') >= 0, 'category totals come from the summary');
-  assert.ok(ds.indexOf('09-23') < ds.indexOf('09-22'), 'newest day first');
-  assert.ok(ds.indexOf('Showing last 100 of 195 events.') >= 0);
-  assert.equal((ds.match(/<tr>/g) || []).length, 2 + 2 + 100, 'two header rows, two days, 100 event rows');
 });
 test('lastFetch formats success / Never / failed-attempt-with-error', () => {
   const lf = DG.lastFetch({}, {}, { lastFetchSuccess: JSON.stringify({ time: Date.now(), name: 'Berlin' }), lastFetchAttempt: null });
@@ -270,7 +204,7 @@ test('forecastPreview never draws the second metric as the same metric as the ma
   assert.equal(svg.indexOf('fill="#FFFF00"'), -1, 'duplicate metric → no second-metric squares');
 });
 test('registers all preview/util blocks into PConf.blocks', () => {
-  ['forecastPreview','radarPreview','watchPreview','devStats','lastFetch'].forEach((id) => assert.equal(typeof PConf.blocks.get(id), 'function'));
+  ['forecastPreview','radarPreview','watchPreview','lastFetch'].forEach((id) => assert.equal(typeof PConf.blocks.get(id), 'function'));
 });
 
 test('registers the statusSlot options resolver into PConf.optionsResolvers', () => {

@@ -6,10 +6,9 @@
 // One pepper, two purposes: each gets its own subkey (HMAC(root, label)), so a cache key can
 // never be matched against an IP key. The subkeys are derived once per isolate.
 //
-// The root is SHA-256(ROOT_LABEL + pepper), never the pepper itself. telemetry-ingest and news
-// store hex HMAC(TELEMETRY_HASH_SECRET, token) for any token anyone POSTs, so a root of
-// HMAC(pepper, ...) would let a caller have the subkeys written into the telemetry tables by
-// posting the labels as tokens, should the pepper ever equal that secret. The label prefix also
+// The root is SHA-256(ROOT_LABEL + pepper), never the pepper itself, so no function that stores
+// HMAC(secret, token) for a caller-chosen token can become an oracle for the subkeys, should the
+// pepper ever equal that secret (the since-removed telemetry and news functions did). The label prefix also
 // keeps the root apart from the SHA-256(pepper) HMAC uses for itself when a key exceeds 64 bytes.
 import { roundCoord } from "./body.ts";
 
@@ -43,8 +42,8 @@ const ROOT_LABEL = "rainbow-nowcast/root/v1\u0000";
 
 /**
  * The hashing pepper: RAINBOW_IP_HASH_KEY, else SUPABASE_SERVICE_ROLE_KEY (always set for an
- * edge function). Never TELEMETRY_HASH_SECRET: telemetry and news turn it into an HMAC oracle
- * (see the header). A blank value counts as unset: WebCrypto refuses a zero-length HMAC key.
+ * edge function). Never TELEMETRY_HASH_SECRET, the since-removed telemetry's secret (see the
+ * header). A blank value counts as unset: WebCrypto refuses a zero-length HMAC key.
  * @param env Environment lookup.
  * @returns The pepper, or "" when neither is set.
  */

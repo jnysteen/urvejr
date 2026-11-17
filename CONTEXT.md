@@ -2,7 +2,7 @@
 
 urvejr is a Pebble weather watchface: a C watchface (`src/c/`) driven by
 phone-side PebbleKit JS (`src/pkjs/`), with a Clay config UI and a Supabase
-telemetry backend. This file is its glossary: the canonical vocabulary, with pointers to
+backend for the Rainbow radar proxy. This file is its glossary: the canonical vocabulary, with pointers to
 where each term lives in the code.
 
 ## Context map
@@ -12,8 +12,7 @@ and the contracts between the deployables are in [ADR 0005](./docs/adr/0005-arch
 
 **Domain context**:
 A part of the product with its own model and words: weather data, forecast graphs, status bars,
-alerts, screens and layout, calendar, theme, health, settings, wire transport, app notices,
-telemetry.
+alerts, screens and layout, calendar, theme, health, settings, wire transport, app notices.
 Its code sits in one folder per deployable, grouped by role inside (in the phone app,
 `src/pkjs/<context>/<role>/`).
 _Avoid_: module, feature (for the whole context).
@@ -29,9 +28,8 @@ _Avoid_: module, feature (for the whole context).
 | Theme | palettes, night light | theme schedule | previews colours | – |
 | Settings | reads the settings message | stores, migrates, sends them | the schema and pages | – |
 | Wire transport | AppMessage inbox, persist | outbox, change detector, scheduler, battery saver | – | – |
-| App notices | release toast | news, update check | news panel | `news` |
+| App notices | the notice line | fetch-error notices | notice panel | – |
 | Health | reads the watch's health data | – | previews it | – |
-| Telemetry | – | snapshot and upload | – | `telemetry-ingest` |
 
 **Outbox (phone app)**:
 The phone app's one sender to the watch. It bundles what changed into one message and counts it
@@ -89,7 +87,7 @@ second accepted flick within the pairing window (layout.h `view_flick_accept`).
 **Screen (settings page)**:
 One view of the flick cycle as the settings page edits it: a list of rows, top to bottom
 (`src/pkjs/layout/domain/screens.js`), compiled to the custom layout's per-view keys. Its name belongs to the
-page (`viewName{i}`: never compiled, sent or in telemetry) and moves with the screen; '' reads
+page (`viewName{i}`: never compiled or sent) and moves with the screen; '' reads
 as its place: Default, Flick 1 or Flick 2. The top screen is the Default, the one the watch
 returns to, and it always shows the clock. A screen moved there gets the clock, or stays where
 it was when the clock does not fit (`src/pkjs/page/layout/screens-page.js` moveScreen).
@@ -99,7 +97,7 @@ _Avoid_: view (the watch's word for what it draws).
 One of the bars a screen can show besides the Watch bar ("your bars"): the Forecast, Radar and
 Health bars (`on-demand.js` BARS, `STATUS_LINE_1`/`_2`/`_4`), and on emery bars 4 to 6 once New
 bar made them (`STATUS_LINE_5..7`). Each holds what its three slots hold, whatever its kind. Its
-name belongs to the page (`<prefix>Name`: never compiled, sent or in telemetry); '' reads as its
+name belongs to the page (`<prefix>Name`: never compiled or sent); '' reads as its
 kind's name (`screens.js` barName). The Watch bar keeps its name. Any screen can show any of
 them, and the watch draws each without radar or health data (`layout.c` view_spec_resolve).
 On a custom layout the radar and health modes therefore follow what the shown bars hold, and

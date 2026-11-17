@@ -102,9 +102,8 @@ PConf.blocks.register('forecastPreview', function (state, env, userData) {
   return '<svg …>' + /* render from state */ + '</svg>';
 });
 
-PConf.blocks.register('devStats', function (state, env, userData) {
-  if (!state.devStatsEnabled) { return ''; }
-  return '<table …>' + /* render events from userData.devStats */ + '</table>';
+PConf.blocks.register('lastFetch', function (state, env, userData) {
+  return '<b>Last fetch:</b> ' + /* render from userData.lastFetchSuccess */ '';
 });
 ```
 
@@ -112,7 +111,6 @@ PConf.blocks.register('devStats', function (state, env, userData) {
 // src/pkjs/page/settings/onbuild.js  (runs in the phone WebView)
 PConf.hooks.onLoad(function (ctx) {
   ctx.set('fetch', false);
-  ctx.set('devStatsClear', false);
 });
 
 PConf.hooks.onSubmit(function (ctx) {

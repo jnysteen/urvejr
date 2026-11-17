@@ -7,20 +7,20 @@
 // single-flight (a forced call queued ONCE behind an in-flight fetch), the force
 // pre-clears or the auth backoff, the geocode cooldown — and owns its lifecycle:
 // the once-only completion, the watchdog, the late-completion guard, the attempt
-// counter, the sleep commit, the telemetry event and the success/failure records.
+// counter, the sleep commit and the success/failure records.
 //
 // It holds index.js's fetch(), needRefresh() and their helpers, the cycle's
 // chain as the internal runCycle, and channel-scheduler.js's two cadence statics. index.js keeps the event wiring;
 // the channel scheduler keeps WHEN (its startFetch/shouldFetchNow deps are these
 // two methods). Clock, timer, provider, settings and every collaborator that
-// touches Pebble, storage-backed state or telemetry are injected, so the cycle
+// touches Pebble or storage-backed state is injected, so the cycle
 // runs under Node's test runner without booting index.js.
 //
 // Load-time invariant: this module loads with NO globals installed (no
 // localStorage, Pebble or navigator) — it reads localStorage only at call time
 // (and never caches the object or its methods: tests swap getItem after boot),
 // and it does not directly require index.js, outbox.js, auth-backoff.js,
-// notices.js or telemetry.js; those arrive through deps.
+// or notices.js; those arrive through deps.
 
 var storageKeys = require('../settings/domain/storage-keys.js');
 var fetchOptions = require('../weather/domain/fetch-options.js');
@@ -269,7 +269,6 @@ function runCycle(deps) {
  * @param {{sendWeather: Function, clearWeatherCaches: Function, clearNoticeCache: Function}} deps.outbox The deduping outbox.
  * @param {Object} deps.authBackoff The auth-backoff module (isAuthFailure/isActive/set/clear).
  * @param {Object} deps.notices The notices module (isServerFailure/noticeForFailure/add/watchText/clearErrors).
- * @param {function(Object):void} deps.trackWeatherFetch Receives each fetch's telemetry event (the caller owns the telemetry-enabled gate).
  * @param {{waqiToken: string, rainbowEndpoint: string}} deps.env Build-injected secrets (package.json's waqi.token and rainbow.endpoint; '' when absent).
  * @param {function():Date} deps.now Current-time supplier (same contract as the channel scheduler's deps.now).
  * @param {function():?Object} [deps.getPhoneBattery] The phone's battery facts for the bake
@@ -502,8 +501,6 @@ function createFetchCycle(deps) {
         // This fetch's once-guard: set by the first of success, failure or the
         // watchdog, after which every later completion from this fetch is a no-op.
         var settled = false;
-        var fetchStart = +deps.now();
-        var attempt = null;
         var fetchStatus = {
             time: deps.now(),
             id: provider.id,
@@ -571,16 +568,6 @@ function createFetchCycle(deps) {
             deps.notices.clearErrors();
             deps.outbox.clearNoticeCache();
             console.log('Successfully fetched weather!');
-            if (provider.recoveredFailure) {
-                var recoveredEvent = baseTelemetryEvent(provider, attempt, fetchStart);
-                recoveredEvent.success = false;
-                recoveredEvent.error = provider.recoveredFailure;
-                provider.recoveredFailure = null;
-                deps.trackWeatherFetch(recoveredEvent);
-            }
-            var successEvent = baseTelemetryEvent(provider, attempt, fetchStart);
-            successEvent.success = true;
-            deps.trackWeatherFetch(successEvent);
         }
 
         /**
@@ -659,10 +646,6 @@ function createFetchCycle(deps) {
                 error: failure
             };
             localStorage.setItem(KEY_LAST_FETCH_ATTEMPT, JSON.stringify(attemptStatus));
-            var failureEvent = baseTelemetryEvent(provider, attempt, fetchStart);
-            failureEvent.success = false;
-            failureEvent.error = failure;
-            deps.trackWeatherFetch(failureEvent);
         }
 
         // PKJS owns metric selection: map the provider's raw precip/rain into the
@@ -690,7 +673,7 @@ function createFetchCycle(deps) {
         }, FETCH_WATCHDOG_MS);
 
         try {
-            attempt = incrementFetchAttemptCounter();
+            incrementFetchAttemptCounter();
             localStorage.setItem(KEY_LAST_FETCH_ATTEMPT, JSON.stringify(fetchStatus));
             runCycle({
                 provider: provider,
@@ -710,7 +693,7 @@ function createFetchCycle(deps) {
         catch (e) {
             // Once-guarded: a throw after this fetch already completed is ignored.
             console.log('Weather fetch threw synchronously: ' + e.message);
-            // The failure path writes storage and telemetry too, so it can throw for
+            // The failure path writes storage too, so it can throw for
             // the same reason (a full localStorage); start() runs on the scheduler
             // tick, and a throw escaping here would stop the tick loop for good.
             // settle() runs first inside it, so the in-progress flag is clear either way.
@@ -722,28 +705,6 @@ function createFetchCycle(deps) {
             }
         }
         return true;
-    }
-
-    /**
-     * Shared fields for both the success and failure weather-fetch telemetry events.
-     *
-     * @param {Object} provider Active provider.
-     * @param {number} attempt Attempt counter.
-     * @param {number} fetchStart Epoch ms (deps.now()) at fetch start.
-     * @returns {Object} Base event without success/error.
-     */
-    function baseTelemetryEvent(provider, attempt, fetchStart) {
-        return {
-            provider: provider.id,
-            attempt: attempt,
-            usedGpsCache: provider.usedGpsCache,
-            gpsErrorCode: provider.gpsErrorCode,
-            locationMode: provider.locationMode,
-            countryCode: provider.countryCode,
-            settings: deps.getSettings(),
-            watchInfo: deps.getWatchInfo(),
-            durationMs: +deps.now() - fetchStart
-        };
     }
 
     /**

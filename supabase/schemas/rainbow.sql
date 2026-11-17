@@ -116,9 +116,7 @@ revoke all on function public.get_rainbow_nowcast_cache(text)
 -- The privacy prune: the per-IP buckets older than a day, and cache rows an hour
 -- past expiry (with them any location-keyed row from before the keyed hash).
 -- Scheduled hourly as its own pg_cron job ('rainbow-prune', hand-written
--- migration …_rainbow_prune_cron.sql), not as a step of
--- telemetry_rollup_and_prune: that rollup is the statement that once crossed
--- the cron timeout nightly, and its rollback would have kept these rows too.
+-- migration …_rainbow_prune_cron.sql).
 --
 -- The per-IP buckets are only ever read for the current UTC hour, so a day is
 -- kept, no more. A key ends in its UTC hour, the last 13 chars:

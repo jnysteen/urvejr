@@ -10,7 +10,7 @@ contracts:
 | Watchface | the watch (aplite, basalt, diorite, emery, flint) | C, Pebble SDK |
 | Phone app (PKJS) | the Pebble phone app's JavaScript runtime | ES5 JavaScript |
 | Settings page | the phone's webview, opened from the Pebble app | ES5 JavaScript, HTML |
-| Edge functions | Supabase (`rainbow-nowcast`, `telemetry-ingest`, `news`) | TypeScript on Deno |
+| Edge functions | Supabase (`rainbow-nowcast`) | TypeScript on Deno |
 | Weather plugins | the Pebble app's plugin engine | JavaScript (ES2017) |
 
 The product's rules (which hour a provider's condition belongs to, when an alert replaces a
@@ -44,8 +44,7 @@ of their own, separate from edits.
 | Health | steps and heart rate (the watch reads them; the settings page previews them) |
 | Settings | stored settings, migrations, the settings message |
 | Wire transport | outbox, change detector, channel scheduler, battery saver, packing and units |
-| App notices | release notification, news, update check, watch notifications |
-| Telemetry | snapshot, upload, ingest, diagnostics |
+| App notices | the fetch-error notices on the watch and the settings page |
 
 Two homes are not contexts:
 
@@ -68,10 +67,10 @@ Every phone-app context has the same shape (lightweight hexagonal):
   hands the result to a port.
 - `adapter/` is the only place that touches the runtime. Ports are plain ES5 objects passed
   in, only at real seams: weather and radar HTTP, storage, AppMessage (the outbox stays the only
-  sender), geolocation, the clock and notifications. Collaborators inside a context stay direct
+  sender), geolocation and the clock. Collaborators inside a context stay direct
   calls; there is no framework and no container.
 - Dependencies point inward (`adapter` → `application` → `domain`), with no cycles. A context
-  without rules of its own (telemetry) has no `domain/` folder.
+  without rules of its own has no `domain/` folder.
 
 Full hexagonal's command and query objects and one inbound port per use case do not apply: the
 phone app has one caller, its own event handlers, and an interface per action would have no
@@ -96,7 +95,7 @@ checks that no other module queries Supabase.
 - Settings page: `config-ui/` is the engine (rendering, show-when, controls) and knows
   nothing of urvejr's settings; `src/pkjs/page/<context>/` holds the schema, pages and
   previews that use it, grouped by context. A module both the page and the phone app use (a
-  palette, the news protocol, the weather tab's model) is domain code of its context. Previews draw what the watch would draw by calling the phone
+  palette, the weather tab's model) is domain code of its context. Previews draw what the watch would draw by calling the phone
   app's domain modules, never by copying their rules. It stays plain ES5 without a framework: the
   Pebble app opens it in old Android webviews that a framework's output does not run on.
 
@@ -129,7 +128,7 @@ Code behind that edge trusts its input and does not check it again.
 | --- | --- | --- | --- |
 | AppMessage | phone app → watchface | the message keys in `package.template.json`, packed by the wire modules; one weather and one settings message, each within the watch's inbox | `test/repo/inbox-size.test.js`, the C host tests of the wire readers |
 | Settings return | settings page → phone app | the page's JSON of stored values | the schema golden file, the migration tests |
-| Telemetry, news, radar | phone app → edge functions | JSON over HTTPS POST | each function's body schema and Deno tests |
+| Radar | phone app → edge function | JSON over HTTPS POST | the function's body schema and Deno tests |
 | Weather APIs | weather services → phone app | each service's own format; the phone conforms and maps it in its provider adapter | the provider tests and fixtures |
 | Plugin manifest | weather plugins → Pebble app | the shapes a plugin declares (`plugins/lib/vocabulary.js`) | `plugins/test/manifest.test.js` |
 

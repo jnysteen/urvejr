@@ -132,12 +132,12 @@ var BERLIN = { status: 200, body: JSON.stringify({ address: { District: 'Mitte',
  * Run one reverse geocode and return what it reported.
  * @param {number|string} lat Latitude.
  * @param {number|string} lon Longitude.
- * @returns {{city: ?Array, failed: boolean}} (name, countryCode), or whether
- *   the lookup reported a failure instead.
+ * @returns {{city: ?string, failed: boolean}} The name, or whether the lookup
+ *   reported a failure instead.
  */
 function cityName(lat, lon) {
   var out = { city: null, failed: false };
-  new WeatherProvider().withCityName(lat, lon, function (name, cc) { out.city = [name, cc]; },
+  new WeatherProvider().withCityName(lat, lon, function (name) { out.city = name; },
     function () { out.failed = true; });
   return out;
 }
@@ -149,29 +149,29 @@ function cityName(lat, lon) {
       route = function () { return answer; };
       var out = cityName(52.52, 13.405);
       assert.equal(out.failed, false, 'no failure reaches the fetch');
-      assert.deepEqual(out.city, ['Unknown', null]);
+      assert.equal(out.city, 'Unknown');
     });
   });
 
 test('a failed ArcGIS lookup reuses the last city resolved nearby, not one from another town', () => {
   route = function () { return BERLIN; };
-  assert.deepEqual(cityName(52.52, 13.405).city, ['Mitte', 'DEU']);
+  assert.equal(cityName(52.52, 13.405).city, 'Mitte');
 
   route = function () { return 'timeout'; };
   // GPS drift, and manual coordinates (which arrive as strings): same place.
-  assert.deepEqual(cityName(52.5203, 13.4049).city, ['Mitte', null]);
-  assert.deepEqual(cityName('52.55', '13.45').city, ['Mitte', null]);
+  assert.equal(cityName(52.5203, 13.4049).city, 'Mitte');
+  assert.equal(cityName('52.55', '13.45').city, 'Mitte');
   // Munich is not Berlin: no borrowed name.
-  assert.deepEqual(cityName(48.137, 11.575).city, ['Unknown', null]);
+  assert.equal(cityName(48.137, 11.575).city, 'Unknown');
 });
 
 test('an answer without an address still reads Unknown and forgets nothing', () => {
   route = function () { return BERLIN; };
   cityName(52.52, 13.405);
   route = function () { return { status: 200, body: '{"error":{"code":400,"message":"Cannot perform query."}}' }; };
-  assert.deepEqual(cityName(52.52, 13.405).city, ['Unknown', null]);
+  assert.equal(cityName(52.52, 13.405).city, 'Unknown');
   route = function () { return 'network'; };
-  assert.deepEqual(cityName(52.52, 13.405).city, ['Mitte', null], 'the remembered name survives');
+  assert.equal(cityName(52.52, 13.405).city, 'Mitte', 'the remembered name survives');
 });
 
 test('the forecast is sent when ArcGIS fails and the weather provider answers', () => {
@@ -211,7 +211,6 @@ test('the forecast is sent when ArcGIS fails and the weather provider answers', 
   }
   assert.equal(result, 'success');
   assert.deepEqual(sent, ['Unknown']);
-  assert.equal(p.countryCode, null);
 });
 
 // ---- An address LocationIQ cannot resolve is not re-asked every minute ----

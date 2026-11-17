@@ -100,10 +100,10 @@ const EXPECTED_KEYS = [
   'conditionSlotLook', 'conditionSlotName', 'citySlotIcon',
   'barSource','rainBarColor','provider','owmApiKey','yandexApiKey','tomorrowioApiKey','tomorrowioFitBudget','rainbowApiKey','rainbowFitBudget','radarMode','radarProvider','radarColor','radarSky','radarNoRainText','rainCountdownHorizon',
   'layoutPreset','largeGraphFont','forecastHours',
-  'forecastAxisNumbers','forecastAxisScale','doubleFlick','viewResetMin','swapClockStatus','configTheme','showQt','vibe','btIcons','telemetryEnabled','onboardingDone','startOnWeatherTab',
+  'forecastAxisNumbers','forecastAxisScale','doubleFlick','viewResetMin','swapClockStatus','configTheme','showQt','vibe','btIcons','onboardingDone','startOnWeatherTab',
   // Setup › Misc › Hide info text: page-only like startOnWeatherTab (rides the saved blob,
   // never read watch-side), but a stored key all the same.
-  'hideInfoText','devStatsEnabled','devStatsClear','reset',
+  'hideInfoText','reset',
   // Custom-layout storage (sheetOnly section; see customViewItems in custom-layout-schema.js).
   'viewCount','customLayoutSeeded',
   // The rain radar's Off, apart from its source (2.6; hidden until Setup's Data sources).
@@ -280,7 +280,6 @@ test('COLOR-capability + showWhen wiring', () => {
       { key: 'secondaryLine', nin: ['precip_prob', 'cloud', 'wind', 'gust', 'uv'] }] }
   ] });
   assert.deepEqual(byKey('owmApiKey').showWhen, { key: 'provider', eq: 'openweathermap' });
-  assert.deepEqual(byKey('devStatsClear').showWhen, { key: 'devStatsEnabled', eq: true });
 });
 
 test('the fill toggle hides for feels-like and stays visible for every other metric', () => {
@@ -1316,10 +1315,8 @@ test('startOnWeatherTab is a page-only toggle that defaults to Watchface', () =>
   })('');
   // Phone-side support for the settings page itself, which may read the page's own
   // keys: weather-tab-cache.js keeps the Weather tab's data only while the tab is in
-  // use, and telemetry-settings.js reports the toggle to the telemetry ingest. Neither
-  // may reach the watch — no AppMessage, no outbox.
-  const PAGE_SUPPORT = ['weather/adapter/weather-tab-cache.js',
-    'telemetry/application/telemetry-settings.js'];
+  // use. It may not reach the watch — no AppMessage, no outbox.
+  const PAGE_SUPPORT = ['weather/adapter/weather-tab-cache.js'];
   PAGE_SUPPORT.forEach((f) => {
     const src = fs.readFileSync(path.join(pkjs, f), 'utf8');
     assert.ok(!/sendAppMessage|outbox|clay-payload/.test(src), f + ' must not talk to the watch');

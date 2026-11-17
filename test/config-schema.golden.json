@@ -15646,15 +15646,8 @@
             "collapsible": true,
             "items": [
               {
-                "type": "toggle",
-                "messageKey": "telemetryEnabled",
-                "label": "Share anonymous telemetry",
-                "defaultValue": true,
-                "hint": "Sends anonymous data about weather updates and how the watchface is used, to improve reliability."
-              },
-              {
                 "type": "staticText",
-                "text": "<b>Privacy</b><br>While Share anonymous telemetry is on, urvejr sends: whether each weather update worked and how long it took, the weather provider, a rough country, the app and watch versions, and which settings are used. It never sends your location, the places you type, your API keys or any health data: steps, sleep and heart rate stay on the watch. Your account and watch are stored only as one-way hashes."
+                "text": "<b>Privacy</b><br>urvejr collects no usage data. Your location goes only to the weather, radar and place services you use, to fetch the weather there; the Rainbow radar goes through urvejr's own server, with the position rounded to about 100 m. Steps, sleep and heart rate stay on the watch."
               },
               {
                 "type": "staticText",
@@ -15697,34 +15690,10 @@
               },
               {
                 "type": "toggle",
-                "messageKey": "devStatsEnabled",
-                "label": "Enable connection stats",
-                "defaultValue": false,
-                "hint": "Records connection events sent to the watch, on this phone only. Events older than 7 days are deleted."
-              },
-              {
-                "type": "toggle",
                 "messageKey": "reset",
                 "label": "Reset watchface",
                 "defaultValue": false,
                 "hint": "When you save, this erases all settings and cached data and re-runs first-time setup. Your API keys are kept. This cannot be undone."
-              }
-            ]
-          },
-          {
-            "title": "Connection stats",
-            "collapsible": true,
-            "block": "devStats",
-            "items": [
-              {
-                "type": "toggle",
-                "messageKey": "devStatsClear",
-                "label": "Clear connection stats",
-                "defaultValue": false,
-                "showWhen": {
-                  "key": "devStatsEnabled",
-                  "eq": true
-                }
               }
             ]
           }

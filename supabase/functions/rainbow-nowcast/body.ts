@@ -1,7 +1,7 @@
 // Request parsing for the rainbow-nowcast function: the capped body reader (shared with
 // key-check.ts) and the nowcast request itself, as a POST body (current phones) or as the
 // legacy GET query (app versions from 1.7.0 until the POST shipped — remove the GET path once
-// telemetry shows none of them).
+// none of them are left).
 //
 // Coordinates are rounded to 3 decimals (~110 m, the cache's precision) before anything else
 // sees them, so neither the cache key nor the upstream URL carries more than that. Phones from

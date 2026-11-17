@@ -42,7 +42,7 @@ Deno.test("the cache and IP keys come from separate subkeys", async () => {
 });
 
 /**
- * What telemetry-ingest and news store for a caller-chosen token: hex HMAC-SHA-256(secret, token)
+ * What the since-removed telemetry-ingest and news functions stored for a caller-chosen token: hex HMAC-SHA-256(secret, token)
  * (their hmacSha256Hex). Anyone can POST a token, so this is an oracle over the secret.
  * @param secret The secret.
  * @param token The caller-chosen token.

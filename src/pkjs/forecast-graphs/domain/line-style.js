@@ -347,8 +347,7 @@
     }
 
     /**
-     * Did the user CHOOSE this colour, as opposed to being handed it? Telemetry's 'default'
-     * vs '#RRGGBB' report reads this.
+     * Did the user CHOOSE this colour, as opposed to being handed it?
      *
      * There is exactly one way a stored colour is not a choice — being the built-in. Now
      * that the cascade resolves rather than writes, a value in a tint key got there because
@@ -477,8 +476,8 @@
     // size). THE one source: the settings page's style options (forecast-hints.js
     // 'lineStyleOptions') and its fill-row gate, the bake (lineStyleValue — the
     // wire's style bytes, the fill flag, the top-stripe band), the settings
-    // preview and telemetry all ask here, so none of them can draw or report a
-    // stripe the others would not.
+    // preview all ask here, so none of them can draw a stripe the others would
+    // not.
     var STRIPE_METRIC_IDS = ['precip_prob', 'cloud', 'wind', 'gust', 'uv'];
     var STRIPE_METRICS = {};
     (function () {
@@ -566,7 +565,7 @@
 
     /**
      * What this watch is ACTUALLY rendering — the ONE authority every graph-colour consumer
-     * asks instead of re-deriving it. Never re-derive these three: the wire and telemetry
+     * asks instead of re-deriving it. Never re-derive these three: two consumers
      * did once and diverged (ADR-0003 §8).
      *
      * `theme` is the FOLDED theme (aplite has the light polarity compiled out, so resolving
@@ -577,7 +576,7 @@
      * name, off the folded theme, so the pick that is read is the pick that is painted.
      *
      * The target comes as its capabilities, so the phone (config-ui computeEnv of the
-     * connected watch: forecast-graphs/domain/graph-wire.js, telemetry) and the settings page (its own
+     * connected watch: forecast-graphs/domain/graph-wire.js) and the settings page (its own
      * env) ask the one question the same way.
      *
      * @param {Object} settings Clay settings blob; only `theme` is read.

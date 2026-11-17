@@ -292,7 +292,7 @@ test('a night tint the 1.15.0 page carried from the fill is released on upgrade'
   // style bytes) postdates 1.15.0 and has its own pins in test/forecast-graphs/domain/line-style.test.js.
   const SHIPPED_BYTES = [248, 240, 226, 1, 213, 213, 240, 245];
   assert.equal(lineStyle.graphColorIsPicked(blob, 'wind', 'Night', 'Light'), true,
-    'un-migrated, the carried tint reads as a pick, the wrong answer for telemetry');
+    'un-migrated, the carried tint reads as a pick, the wrong answer');
 
   mods.clayMigrations.runMigrations({
     platform: 'basalt', colors: COLORS, defaultRadarProvider: 'rainbow' });
@@ -303,7 +303,7 @@ test('a night tint the 1.15.0 page carried from the fill is released on upgrade'
     'the carried tint goes back to the built-in');
   assert.equal(healed.gcWindFillLight, 0xFF0000, 'the fill the user DID pick stays');
   assert.equal(lineStyle.graphColorIsPicked(healed, 'wind', 'Night', 'Light'), false,
-    'and telemetry reports it as a default again, not a pick');
+    'and it reads as the default again, not a pick');
   assert.deepEqual(
     Array.from(graphWire.buildLineStyleBytes(healed, { platform: 'basalt' })).slice(0, 8),
     SHIPPED_BYTES,

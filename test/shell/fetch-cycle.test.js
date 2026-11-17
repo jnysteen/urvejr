@@ -4,12 +4,12 @@
 // → { shouldFetchNow(), start(force) }. Everything the cycle touches is a fake
 // the test drives by hand — the clock (deps.now), the timer queue
 // (deps.setTimeout), the provider (its coordinate and forecast callbacks), the
-// outbox and the telemetry sink — except auth-backoff.js and notices.js, which
+// and the outbox — except auth-backoff.js and notices.js, which
 // are the real modules over the storage mock. Assertions stay on outcomes: the
 // return values, the four storage records (weather_fetch_attempt,
 // lastFetchSuccess, lastFetchAttempt, lastIsSleeping), the key's answers
 // (keyResults) and the key status the settings page reads from them, the calls
-// the fakes saw and the telemetry event. Never on log text, never on module
+// the fakes saw. Never on log text, never on module
 // internals.
 //
 // Radar observation seam: with radarProvider 'tomorrowio' and a key, the radar
@@ -133,10 +133,6 @@ function makeProvider(id) {
         id: id || 'fake',
         name: (id || 'fake') + ' weather',
         options: null,
-        usedGpsCache: true,
-        gpsErrorCode: 'gps_3',
-        locationMode: 'gps',
-        countryCode: 'DE',
         geocodeBackoff: false,
         throwOnCoordinates: false,
         calls: { withCoordinates: [], fetchWithCoordinates: [], clearGeocodeBackoff: 0 },
@@ -181,7 +177,7 @@ function makeHarness(opts) {
         provider: opts.provider || makeProvider(),
         connected: true
     };
-    var calls = { sendWeather: [], clearWeatherCaches: 0, clearNoticeCache: 0, telemetry: [] };
+    var calls = { sendWeather: [], clearWeatherCaches: 0, clearNoticeCache: 0 };
     /** Run (and dequeue) the timers matching `pred` at call time. */
     function runMatching(pred) {
         var due = timers.filter(pred);
@@ -206,7 +202,6 @@ function makeHarness(opts) {
         },
         authBackoff: authBackoff,
         notices: notices,
-        trackWeatherFetch: function (event) { calls.telemetry.push(event); },
         env: opts.env || ENV,
         now: function () { return clock.value; },
         setTimeout: function (fn, ms) { timers.push({ fn: fn, ms: ms }); return timers.length; }
@@ -366,7 +361,6 @@ test('start: with no watch connected it refuses, forced or not, and touches noth
     assert.equal(h.provider.calls.clearGeocodeBackoff, 0);
     assert.equal(h.calls.clearWeatherCaches, 0);
     assert.equal(h.timerCount(), 0, 'no watchdog armed');
-    assert.equal(h.calls.telemetry.length, 0);
 
     // A refused forced call is not queued either: it is simply dropped.
     h.setConnected(true);
@@ -520,7 +514,6 @@ test('start: a clean start counts the attempt, records it, builds the options, a
     assert.equal(call.isCurrent(), true, 'the fetch is live until it settles');
     assert.equal(radarRequests.length, 0, 'aplite asks no radar');
     assert.equal(h.calls.sendWeather.length, 0);
-    assert.equal(h.calls.telemetry.length, 0, 'nothing tracked before the fetch completes');
 });
 
 test('start: IS_SLEEPING reflects the sleep window when the extras are built', () => {
@@ -533,7 +526,7 @@ test('start: IS_SLEEPING reflects the sleep window when the extras are built', (
     assert.deepEqual(h.provider.lastForecast().extras, { IS_SLEEPING: true }, 'the fix landed inside the window');
 });
 
-test('success: records the START time, resets the counter, commits the carried sleep state, clears errors, tracks telemetry', () => {
+test('success: records the START time, resets the counter, commits the carried sleep state, clears errors', () => {
     resetStore();
     notices.add({ key: 'auth', type: 'error', watch: 'API key error', html: 'rejected', since: 1 });
     notices.add({ key: 'ratelimit', type: 'info', html: 'slow down', since: 1 });
@@ -559,40 +552,8 @@ test('success: records the START time, resets the counter, commits the carried s
     assert.deepEqual(notices.list().map(function (n) { return n.key; }), ['ratelimit'], 'error notices dropped, infos kept');
     assert.equal(h.calls.clearNoticeCache, 1);
     assert.equal(h.calls.sendWeather.length, 0, 'the success send is the provider\'s, not the cycle\'s');
-    assert.deepEqual(h.calls.telemetry, [{
-        provider: 'fake',
-        attempt: 3,
-        usedGpsCache: true,
-        gpsErrorCode: 'gps_3',
-        locationMode: 'gps',
-        countryCode: 'DE',
-        settings: settings,
-        watchInfo: APLITE,
-        durationMs: 2 * HOUR + 4 * SEC,
-        success: true
-    }]);
     assert.equal(p.lastForecast().isCurrent(), false, 'a settled fetch is no longer current');
     assert.equal(h.cycle.start(false), true, 'the next start is accepted');
-});
-
-test('success: a failure the provider worked around is tracked once, before the success', () => {
-    resetStore();
-    const h = makeHarness();
-    const p = h.provider;
-    h.cycle.start(false);
-    p.fix(52.5, 13.4);
-    p.recoveredFailure = { stage: 'provider_data', code: 'fake_condition_rejected' };
-    p.succeed();
-    assert.deepEqual(h.calls.telemetry.map(function (e) { return [e.success, e.error]; }), [
-        [false, { stage: 'provider_data', code: 'fake_condition_rejected' }],
-        [true, undefined]
-    ]);
-    assert.equal(p.recoveredFailure, null, 'cleared once reported');
-
-    h.cycle.start(false);
-    p.fix(52.5, 13.4);
-    p.succeed();
-    assert.equal(h.calls.telemetry.length, 3, 'the next fetch tracks its success alone');
 });
 
 test('success: a delivered sleep onset pauses the gate; a failed one does not', () => {
@@ -711,13 +672,6 @@ test('failure: a provider 401 arms the auth backoff, raises the notice, sends it
     assert.equal(store[KEYS.FETCH_ATTEMPT_KEY], '1', 'a failure keeps the count');
     assert.equal(store[KEYS.LAST_IS_SLEEPING_KEY], undefined, 'a failure commits no sleep state');
     assert.equal(h.calls.clearNoticeCache, 0);
-    assert.equal(h.calls.telemetry.length, 1);
-    const event = h.calls.telemetry[0];
-    assert.equal(event.success, false);
-    assert.deepEqual(event.error, AUTH_401);
-    assert.equal(event.attempt, 1);
-    assert.equal(event.provider, 'fake');
-    assert.equal(event.durationMs, 3 * SEC);
 
     // What the armed backoff means for the next starts.
     assert.equal(h.cycle.start(false), false, 'scheduled starts stop');
@@ -880,7 +834,6 @@ test('failure: a forecast failure hands this cycle\'s radar CLEAR to the failure
     assert.deepEqual(h.calls.sendWeather, [Object.assign({}, CLEAR, SKY_CLEAR)],
         'the radar CLEAR (and the sky CLEAR) ride alone (no notice for this failure)');
     assert.deepEqual(readJson(KEYS.LAST_FETCH_ATTEMPT_KEY).error, failure);
-    assert.equal(h.calls.telemetry[0].success, false);
 });
 
 test('failure: an AppMessage NACK does not pass the radar CLEAR through again', () => {
@@ -892,7 +845,6 @@ test('failure: an AppMessage NACK does not pass the radar CLEAR through again', 
     h.provider.fail(nack);
     assert.equal(h.calls.sendWeather.length, 0, 'the NACKed send already carried it');
     assert.deepEqual(readJson(KEYS.LAST_FETCH_ATTEMPT_KEY).error, nack);
-    assert.deepEqual(h.calls.telemetry[0].error, nack);
 });
 
 test('failure: a transient radar miss (null) adds no radar keys to the failure send (the sky CLEAR still rides)', () => {
@@ -1231,7 +1183,7 @@ test('radar: switching from DWD to another radar source ends DWD\'s run of 404s'
         'radar off asked DWD nothing: picking DWD again shows no stale note');
 });
 
-test('coordinates: a failed fix is recorded and tracked, and starts no radar, forecast or sleep commit', () => {
+test('coordinates: a failed fix is recorded, and starts no radar, forecast or sleep commit', () => {
     resetStore();
     const settings = Object.assign(
         { fetchIntervalMin: '60', radarMode: 'graph', radarSky: false, radarProvider: 'tomorrowio', tomorrowioApiKey: 'TIO-KEY' },
@@ -1247,9 +1199,6 @@ test('coordinates: a failed fix is recorded and tracked, and starts no radar, fo
     assert.deepEqual(h.calls.sendWeather, [{ NOTICE_TEXT: 'No location access' }],
         'no radar answer to pass on; the no-location line alone, as the watch has no forecast to keep');
     assert.equal(store[KEYS.LAST_IS_SLEEPING_KEY], undefined, 'no sleep commit');
-    assert.equal(h.calls.telemetry.length, 1);
-    assert.equal(h.calls.telemetry[0].success, false);
-    assert.deepEqual(h.calls.telemetry[0].error, gps);
     assert.equal(h.cycle.start(false), true, 'settled: the next start is accepted');
 });
 
@@ -1308,7 +1257,6 @@ test('coordinates: a failure callback without a failure object records coordinat
     h.provider.noFix(undefined);
     const unknown = { stage: 'coordinates', code: 'unknown_error' };
     assert.deepEqual(readJson(KEYS.LAST_FETCH_ATTEMPT_KEY).error, unknown);
-    assert.deepEqual(h.calls.telemetry[0].error, unknown);
     assert.equal(h.provider.calls.fetchWithCoordinates.length, 0);
 });
 
@@ -1328,10 +1276,6 @@ test('watchdog: a fetch still unsettled after FETCH_WATCHDOG_MS is recorded as a
 
     assert.deepEqual(readJson(KEYS.LAST_FETCH_ATTEMPT_KEY), recordFor(p, T0, WATCHDOG));
     assert.equal(readJson(KEYS.LAST_FETCH_SUCCESS_KEY), null);
-    assert.equal(h.calls.telemetry.length, 1);
-    assert.equal(h.calls.telemetry[0].success, false);
-    assert.deepEqual(h.calls.telemetry[0].error, WATCHDOG);
-    assert.equal(h.calls.telemetry[0].durationMs, WATCHDOG_MS);
     assert.equal(h.calls.sendWeather.length, 0, 'aplite, no notice: nothing to send');
     assert.equal(h.cycle.start(false), true, 'the in-flight flag is cleared: a new start is accepted');
 });
@@ -1373,7 +1317,6 @@ test('watchdog: a completion from the abandoned chain is ignored — no success 
     assert.equal(authBackoff.isActive(), false, 'a late 401 arms nothing');
     assert.deepEqual(notices.list(), []);
     assert.equal(h.calls.sendWeather.length, 0);
-    assert.equal(h.calls.telemetry.length, 1, 'only the watchdog failure was tracked');
 });
 
 test('watchdog: a fetch completes exactly once — a late failure or watchdog after success is ignored', () => {
@@ -1391,8 +1334,6 @@ test('watchdog: a fetch completes exactly once — a late failure or watchdog af
     assert.equal(store[KEYS.FETCH_ATTEMPT_KEY], '0');
     assert.equal(authBackoff.isActive(), false);
     assert.equal(h.calls.clearNoticeCache, 1);
-    assert.equal(h.calls.telemetry.length, 1);
-    assert.equal(h.calls.telemetry[0].success, true);
 });
 
 // Ported from fetch-watchdog.test.js ("runFetchCycle starts nothing for
@@ -1407,7 +1348,6 @@ test('watchdog: a fix arriving after the fetch was abandoned starts no radar, ge
     p.fix(52.5, 13.4);
     assert.equal(radarRequests.length, 0, 'no radar request');
     assert.equal(p.calls.fetchWithCoordinates.length, 0, 'no forecast request');
-    assert.equal(h.calls.telemetry.length, 1, 'only the watchdog failure');
 });
 
 // --- throws ------------------------------------------------------------------------
@@ -1421,9 +1361,6 @@ test('throw: a synchronous throw inside the chain is recorded as fetch/exception
     const exception = { stage: 'fetch', code: 'exception' };
     assert.deepEqual(readJson(KEYS.LAST_FETCH_ATTEMPT_KEY), recordFor(p, T0, exception));
     assert.equal(store[KEYS.FETCH_ATTEMPT_KEY], '1');
-    assert.equal(h.calls.telemetry.length, 1);
-    assert.equal(h.calls.telemetry[0].success, false);
-    assert.deepEqual(h.calls.telemetry[0].error, exception);
     p.throwOnCoordinates = false;
     assert.equal(h.cycle.start(false), true, 'the in-flight flag is cleared');
     assert.equal(p.calls.withCoordinates.length, 2);
@@ -1437,13 +1374,9 @@ test('throw: a counter write that throws is caught and recorded, and later ticks
     assert.equal(h.cycle.start(false), true, 'started: the throw came after every refusal');
     assert.equal(p.calls.withCoordinates.length, 0, 'the chain never ran');
     assert.deepEqual(readJson(KEYS.LAST_FETCH_ATTEMPT_KEY), recordFor(p, T0, { stage: 'fetch', code: 'exception' }));
-    assert.equal(h.calls.telemetry.length, 1);
-    assert.equal(h.calls.telemetry[0].success, false);
-    assert.deepEqual(h.calls.telemetry[0].error, { stage: 'fetch', code: 'exception' });
 
     h.advance(MIN);
     assert.equal(h.cycle.start(false), true, 'the next tick is accepted, not stuck "in progress"');
-    assert.equal(h.calls.telemetry.length, 2);
 });
 
 // --- radar throttle: the shared Rainbow proxy at most once per 30-min slot ------

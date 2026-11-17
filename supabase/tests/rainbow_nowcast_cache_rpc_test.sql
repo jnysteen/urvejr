@@ -7,7 +7,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set search_path = public, extensions;
 set timezone = 'UTC';
-select plan(21);
+select plan(19);
 
 -- ── The cache read ──────────────────────────────────────────────────────────
 insert into rainbow_nowcast_cache (cache_key, payload, expires_at)
@@ -41,8 +41,6 @@ select ok(
   'service_role can execute get_rainbow_nowcast_cache');
 
 -- ── rainbow_prune: its own job, off the API ─────────────────────────────────
--- Not a step of telemetry_rollup_and_prune: that rollup once hit the cron statement timeout
--- nightly, and its rollback would keep the IP buckets and old location-keyed rows with it.
 select ok(
   not has_function_privilege('anon', 'public.rainbow_prune()', 'execute'),
   'anon cannot execute rainbow_prune');
@@ -100,11 +98,6 @@ values ('k-live', '{}'::jsonb, now() + interval '4 minutes'),
        ('k-dead', '{}'::jsonb, now() - interval '61 minutes'),
        -- a location-keyed row from before the keyed hash
        ('52.517:13.389:1783339200', '{}'::jsonb, now() - interval '1 day');
-
--- The rollup no longer touches either table.
-select telemetry_rollup_and_prune(p_prune => true);
-select is((select count(*)::int from rainbow_ip_usage), 5, 'telemetry_rollup_and_prune leaves the IP buckets alone');
-select is((select count(*)::int from rainbow_nowcast_cache), 4, 'telemetry_rollup_and_prune leaves the cache alone');
 
 select rainbow_prune();
 select is(

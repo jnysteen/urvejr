@@ -387,27 +387,9 @@ s3_access_key = "env(S3_ACCESS_KEY)"
 # Configures AWS_SECRET_ACCESS_KEY for S3 bucket
 s3_secret_key = "env(S3_SECRET_KEY)"
 
-[functions.telemetry-ingest]
-enabled = true
-verify_jwt = false
-import_map = "./functions/telemetry-ingest/deno.json"
-# Uncomment to specify a custom file path to the entrypoint.
-# Supported file extensions are: .ts, .js, .mjs, .jsx, .tsx
-entrypoint = "./functions/telemetry-ingest/index.ts"
-# Specifies static files to be bundled with the function. Supports glob patterns.
-# For example, if you want to serve static HTML pages in your function:
-# static_files = [ "./functions/telemetry-ingest/*.html" ]
-
 [functions.rainbow-nowcast]
 enabled = true
-# Public like telemetry-ingest: the watch calls the proxy unauthenticated (no JWT).
+# Public: the watch calls the proxy unauthenticated (no JWT).
 verify_jwt = false
 import_map = "./functions/rainbow-nowcast/deno.json"
 entrypoint = "./functions/rainbow-nowcast/index.ts"
-
-[functions.news]
-enabled = true
-# Public like telemetry-ingest: the config page calls it unauthenticated (no JWT).
-verify_jwt = false
-import_map = "./functions/news/deno.json"
-entrypoint = "./functions/news/index.ts"

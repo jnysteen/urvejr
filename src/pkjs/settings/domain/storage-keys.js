@@ -1,6 +1,4 @@
 module.exports = {
-    // The newest release-notification version already shown (release-notifications.js).
-    MAX_NOTIFIED_VERSION_KEY: 'max_notified_version',
     // Marker keys for the Clay-settings migrations (settings/domain/migrations/registry.js, run by
     // clay-migrations.js). APPEND-ONLY: a shipped marker string is the on-flash record
     // that a migration ran, so it is never reused, renamed or renumbered. Part of a
@@ -75,14 +73,8 @@ module.exports = {
     LAST_SENT_SKY_KEY: 'lastSentSky',
     LAST_SENT_SLEEP_KEY: 'lastSentSleep',
     LAST_SENT_CLAY_KEY: 'lastSentClaySettings',
-    DEV_STATS_KEY: 'devStats',
     HOLIDAY_CACHE_PREFIX: 'holidays_',
     HOLIDAY_BACKOFF_PREFIX: 'holidaysBackoff_',
-    UPDATE_NOTIFIED_VERSION_KEY: 'update_notified_version',
-    // Set once a notification made the phone ask for ShowNotifications (notify-watch.js), so a
-    // question the user dismissed is not asked again on every run.
-    NOTIFY_ASKED_KEY: 'notify_asked',
-    LAST_UPDATE_CHECK_KEY: 'last_update_check',
     WU_HOURLY_CACHE_KEY: 'wuHourlyCache',
     // The UV / wind / gust / AQI forecast for today's hours already begun, kept
     // across fetches, so each slot's day max (the Day max / Both modes) knows
@@ -97,7 +89,6 @@ module.exports = {
     // answers no reading (a WAQI '-' or no station, a timeout) within 2 h
     // (weather/adapter/air-quality.js). Stays on the phone.
     LAST_AQI_KEY: 'lastAqi',
-    NEWS_CACHE_KEY: 'newsCache',
     NOTICES_KEY: 'notices',
     LAST_SENT_NOTICE_KEY: 'lastSentNotice',
     // The Weather Underground key is scraped rather than typed, and has always
@@ -129,29 +120,6 @@ module.exports = {
     // are deliberately NOT in here -- the re-bake pairs this with the live blob
     // (phone-battery.js explains why).
     PHONE_BATTERY_SNAPSHOT: 'phoneBatterySnapshot',
-    // Pending telemetry events awaiting a batched send (telemetry.js). Each
-    // weather fetch used to POST its own event — ~59 edge-function invocations
-    // per watch per day against Supabase's 500k/month cap; the queue drains as
-    // ONE batch request every ~12 h / 24 events instead, plus on the settings
-    // Save and open triggers below. Slim per-event records only (the
-    // settings/watchInfo header is snapshotted at flush time).
-    TELEMETRY_QUEUE_KEY: 'telemetryQueue',
-    // '1' once this install has had a telemetry batch accepted (telemetry.js).
-    // Until then a settings Save sends the queue at once, so a new install that
-    // keeps telemetry on is counted even if it leaves before the ~12 h batch;
-    // after it, the once-a-day settings-open send takes over. A reset clears it,
-    // like any fresh install.
-    TELEMETRY_REPORTED_KEY: 'telemetryReported',
-    // UTC day ('YYYY-MM-DD') of the last send triggered by opening the settings
-    // page (telemetry.js): that trigger fires at most once a day.
-    TELEMETRY_OPEN_SEND_DAY_KEY: 'telemetryOpenSendDay',
-    // The in-flight batch's record ids ({ids: [...]}), written just before the
-    // POST and cleared on its outcome. A mark still present when a NEW PKJS
-    // session first flushes means the previous session died between send and
-    // ACK — outcome unknown — and those records are dropped instead of resent:
-    // at-most-once, because a duplicate batch inflates fetch_count server-side
-    // (no idempotency key) while a lost one costs a few telemetry rows.
-    TELEMETRY_SENDING_KEY: 'telemetrySending',
     // The settings page Weather tab's data for the place it opens on ({v, data}),
     // refreshed at most once a day on settings open (weather-tab-cache.js).
     WEATHER_TAB_CACHE_KEY: 'weatherTabCache',
@@ -184,5 +152,10 @@ module.exports = {
     // true = outside its area; plus misses: {dwd: n}, DWD's 404s in a row from inside its
     // area; weather/domain/radar/radar-coverage.js), never the position itself. The settings page reads
     // it as userData.radarCoverage for the note under the Radar provider row.
-    RADAR_COVERAGE_KEY: 'radarCoverage'
+    RADAR_COVERAGE_KEY: 'radarCoverage',
+    // What removed features (telemetry, connection stats, news, the update check and the
+    // release toast) left in an installed phone's storage; index.js deletes it on boot.
+    RETIRED_KEYS: ['telemetryQueue', 'telemetryReported', 'telemetryOpenSendDay', 'telemetrySending',
+        'devStats', 'newsCache', 'update_notified_version', 'notify_asked', 'last_update_check',
+        'max_notified_version']
 };

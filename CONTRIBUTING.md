@@ -1,6 +1,6 @@
 # Contributing
 
-CONTRIBUTING.md is the setup walkthrough for urvejr that takes you through building the watchface, running the Supabase telemetry backend locally and in the cloud, installing builds, and the local dev config. The commands, config and their options are in [DEV.md](DEV.md).
+CONTRIBUTING.md is the setup walkthrough for urvejr that takes you through building the watchface, running the Supabase backend (the Rainbow radar proxy) locally and in the cloud, installing builds, and the local dev config. The commands, config and their options are in [DEV.md](DEV.md).
 
 ## Building
 
@@ -24,21 +24,19 @@ The build uses the Pebble SDK version pinned in `pebble-sdk-version`, which the 
 
 `mise build release` needs `RAINBOW_PROXY_ENDPOINT` in the environment; the release profile fails without it (see the env var table in [DEV.md](DEV.md#environment-variables-env)).
 
-## Supabase (telemetry)
+## Supabase (Rainbow proxy)
 
-Telemetry runs on Supabase Edge Functions and Postgres. The commands and their details are in
-[DEV.md](DEV.md#supabase-telemetry-and-rainbow-proxy).
+The Rainbow radar proxy runs on Supabase Edge Functions and Postgres. The commands and their
+details are in [DEV.md](DEV.md#supabase-rainbow-proxy).
 
 ### Local stack and emulator testing
 
 1. Run `mise install`, which installs the Supabase CLI, and check it with `supabase --version`.
 2. Start the local Supabase stack from the repo root with `supabase start`.
-3. Copy `.env.example` to `.env` and fill in the telemetry keys: uncomment
-   `TELEMETRY_ENDPOINT` and set it to the local URL, and set `TELEMETRY_HASH_SECRET` to a value
-   from `openssl rand -hex 32` (both in the [env var table](DEV.md#environment-variables-env)).
-4. Serve the telemetry edge function from the repo root with `mise telemetry-serve`.
-5. Run `mise install-emulator --logs`, then check the inserts in Supabase Studio at
-   `http://127.0.0.1:54323` (`public.telemetry_weather_fetch`).
+3. Copy `.env.example` to `.env`, uncomment `RAINBOW_PROXY_ENDPOINT` and keep its local URL.
+4. Serve the proxy from the repo root with
+   `supabase functions serve rainbow-nowcast --env-file .env`.
+5. Run `mise install-emulator --logs` with Rainbow as the radar source.
 
 ### Hosted deployment (Supabase cloud)
 
@@ -47,11 +45,10 @@ CI deploys `supabase/` on every push to `main`. For a manual deploy, follow
 
 1. Run `supabase login` and link the repo to your project with
    `supabase link --project-ref <your-project-ref>`.
-2. Set the function secret `TELEMETRY_HASH_SECRET` (an `openssl rand -hex 32` value).
-3. Apply the migrations with `supabase db push --dry-run`, then `supabase db push`.
-4. Deploy the telemetry function with `supabase functions deploy telemetry-ingest`.
-5. Set the `TELEMETRY_ENDPOINT_RELEASE` and `TELEMETRY_ENDPOINT_PREVIEW` repository secrets,
-   which the CI workflows read, so release and preview builds reach hosted telemetry.
+2. Apply the migrations with `supabase db push --dry-run`, then `supabase db push`.
+3. Set the Rainbow secrets and deploy the proxy with `supabase functions deploy rainbow-nowcast`.
+4. Set the `RAINBOW_PROXY_ENDPOINT_RELEASE` and `RAINBOW_PROXY_ENDPOINT_PREVIEW` repository
+   secrets, which the CI workflows read.
 
 Supabase's GitHub integration is optional; [DEV.md](DEV.md#deploy-hosted) says what it does.
 
@@ -77,7 +74,7 @@ Local dev config has three layers:
   [DEV.md](DEV.md#fixtures) lists every supported field.
 - `src/pkjs/dev-config.js` is for uncommitted behavior testing, including preloaded Clay
   settings when you exercise real app flows instead of a fixture's UI, and local-only switches
-  such as a PKJS storage reset on boot or a release-notification preview
+  such as a PKJS storage reset on boot
   ([debug flags](DEV.md#debug-flags-srcpkjsdev-configjs)).
 
 While a fixture is active, put Clay values that change the rendering in the fixture's

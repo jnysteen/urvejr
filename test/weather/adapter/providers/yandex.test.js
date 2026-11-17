@@ -345,7 +345,7 @@ test('buildQuery leaves the condition field out on request', () => {
 
 [[400, { errors: [{ message: 'Cannot query field "condition"' }] }],
  [200, { errors: [{ message: 'Cannot query field "condition"' }], data: null }]].forEach(([status, body]) => {
-  test('a rejected query (' + status + ') loads without the condition and reports it once', () => {
+  test('a rejected query (' + status + ') loads without the condition, and later fetches leave it out', () => {
     withMockXhr((sent) => {
       const p = new YandexProvider('KEY123');
       let ok = 0;
@@ -358,15 +358,12 @@ test('buildQuery leaves the condition field out on request', () => {
       assert.equal(ok, 1);
       assert.equal(p.currentTemp, 71);
       assert.equal(p.currentCondition, null);
-      assert.deepEqual(p.recoveredFailure, { stage: 'provider_data', code: 'yandex_condition_rejected' });
 
-      p.recoveredFailure = null;   // the fetch cycle reports and clears it
       p.withProviderData(52.52, 13.41, false, () => { ok += 1; }, (f) => { throw new Error(f.code); });
       assert.equal(asksCondition(sent[2]), false, 'later fetches leave the field out');
       answer(sent[2], 200, liveSampleResponse());
       assert.equal(ok, 2);
       assert.equal(sent.length, 3, 'no second try');
-      assert.equal(p.recoveredFailure, null, 'reported once');
     });
   });
 });
@@ -385,7 +382,6 @@ test('other failures are not asked again, and a failed second try reports the fi
     assert.equal(asksCondition(sent[2]), false);
     answer(sent[2], 400, {});
     assert.equal(failed.code, 'yandex_status_400', 'the first failure');
-    assert.equal(p.recoveredFailure, null);
 
     p.withProviderData(52.52, 13.41, false, () => {}, () => {});
     assert.ok(asksCondition(sent[3]), 'still asks for the condition: it was not the cause');

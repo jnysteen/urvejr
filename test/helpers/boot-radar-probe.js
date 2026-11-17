@@ -30,8 +30,6 @@ global.localStorage = {
     setItem: function (k, v) { store[k] = String(v); },
     removeItem: function (k) { delete store[k]; }
 };
-// Keep the daily update check throttled (no XHR of its own).
-store.last_update_check = String(Date.now());
 if (opts.settings) { store['clay-settings'] = JSON.stringify(opts.settings); }
 
 // A production-style build: the Rainbow proxy endpoint is set.
@@ -105,7 +103,6 @@ var skySends = [];
 global.Pebble = {
     addEventListener: function (name, fn) { listeners[name] = fn; },
     getActiveWatchInfo: function () { return { platform: platform, model: 'qemu_platform_' + platform, language: 'en' }; },
-    getAccountToken: function () { return 'test-token'; },
     sendAppMessage: function (dict, ack) {
         if ('RAIN_RADAR_START' in dict) {
             radarSends.push({ start: dict.RAIN_RADAR_START, len: dict.RAIN_RADAR_TREND_UINT8.length });
@@ -115,7 +112,6 @@ global.Pebble = {
         }
         if (ack) { ack(); }
     },
-    showSimpleNotificationOnPebble: function () {},
     openURL: function () {}
 };
 // Neutralise a developer's local dev-config.js and an armed fixture, so the

@@ -34,10 +34,6 @@ _.file = ".env"
 description = "Prepare package.json from profile (default: dev)"
 run = "scripts/prepare-package.sh"
 
-[tasks.telemetry-serve]
-description = "Serve telemetry ingest function locally"
-run = "supabase functions serve telemetry-ingest --env-file .env"
-
 [tasks.preview-config]
 description = "Render a browser-openable preview of the config UI to build/ (args: [out] [platform], default basalt). Open the file in a browser instead of the emulator."
 alias = "preview"
@@ -141,11 +137,9 @@ description = "Host-compiled C tests (layout golden rects; 'mise test-c -- dump'
 run = "scripts/test-c.sh"
 
 [tasks.test-deno]
-description = "Type-check each Edge Function's entrypoint, then run its Deno test suite (rainbow-nowcast + news + telemetry-ingest) — separate runner from 'mise test' (Node can't run Deno's @std/assert imports). The suites test handler.ts and never import index.ts (whose top-level Deno.serve would bind a port), so they need no permissions; 'deno check index.ts' covers the entrypoint's wiring without running it. CI runs this before 'supabase functions deploy', so it is the deploy gate."
+description = "Type-check each Edge Function's entrypoint, then run its Deno test suite (rainbow-nowcast) — separate runner from 'mise test' (Node can't run Deno's @std/assert imports). The suites test handler.ts and never import index.ts (whose top-level Deno.serve would bind a port), so they need no permissions; 'deno check index.ts' covers the entrypoint's wiring without running it. CI runs this before 'supabase functions deploy', so it is the deploy gate."
 run = [
   "cd supabase/functions/rainbow-nowcast && deno check index.ts && deno test",
-  "cd supabase/functions/news && deno check index.ts && deno test",
-  "cd supabase/functions/telemetry-ingest && deno check index.ts && deno test",
 ]
 
 [tasks.aplite-size]

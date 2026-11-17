@@ -147,8 +147,8 @@
                 }
                 if (config.buildBody) { xhr.send(config.buildBody(key)); } else { xhr.send(); }
             } catch (err) {
-                // A malformed endpoint must not leave the "Testing" line up forever
-                // (news.js postNews precedent): report it as a connectivity failure.
+                // A malformed endpoint must not leave the "Testing" line up forever:
+                // report it as a connectivity failure.
                 showResult(mine, resultEl, interpretStatus(0).message);
             }
         }

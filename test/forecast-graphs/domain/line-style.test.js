@@ -42,10 +42,10 @@ test('a third colour is always resolved, even when the third line is off', () =>
 
 // --- renderContextFor: the one answer to "what is this watch rendering?" ------
 //
-// The wire packer and the telemetry snapshot each derived this themselves once, and
-// diverged: telemetry copied the theme fold but not the colour-platform check, so a
-// diorite install reported picks the wire had already resolved away to white. Both now
-// open with this call over the watch's computeEnv, so the divergence cannot come back.
+// Two consumers each derived this themselves once, and diverged: one copied the theme
+// fold but not the colour-platform check, so on a diorite install it read picks the wire
+// had already resolved away to white. Every consumer now opens with this call over the
+// watch's computeEnv, so the divergence cannot come back.
 const renderContext = (settings, watchInfo) => lineStyle.renderContextFor(settings, platform.computeEnv(watchInfo));
 
 test('renderContextFor folds the theme, tests the display, and names the polarity', () => {
@@ -159,7 +159,7 @@ test('a night-fill tint moved off the built-in derives its hatch one Pebble step
 // That is the whole point. A page-side write makes a claimed tint and a hand-me-down one
 // the same bytes, and then nothing downstream can tell them apart: v1.15.0 guessed by
 // comparing the two, so a tint deliberately picked EQUAL to its fill read as untouched —
-// the light-polarity re-shade was silently skipped and telemetry reported 'default'.
+// the light-polarity re-shade was silently skipped.
 
 test('graphNightTint answers claimed, then carried, then the built-in', () => {
   const blob = (extra) => Object.assign({ secondaryLine: 'wind' }, extra);
@@ -357,7 +357,7 @@ test('a stripe-styled main line never fills, unless the watch ignores the styles
 // Stripes read as intensity (how MUCH rain chance, cloud, UV, wind), so only those
 // metrics can be one: feels-like and dew point sit on the temperature band (no zero)
 // and pressure is band-scaled, its trend the story. ONE rule in line-style.js; the
-// settings page's options, the bake, the preview and telemetry all resolve through it.
+// settings page's options, the bake and the preview all resolve through it.
 const STYLE_KEYS = ['secondaryLineStyle', 'thirdLineStyle', 'fourthLineStyle', 'fifthLineStyle'];
 test('stripes are for intensity metrics only: precip, cloud, wind, gusts and UV', () => {
   assert.deepEqual(lineStyle.STRIPE_METRIC_IDS, ['precip_prob', 'cloud', 'wind', 'gust', 'uv']);

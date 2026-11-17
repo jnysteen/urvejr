@@ -153,8 +153,8 @@
   .card.nohdr .intro { padding-top: 14px; }
   .intro a { color: var(--link); }
   /* an inline text button (schema-gates.js linkRow: the About alerts and All status bars
-     cards' resets; tabLink: a tab link in copy), drawn like the links in hints (the
-     Telemetry hint's "Telemetry section"): link colour, underline, the copy's own font.
+     cards' resets; tabLink: a tab link in copy), drawn like the links in hints:
+     link colour, underline, the copy's own font.
      A <button> only so it carries a [data-action] or [data-goto-tab] instead of a URL. */
   .txt-link { -webkit-appearance: none; appearance: none; display: inline; margin: 0; padding: 0; border: none; background: none; color: var(--link); font: inherit; line-height: inherit; text-align: inherit; text-decoration: underline; cursor: pointer; }
   .txt-link:active { opacity: .6; }
@@ -532,7 +532,7 @@
   .chk-box { flex: none; position: relative; width: 24px; height: 24px; border-radius: 7px; border: 1.5px solid var(--ctl-line); background: var(--ctl); box-sizing: border-box; }
   .chk-tick.on .chk-box { border-color: transparent; background: linear-gradient(135deg, #FA4A35, #D93A24); }
   .chk-tick.on .chk-box::after { content: ''; position: absolute; left: 7.5px; top: 3.5px; width: 5px; height: 10px; border: solid #FFFFFF; border-width: 0 2.2px 2.2px 0; transform: rotate(45deg); }
-  /* select/searchSelect popup — dim overlay + centered card, matching the News popup */
+  /* select/searchSelect popup — dim overlay + centered card, matching the Support popup */
   /* select/searchSelect popup as a native <dialog> shaped like a bottom sheet. HTML can't paint
      over the host app's native bar, so instead of a full-screen overlay the sheet sits at the
      bottom and the ::backdrop fades to transparent at the top to soften that seam. max-height is
@@ -664,7 +664,7 @@
   /* a note about what shows (note): the page's info look, as an info staticText's box */
   .ui-note { border-left: 3px solid var(--info-rule); background: var(--info-tint); border-radius: 8px; padding: 9px 11px; font-size: 12.5px; line-height: 1.45; color: var(--static); }
   .ui-list > .ui-note { margin: 2px 16px 14px; }
-  /* a popup over the page (the News and Support popups): the dimmed page (.ui-pop), the card on
+  /* a popup over the page (the Support popup): the dimmed page (.ui-pop), the card on
      it (.ui-pop-card), its header with the × that closes it (popupHeader); the popup's own body
      scrolls in the card */
   .ui-pop { position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 60; background: rgba(0,0,0,0.55); display: flex; align-items: center; justify-content: center; }

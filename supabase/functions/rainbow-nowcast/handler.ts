@@ -74,8 +74,8 @@ function normalizeStart(start: number | undefined, now: Date): number {
 /**
  * The nowcast request of `req`: a POST body {lat, lon, start} (current phones), or the legacy
  * GET query ?lat&lon&start (app versions from 1.7.0 until the POST shipped, which put the
- * full-precision position in a URL the gateway logs; remove this path once telemetry shows
- * none of them).
+ * full-precision position in a URL the gateway logs; remove this path once none of
+ * them are left).
  * @param req The request.
  * @returns The parsed request (coordinates rounded to 3 decimals), or the error response.
  */

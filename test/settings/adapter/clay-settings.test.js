@@ -524,31 +524,25 @@ test('the boot restore discards a non-object parking slot too, not laundered int
 });
 
 test('boot-only dev-config keys never persist into the settings blob', () => {
-  // The denylist had drifted before: four boot-only keys (the update-check trio
-  // and devPhoneBattery) leaked into the persisted blob, where they stayed even
-  // after being deleted from dev-config.js. Pin every known boot-only key.
+  // The denylist had drifted before: boot-only keys leaked into the persisted
+  // blob, where they stayed even after being deleted from dev-config.js. Pin
+  // every known boot-only key.
   const store = installFakeStorage();
   delete require.cache[require.resolve('../../../src/pkjs/settings/adapter/clay-settings')];
   const claySettings = require('../../../src/pkjs/settings/adapter/clay-settings');
   claySettings.seedDefaults(COLORS);
   claySettings.applyDevConfig({
     clearPkjsStorageOnBoot: true,
-    forceShowReleaseNotificationOnBoot: '1.0.0',
-    maxNotifiedVersion: '1.0.0',
     resetV134WeekendHolidayColorMigration: true,
     resetV140HolidayRegionKeyMigration: true,
-    resetUpdateNotifiedVersion: true,
-    forceUpdateCheckOnBoot: true,
-    overrideLatestStoreVersions: ['9.9.9'],
     devPhoneBattery: { level: 62 },
     provider: 'dwd',            // a REAL Clay key still applies
   });
   const blob = claySettings.read();
   assert.equal(blob.provider, 'dwd');
-  ['clearPkjsStorageOnBoot', 'forceShowReleaseNotificationOnBoot', 'maxNotifiedVersion',
+  ['clearPkjsStorageOnBoot',
     'resetV134WeekendHolidayColorMigration', 'resetV140HolidayRegionKeyMigration',
-    'resetUpdateNotifiedVersion', 'forceUpdateCheckOnBoot',
-    'overrideLatestStoreVersions', 'devPhoneBattery'].forEach((k) => {
+    'devPhoneBattery'].forEach((k) => {
     assert.ok(!(k in blob), k + ' must stay boot-only, never persisted');
   });
 });

@@ -5,7 +5,7 @@
 // open in place, Delete (the last thing under what it deletes), the Undo after it and the timer
 // that takes it away, a list's New row, a chip, a dropdown, an Edit button, the pencil that
 // renames, the name field with its OK, a note, the line icons, the header of a full-screen view
-// (a dialog's, the screen editor's) and the header of a popup over the page (News, Support).
+// (a dialog's, the screen editor's) and the header of a popup over the page (Support).
 // Markup here, the look in shell.html (the .ui-* rules, and the engine's .chev and .dlg-* rules
 // these parts share). A leaf over html.js (esc): loaded after it and before engine.js in the
 // page concat (build-page.js LIB_PAGE_FILES); engine.js draws its nav rows, its folding cards,
@@ -218,7 +218,7 @@ var PConf = (typeof PConf !== 'undefined') ? PConf
   }
 
   /**
-   * A popup's header (the News and Support popups): its title, the × that closes it on the
+   * A popup's header (the Support popup): its title, the × that closes it on the
    * right. The popup is a .ui-pop over the page holding a .ui-pop-card; it closes on a tap on
    * the × or on the dimmed page (each popup wires its own close attribute).
    * @param {string} title Plain text.

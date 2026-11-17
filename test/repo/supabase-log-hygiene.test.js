@@ -54,10 +54,8 @@ function lint(src, logFile) {
 }
 
 test('every edge function and module is scanned', () => {
-  ['news', 'rainbow-nowcast', 'telemetry-ingest'].forEach((fn) => {
-    assert.ok(FUNCTION_DIRS.indexOf(fn) !== -1, fn + ' should be found as a function');
-  });
-  assert.ok(SOURCES.length >= 15, 'expected every function module, got ' + SOURCES.length);
+  assert.ok(FUNCTION_DIRS.indexOf('rainbow-nowcast') !== -1, 'rainbow-nowcast should be found as a function');
+  assert.ok(SOURCES.length >= 8, 'expected every function module, got ' + SOURCES.length);
   assert.ok(!SOURCES.some((f) => /_test\.ts$/.test(f)), 'Deno tests are not deployed code');
 });
 

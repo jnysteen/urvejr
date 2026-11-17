@@ -2,7 +2,7 @@
 // machinery (ranges, auto colors, the warn-look default, the two reset
 // actions, the sheet/badge resolvers) and the small option/default/recommend
 // resolvers. The BLOCK RENDERERS live one file per concern —
-// preview-forecast.js, preview-radar.js, preview-diagnostics.js and
+// preview-forecast.js, preview-radar.js, last-fetch.js and
 // preview-watch.js, over the shared preview-svg.js / preview-rain.js; under Node
 // this file requires the four registering ones, so requiring blocks.js registers
 // every block and not just its own (the webview concatenates every file instead —
@@ -19,7 +19,7 @@ var PConf = (typeof global !== 'undefined' && global.PConf) ? global.PConf
 if (typeof require !== 'undefined') {
     require('../forecast-graphs/preview-forecast.js');
     require('../weather/preview-radar.js');
-    require('../telemetry/preview-diagnostics.js');
+    require('../weather/last-fetch.js');
     require('../layout/preview-watch.js');
     require('./when-resolvers.js');
     require('../forecast-graphs/forecast-hints.js');

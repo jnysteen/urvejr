@@ -1,7 +1,7 @@
 /**
  * On demand: THE one reading of which items each status bar shows at its edges, and of
  * the Battery item's settings. Loaded on the phone (require) and in the settings page
- * (window.OnDemand), so the watch's wire bytes, the fetch gates, telemetry and the page's
+ * (window.OnDemand), so the watch's wire bytes, the fetch gates and the page's
  * summaries all read the settings the same way.
  *
  * Each bar has two sides, left and right. A side ticks a list of items
@@ -378,34 +378,6 @@
    */
   function batteryShowsValue(S) { return read(S, 'batteryLowDisplay') === 'value'; }
 
-  /**
-   * The telemetry code: 40 characters, the first four bars in BARS order (bars 4 to 6 are
-   * not in it) and within a bar the items in ITEMS order. 'L'/'R' = ticked on a side of an
-   * existing bar, 'l'/'r' = ticked on a bar the modes remove, '-' = not ticked. An untouched
-   * install reads 'RLLLLRRR-R' followed by 30 '-'.
-   * @param {Object} S Settings blob.
-   * @param {Object} [env] Platform env (omitted = capable).
-   * @returns {(string|undefined)} undefined on a watch without On demand (aplite)
-   */
-  function telemetryCode(S, env) {
-    if (!facts(env).onDemand) { return undefined; }
-    var out = '';
-    for (var b = 0; b < BLOB_BARS.length; b++) {
-      var exists = barExists(S, BLOB_BARS[b].bar, env);
-      for (var i = 0; i < ITEMS.length; i++) {
-        var ch = '-';
-        for (var s = 0; s < SIDES.length && ch === '-'; s++) {
-          if (parse(read(S, itemsKey(BLOB_BARS[b].bar, SIDES[s]))).indexOf(ITEMS[i].code) >= 0) {
-            ch = SIDES[s] === 'left' ? 'l' : 'r';
-            if (exists) { ch = ch.toUpperCase(); }
-          }
-        }
-        out += ch;
-      }
-    }
-    return out;
-  }
-
   var api = {
     ITEMS: ITEMS,
     BARS: BARS,
@@ -434,8 +406,7 @@
     untickEverywhere: untickEverywhere,
     placeRainForCountdown: placeRainForCountdown,
     batteryLevel: batteryLevel,
-    batteryShowsValue: batteryShowsValue,
-    telemetryCode: telemetryCode
+    batteryShowsValue: batteryShowsValue
   };
 
   if (typeof module !== 'undefined' && module.exports) { module.exports = api; }

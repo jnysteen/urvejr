@@ -520,7 +520,7 @@ test('the graph-colour resolver and its deps reach the generated settings page',
 // block id renders nothing and only warns, so the block would silently vanish from a
 // real phone's settings page while every Node test still passed through require().
 const PREVIEW_BLOCK_FILES = ['page/forecast-graphs/preview-forecast.js', 'page/weather/preview-radar.js',
-  'page/telemetry/preview-diagnostics.js', 'page/layout/preview-watch.js', 'page/health/preview-health.js'];
+  'page/weather/last-fetch.js', 'page/layout/preview-watch.js', 'page/health/preview-health.js'];
 
 test('the graph-colour modules and the preview kit are bundled in dependency order', () => {
   const appFiles = require('../../../scripts/build-config-page.js').APP_FILES;
@@ -582,7 +582,7 @@ test('the night-tint display rule reaches the generated page, after line-style',
 
 test('every preview block reaches the generated settings page', () => {
   const src = page();
-  ['forecastPreview', 'radarPreview', 'devStats', 'lastFetch', 'watchPreview', 'statusBarsPreview',
+  ['forecastPreview', 'radarPreview', 'lastFetch', 'watchPreview', 'statusBarsPreview',
     'healthPreview']
     .forEach((id) => {
       assert.ok(src.indexOf("PConf.blocks.register('" + id + "'") !== -1,

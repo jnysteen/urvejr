@@ -76,8 +76,8 @@ test('the header of a full-screen view: the way out, the kicker over the title a
 });
 
 test('a popup\'s header: its title escaped, then the × that closes it, named for assistive tech', () => {
-  assert.equal(ui.popupHeader('News & <more>', { 'data-news-close': '1' }),
-    '<div class="ui-pop-hdr"><h2>News &amp; &lt;more&gt;</h2><button type="button" class="ui-pop-x" data-news-close="1"'
+  assert.equal(ui.popupHeader('Help & <more>', { 'data-help-close': '1' }),
+    '<div class="ui-pop-hdr"><h2>Help &amp; &lt;more&gt;</h2><button type="button" class="ui-pop-x" data-help-close="1"'
     + ' aria-label="Close">&#10005;</button></div>');
 });
 

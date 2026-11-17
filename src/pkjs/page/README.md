@@ -18,9 +18,9 @@ same contexts as the phone app:
 | `status-bars/` | the status bar preview, the slot icons and the reset to defaults |
 | `alerts/` | the Alerts tab and its level rows |
 | `layout/` | the screens page, the watch preview, the presets, the clock glyphs and the watch's text fonts |
-| `calendar/`, `theme/`, `health/`, `notices/`, `telemetry/` | each context's rows and previews |
+| `calendar/`, `theme/`, `health/`, `notices/` | each context's rows and previews |
 
-A module the page and the phone app both use (a palette, the news protocol, the weather tab's
+A module the page and the phone app both use (a palette, the weather tab's
 model) is domain code of its context and lives in `src/pkjs/<context>/domain/`, not here.
 
 ## How the page is built

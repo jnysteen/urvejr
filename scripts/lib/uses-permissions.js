@@ -3,7 +3,7 @@
 // default). With the Pebble app's permissions preview on (Settings › Plugins, to be on for everyone
 // in a later release), a version 2 app's PebbleKit JS and settings page reach only the domains its
 // Internet entries list, each covering its subdomains, and the app asks before anything else it
-// declares (Location, ShowNotifications). Since app 1.18.0.1 each entry carries a `reason` (a
+// declares (Location, Health). Since app 1.18.0.1 each entry carries a `reason` (a
 // short label the user reads wherever they decide) and `required` (installing waits for an
 // answer on the required ones; the others are asked about when the app first uses them). One
 // entry's reason and required cover all its domains, and the phone lists each domain as a row of
@@ -13,15 +13,14 @@
 // https://developer.repebble.com/guides/plugins/preview/ (Declaring).
 //
 // package.template.json lists every API host the code requests (test/repo/uses-permissions.test.js
-// keeps the list and the code in step); the hosts of the three endpoints
-// scripts/prepare-package.sh injects from the build's environment (telemetry, the Rainbow radar
-// proxy and news, the project's Supabase functions) are known only at build time, so
-// prepare-package.sh adds them, as an entry of their own, through addEndpointHosts.
+// keeps the list and the code in step); the host of the endpoint scripts/prepare-package.sh
+// injects from the build's environment (the Rainbow radar proxy, a Supabase function) is known
+// only at build time, so prepare-package.sh adds it, as an entry of its own, through
+// addEndpointHosts.
 
-// The injected endpoints' entry: the default radar outside Germany and the Nordics (the Rainbow
-// proxy), the settings page's news and the telemetry, which is on unless the user turns it off.
-// Required: a fresh install shows the radar, and the page's domains are fixed when it opens.
-const ENDPOINTS_REASON = 'urvejr server: rain radar, news and anonymous telemetry';
+// The injected endpoint's entry: the default radar outside Germany and the Nordics (the Rainbow
+// proxy). Required: a fresh install shows the radar, and the page's domains are fixed when it opens.
+const ENDPOINTS_REASON = 'urvejr server: rain radar';
 
 /**
  * The hostname of an http(s) URL.

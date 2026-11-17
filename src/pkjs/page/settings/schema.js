@@ -713,11 +713,9 @@ var BW_LEGEND = 'The bars don\'t scale linearly. Their height is split into 5 pa
 var TOMORROWIO_CREDIT = 'Powered by <a target=\'_blank\' href=\'https://www.tomorrow.io\'>Tomorrow.io</a>.';
 var OPENMETEO_AQI_CREDIT = 'Data from Open-Meteo.com and the Copernicus Atmosphere Monitoring Service.';
 var WAQI_CREDIT = 'Data from the World Air Quality Index Project and the environmental agencies of its stations.';
-var PRIVACY_TEXT = '<b>Privacy</b><br>While Share anonymous telemetry is on, urvejr sends: whether each '
-    + 'weather update worked and how long it took, the weather provider, a rough country, the app and watch '
-    + 'versions, and which settings are used. It never sends your location, the places you type, your API keys '
-    + 'or any health data: steps, sleep and heart rate stay on the watch. Your account and watch are stored only '
-    + 'as one-way hashes.';
+var PRIVACY_TEXT = '<b>Privacy</b><br>urvejr collects no usage data. Your location goes only to the weather, '
+    + 'radar and place services you use, to fetch the weather there; the Rainbow radar goes through urvejr\'s own '
+    + 'server, with the position rounded to about 100 m. Steps, sleep and heart rate stay on the watch.';
 var CC_BY = '<a target=\'_blank\' href=\'https://creativecommons.org/licenses/by/4.0/\'>CC BY 4.0</a>';
 var DATA_SOURCES_TEXT = '<b>Data sources</b><br>'
     + 'Weather: Open-Meteo.com, MET Norway, Deutscher Wetterdienst (via Bright Sky), OpenWeather, Tomorrow.io, '
@@ -2444,7 +2442,7 @@ module.exports = {
             }, {
                 // The radar's sky rows (radar-sky.js): an extra Open-Meteo request per
                 // fetch, on by default (a missing key reads as on everywhere: radar-sky.js
-                // skySourceIdFor, index.js, telemetry-settings.js). Only the radar GRAPH draws them,
+                // skySourceIdFor, index.js). Only the radar GRAPH draws them,
                 // like the no-rain text below; fetch-cycle.js (radarSky.skySourceIdFor) clears
                 // them whenever the graph is not shown.
                 type: 'toggle',
@@ -2782,18 +2780,12 @@ module.exports = {
                 text: '<div style="font-size:13px;line-height:1.5;"><span style="font-size:14.5px;font-weight:600;color:var(--lbl);">Credits</span><br>' + 'urvejr is built on <a href="https://github.com/Toasbi/WarnWeather">WarnWeather</a> by Toasbi, which was inspired by ForecasWatch2. ' + 'If you enjoy urvejr, please support the original authors, for example with a coffee for Toasbi at ' + '<a href="https://buymeacoffee.com/toaster2">buymeacoffee.com/toaster2</a>.</div>'
             }]
         }, {
-            // What the app sends and whose data it shows: the telemetry switch and its summary, and every data
+            // What the app sends and whose data it shows: the privacy summary, and every data
             // source with the credit and licence its terms ask for (CC BY 4.0: Open-Meteo, MET
             // Norway, Copernicus; OpenWeather: a visible credit; Esri: "Powered by Esri"). The
             // store listing points here instead of listing them.
             id: 'privacy',
             title: 'Privacy & data sources', collapsible: true, items: [{
-                type: 'toggle',
-                messageKey: 'telemetryEnabled',
-                label: 'Share anonymous telemetry',
-                defaultValue: true,
-                hint: 'Sends anonymous data about weather updates and how the watchface is used, to improve reliability.'
-            }, {
                 type: 'staticText',
                 text: PRIVACY_TEXT
             }, {
@@ -2817,24 +2809,10 @@ module.exports = {
                 block: 'lastFetch'
             }, {
                 type: 'toggle',
-                messageKey: 'devStatsEnabled',
-                label: 'Enable connection stats',
-                defaultValue: false,
-                hint: 'Records connection events sent to the watch, on this phone only. Events older than 7 days are deleted.'
-            }, {
-                type: 'toggle',
                 messageKey: 'reset',
                 label: 'Reset watchface',
                 defaultValue: false,
                 hint: 'When you save, this erases all settings and cached data and re-runs first-time setup. Your API keys are kept. This cannot be undone.'
-            }]
-        }, {
-            title: 'Connection stats', collapsible: true, block: 'devStats', items: [{
-                type: 'toggle',
-                messageKey: 'devStatsClear',
-                label: 'Clear connection stats',
-                defaultValue: false,
-                showWhen: {key: 'devStatsEnabled', eq: true}
             }]
         }]
     }]

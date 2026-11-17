@@ -63,7 +63,7 @@ function lineStyleCopy(lineKey, offable) {
         optionsFrom: {resolver: 'lineStyleOptions', args: {metricKey: lineKey}},
         // A stored stripe on such a metric lies dormant: the row shows the style the
         // watch draws (line-style.js lineStyleValue resolves it the same way for the
-        // bake, the preview and telemetry) but the pick stays stored, so trying another
+        // bake and the preview) but the pick stays stored, so trying another
         // metric and coming back to an intensity one brings the stripe back.
         dormantValues: STRIPE_STYLES,
         showWhen: {all: when}

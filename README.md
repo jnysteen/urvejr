@@ -89,7 +89,7 @@ Download [`urvejr.pbw`](https://github.com/jnysteen/urvejr/releases/latest/downl
 
 ## Privacy and data sources
 
-urvejr sends anonymous usage data: whether weather updates work, the weather provider, a rough country, app and watch versions and which settings are used. It never sends your location, the places you type, your API keys or health data. You can turn it off in Setup › Privacy & data sources › Share anonymous telemetry.
+urvejr collects no usage data. Your location goes only to the weather, radar and place services you use, to fetch the weather there; the Rainbow radar goes through urvejr's own server, with the position rounded to about 100 m. Steps, sleep and heart rate stay on the watch.
 
 Setup › Privacy & data sources in the settings lists every data source and its license. Data from [Open-Meteo.com](https://open-meteo.com/), [MET Norway](https://www.met.no/) and the Copernicus Atmosphere Monitoring Service is used under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).
 

@@ -15,11 +15,10 @@ function loadContext(store, platform) {
 }
 
 test('onLoad resets transient toggles to false', function () {
-    var store = { fetch: true, devStatsClear: true, reset: true, fetchNoticeAck: true };
+    var store = { fetch: true, reset: true, fetchNoticeAck: true };
     var ctx = { get: function (k) { return store[k]; }, set: function (k, v) { store[k] = v; }, getInitial: function (k) { return store[k]; } };
     OB.onLoad(ctx);
     assert.equal(store.fetch, false);
-    assert.equal(store.devStatsClear, false);
     // The destructive Reset toggle must never render pre-checked from a stale save.
     assert.equal(store.reset, false);
     // fetchNoticeAck is a one-shot dismiss signal; a stale true must never survive

@@ -93,29 +93,9 @@ function run(opts) {
       // live from the desktop browser — file:// pages get real CORS answers
       // from Open-Meteo/Brightsky, so the tab is fully reviewable here.
       graphsSeed: { lat: 52.52, lon: 13.405, name: 'Berlin', gps: true },
-      newsEndpoint: process.env.NEWS_ENDPOINT || '',
       // The Rainbow key Test button's proxy (key-check mode). Unset = the button says
       // the test isn't available; point it at a local `supabase functions serve` stack.
-      rainbowEndpoint: process.env.RAINBOW_PROXY_ENDPOINT || '',
-      appVersion: process.env.NEWS_PREVIEW_VERSION || '9.9.9',
-      // WARNING: pointing NEWS_ENDPOINT at the PRODUCTION news function makes the
-      // preview write real news_seen / news_replies / news_votes rows under this
-      // dummy 'preview-account-token'. Preview against the LOCAL Supabase stack.
-      // (Without NEWS_ENDPOINT the token only unlocks the reply/poll UI; sends
-      // fail locally with the connection message.)
-      accountToken: 'preview-account-token',
-      // Sample of the phone-side 1h cache the page renders from (the page never
-      // sends the list request itself); gives the pill an unread badge of 1.
-      newsCache: JSON.stringify({
-        items: [
-          { id: 2, title: 'Sample poll', created_at: '2026-07-17T00:00:00Z',
-            body_md: 'Which **format** do you prefer?',
-            choices: ['Compact', 'Detailed'], myChoice: null },
-          { id: 1, title: 'Welcome', created_at: '2026-07-01T00:00:00Z',
-            body_md: 'Preview item with a [link](https://example.com) and\n- a bullet\n- another' }
-        ],
-        lastSeenId: 1
-      })
+      rainbowEndpoint: process.env.RAINBOW_PROXY_ENDPOINT || ''
     }, previewFailureData()),
     returnTo: '#'
   });

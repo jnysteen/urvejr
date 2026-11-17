@@ -97,7 +97,6 @@ var PConf = (typeof global !== 'undefined' && global.PConf) ? global.PConf
      */
     function onLoad(ctx) {
         ctx.set('fetch', false);
-        ctx.set('devStatsClear', false);
         // fetchNoticeAck is a one-shot dismiss signal consumed on webviewclosed;
         // never let a stored true survive to the next open (would auto-dismiss).
         ctx.set('fetchNoticeAck', false);

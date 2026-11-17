@@ -2,8 +2,7 @@
 //
 // index.js's webviewclosed handler feeds this the facts it captured (what
 // changed, what the user acknowledged, whether an auth backoff is active) and
-// performs the side effects the returned decision names. Extracted in the
-// house decide* style (release-notifications.js, update-check.js) so the
+// performs the side effects the returned decision names. Extracted so the
 // interacting special cases below are unit-testable — this exact handler is
 // where the 1.13.x reset/ack bugs lived, with no test able to reach it.
 
