@@ -69,18 +69,17 @@ Build and install via CloudPebble:
 mise install-cloud
 ```
 
-Build and install on the emulator (default: basalt):
+Build and install on the emulator:
 ```bash
 mise install-emulator
 ```
 
-Open the running emulator app's config (settings) page in a browser (default: basalt):
+Open the running emulator app's config (settings) page in a browser:
 ```bash
 mise config-emulator
 ```
 
 Render a static preview of the config (settings) page to `build/` without an emulator
-(default: basalt):
 ```bash
 mise preview-config
 ```
@@ -90,7 +89,7 @@ Stop the running emulator and phone simulator:
 mise kill-emulator
 ```
 
-Take a screenshot from the emulator (default: basalt):
+Take a screenshot from the emulator:
 ```bash
 mise screenshot-emulator
 ```
@@ -100,24 +99,24 @@ Take a screenshot from the phone (reads `IP` from `.env`):
 mise screenshot-phone
 ```
 
-Capture screenshots for all platforms (replace `v1.4.1` with the version):
+Capture screenshots (replace `v1.4.1` with the version):
 ```bash
 mise capture-screenshots v1.4.1
 ```
 
-Capture the curated store configs on every platform (5 configs × 5 platforms):
+Capture the curated store configs (5 configs):
 ```bash
 scripts/capture-store-shots.sh v1.4.1
 ```
 
-Capture two-phase (forecast + radar/wind) time-lapse frames on all five platforms:
+Capture two-phase (forecast + radar/wind) time-lapse frames:
 ```bash
 mise capture-timelapse v1.4.1
 ```
 
 Assemble a time-lapse GIF from captured frames (args: version platform [fps]):
 ```bash
-mise gif v1.4.1 basalt
+mise gif v1.4.1 emery
 ```
 
 Composite the README hero shots (from the store captures) into framed PNGs:
@@ -147,25 +146,6 @@ telemetry-ingest). This is a separate runner from `mise test`, and CI runs it be
 `supabase functions deploy`:
 ```bash
 mise test-deno
-```
-
-Build and print the aplite image footprint (text+data+bss, the leading indicator for heap):
-```bash
-mise aplite-size
-```
-
-Fail when the aplite image exceeds the launch-safety ceiling (~22.06 KB). Run it
-before shipping aplite changes:
-```bash
-mise check-aplite-size
-```
-
-Fail when a 64 KB watch's image (basalt, diorite, flint) grows past its recorded
-ceiling. Their heap comes out of the same 64 KB, so image bytes are heap bytes;
-the ceilings and the open heap gate are explained in `scripts/check-64k-size.sh`.
-Run it after C changes:
-```bash
-mise check-64k-size
 ```
 
 ### Build
@@ -216,31 +196,16 @@ mise install-cloud release
 
 ### Install on emulator
 
-Platforms: `aplite` · `basalt` · `diorite` · `emery` · `flint`
+The emulator is `emery` (Pebble Time 2).
 
-Dev build, basalt (defaults):
+Dev build (default):
 ```bash
 mise install-emulator
-```
-
-Choose platform:
-```bash
-mise install-emulator basalt
 ```
 
 Release build:
 ```bash
 mise install-emulator release
-```
-
-Release build on specific platform:
-```bash
-mise install-emulator release basalt
-```
-
-Platform from env var:
-```bash
-PEBBLE_EMULATOR=basalt mise install-emulator
 ```
 
 Stream logs after install (pebble install flags pass through, also in the separator form
@@ -252,22 +217,11 @@ mise install-emulator --logs
 ### Config page (emulator)
 
 Open the live config (settings) page of the app running in the emulator in your browser.
-This is the real page PKJS serves. Install the app on that platform first (e.g.
-`mise install-emulator aplite`), since the config URL comes from the running app.
+This is the real page PKJS serves. Install the app first (`mise install-emulator`), since
+the config URL comes from the running app.
 
-Default (basalt):
 ```bash
 mise config-emulator
-```
-
-Specific platform (positional, as in `install-emulator` and `screenshot-emulator`):
-```bash
-mise config-emulator aplite
-```
-
-Platform from env var:
-```bash
-PEBBLE_EMULATOR=aplite mise config-emulator
 ```
 
 `mise preview-config` (below) renders a static HTML snapshot of the config UI to `build/`
@@ -279,23 +233,16 @@ without the emulator; `mise config-emulator` opens the live page the running app
 `build/config-ui-preview.html`, with the real schema, blocks and onBuild hooks injected.
 Open it in a desktop browser to look at and use the settings UI (tabs, toggles, color
 picker) without the emulator. It reads the source (`shell.html`, `blocks.js`) fresh each run,
-so it always reflects the current page. Args are `[out] [platform]`,
-parsed order-independently: a bare platform name picks the platform and keeps the
-default output path. Alias: `mise preview`.
+so it always reflects the current page. The one arg is `[out]`. Alias: `mise preview`.
 
-Default (`build/config-ui-preview.html`, basalt):
+Default (`build/config-ui-preview.html`):
 ```bash
 mise preview-config
 ```
 
-Choose platform, default output path (aplite gives the B/W rendering):
+Explicit output path:
 ```bash
-mise preview-config -- aplite
-```
-
-Explicit output path and platform:
-```bash
-mise preview-config -- preview.html aplite
+mise preview-config -- preview.html
 ```
 
 ### Kill emulator
@@ -307,24 +254,9 @@ mise kill-emulator
 
 ### Screenshots
 
-Emulator screenshot, basalt (default), saved to `screenshot/tmp/<timestamp>-<platform>.png`:
+Emulator screenshot, saved to `screenshot/tmp/<timestamp>-<platform>.png`:
 ```bash
 mise screenshot-emulator
-```
-
-Emulator screenshot, specific platform:
-```bash
-mise screenshot-emulator basalt
-```
-
-Emulator screenshot, flag form:
-```bash
-mise screenshot-emulator -- --emulator flint
-```
-
-Emulator screenshot with platform from env var:
-```bash
-PEBBLE_EMULATOR=emery mise screenshot-emulator
 ```
 
 Emulator screenshot to an explicit output path, with extra screenshot args:
@@ -373,15 +305,14 @@ scripts/capture-store-shots.sh v1.4.1 4
 
 The five configs come from fixtures: `1-calendar` (`store-calendar`),
 `2-radar-multicolor` (`berlin`), `3-wind-gust` (`windy`), `4-radar-white-wind`
-(`store-wind-radar`) and `5-precip-uv` (`precip-uv`). Upload each platform's five raw
+(`store-wind-radar`) and `5-precip-uv` (`precip-uv`). Upload the five raw
 frames to the store as they are.
 
 #### README hero shots
 
 Composite the README hero shots from the store captures into framed PNGs. `mise composite`
 reads the chosen config per device from `screenshot/<version>/store/<platform>/<config>.png`
-(Pebble Time from flint/calendar, Pebble 2 Duo from flint/wind and Pebble Time 2 from
-emery/radar) and writes them to `screenshot/<version>/composite/`:
+(the Pebble Time 2 from emery/radar) and writes them to `screenshot/<version>/composite/`:
 ```bash
 mise composite v1.4.1
 ```
@@ -431,11 +362,9 @@ static compile-time fixture, so screenshot builds swap in two canned twins (wire
   (or switch the radar off) or the radar is snoozed. The minutes are canned, so a time
   window shorter than them does not hide the alert.
 
-Capture the default platforms (aplite, basalt, flint, emery), or a subset via `PLATFORMS`,
-and only some scenes via `SCENE_IDS` (the other frames stay as they are):
+Capture the showcase, or only some scenes via `SCENE_IDS` (the other frames stay as they are):
 ```bash
-scripts/capture-showcase.sh <version>                    # aplite basalt flint emery
-PLATFORMS=basalt scripts/capture-showcase.sh <version>   # one platform
+scripts/capture-showcase.sh <version>
 SCENE_IDS="10 11 12" scripts/capture-showcase.sh <version>   # just those scenes
 ```
 It is a thin wrapper over `capture-screenshots.sh`, like `capture-store-shots.sh`. Per scene
@@ -447,10 +376,8 @@ stale waf cache would skip the recompile.
 Scenes that need per-platform slots declare a `variants` map in `gen-showcase-fixtures.js`
 (as `gen-reel-fixtures.js` does). Each entry writes a platform variant fixture
 (`showcase-N-<platform>.json`) that layers its overrides on the scene clay, and the wrapper
-shoots that platform from it while the rest share the base fixture. Emery uses this because
-it is the only HR platform in the set and would otherwise bake the base health-right default
-(walked distance) instead of the heart rate a real Pebble Time 2 renders. Aplite uses it
-because it has no health slots and falls back to weather and date slots.
+shoots that platform from it while the rest share the base fixture. Emery uses this to show
+the heart rate instead of the base health-right default (walked distance).
 
 Assemble one platform's frames into the looping, cross-faded GIF
 (`screenshot/<version>/showcase/<platform>-showcase.gif`):
@@ -461,9 +388,7 @@ scripts/assemble-showcase-gif.sh <version> <platform> [hold_secs] [fade_secs] [f
 # MAX_SCENES=N  keep only the first N scenes (default 2; 0 = all captured scenes)
 # EXCLUDE_SCENES="2 3 4"  drop specific scene ids (applied before the MAX_SCENES cap)
 ```
-The health-graph scene (5) and the Miami scenes (7-9: stripes, radar, custom layout) are
-limited to the colour platforms in the table, so aplite captures and shows only its own
-scenes (1, 2, 4, 6) with no flags. `EXCLUDE_SCENES` still drops further ids by hand.
+`EXCLUDE_SCENES` drops further ids by hand.
 
 #### Promo reel (Pebble-store asset)
 
@@ -484,9 +409,7 @@ scripts/capture-showcase.sh <version>   # once, for the intro frames
 scripts/capture-reel.sh <version>        # captures chapters + assembles per-platform reels
 ```
 
-Output: `screenshot/<version>/promo/<platform>-reel.gif`. Per-platform differences are
-automatic: aplite has no themes chapter and no radar or health frames, flint shows 2 themes
-(dark and light) and no HR, and emery shows 4 themes and heart rate. Reels stay on disk
+Output: `screenshot/<version>/promo/<platform>-reel.gif`: 4 themes and the heart rate. Reels stay on disk
 (not committed) for manual upload. Re-assemble a single reel without recapturing with
 `scripts/assemble-reel.sh <version> <platform> [fps]`.
 
@@ -526,8 +449,8 @@ mise prepare-package release
 |----------|-------------|
 | `IP` | Pebble phone IP address for install and screenshots |
 | `FIXTURE` | Fixture name to load (e.g. `berlin`). Fixture files: `fixtures/<name>.json` |
-| `ENABLE_MEMORY_LOGGING` | Set to `1` to enable the extra Pebble heap debug logs in the build, with either package profile. It does not build on aplite (the `MEM\|` logging overflows `.bss`), so capture heap logs on diorite or another platform. On the 64 KB watches it costs about 3.1 KB of heap and links only while the release image leaves that much room; `scripts/check-64k-size.sh` has the numbers |
-| `PEBBLE_EMULATOR` | Default emulator platform (e.g. `basalt`) |
+| `ENABLE_MEMORY_LOGGING` | Set to `1` to enable the extra Pebble heap debug logs in the build, with either package profile |
+| `PEBBLE_EMULATOR` | Emulator platform (`emery`, the default) |
 | `TELEMETRY_ENDPOINT` | Telemetry function URL. It ships commented out in `.env.example`, and telemetry is off without it. Local stack: `http://127.0.0.1:54321/functions/v1/telemetry-ingest`. Set for release/CI builds via the `TELEMETRY_ENDPOINT_RELEASE`/`_PREVIEW` repo secrets (`https://<your-project-ref>.supabase.co/functions/v1/telemetry-ingest`) |
 | `TELEMETRY_HASH_SECRET` | Secret for server-side HMAC hashing of IDs. Generate one with `openssl rand -hex 32` |
 | `RAINBOW_PROXY_ENDPOINT` | Rainbow nowcast proxy URL baked into the bundle. Set for release/CI builds via the `RAINBOW_PROXY_ENDPOINT_RELEASE`/`_PREVIEW` repo secrets. A release build hard-fails if it is empty: Rainbow is the default radar provider, and an empty endpoint still shows the option but makes every Rainbow radar fetch fail soft, so no radar reaches the watch. Dev and fork builds may leave it empty on purpose. It also reaches the settings page (userData `rainbowEndpoint`) for the Rainbow API key's Test button (Graphs tab › Rain radar, the key dialog of *Rainbow (own key)*); when it is empty, the button says the test isn't available |

@@ -7,7 +7,7 @@ contracts:
 
 | Deployable | Runs on | Language |
 | --- | --- | --- |
-| Watchface | the watch (aplite, basalt, diorite, emery, flint) | C, Pebble SDK |
+| Watchface | the watch (emery, the Pebble Time 2) | C, Pebble SDK |
 | Phone app (PKJS) | the Pebble phone app's JavaScript runtime | ES5 JavaScript |
 | Settings page | the phone's webview, opened from the Pebble app | ES5 JavaScript, HTML |
 | Edge functions | Supabase (`rainbow-nowcast`, `telemetry-ingest`, `news`) | TypeScript on Deno |

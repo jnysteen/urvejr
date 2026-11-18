@@ -62,7 +62,7 @@ and a profile in `profiles/` before they build ([Package generation](DEV.md#pack
 
 To install a build, set `IP=<PHONE_IP>` in `.env` and run `mise install-phone`, which builds
 and installs the dev build. `mise install-cloud` installs through CloudPebble, and
-`mise install-emulator` on the emulator (basalt by default). You can also run Pebble CLI
+`mise install-emulator` on the emulator (emery, the Pebble Time 2). You can also run Pebble CLI
 commands directly. The options (platforms, release builds, `--logs`, screenshots) are in
 [DEV.md](DEV.md#install-on-phone).
 

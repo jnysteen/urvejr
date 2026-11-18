@@ -131,24 +131,18 @@ The news body has the same items and groups as that version's appstore changelog
 explained a little more (what it is and what it does for the user), in about eight to
 eighteen words. It has bold headings with a blank line between the groups and flat `- `
 bullets: `news.js` renders `**bold**`, `*italic*`, `[text](https://…)` links and `- ` bullets
-only, so no `#` headings and no sub-bullets. An item not on Pebble Classic or Steel ends with
-`*`, a Pebble Time 2 only item with `**`, and the body ends with a blank line and only the
-footnotes it used: `* Not on Pebble Classic or Steel` and `** Pebble Time 2 only` (a lone `*`
-or `**` prints as is). Other limits stay in parentheses: `(color watches)`, `(Android)`,
-`(Pebble Classic and Steel: text only)`. The shape to match:
+only, so no `#` headings and no sub-bullets. Limits stay in parentheses, e.g. `(Android)`. The
+shape to match:
 
 ```
 **Added**
-- Change layout in a screen's editor gives the screen another layout and keeps its name and place*
+- Change layout in a screen's editor gives the screen another layout and keeps its name and place
 
 **Changed**
-- Edit on a screen's forecast graph row opens the settings of that graph**
+- Edit on a screen's forecast graph row opens the settings of that graph
 
 **Fixed**
-- Visible values set on one graph no longer change the same metric on your other graphs**
-
-* Not on Pebble Classic or Steel
-** Pebble Time 2 only
+- Visible values set on one graph no longer change the same metric on your other graphs
 ```
 
 Write the changelog (both the toast and the news body) for users, not from the diff. List
@@ -170,13 +164,12 @@ the way", "message me anytime").
 The store listing copy is in [STORE_LISTING.md](STORE_LISTING.md). The commands, their
 arguments and the scene set are in [DEV.md](DEV.md#store-screenshots).
 
-1. Capture the five chosen store configs on every platform with
+1. Capture the five chosen store configs with
    `scripts/capture-store-shots.sh <version>` ([DEV.md](DEV.md#store-screenshots)).
-2. Upload each platform's five raw PNGs from `screenshot/<version>/store/<platform>/` to that
-   platform in the appstore, which wants at least one screenshot per supported platform.
+2. Upload the five raw PNGs from `screenshot/<version>/store/emery/` to the appstore.
 3. Composite the README hero shots from the store captures with `mise composite <version>`
    ([DEV.md](DEV.md#readme-hero-shots), which also says where the device frames come from).
 4. When the UI or the scene set changed, refresh the README showcase GIF: run
-   `scripts/capture-showcase.sh <version>`, then `scripts/assemble-showcase-gif.sh <version> <platform>`
-   per platform ([DEV.md](DEV.md#showcase-gif-readme-hero)). Point the README's three
-   `screenshot/<version>/showcase/*-showcase.gif` links at the new version and commit the GIFs.
+   `scripts/capture-showcase.sh <version>`, then `scripts/assemble-showcase-gif.sh <version> emery`
+   ([DEV.md](DEV.md#showcase-gif-readme-hero)). Point the README's
+   `screenshot/<version>/showcase/emery-showcase.gif` link at the new version and commit the GIFs.
