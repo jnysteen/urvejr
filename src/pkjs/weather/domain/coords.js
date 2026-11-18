@@ -1,9 +1,6 @@
 // src/pkjs/weather/domain/coords.js — coordinate rounding for the requests that must not carry a
-// full-precision position: the Rainbow nowcast proxy (our Supabase function) and Rainbow
-// itself on the user's own key. 3 decimals (~110 m) is the proxy cache's precision, so the
-// rounding costs the radar nothing. The proxy rounds with the same algorithm
-// (supabase/functions/rainbow-nowcast/body.ts roundCoord); coord-rounding-cases.json in that
-// directory pins both to the same answers.
+// full-precision position: Rainbow on the user's own key. 3 decimals (~110 m) costs the radar
+// nothing (test/weather/domain/coord-rounding-cases.json pins the edge cases).
 //
 // Coordinates arrive as numbers (GPS) or strings (a manual location, the geocoder), so
 // this is the one place that reads either — ES5 only (aplite's PKJS runtime).

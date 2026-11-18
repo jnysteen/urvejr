@@ -5,9 +5,9 @@
 // re-serve that half hour's sky byte for byte, and the outbox's exact compare sends it once
 // per request.
 //
-// Drives the real fetch-cycle → radar-sky-source → outbox → change-detector chain, with the
-// shared Rainbow radar asked through a proxy endpoint; only the HTTP transport, the forecast
-// provider and Pebble.sendAppMessage are stubbed.
+// Drives the real fetch-cycle → radar-sky-source → outbox → change-detector chain, with
+// Rainbow on a key as the radar; only the HTTP transport, the forecast provider and
+// Pebble.sendAppMessage are stubbed.
 const test = require('node:test');
 const assert = require('node:assert/strict');
 
@@ -27,7 +27,6 @@ global.localStorage = {
   removeItem: function(k) { delete store[k]; }
 };
 
-const ENDPOINT = 'https://proxy.example/rainbow-nowcast';
 const Q = 15 * 60;
 var nowMs = 0;
 var skyRequests = [];
@@ -63,7 +62,7 @@ WeatherProvider.request = function(url, type, onSuccess, onError) {
     onSuccess(JSON.stringify(skyBody()));
     return;
   }
-  if (url === ENDPOINT) {   // the shared Rainbow radar: dry
+  if (url.indexOf('api.rainbow.ai') !== -1) {   // Rainbow: dry, echoing the point
     onSuccess(JSON.stringify({ latitude: 52.5, longitude: 13.4, forecast: [] }));
     return;
   }
@@ -78,7 +77,8 @@ const KEYS = require('../../src/pkjs/settings/domain/storage-keys.js');
 // 20 s past a half hour (10:00:20 UTC).
 const T0 = Date.UTC(2026, 8, 25, 10, 0, 20);
 const MIN = 60 * 1000;
-var settings = { radarMode: 'graph', radarSky: true, radarProvider: 'rainbow', fetchIntervalMin: '15' };
+var settings = { radarMode: 'graph', radarSky: true, radarProvider: 'rainbowkey', rainbowApiKey: 'K',
+  fetchIntervalMin: '15' };
 
 var provider = {
   id: 'stub',
@@ -98,8 +98,7 @@ const fetchCycle = createFetchCycle({
   outbox: outbox,
   authBackoff: authBackoff,
   notices: notices,
-  trackWeatherFetch: function() {},
-  env: { waqiToken: '', rainbowEndpoint: ENDPOINT },
+  env: { waqiToken: '' },
   now: function() { return new Date(nowMs); },
   // Everything answers synchronously; the watchdog each start arms is dropped.
   setTimeout: function() {}
@@ -129,7 +128,8 @@ function reset() {
   skyRequests = [];
   skyFails = false;
   cloudAt = function() { return 60; };
-  settings = { radarMode: 'graph', radarSky: true, radarProvider: 'rainbow', fetchIntervalMin: '15' };
+  settings = { radarMode: 'graph', radarSky: true, radarProvider: 'rainbowkey', rainbowApiKey: 'K',
+  fetchIntervalMin: '15' };
 }
 
 test('Open-Meteo is asked once per half hour; the quarter hours between re-serve its sky', () => {

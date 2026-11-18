@@ -1,7 +1,7 @@
 // test/alerts/domain/line-alert.test.js — a graph line's Show [All | Alert] (src/pkjs/alerts/domain/line-alert.js):
 // the stored value, the platforms that draw Alert, the band the bake scales a wind, gust
 // or UV line over, the samples it gaps, the bytes it ships (forecast-series.js), the
-// render signature and telemetry.
+// render signature.
 const test = require('node:test');
 const assert = require('node:assert/strict');
 // The time every bake in this file runs at, where the test does not care which it is.
@@ -21,7 +21,6 @@ const forecastSeries = require('../../../src/pkjs/weather/domain/forecast-series
 const wireUnits = require('../../../src/pkjs/wire/domain/wire-units.js');
 const platform = require('../../../src/pkjs/config-ui/lib/platform.js');
 const { renderSignature } = require('../../../src/pkjs/settings/domain/render-signature.js');
-const { buildSettingsSnapshot } = require('../../../src/pkjs/telemetry/adapter/telemetry.js');
 
 const BASALT = platform.computeEnv();
 // An env whose watch has neither Alert settings nor line styles.
@@ -379,7 +378,7 @@ test('applyForecastSeries: Alert lines, the band shared where both lines draw', 
     [0, 0, 0, 1, 25, 50, 100]);
 });
 
-// --- the render signature and telemetry ----------------------------------------
+// --- the render signature ----------------------------------------------------
 
 test('Show: Alert joins the render signature only for a metric a line draws', () => {
   const base = { secondaryLine: 'wind', thirdLine: 'uv', fourthLine: 'off', fifthLine: 'off' };
@@ -391,18 +390,4 @@ test('Show: Alert joins the render signature only for a metric a line draws', ()
   assert.equal(sig({ gustLineShow: 'alert' }), sig({}), 'no line draws gusts: nothing to re-bake');
   assert.equal(lineAlert.signature(Object.assign({}, base,
     { windLineShow: 'alert', uvLineShow: 'alert', gustLineShow: 'alert' })), 'wind,uv');
-});
-
-test('telemetry reports each line\'s Show as \'all\' or \'alert\'', () => {
-  const off = buildSettingsSnapshot({});
-  assert.strictEqual(off.windLineShow, 'all');
-  assert.strictEqual(off.gustLineShow, 'all');
-  assert.strictEqual(off.uvLineShow, 'all');
-  const on = buildSettingsSnapshot({ windLineShow: 'alert', gustLineShow: 'alert',
-    uvLineShow: 'alert' });
-  assert.strictEqual(on.windLineShow, 'alert');
-  assert.strictEqual(on.gustLineShow, 'alert');
-  assert.strictEqual(on.uvLineShow, 'alert');
-  // Junk reports as the All it draws.
-  assert.strictEqual(buildSettingsSnapshot({ windLineShow: true }).windLineShow, 'all');
 });

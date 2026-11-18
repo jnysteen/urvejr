@@ -3,7 +3,7 @@
 // Renders the General-tab alert panel from the phone-injected notice list
 // (USERDATA.notices; see ../notices.js). A scrollable, fixed-max-height list
 // differentiating error vs info, with a single "Understood" button that flips the
-// transient fetchNoticeAck flag (the devStatsClear pattern) — PKJS reads it on
+// transient fetchNoticeAck flag (like the Force weather fetch toggle) — PKJS reads it on
 // webviewclosed to dismiss the notices. Pure renderNoticesPanelHtml is exported
 // for tests; the block registration is guarded like reset-status-defaults.js.
 /* global PConf */

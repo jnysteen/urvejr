@@ -4,12 +4,12 @@
 // → { shouldFetchNow(), start(force) }. Everything the cycle touches is a fake
 // the test drives by hand — the clock (deps.now), the timer queue
 // (deps.setTimeout), the provider (its coordinate and forecast callbacks), the
-// outbox and the telemetry sink — except auth-backoff.js and notices.js, which
+// and the outbox — except auth-backoff.js and notices.js, which
 // are the real modules over the storage mock. Assertions stay on outcomes: the
 // return values, the four storage records (weather_fetch_attempt,
 // lastFetchSuccess, lastFetchAttempt, lastIsSleeping), the key's answers
 // (keyResults) and the key status the settings page reads from them, the calls
-// the fakes saw and the telemetry event. Never on log text, never on module
+// the fakes saw. Never on log text, never on module
 // internals.
 //
 // Radar observation seam: with radarProvider 'tomorrowio' and a key, the radar
@@ -18,9 +18,6 @@
 // callbacks. Cases that do not care about radar run on RADAR_BLIND: no radar source answers
 // there (radarProvider unset), and the harness drops the radar keys that ride along (the
 // cleared radar) from what it records.
-//
-// The shared Rainbow radar throttle (the "radar throttle:" cases at the end)
-// runs with a proxy endpoint set (RB_ENV) and counts the requests to it.
 //
 // isPastRefreshSlot / failureBackoffMs are covered in place (battery saver and
 // fetch-backoff tests) and are not re-tested here.
@@ -95,7 +92,7 @@ const CLEAR = { RAIN_RADAR_TREND_UINT8: [], RAIN_RADAR_TREND_AREA_UINT8: [], RAI
 // turn the sky on, so the 'disabled' sky source answers its CLEAR synchronously and it
 // rides beside whatever the radar answered — including a transient radar miss.
 const SKY_CLEAR = radarSky.clearSkyTuple();
-const ENV = { waqiToken: 'WAQI-TOKEN', rainbowEndpoint: '' };
+const ENV = { waqiToken: 'WAQI-TOKEN' };
 
 /** Empty the storage mock, the setItem fault and the radar request log. */
 function resetStore() {
@@ -146,10 +143,6 @@ function makeProvider(id) {
         id: id || 'fake',
         name: (id || 'fake') + ' weather',
         options: null,
-        usedGpsCache: true,
-        gpsErrorCode: 'gps_3',
-        locationMode: 'gps',
-        countryCode: 'DE',
         geocodeBackoff: false,
         throwOnCoordinates: false,
         calls: { withCoordinates: [], fetchWithCoordinates: [], clearGeocodeBackoff: 0 },
@@ -194,7 +187,7 @@ function makeHarness(opts) {
         provider: opts.provider || makeProvider(),
         connected: true
     };
-    var calls = { sendWeather: [], clearWeatherCaches: 0, clearNoticeCache: 0, telemetry: [] };
+    var calls = { sendWeather: [], clearWeatherCaches: 0, clearNoticeCache: 0 };
     /** Run (and dequeue) the timers matching `pred` at call time. */
     function runMatching(pred) {
         var due = timers.filter(pred);
@@ -222,7 +215,6 @@ function makeHarness(opts) {
         },
         authBackoff: authBackoff,
         notices: notices,
-        trackWeatherFetch: function (event) { calls.telemetry.push(event); },
         env: opts.env || ENV,
         now: function () { return clock.value; },
         setTimeout: function (fn, ms) { timers.push({ fn: fn, ms: ms }); return timers.length; }
@@ -382,7 +374,6 @@ test('start: with no watch connected it refuses, forced or not, and touches noth
     assert.equal(h.provider.calls.clearGeocodeBackoff, 0);
     assert.equal(h.calls.clearWeatherCaches, 0);
     assert.equal(h.timerCount(), 0, 'no watchdog armed');
-    assert.equal(h.calls.telemetry.length, 0);
 
     // A refused forced call is not queued either: it is simply dropped.
     h.setConnected(true);
@@ -537,7 +528,6 @@ test('start: a clean start counts the attempt, records it, builds the options, a
     assert.equal(call.isCurrent(), true, 'the fetch is live until it settles');
     assert.equal(radarRequests.length, 0, 'no radar source set: no radar request');
     assert.equal(h.calls.sendWeather.length, 0);
-    assert.equal(h.calls.telemetry.length, 0, 'nothing tracked before the fetch completes');
 });
 
 test('start: IS_SLEEPING reflects the sleep window when the extras are built', () => {
@@ -550,7 +540,7 @@ test('start: IS_SLEEPING reflects the sleep window when the extras are built', (
     assert.deepEqual(withoutRadar(h.provider.lastForecast().extras), { IS_SLEEPING: true }, 'the fix landed inside the window');
 });
 
-test('success: records the START time, resets the counter, commits the carried sleep state, clears errors, tracks telemetry', () => {
+test('success: records the START time, resets the counter, commits the carried sleep state, clears errors', () => {
     resetStore();
     notices.add({ key: 'auth', type: 'error', watch: 'API key error', html: 'rejected', since: 1 });
     notices.add({ key: 'ratelimit', type: 'info', html: 'slow down', since: 1 });
@@ -576,40 +566,8 @@ test('success: records the START time, resets the counter, commits the carried s
     assert.deepEqual(notices.list().map(function (n) { return n.key; }), ['ratelimit'], 'error notices dropped, infos kept');
     assert.equal(h.calls.clearNoticeCache, 1);
     assert.equal(h.calls.sendWeather.length, 0, 'the success send is the provider\'s, not the cycle\'s');
-    assert.deepEqual(h.calls.telemetry, [{
-        provider: 'fake',
-        attempt: 3,
-        usedGpsCache: true,
-        gpsErrorCode: 'gps_3',
-        locationMode: 'gps',
-        countryCode: 'DE',
-        settings: settings,
-        watchInfo: RADAR_BLIND,
-        durationMs: 2 * HOUR + 4 * SEC,
-        success: true
-    }]);
     assert.equal(p.lastForecast().isCurrent(), false, 'a settled fetch is no longer current');
     assert.equal(h.cycle.start(false), true, 'the next start is accepted');
-});
-
-test('success: a failure the provider worked around is tracked once, before the success', () => {
-    resetStore();
-    const h = makeHarness();
-    const p = h.provider;
-    h.cycle.start(false);
-    p.fix(52.5, 13.4);
-    p.recoveredFailure = { stage: 'provider_data', code: 'fake_condition_rejected' };
-    p.succeed();
-    assert.deepEqual(h.calls.telemetry.map(function (e) { return [e.success, e.error]; }), [
-        [false, { stage: 'provider_data', code: 'fake_condition_rejected' }],
-        [true, undefined]
-    ]);
-    assert.equal(p.recoveredFailure, null, 'cleared once reported');
-
-    h.cycle.start(false);
-    p.fix(52.5, 13.4);
-    p.succeed();
-    assert.equal(h.calls.telemetry.length, 3, 'the next fetch tracks its success alone');
 });
 
 test('success: a delivered sleep onset pauses the gate; a failed one does not', () => {
@@ -654,7 +612,7 @@ test('radar: one fix feeds both legs — the radar request and the forecast get 
     const slotZero = T0 / 1000;   // T0 is 5-min aligned
     const body = timelinesBody(slotZero, 2);
     let expected = null;
-    radarFactory.createRadarSource('tomorrowio', { rainbowEndpoint: '', tomorrowioApiKey: 'TIO-KEY' })
+    radarFactory.createRadarSource('tomorrowio', { tomorrowioApiKey: 'TIO-KEY' })
         .fetchRadarTuplesAt(48.1, 11.6, slotZero, function (tuples) { expected = tuples; });
     const reference = radarRequests.pop();
     assert.equal(radarRequests[0].url, reference.url, 'the radar is pinned to the injected clock\'s slot 0');
@@ -674,7 +632,7 @@ test('radar: one fix feeds both legs — the radar request and the forecast get 
     assert.equal(typeof call.payloadTransform, 'function');
 });
 
-test('radar: "Rainbow (own key)" sends the user\'s key in the request header', () => {
+test('radar: Rainbow sends the user\'s key in the request header', () => {
     resetStore();
     const settings = { fetchIntervalMin: '60', radarMode: 'graph', radarSky: false, radarProvider: 'rainbowkey',
         rainbowApiKey: 'K' };
@@ -683,7 +641,7 @@ test('radar: "Rainbow (own key)" sends the user\'s key in the request header', (
     h.provider.fix(52.5, 13.4);
     assert.equal(radarRequests.length, 1, 'one radar request, in an endpoint-less build');
     assert.deepEqual(radarRequests[0].headers, { 'Ocp-Apim-Subscription-Key': 'K' });
-    assert.equal(radarRequests[0].url.indexOf('api.rainbow.ai/'), 8, 'straight to Rainbow, not the proxy');
+    assert.equal(radarRequests[0].url.indexOf('api.rainbow.ai/'), 8, 'straight to Rainbow');
     assert.equal(radarRequests[0].url.indexOf('K'), -1, 'the key is not in the URL');
 });
 
@@ -728,13 +686,6 @@ test('failure: a provider 401 arms the auth backoff, raises the notice, sends it
     assert.equal(store[KEYS.FETCH_ATTEMPT_KEY], '1', 'a failure keeps the count');
     assert.equal(store[KEYS.LAST_IS_SLEEPING_KEY], undefined, 'a failure commits no sleep state');
     assert.equal(h.calls.clearNoticeCache, 0);
-    assert.equal(h.calls.telemetry.length, 1);
-    const event = h.calls.telemetry[0];
-    assert.equal(event.success, false);
-    assert.deepEqual(event.error, AUTH_401);
-    assert.equal(event.attempt, 1);
-    assert.equal(event.provider, 'fake');
-    assert.equal(event.durationMs, 3 * SEC);
 
     // What the armed backoff means for the next starts.
     assert.equal(h.cycle.start(false), false, 'scheduled starts stop');
@@ -897,7 +848,6 @@ test('failure: a forecast failure hands this cycle\'s radar CLEAR to the failure
     assert.deepEqual(h.calls.sendWeather, [Object.assign({}, CLEAR, SKY_CLEAR)],
         'the radar CLEAR (and the sky CLEAR) ride alone (no notice for this failure)');
     assert.deepEqual(readJson(KEYS.LAST_FETCH_ATTEMPT_KEY).error, failure);
-    assert.equal(h.calls.telemetry[0].success, false);
 });
 
 test('failure: an AppMessage NACK does not pass the radar CLEAR through again', () => {
@@ -909,7 +859,6 @@ test('failure: an AppMessage NACK does not pass the radar CLEAR through again', 
     h.provider.fail(nack);
     assert.equal(h.calls.sendWeather.length, 0, 'the NACKed send already carried it');
     assert.deepEqual(readJson(KEYS.LAST_FETCH_ATTEMPT_KEY).error, nack);
-    assert.deepEqual(h.calls.telemetry[0].error, nack);
 });
 
 test('failure: a transient radar miss (null) adds no radar keys to the failure send (the sky CLEAR still rides)', () => {
@@ -1248,7 +1197,7 @@ test('radar: switching from DWD to another radar source ends DWD\'s run of 404s'
         'radar off asked DWD nothing: picking DWD again shows no stale note');
 });
 
-test('coordinates: a failed fix is recorded and tracked, and starts no radar, forecast or sleep commit', () => {
+test('coordinates: a failed fix is recorded, and starts no radar, forecast or sleep commit', () => {
     resetStore();
     const settings = Object.assign(
         { fetchIntervalMin: '60', radarMode: 'graph', radarSky: false, radarProvider: 'tomorrowio', tomorrowioApiKey: 'TIO-KEY' },
@@ -1264,9 +1213,6 @@ test('coordinates: a failed fix is recorded and tracked, and starts no radar, fo
     assert.deepEqual(h.calls.sendWeather, [{ NOTICE_TEXT: 'No location access' }],
         'no radar answer to pass on; the no-location line alone, as the watch has no forecast to keep');
     assert.equal(store[KEYS.LAST_IS_SLEEPING_KEY], undefined, 'no sleep commit');
-    assert.equal(h.calls.telemetry.length, 1);
-    assert.equal(h.calls.telemetry[0].success, false);
-    assert.deepEqual(h.calls.telemetry[0].error, gps);
     assert.equal(h.cycle.start(false), true, 'settled: the next start is accepted');
 });
 
@@ -1325,7 +1271,6 @@ test('coordinates: a failure callback without a failure object records coordinat
     h.provider.noFix(undefined);
     const unknown = { stage: 'coordinates', code: 'unknown_error' };
     assert.deepEqual(readJson(KEYS.LAST_FETCH_ATTEMPT_KEY).error, unknown);
-    assert.deepEqual(h.calls.telemetry[0].error, unknown);
     assert.equal(h.provider.calls.fetchWithCoordinates.length, 0);
 });
 
@@ -1345,10 +1290,6 @@ test('watchdog: a fetch still unsettled after FETCH_WATCHDOG_MS is recorded as a
 
     assert.deepEqual(readJson(KEYS.LAST_FETCH_ATTEMPT_KEY), recordFor(p, T0, WATCHDOG));
     assert.equal(readJson(KEYS.LAST_FETCH_SUCCESS_KEY), null);
-    assert.equal(h.calls.telemetry.length, 1);
-    assert.equal(h.calls.telemetry[0].success, false);
-    assert.deepEqual(h.calls.telemetry[0].error, WATCHDOG);
-    assert.equal(h.calls.telemetry[0].durationMs, WATCHDOG_MS);
     assert.equal(h.calls.sendWeather.length, 0, 'aplite, no notice: nothing to send');
     assert.equal(h.cycle.start(false), true, 'the in-flight flag is cleared: a new start is accepted');
 });
@@ -1390,7 +1331,6 @@ test('watchdog: a completion from the abandoned chain is ignored — no success 
     assert.equal(authBackoff.isActive(), false, 'a late 401 arms nothing');
     assert.deepEqual(notices.list(), []);
     assert.equal(h.calls.sendWeather.length, 0);
-    assert.equal(h.calls.telemetry.length, 1, 'only the watchdog failure was tracked');
 });
 
 test('watchdog: a fetch completes exactly once — a late failure or watchdog after success is ignored', () => {
@@ -1408,8 +1348,6 @@ test('watchdog: a fetch completes exactly once — a late failure or watchdog af
     assert.equal(store[KEYS.FETCH_ATTEMPT_KEY], '0');
     assert.equal(authBackoff.isActive(), false);
     assert.equal(h.calls.clearNoticeCache, 1);
-    assert.equal(h.calls.telemetry.length, 1);
-    assert.equal(h.calls.telemetry[0].success, true);
 });
 
 // Ported from fetch-watchdog.test.js ("runFetchCycle starts nothing for
@@ -1424,7 +1362,6 @@ test('watchdog: a fix arriving after the fetch was abandoned starts no radar, ge
     p.fix(52.5, 13.4);
     assert.equal(radarRequests.length, 0, 'no radar request');
     assert.equal(p.calls.fetchWithCoordinates.length, 0, 'no forecast request');
-    assert.equal(h.calls.telemetry.length, 1, 'only the watchdog failure');
 });
 
 // --- throws ------------------------------------------------------------------------
@@ -1438,9 +1375,6 @@ test('throw: a synchronous throw inside the chain is recorded as fetch/exception
     const exception = { stage: 'fetch', code: 'exception' };
     assert.deepEqual(readJson(KEYS.LAST_FETCH_ATTEMPT_KEY), recordFor(p, T0, exception));
     assert.equal(store[KEYS.FETCH_ATTEMPT_KEY], '1');
-    assert.equal(h.calls.telemetry.length, 1);
-    assert.equal(h.calls.telemetry[0].success, false);
-    assert.deepEqual(h.calls.telemetry[0].error, exception);
     p.throwOnCoordinates = false;
     assert.equal(h.cycle.start(false), true, 'the in-flight flag is cleared');
     assert.equal(p.calls.withCoordinates.length, 2);
@@ -1454,429 +1388,7 @@ test('throw: a counter write that throws is caught and recorded, and later ticks
     assert.equal(h.cycle.start(false), true, 'started: the throw came after every refusal');
     assert.equal(p.calls.withCoordinates.length, 0, 'the chain never ran');
     assert.deepEqual(readJson(KEYS.LAST_FETCH_ATTEMPT_KEY), recordFor(p, T0, { stage: 'fetch', code: 'exception' }));
-    assert.equal(h.calls.telemetry.length, 1);
-    assert.equal(h.calls.telemetry[0].success, false);
-    assert.deepEqual(h.calls.telemetry[0].error, { stage: 'fetch', code: 'exception' });
 
     h.advance(MIN);
     assert.equal(h.cycle.start(false), true, 'the next tick is accepted, not stuck "in progress"');
-    assert.equal(h.calls.telemetry.length, 2);
-});
-
-// --- radar throttle: the shared Rainbow proxy at most once per 30-min slot ------
-// radar-factory.js RADAR_MIN_REQUEST_INTERVAL_MS + fetch-cycle.js's radar
-// throttle: one proxy request per UTC-aligned 30-min slot, wherever
-// the watch is (the record keeps no position), recorded before it goes out; the
-// throttled cycles of the slot re-serve its window. The stub outbox here does
-// not dedupe, so a re-served window shows up in the extras
-// (test/shell/rainbow-radar-throttle.test.js runs the real outbox).
-
-const RB_ENDPOINT = 'https://proxy.example/rainbow-nowcast';
-const RB_ENV = { waqiToken: 'W', rainbowEndpoint: RB_ENDPOINT };
-// 20 s past a 30-min boundary (10:00:20 UTC); T0 above is taken.
-const RB_T0 = Date.UTC(2026, 8, 25, 10, 0, 20);
-const RB_SLOT0 = radarWire.slotZeroEpochFor(RB_T0);
-const RB_SETTINGS = { fetchIntervalMin: '15', radarMode: 'graph', radarSky: false, radarProvider: 'rainbow' };
-const RB_KEY = KEYS.RADAR_REQUEST_THROTTLE_KEY;
-
-/** The requests that went to the shared Rainbow proxy (a POST to the endpoint itself). */
-function proxyRequests() {
-    return radarRequests.filter(function (r) { return r.url === RB_ENDPOINT && r.type === 'POST'; });
-}
-
-/** The Open-Meteo sky-row requests. */
-function skyRequests() {
-    return radarRequests.filter(function (r) { return r.url.indexOf('minutely_15') !== -1; });
-}
-
-/** A proxy answer echoing (52.5, 13.4): 24 five-minute intervals of `rate` mm/h from `slotZero`. */
-function rainbowProxyBody(slotZero, rate) {
-    var forecast = [];
-    for (var i = 0; i < 24; i += 1) {
-        forecast.push({ precipRate: rate, timestampBegin: slotZero + i * 300, timestampEnd: slotZero + (i + 1) * 300 });
-    }
-    return JSON.stringify({ latitude: 52.5, longitude: 13.4, forecast: forecast });
-}
-
-/** An Open-Meteo minutely_15 answer covering the sky window of a fetch at `ms`. */
-function skyBody(ms) {
-    var first = Math.floor(radarWire.slotZeroEpochFor(ms) / 900) * 900 - 900;
-    var m = { time: [], cloud_cover: [], direct_normal_irradiance: [], lightning_potential: [], weather_code: [] };
-    for (var i = 0; i < 12; i += 1) {
-        m.time.push(first + i * 900);
-        m.cloud_cover.push(100);
-        m.direct_normal_irradiance.push(300);
-        m.lightning_potential.push(0);
-        m.weather_code.push(3);
-    }
-    return JSON.stringify({ minutely_15: m });
-}
-
-/** The RAIN_RADAR_* keys of an extras object ({} when it carries none). */
-function radarKeysOf(extras) {
-    var out = {};
-    Object.keys(extras || {}).forEach(function (k) {
-        if (k.indexOf('RAIN_RADAR_') === 0) { out[k] = extras[k]; }
-    });
-    return out;
-}
-
-/** The harness on a radar-capable watch, a build with the proxy endpoint and shared Rainbow. */
-function rbHarness(opts) {
-    return makeHarness(Object.assign({ env: RB_ENV, watchInfo: EMERY, now: RB_T0, settings: RB_SETTINGS }, opts || {}));
-}
-
-/**
- * One fetch at `ms`: start it, fix, answer the proxy request it made (if any),
- * then settle the forecast.
- * @param {Object} h The harness.
- * @param {number} ms Epoch ms of the fetch.
- * @param {Object} [o] force; fix [lat, lon] (default 52.5, 13.4); answer — a body
- *   string (onSuccess) or an error object (onError), default a rainy window for
- *   this fetch's slot 0; settle — a failure object for p.fail, default p.succeed().
- * @returns {{requested: boolean, request: ?Object, extras: ?Object}} Whether the
- *   proxy was asked (and the request), and the forecast's extras.
- */
-function rbCycle(h, ms, o) {
-    o = o || {};
-    h.setNow(ms);
-    var proxyBefore = proxyRequests().length;
-    var forecastsBefore = h.provider.calls.fetchWithCoordinates.length;
-    assert.equal(h.cycle.start(Boolean(o.force)), true, 'the fetch starts');
-    var fix = o.fix || [52.5, 13.4];
-    h.provider.fix(fix[0], fix[1]);
-    var made = proxyRequests().slice(proxyBefore);
-    assert.ok(made.length <= 1, 'at most one proxy request per fetch');
-    if (made.length === 1) {
-        var answer = o.answer === undefined ? rainbowProxyBody(radarWire.slotZeroEpochFor(ms), 2) : o.answer;
-        if (typeof answer === 'string') { made[0].onSuccess(answer); } else { made[0].onError(answer); }
-    }
-    var extras = null;
-    if (h.provider.calls.fetchWithCoordinates.length > forecastsBefore) {
-        extras = h.provider.lastForecast().extras;
-        if (o.settle) { h.provider.fail(o.settle); } else { h.provider.succeed(); }
-    }
-    return { requested: made.length === 1, request: made[0] || null, extras: extras };
-}
-
-test('radar throttle: shared Rainbow asks once per 30-min slot and re-serves the window in between', () => {
-    resetStore();
-    const h = rbHarness();
-    const first = rbCycle(h, RB_T0);
-    assert.equal(first.requested, true, 'no record yet: the first fetch asks');
-    assert.deepEqual(JSON.parse(first.request.body), { lat: 52.5, lon: 13.4, start: RB_SLOT0 },
-        'the position rides the POST body, not the URL');
-    const W = radarKeysOf(first.extras);
-    assert.equal(W.RAIN_RADAR_START, RB_SLOT0);
-    assert.equal(W.RAIN_RADAR_TREND_UINT8[0], 20, 'a rainy window');
-
-    const forecasts = h.provider.calls.fetchWithCoordinates.length;
-    const mid = rbCycle(h, RB_T0 + 15 * MIN);
-    assert.equal(mid.requested, false, 'the same 30-min slot: no proxy request');
-    assert.equal(h.provider.calls.fetchWithCoordinates.length, forecasts + 1, 'the forecast still runs');
-    assert.deepEqual(radarKeysOf(mid.extras), W, 'the slot\'s window is re-served, its start included');
-
-    assert.equal(rbCycle(h, RB_T0 + 30 * MIN).requested, true, '10:30:20 is the next slot');
-    assert.equal(proxyRequests().length, 2);
-});
-
-test('radar throttle: a failed attempt still spaces the next one', () => {
-    [{ code: 'status_502', detail: 'http_status' }, { code: 'timeout' }].forEach(function (failure) {
-        resetStore();
-        const h = rbHarness();
-        const first = rbCycle(h, RB_T0, { answer: failure });
-        assert.equal(first.requested, true);
-        assert.deepEqual(radarKeysOf(first.extras), {}, failure.code + ': a transient miss carries no radar keys');
-        const next = rbCycle(h, RB_T0 + 15 * MIN);
-        assert.equal(next.requested, false, failure.code + ': the failed attempt counts');
-        assert.deepEqual(radarKeysOf(next.extras), {}, failure.code + ': nothing to re-serve');
-    });
-});
-
-test('radar throttle: a forced fetch asks anyway and records its own request', () => {
-    resetStore();
-    const h = rbHarness();
-    assert.equal(rbCycle(h, RB_T0).requested, true);
-    assert.equal(rbCycle(h, RB_T0 + 10 * MIN, { force: true }).requested, true, 'force bypasses the throttle');
-    assert.equal(readJson(RB_KEY).at, RB_T0 + 10 * MIN, 'the forced request is the record now');
-    assert.equal(rbCycle(h, RB_T0 + 20 * MIN).requested, false, 'the same slot as the forced request');
-    assert.equal(rbCycle(h, RB_T0 + 30 * MIN).requested, true, 'the next slot');
-});
-
-test('radar throttle: radar off forgets the record, so switching back asks at once', () => {
-    resetStore();
-    const h = rbHarness();
-    assert.equal(rbCycle(h, RB_T0).requested, true);
-    assert.notEqual(store[RB_KEY], undefined, 'the request is recorded');
-    h.setSettings(Object.assign({}, RB_SETTINGS, { radarMode: 'off' }));
-    const off = rbCycle(h, RB_T0 + 5 * MIN);
-    assert.equal(off.requested, false, 'radar off asks nothing');
-    assert.deepEqual(radarKeysOf(off.extras), CLEAR);
-    assert.equal(store[RB_KEY], undefined, 'the record is gone');
-    h.setSettings(RB_SETTINGS);
-    assert.equal(rbCycle(h, RB_T0 + 10 * MIN).requested, true, 'back on Rainbow, a scheduled fetch asks');
-});
-
-test('radar throttle: the record survives a PKJS relaunch', () => {
-    resetStore();
-    assert.equal(rbCycle(rbHarness(), RB_T0).requested, true);
-    const relaunched = rbHarness({ now: RB_T0 + 15 * MIN });
-    const r = rbCycle(relaunched, RB_T0 + 15 * MIN);
-    assert.equal(r.requested, false, 'a new cycle over the same store is still throttled');
-    assert.equal(r.extras.RAIN_RADAR_START, RB_SLOT0, 'and re-serves the persisted window');
-});
-
-test('radar throttle: an unusable record does not throttle', () => {
-    [
-        ['corrupt JSON', '{not json'],
-        ['a record of another source', JSON.stringify({ id: 'dwd', at: RB_T0 })],
-        ['a record from the future (the clock went back)', JSON.stringify({ id: 'rainbow', at: RB_T0 + HOUR })],
-        ['a record without its request time', JSON.stringify({ id: 'rainbow', lat: 52.5, lon: 13.4 })]
-    ].forEach(function (c) {
-        resetStore();
-        store[RB_KEY] = c[1];
-        assert.equal(rbCycle(rbHarness(), RB_T0 + 5 * MIN).requested, true, c[0] + ': asks');
-        const rec = readJson(RB_KEY);
-        assert.deepEqual([rec.id, rec.at], ['rainbow', RB_T0 + 5 * MIN], c[0] + ': recorded afresh');
-    });
-    // The control: the same slot's usable record does throttle.
-    resetStore();
-    store[RB_KEY] = JSON.stringify({ id: 'rainbow', at: RB_T0 });
-    assert.equal(rbCycle(rbHarness(), RB_T0 + 5 * MIN).requested, false, 'a usable record throttles');
-});
-
-test('radar throttle: the sky rows keep their own half hour, re-served even when the radar\'s request failed', () => {
-    resetStore();
-    const h = rbHarness({ settings: Object.assign({}, RB_SETTINGS, { radarSky: true }) });
-    h.setNow(RB_T0);
-    h.cycle.start(false);
-    h.provider.fix(52.5, 13.4);
-    assert.equal(proxyRequests().length, 1);
-    assert.equal(skyRequests().length, 1);
-    proxyRequests()[0].onError({ code: 'status_502', detail: 'http_status' });
-    skyRequests()[0].onSuccess(skyBody(RB_T0));
-    const sky = h.provider.lastForecast().extras.RADAR_SKY_UINT8;
-    assert.ok(Array.isArray(sky) && sky.length > 0, 'the sky rows ride');
-    h.provider.succeed();
-
-    h.setNow(RB_T0 + 15 * MIN);
-    h.cycle.start(false);
-    h.provider.fix(52.5, 13.4);
-    assert.equal(proxyRequests().length, 1, 'the radar is throttled');
-    assert.equal(skyRequests().length, 1, 'and so are the sky rows: their half hour\'s answer is re-served');
-    assert.equal(h.provider.calls.fetchWithCoordinates.length, 2, 'nothing to wait for');
-    const extras = h.provider.lastForecast().extras;
-    assert.deepEqual(extras.RADAR_SKY_UINT8, sky, 'the half hour\'s sky rides again');
-    assert.deepEqual(radarKeysOf(extras), {}, 'no radar keys: T0\'s request failed, so there is nothing to re-serve');
-    h.provider.succeed();
-
-    h.setNow(RB_T0 + 30 * MIN);
-    h.cycle.start(false);
-    h.provider.fix(52.5, 13.4);
-    assert.equal(skyRequests().length, 2, 'the next half hour asks again');
-});
-
-test('radar throttle: Rainbow on your own key, tomorrow.io and DWD ask every cycle and keep no record', () => {
-    [
-        { radarProvider: 'rainbowkey', rainbowApiKey: 'K' },
-        { radarProvider: 'tomorrowio', tomorrowioApiKey: 'TIO-KEY' },
-        { radarProvider: 'dwd' }
-    ].forEach(function (over) {
-        resetStore();
-        // A shared-Rainbow record from before the change of source is forgotten on the first radar step.
-        store[RB_KEY] = JSON.stringify({ id: 'rainbow', at: RB_T0 });
-        const h = rbHarness({ settings: Object.assign({ fetchIntervalMin: '15', radarMode: 'graph', radarSky: false }, over) });
-        [0, 5, 15].forEach(function (m) {
-            h.setNow(RB_T0 + m * MIN);
-            const before = radarRequests.length;
-            assert.equal(h.cycle.start(false), true);
-            h.provider.fix(52.5, 13.4);
-            const label = over.radarProvider;
-            assert.equal(radarRequests.length, before + 1, label + ' asks at +' + m + ' min');
-            radarRequests[radarRequests.length - 1].onError({ code: 'status_503', detail: 'http_status' });
-            h.provider.succeed();
-            assert.equal(store[RB_KEY], undefined, label + ' keeps no record');
-        });
-        assert.equal(proxyRequests().length, 0, 'never the proxy');
-    });
-});
-
-test('radar throttle: "Rainbow (own key)" asks Rainbow directly, and going back to "Rainbow (limited)" asks the proxy afresh', () => {
-    resetStore();
-    const settings = Object.assign({}, RB_SETTINGS, { rainbowApiKey: 'K' });
-    const h = rbHarness({ settings: settings });
-    // "Rainbow (limited)": the shared proxy, one request per slot.
-    assert.equal(rbCycle(h, RB_T0).requested, true, 'the shared radar asks the proxy');
-    assert.equal(rbCycle(h, RB_T0 + 5 * MIN).requested, false, 'and is throttled within the slot');
-    assert.equal(readJson(RB_KEY).id, 'rainbow');
-    // "Rainbow (own key)": Rainbow directly on the user's key, every cycle, and no throttle record.
-    settings.radarProvider = 'rainbowkey';
-    [10, 15].forEach(function (m) {
-        h.setNow(RB_T0 + m * MIN);
-        const before = radarRequests.length;
-        assert.equal(h.cycle.start(false), true);
-        h.provider.fix(52.5, 13.4);
-        assert.equal(radarRequests.length, before + 1, 'the own key asks at +' + m + ' min');
-        const req = radarRequests[radarRequests.length - 1];
-        assert.equal(req.url.indexOf('api.rainbow.ai/'), 8, 'straight to Rainbow, not the proxy');
-        assert.deepEqual(req.headers, { 'Ocp-Apim-Subscription-Key': 'K' });
-        req.onError({ code: 'status_503', detail: 'http_status' });
-        h.provider.succeed();
-        assert.equal(store[RB_KEY], undefined, 'the own key keeps no record');
-    });
-    assert.equal(proxyRequests().length, 1, 'the proxy was asked only while on "Rainbow (limited)"');
-    // Back to "Rainbow (limited)", still inside the first slot: the shared record went with
-    // the change of source, so the proxy is asked afresh rather than skipped.
-    settings.radarProvider = 'rainbow';
-    assert.equal(rbCycle(h, RB_T0 + 20 * MIN).requested, true, 'back on the proxy, asked afresh');
-});
-
-test('radar throttle: shared Rainbow on an endpoint-less build clears, asks nothing and keeps no record', () => {
-    resetStore();
-    const h = rbHarness({ env: ENV });
-    const r = rbCycle(h, RB_T0);
-    assert.equal(radarRequests.length, 0, 'no request');
-    assert.deepEqual(radarKeysOf(r.extras), CLEAR);
-    assert.equal(store[RB_KEY], undefined, 'no record');
-});
-
-test('radar throttle: 30- and 60-min intervals never meet it', () => {
-    ['30', '60'].forEach(function (interval) {
-        resetStore();
-        const h = rbHarness({ settings: Object.assign({}, RB_SETTINGS, { fetchIntervalMin: interval }) });
-        const step = Number(interval) * MIN;
-        assert.equal(rbCycle(h, RB_T0).requested, true);
-        assert.equal(rbCycle(h, RB_T0 + step).requested, true, interval + ' min: the next scheduled fetch asks');
-        assert.equal(rbCycle(h, RB_T0 + 2 * step).requested, true, interval + ' min: and the one after it');
-    });
-});
-
-test('radar throttle: UTC-aligned slots, not "30 min since the last request"', () => {
-    resetStore();
-    const h = rbHarness();
-    const at = function (hh, mm, ss) { return Date.UTC(2026, 8, 25, hh, mm, ss); };
-    assert.equal(rbCycle(h, at(10, 0, 50)).requested, true);
-    assert.equal(rbCycle(h, at(10, 29, 59)).requested, false, 'still the 10:00 slot');
-    assert.equal(rbCycle(h, at(10, 30, 10)).requested, true, '29 min 20 s after the last request, but a new slot');
-    assert.equal(rbCycle(h, at(10, 59, 40)).requested, false, 'still the 10:30 slot');
-    assert.equal(rbCycle(h, at(11, 0, 5)).requested, true, 'the 11:00 slot');
-});
-
-test('radar throttle: a failed forecast does not cost the slot its window', () => {
-    resetStore();
-    const h = rbHarness();
-    const first = rbCycle(h, RB_T0, { settle: { stage: 'provider_data', code: 'stub_down' } });
-    const W = radarKeysOf(first.extras);
-    assert.equal(W.RAIN_RADAR_START, RB_SLOT0);
-    assert.deepEqual(readJson(RB_KEY).tuples, W, 'the record keeps the slot\'s window');
-    const next = rbCycle(h, RB_T0 + 5 * MIN);
-    assert.equal(next.requested, false);
-    assert.deepEqual(radarKeysOf(next.extras), W, 're-served unchanged, T0\'s RAIN_RADAR_START included');
-
-    // When the slot's request itself failed, there is nothing to re-serve.
-    resetStore();
-    const h2 = rbHarness();
-    rbCycle(h2, RB_T0, { answer: { code: 'status_502', detail: 'http_status' } });
-    assert.equal('tuples' in readJson(RB_KEY), false, 'a failed request leaves no window on the record');
-    const after = rbCycle(h2, RB_T0 + 5 * MIN);
-    assert.equal(after.requested, false);
-    assert.deepEqual(radarKeysOf(after.extras), {}, 'no RAIN_RADAR_* keys: the watch advances its own window');
-});
-
-test('radar throttle: a late answer from an abandoned request never lands on a newer record', () => {
-    resetStore();
-    const h = rbHarness();
-    h.setNow(RB_T0);
-    h.cycle.start(false);
-    h.provider.fix(52.5, 13.4);
-    assert.equal(proxyRequests().length, 1, 'T0 asks, and the request hangs');
-    const late = proxyRequests()[0];
-    h.runWatchdogs();   // gives up on T0's fetch
-
-    h.setNow(RB_T0 + 10 * MIN);
-    assert.equal(h.cycle.start(true), true);
-    h.provider.fix(52.5, 13.4);
-    assert.equal(proxyRequests().length, 2, 'the forced fetch asks again');
-    const fresh = proxyRequests()[1];
-
-    late.onSuccess(rainbowProxyBody(RB_SLOT0, 2));   // T0's answer arrives only now
-    const rec = readJson(RB_KEY);
-    assert.equal(rec.at, RB_T0 + 10 * MIN, 'the newer request keeps the record');
-    assert.equal('tuples' in rec, false, 'T0\'s window is not kept on it');
-
-    const slot10 = radarWire.slotZeroEpochFor(RB_T0 + 10 * MIN);
-    fresh.onSuccess(rainbowProxyBody(slot10, 3));
-    assert.equal(readJson(RB_KEY).tuples.RAIN_RADAR_START, slot10, 'its own answer is kept');
-    h.provider.succeed();
-});
-
-// The throttle is purely time-based: a move never asks the proxy on its own.
-const RB_MOVES = [
-    ['0.1° north', [52.6, 13.4]],
-    ['0.1° east', [52.5, 13.5]],
-    ['1° away', [53.5, 14.4]],
-    ['another continent', [40.713, -74.006]]
-];
-
-test('radar throttle: a move within the slot asks nothing and re-serves the slot\'s window; the next slot asks for the new position', () => {
-    RB_MOVES.forEach(function (c) {
-        resetStore();
-        const h = rbHarness();
-        const W = radarKeysOf(rbCycle(h, RB_T0).extras);
-        assert.equal(W.RAIN_RADAR_START, RB_SLOT0);
-        const moved = rbCycle(h, RB_T0 + 15 * MIN, { fix: c[1] });
-        assert.equal(moved.requested, false, c[0] + ': the same slot asks nothing');
-        assert.deepEqual(radarKeysOf(moved.extras), W, c[0] + ': the slot\'s window is re-served');
-        assert.equal(rbCycle(h, RB_T0 + 25 * MIN, { fix: c[1] }).requested, false, c[0] + ': still nothing later in the slot');
-        const next = rbCycle(h, RB_T0 + 30 * MIN, { fix: c[1] });
-        assert.equal(next.requested, true, c[0] + ': the next slot asks');
-        assert.deepEqual(JSON.parse(next.request.body),
-            { lat: c[1][0], lon: c[1][1], start: radarWire.slotZeroEpochFor(RB_T0 + 30 * MIN) },
-            c[0] + ': for the new position');
-    });
-});
-
-test('radar throttle: a move within the slot re-serves the slot\'s limit notice or clear too', () => {
-    [
-        ['the limit notice', { code: 'status_429', detail: 'http_status' }, radarWire.limitedRadarTuples()],
-        ['the clear', { code: 'status_404', detail: 'http_status' }, CLEAR]
-    ].forEach(function (c) {
-        resetStore();
-        const h = rbHarness();
-        assert.deepEqual(radarKeysOf(rbCycle(h, RB_T0, { answer: c[1] }).extras), c[2], c[0] + ': the slot\'s answer');
-        const moved = rbCycle(h, RB_T0 + 15 * MIN, { fix: [48.137, 11.575] });
-        assert.equal(moved.requested, false, c[0] + ': a move asks nothing');
-        assert.deepEqual(radarKeysOf(moved.extras), c[2], c[0] + ': and is re-served');
-    });
-});
-
-test('radar throttle: a forced fetch after a move still asks, for the new position', () => {
-    resetStore();
-    const h = rbHarness();
-    assert.equal(rbCycle(h, RB_T0).requested, true);
-    const forced = rbCycle(h, RB_T0 + 10 * MIN, { force: true, fix: [48.137, 11.575] });
-    assert.equal(forced.requested, true, 'force bypasses the throttle');
-    assert.deepEqual(JSON.parse(forced.request.body),
-        { lat: 48.137, lon: 11.575, start: radarWire.slotZeroEpochFor(RB_T0 + 10 * MIN) }, 'for the new position');
-    assert.equal(rbCycle(h, RB_T0 + 20 * MIN).requested, false,
-        'its request holds the slot, even back at the first position');
-});
-
-test('radar throttle: the record keeps no position', () => {
-    resetStore();
-    const h = rbHarness();
-    rbCycle(h, RB_T0, { answer: { code: 'status_502', detail: 'http_status' } });
-    assert.deepEqual(readJson(RB_KEY), { id: 'rainbow', at: RB_T0 }, 'the request: source and time only');
-    rbCycle(h, RB_T0 + 30 * MIN, { fix: [48.137, 11.575] });
-    const rec = readJson(RB_KEY);
-    assert.deepEqual(Object.keys(rec).sort(), ['at', 'id', 'tuples'], 'with its answer kept, still no lat/lon');
-    assert.equal(rec.at, RB_T0 + 30 * MIN);
-});
-
-test('radar throttle: a store that cannot keep the record still asks, without throwing', () => {
-    resetStore();
-    throwOnSetItem = RB_KEY;
-    const h = rbHarness();
-    assert.equal(rbCycle(h, RB_T0).requested, true);
-    assert.equal(rbCycle(h, RB_T0 + 5 * MIN).requested, true, 'no record, no throttle');
 });

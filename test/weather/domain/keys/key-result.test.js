@@ -213,13 +213,6 @@ test('the keyed Rainbow path leaves the answer alone on answers that say nothing
   assert.equal(mapIn(store).rainbowkey.status, 401, 'still the refusal');
 });
 
-test('the shared proxy path records nothing', () => {
-  const { store } = mockStorage();
-  responder = function (url, type, onSuccess) { onSuccess(JSON.stringify({ forecast: [] })); };
-  rainbowRadar.fetchRadarTuplesAt('https://proxy.example/rainbow', 52.5, 13.4, SLOT0, function () {});
-  assert.equal(mapIn(store), null);
-});
-
 test('fetchRadarJson: the answer is recorded before interpret and onTransportError see it', () => {
   const { store } = mockStorage();
   const seen = [];

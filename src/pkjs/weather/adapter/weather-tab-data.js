@@ -1,7 +1,7 @@
 // src/pkjs/weather/adapter/weather-tab-data.js — the Weather tab's own data layer,
 // running INSIDE the settings webview (a data: URI page with a null origin, so
 // every endpoint here must serve permissive CORS — the same constraint the
-// API-key Test buttons and the news widget already live under, key-test.js).
+// API-key Test buttons already live under, key-test.js).
 // The phone-side provider adapters (src/pkjs/weather/*) are not in the page
 // bundle and fetch a different, watch-shaped window; these adapters are
 // independent and normalize to the tab's own shape instead:
@@ -44,7 +44,7 @@
 //           daytime icon windows and hour labels all follow this clock.
 //
 // Results are cached per provider+coords for the lifetime of the page open
-// (module var — page storage doesn't persist, news-cache.js:3-5) and served for
+// (module var — page storage doesn't persist) and served for
 // the rest of the phone's calendar day, so switching places never refetches one
 // already shown today. Across opens only the place the tab opens on is kept: the
 // phone stores the day's data for it (src/pkjs/weather/adapter/weather-tab-cache.js) and the page

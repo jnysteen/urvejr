@@ -1,7 +1,7 @@
 // src/pkjs/forecast-graphs/domain/forecast-axis.js — ES5. The forecast graph's left axis options (
 // Graphs > Forecast > a graph > Left axis): THE one reading of the two settings, for the wire
 // (clay-payload.js graphOptionsWord), the bake (forecast-series.js: the numbers' values), the
-// hours sent (forecast-span.js: 24 h on the whole screen), the render signature, telemetry,
+// hours sent (forecast-span.js: 24 h on the whole screen), the render signature,
 // the settings page's gate (when-resolvers.js tempAxisLineDrawn) and the forecast preview, so
 // they can never disagree.
 //

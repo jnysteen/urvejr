@@ -26,15 +26,13 @@ var zeroFilledArray = wireUnits.zeroFilledArray;
  * 404 from inside its box into null the first time and, from the second in a
  * row (radar-coverage.js counts the run), into the clear carrying "DWD: no
  * radar data", tomorrow.io a 401/403 key rejection into clearRadarTuples() and
- * a 429 into radarWire.limitedRadarTuples(), the shared Rainbow proxy a
- * 404/405 — the proxy missing — into clearRadarTuples()).
+ * a 429 into radarWire.limitedRadarTuples()).
  *
  * null means TRANSIENT: the radar keys stay out of this send, so the watch
  * keeps its last window and, at each fetch boundary, self-advances it with a
  * zero-filled tail exactly as for a deduped (validated-dry) skip — it cannot
  * tell the two apart. So null must only ever answer a failure that can heal
- * on the next cycle; one that cannot (missing key/endpoint, rejected key,
- * missing proxy) calls back radarWire.clearRadarTuples() instead, a source
+ * on the next cycle; one that cannot (missing or rejected key) calls back radarWire.clearRadarTuples() instead, a source
  * with no radar data for the place calls back
  * radarWire.outOfCoverageRadarTuples(line), and a source refusing us over a
  * request limit calls back radarWire.limitedRadarTuples().
@@ -42,8 +40,6 @@ var zeroFilledArray = wireUnits.zeroFilledArray;
  * @param {Object} opts
  *   {string} opts.url Request URL.
  *   {string} opts.label Log name, e.g. 'Met.no'.
- *   {string} [opts.method] HTTP method (default 'GET').
- *   {string} [opts.body] Request body (the Rainbow proxy's POST {lat, lon, start}).
  *   {Object} [opts.headers] Request headers.
  *   {function(Object, Function): boolean} [opts.onTransportError] Receives
  *     (error, callback); return true to claim the error.
@@ -57,7 +53,7 @@ var zeroFilledArray = wireUnits.zeroFilledArray;
  * @returns {void}
  */
 function fetchRadarJson(opts, interpret, callback) {
-    WeatherProvider.request(opts.url, opts.method || 'GET', function (response) {
+    WeatherProvider.request(opts.url, 'GET', function (response) {
         var body;
         try {
             body = JSON.parse(response);
@@ -91,7 +87,7 @@ function fetchRadarJson(opts, interpret, callback) {
         if (opts.onTransportError && opts.onTransportError(error, callback)) { return; }
         console.log('[!] ' + opts.label + ' radar fetch failed: ' + JSON.stringify(error));
         callback(null);
-    }, opts.headers, opts.body);
+    }, opts.headers);
 }
 
 /**
@@ -130,8 +126,7 @@ function isKeyRejection(error) {
 /**
  * Whether a transport error is a radar source refusing us over a REQUEST LIMIT
  * (HTTP 429): the service is up, but this key or this phone has used up what it
- * may ask for now. The sources that have limits (the shared Rainbow proxy,
- * Rainbow on the user's own key, tomorrow.io) answer it with
+ * may ask for now. The sources that have limits (Rainbow, tomorrow.io) answer it with
  * radarWire.limitedRadarTuples(), so the watch says "Radar limit reached"
  * instead of rolling its window into a made-up "no rain". DWD and Met.no have
  * no request limits and never ask.

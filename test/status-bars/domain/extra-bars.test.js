@@ -125,7 +125,7 @@ test('the catalog: three extra lines, their wire keys and slots, empty until New
   assert.equal(catalog.lineById('forecast'), catalog.LINES.find((l) => l.id === 'forecast'));
   assert.equal(catalog.lineById('nope'), null);
   assert.equal(catalog.lineOf('statusBar6Right').id, 'bar6');
-  assert.equal(catalog.allSlotKeys().length, 12, 'the twelve stay twelve (telemetry, the migration)');
+  assert.equal(catalog.allSlotKeys().length, 12, 'the twelve stay twelve (the migration)');
   // The bake sends a bar 4 to 6's line while a screen shows it, which only a made bar on a
   // watch that has them can be.
   const extra = (s, env) => catalog.bakedLines(s, env).map((l) => l.id).filter((id) => /^bar/.test(id));
@@ -245,7 +245,6 @@ test('on-demand.js: a bar 4 to 6 exists where a screen shows it, so an item plac
   assert.equal(OD.barExists(S, 'bar5', EMERY), false, 'not made, not shown');
   assert.equal(OD.placedAnywhere(S, 'uv', EMERY), true);
   assert.equal(OD.placedAnywhere(S, 'uv', BASALT), false);
-  assert.equal(OD.telemetryCode(S, EMERY).length, 40, 'telemetry keeps the four bars');
   assert.deepEqual(OD.BLOB_BARS.map((b) => b.bar), ['top', 'forecast', 'radar', 'health']);
   assert.deepEqual(OD.PAGE_BARS.map((b) => b.name),
     ['Watch bar', 'Forecast bar', 'Health bar', 'Radar bar', 'Status bar 4', 'Status bar 5', 'Status bar 6']);

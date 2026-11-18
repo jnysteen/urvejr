@@ -105,12 +105,15 @@ test('the health graph\'s and the rain radar\'s rows, as each draws on this watc
   assert.deepEqual(said(legendOf('health', EMERY)), [['health', 'Steps: bars', 'Heart rate: line', 'Sleep: band along the bottom']]);
   // The radar draws its sky rows as a graph: the card's picture holds the modes the screens need
   // with it added, so it draws them too.
-  assert.deepEqual(said(legendOf('radar', EMERY)), [['radar', 'Rain: bars', 'Clouds: stripe', 'Sun: stripe', 'Lightning: bolt']]);
-  assert.deepEqual(said(legendOf('radar', EMERY, fresh(EMERY, { radarSky: false }))), [['radar', 'Rain: bars']]);
+  const point = { radarProvider: 'metno' };   // a radar with no rain nearby
+  assert.deepEqual(said(legendOf('radar', EMERY, fresh(EMERY, point))),
+    [['radar', 'Rain: bars', 'Clouds: stripe', 'Sun: stripe', 'Lightning: bolt']]);
+  assert.deepEqual(said(legendOf('radar', EMERY, fresh(EMERY, { radarProvider: 'metno', radarSky: false }))),
+    [['radar', 'Rain: bars']]);
   assert.deepEqual(said(legendOf('radar', EMERY, fresh(EMERY, { radarProvider: 'dwd', radarSky: false }))),
     [['radar', 'Rain: bars', 'Rain nearby: faint bars']], 'DWD\'s rain nearby');
   // Two graphs: the upper one first.
-  assert.deepEqual(said(legendOf('radarfc', EMERY, fresh(EMERY, { radarSky: false }))),
+  assert.deepEqual(said(legendOf('radarfc', EMERY, fresh(EMERY, { radarProvider: 'metno', radarSky: false }))),
     [['radar', 'Rain: bars'], ['forecast', 'Temperature: thick line', 'Rain chance: shaded area', 'Rain: bars']]);
 });
 

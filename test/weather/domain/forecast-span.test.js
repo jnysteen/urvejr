@@ -3,7 +3,7 @@
 // long span's token, labelled by the whole hours it shows: forecast-span-hours.js), the hours
 // the phone sends a watch (14 / 24 / 68 on emery
 // only, 26 for 24 h with no left axis, 24 everywhere else and on an unknown watch), the option
-// telemetry reports, the inbox budget's span, the render signature's part, and the lockstep
+// the preview reads, the inbox budget's span, the render signature's part, and the lockstep
 // pins: the C buffers and class bounds (src/c/appendix/forecast_span.h FORECAST_MAX_ENTRIES,
 // FORECAST_SPAN_HALF_SENT, FORECAST_SPAN_DAY_SENT) and the settings schema's options.
 const test = require('node:test');

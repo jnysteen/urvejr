@@ -557,7 +557,7 @@ test('CLAY_NIGHT_LIGHT_UINT8 is the five bytes night-light.js packs', () => {
   const p = buildClayPayload(s, { platform: 'emery' }, NOW);
   assert.deepEqual(p.CLAY_NIGHT_LIGHT_UINT8, [96, 0, 0, 22, 6]);
   // Packed by the module, not re-derived here, so the tuple can't drift from the
-  // resolution rules the settings page and telemetry read the same keys with.
+  // resolution rules the settings page reads the same keys with.
   assert.deepEqual(p.CLAY_NIGHT_LIGHT_UINT8, nightLight.buildNightLightBytes(s));
   assert.equal(p.CLAY_NIGHT_LIGHT_UINT8.length, 5);
 });

@@ -28,7 +28,7 @@ function makeHarness(opts) {
     var clock = { value: new Date(2026, 6, 7, 12, 0, 0) }; // month index 6 = July
     var calls = {
         sendClay: [], startFetch: [], resendStatus: [], order: [],
-        refreshHolidays: 0, checkForUpdate: 0,
+        refreshHolidays: 0, onTick: 0,
         clearClayCache: 0, clearWeatherCaches: 0,
         clearNoticeOnWatch: 0
     };
@@ -45,7 +45,7 @@ function makeHarness(opts) {
         },
         shouldFetchNow: function () { return shouldFetch; },
         refreshHolidays: function () { calls.refreshHolidays++; },
-        checkForUpdate: function () { calls.checkForUpdate++; },
+        onTick: function () { calls.onTick++; },
         clearClayCache: function () { calls.clearClayCache++; },
         clearWeatherCaches: function () { calls.clearWeatherCaches++; },
         clearNoticeOnWatch: function () { calls.order.push('clear'); calls.clearNoticeOnWatch++; },
@@ -299,7 +299,7 @@ test('scenario 6f: clearNotice with no clearNoticeOnWatch dep -> does not throw'
         resendStatus: function (reason, onSuccess) { if (onSuccess) { onSuccess(); } },
         shouldFetchNow: function () { return false; },
         refreshHolidays: function () {},
-        checkForUpdate: function () {},
+        onTick: function () {},
         clearClayCache: function () {},
         clearWeatherCaches: function () {},
         // clearNoticeOnWatch intentionally omitted
@@ -511,13 +511,13 @@ test('scenario 7: start() runs a tick immediately and re-arms every 60s', functi
     localStorage.setItem(KEYS.LAST_HOLIDAY_DAY_KEY, '2026-6-7');
 
     h.scheduler.start();
-    assert.equal(h.calls.checkForUpdate, 1, 'first tick runs immediately');
+    assert.equal(h.calls.onTick, 1, 'first tick runs immediately');
     assert.equal(h.timers.length, 1, 'tick re-arms a timer');
     assert.equal(h.timers[0].ms, 60 * 1000, 're-arm interval is 60s');
     assert.equal(h.calls.startFetch.length, 0, 'shouldFetchNow false -> no fetch');
 
     h.flushTimers();
-    assert.equal(h.calls.checkForUpdate, 2, 'the re-armed timer runs the next tick');
+    assert.equal(h.calls.onTick, 2, 'the re-armed timer runs the next tick');
     assert.equal(h.timers.length, 1, 'each tick re-arms exactly one timer');
 });
 
@@ -540,7 +540,7 @@ function makeThemeHarness() {
     var timers = [];
     var themeId = { value: null };
     var clock = { value: new Date(2026, 6, 7, 12, 0, 0) };
-    var calls = { sendClay: [], startFetch: [], refreshHolidays: 0, checkForUpdate: 0 };
+    var calls = { sendClay: [], startFetch: [], refreshHolidays: 0, onTick: 0 };
     var deps = {
         sendClay: function (onSuccess, onFailure) {
             calls.sendClay.push({ onSuccess: onSuccess, onFailure: onFailure });
@@ -549,7 +549,7 @@ function makeThemeHarness() {
         resendStatus: function (reason, onSuccess) { if (onSuccess) { onSuccess(); } },
         shouldFetchNow: function () { return false; },
         refreshHolidays: function () { calls.refreshHolidays++; },
-        checkForUpdate: function () { calls.checkForUpdate++; },
+        onTick: function () { calls.onTick++; },
         clearClayCache: function () {},
         clearWeatherCaches: function () {},
         effectiveThemeId: function () { return themeId.value; },

@@ -1,7 +1,7 @@
 {
   "name": "urvejr",
   "author": "protopoc",
-  "version": "3.2.4",
+  "version": "0.1.0",
   "buildProfile": "{{buildProfile}}",
   "keywords": [
     "pebble-app",
@@ -878,22 +878,6 @@
           ]
         },
         "reason": "LocationIQ: finds the place you type as your Manual location",
-        "required": false
-      },
-      {
-        "name": "Internet",
-        "parameters": {
-          "domains": [
-            "appstore-api.rebble.io",
-            "appstore-api.repebble.com"
-          ]
-        },
-        "reason": "Pebble app store: tells you when an update is out",
-        "required": false
-      },
-      {
-        "name": "ShowNotifications",
-        "reason": "What's new and update notices on your watch",
         "required": false
       },
       {

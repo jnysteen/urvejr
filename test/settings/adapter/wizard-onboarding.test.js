@@ -40,16 +40,13 @@ function bootAndOpenSettings(store) {
   };
   // Keep the scheduler's first tick off the network (see test/shell/index-boot.test.js).
   store.lastFetchSuccess = JSON.stringify({ time: new Date(Date.now() + 60 * 60 * 1000).toISOString() });
-  store.last_update_check = String(Date.now());
 
   const listeners = {};
   let opened = null;
   global.Pebble = {
     addEventListener: (name, fn) => { listeners[name] = fn; },
     getActiveWatchInfo: () => ({ platform: 'basalt', model: 'qemu_platform_basalt', language: 'en' }),
-    getAccountToken: () => 'test-token',
     sendAppMessage: (dict, ack) => { if (ack) { ack(); } },
-    showSimpleNotificationOnPebble: () => {},
     openURL: (url) => { opened = url; }
   };
   global.XMLHttpRequest = function () {

@@ -197,17 +197,3 @@ test('batteryLevel: 5 % steps with fineBattery, the next 10 % step up without it
   assert.equal(OD.batteryLevel({batteryLowLevel: 25}, emery), 25, 'a number reads too');
 });
 
-test('telemetryCode: 40 letters, upper case only while the item shows', () => {
-  assert.equal(OD.telemetryCode({}), 'RLLLLRRR-R' + '-'.repeat(30), 'an untouched install');
-  const S = {
-    statusTopOnDemandLeftItems: '',
-    statusForecastOnDemandRightItems: 'rain',
-    statusRadarOnDemandLeftItems: 'uv', radarMode: 'off'
-  };
-  const code = OD.telemetryCode(S);
-  assert.equal(code.length, 40);
-  assert.equal(code.slice(0, 10), 'R----RRR-R', 'nothing ticked on the left');
-  assert.equal(code.slice(10, 20), '----R-----', 'forecast: rain right');
-  assert.equal(code.slice(20, 30), '------l---', 'a bar the mode removes reads lower case');
-  assert.equal(OD.telemetryCode({}, Object.assign(platform.computeEnv(), {onDemand: false})), undefined);
-});

@@ -1,7 +1,7 @@
 // test/weather/adapter/radar/radar-fetch.test.js — the shared radar transport's two verdicts: the key
 // rejection, used by every keyed radar source (tomorrow.io, Rainbow with the
 // user's key), and the request limit, used by every source that has one (those
-// two and the shared Rainbow proxy).
+// two).
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const radarFetch = require('../../../../src/pkjs/weather/adapter/radar/radar-fetch.js');
@@ -50,9 +50,8 @@ test('a 429 is never a key rejection: the two verdicts do not overlap', () => {
   });
 });
 
-// fetchRadarJson's request: GET with no body unless the source asks otherwise (the shared
-// Rainbow proxy POSTs its {lat, lon, start}).
-test('fetchRadarJson sends opts.method and opts.body, defaulting to a bodyless GET', () => {
+// fetchRadarJson's request: a GET with the source's headers and no body.
+test('fetchRadarJson sends a bodyless GET with the source\'s headers', () => {
   const WeatherProvider = require('../../../../src/pkjs/weather/adapter/provider.js');
   const saved = WeatherProvider.request;
   const seen = [];
@@ -61,14 +60,9 @@ test('fetchRadarJson sends opts.method and opts.body, defaulting to a bodyless G
     onSuccess('{}');
   };
   try {
-    radarFetch.fetchRadarJson({ url: 'https://a.example/r', label: 'A' }, () => null, () => {});
-    radarFetch.fetchRadarJson({ url: 'https://b.example/r', label: 'B', method: 'POST', body: '{"lat":1}',
-      headers: { 'Content-Type': 'text/plain;charset=UTF-8' } }, () => null, () => {});
+    radarFetch.fetchRadarJson({ url: 'https://a.example/r', label: 'A', headers: { 'X-Key': 'k' } }, () => null, () => {});
   } finally {
     WeatherProvider.request = saved;
   }
-  assert.deepEqual(seen, [
-    { url: 'https://a.example/r', type: 'GET', headers: undefined, body: undefined },
-    { url: 'https://b.example/r', type: 'POST', headers: { 'Content-Type': 'text/plain;charset=UTF-8' }, body: '{"lat":1}' },
-  ]);
+  assert.deepEqual(seen, [{ url: 'https://a.example/r', type: 'GET', headers: { 'X-Key': 'k' }, body: undefined }]);
 });

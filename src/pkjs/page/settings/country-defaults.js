@@ -77,7 +77,7 @@ function inferCountry() {
 /**
  * Derive the recommended weather + radar provider and locale units (temperature, wind, distance,
  * week-start) from a country code. DE → DWD, the Nordics → Met.no, everyone else → Open-Meteo
- * weather with a Rainbow radar nowcast.
+ * weather and the radar off ('off', the Rain radar picker's value): no keyless radar covers them.
  * @param {?string} cc ISO alpha-2 country code.
  * @returns {{provider: string, radarProvider: string, temperatureUnits: string, windUnits: string, distanceUnits: string, weekStartDay: string}} Derived settings.
  */
@@ -92,7 +92,7 @@ function mapCountry(cc) {
     };
     if (cc === 'DE') { return Object.assign({ provider: 'dwd', radarProvider: 'dwd' }, units); }
     if (cc && METNO_COUNTRIES[cc]) { return Object.assign({ provider: 'metno', radarProvider: 'metno' }, units); }
-    return Object.assign({ provider: 'openmeteo', radarProvider: 'rainbow' }, units);
+    return Object.assign({ provider: 'openmeteo', radarProvider: 'off' }, units);
 }
 
 var COUNTRY_DEFAULTS = {

@@ -15,13 +15,6 @@ python = "3.13"
 # ("uv not found"). https://docs.astral.sh/uv/
 uv = "0.11.32"
 
-# https://deno.com/
-deno = "2.1.4"
-
-# https://github.com/supabase/cli
-# https://mise.jdx.dev/dev-tools/backends/aqua.html
-"aqua:supabase/cli" = "2.98.2"
-
 # https://github.com/linebender/resvg
 # https://mise.jdx.dev/dev-tools/backends/aqua.html
 resvg = "0.47.0"
@@ -33,10 +26,6 @@ _.file = ".env"
 [tasks.prepare-package]
 description = "Prepare package.json from profile (default: dev)"
 run = "scripts/prepare-package.sh"
-
-[tasks.telemetry-serve]
-description = "Serve telemetry ingest function locally"
-run = "supabase functions serve telemetry-ingest --env-file .env"
 
 [tasks.preview-config]
 description = "Render a browser-openable preview of the config UI to build/ (args: [out]). Open the file in a browser instead of the emulator."
@@ -126,10 +115,7 @@ description = "Run the Node test suite"
 # Regenerate page.generated.js first: it's a gitignored build artifact, and
 # tests require it transitively (clay-settings -> settings -> page.generated).
 # Test globs are scoped to the Node test trees explicitly (the third is the
-# weather plugins' suite, plugins/README.md): an unscoped
-# `node --test` also recurses into supabase/functions/**/*_test.ts (Deno
-# tests, e.g. rainbow-nowcast's handler_test.ts), which Node can't run (they
-# import Deno's @std/assert) — run those separately via `deno test`.
+# weather plugins' suite, plugins/README.md).
 run = [
   "node scripts/build-config-page.js",
   "node --test 'test/**/*.test.js' 'src/pkjs/config-ui/test/**/*.test.js' 'plugins/test/**/*.test.js'",
@@ -140,10 +126,3 @@ run = [
 description = "Host-compiled C tests (layout golden rects; 'mise test-c -- dump' prints actuals)"
 run = "scripts/test-c.sh"
 
-[tasks.test-deno]
-description = "Type-check each Edge Function's entrypoint, then run its Deno test suite (rainbow-nowcast + news + telemetry-ingest) — separate runner from 'mise test' (Node can't run Deno's @std/assert imports). The suites test handler.ts and never import index.ts (whose top-level Deno.serve would bind a port), so they need no permissions; 'deno check index.ts' covers the entrypoint's wiring without running it. CI runs this before 'supabase functions deploy', so it is the deploy gate."
-run = [
-  "cd supabase/functions/rainbow-nowcast && deno check index.ts && deno test",
-  "cd supabase/functions/news && deno check index.ts && deno test",
-  "cd supabase/functions/telemetry-ingest && deno check index.ts && deno test",
-]

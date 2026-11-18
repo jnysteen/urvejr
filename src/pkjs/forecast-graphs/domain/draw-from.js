@@ -2,7 +2,7 @@
 // line of an amount metric, the forecast's rain bars and the radar graph's rain bars
 // start. Bottom (the default) stands them on the graph's bottom, as always; Top hangs
 // them from the top of the graph, a bigger value reaching further down. THE one reading
-// of the six settings, for the wire (forecast-graphs/domain/graph-wire.js, which encodes it), telemetry
+// of the six settings, for the wire (forecast-graphs/domain/graph-wire.js, which encodes it)
 // and the settings page (which picker a Draw from row sits under, the rows' hints, the
 // Visible values: Alert scale hint, the forecast and radar previews), so they can never
 // disagree.

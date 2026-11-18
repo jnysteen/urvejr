@@ -32,17 +32,14 @@ function bootWithUnresolvableAddress(t, answer, ticks) {
     removeItem: (k) => { delete store[k]; },
   };
   // An existing install with a typo for its location and no successful fetch
-  // yet; a fresh update-check stamp keeps the daily check off the network.
+  // yet.
   store['clay-settings'] = JSON.stringify({ location: 'Muenchnxq' });
-  store.last_update_check = String(Date.now());
 
   const listeners = {};
   global.Pebble = {
     addEventListener: (name, fn) => { listeners[name] = fn; },
     getActiveWatchInfo: () => ({ platform: 'basalt', model: 'qemu_platform_basalt', language: 'en' }),
-    getAccountToken: () => 'test-token',
     sendAppMessage: (dict, ack) => { if (ack) { ack(); } },
-    showSimpleNotificationOnPebble: () => {},
     openURL: () => {},
   };
   let liq = 0;

@@ -26,7 +26,7 @@ var CLAY_RETRY_MAX_TICKS = 4;
  * @param {function(string, Function=, Function=):void} deps.resendStatus Re-bake the status category from the last bake's payload against the live settings and send it (status-rebake.js); calls onSuccess after ACK (or immediately when unchanged or there is nothing to re-bake), onFailure on NACK.
  * @param {function():boolean} deps.shouldFetchNow True when a non-forced refresh is due.
  * @param {function():void} deps.refreshHolidays Ensure holiday data is cached; new data comes back through onHolidaysUpdated.
- * @param {function():void} deps.checkForUpdate Once-per-day appstore update check.
+ * @param {function():void} deps.onTick Runs once per tick (index.js onSchedulerTick).
  * @param {function():void} deps.clearClayCache Forget the last-sent Clay so the next send goes through.
  * @param {function():void} deps.clearWeatherCaches Forget the last-sent weather categories.
  * @param {function():void} [deps.clearNoticeOnWatch] Push an empty NOTICE_TEXT to clear the watch overlay (used on a pure "Understood" dismiss).
@@ -376,7 +376,7 @@ function createChannelScheduler(deps) {
      * on an auto-theme day/night flip (skipped when the day-change resend
      * already carried the flipped theme this tick — one Clay send per tick
      * keeps the half-duplex channel clean), attempt a non-forced weather fetch
-     * when due, run the daily update check, then re-arm one minute out.
+     * when due, run the onTick hook, then re-arm one minute out.
      *
      * @returns {void}
      */
@@ -394,7 +394,7 @@ function createChannelScheduler(deps) {
         if (deps.shouldFetchNow()) {
             deps.startFetch(false);
         }
-        deps.checkForUpdate();
+        deps.onTick();
         deps.setTimeout(tick, 60 * 1000); // 60 * 1000 milsec = 1 minute
     }
 

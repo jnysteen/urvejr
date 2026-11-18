@@ -17,7 +17,7 @@
   },
   "claySettings": {
     "provider": "dwd",
-    "radarProvider": "rainbow",
+    "radarProvider": "rainbowkey",
     "temperatureUnits": "c",
     "axisTimeFormat": "24h",
     "secondaryLine": "wind",

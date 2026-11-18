@@ -42,8 +42,7 @@ function clearRadarTuples() {
 
 /**
  * Whether a radar answer is the CLEAR above (empty trend array): radar switched
- * off, or a source that can never answer (no key/endpoint, rejected key, a
- * missing Rainbow proxy). The out-of-coverage answer is a clear too, one that
+ * off, or a source that can never answer (no key, rejected key). The out-of-coverage answer is a clear too, one that
  * carries its notice (isOutOfCoverageRadarTuples).
  *
  * @param {?Object} tuples Radar tuples, or null/undefined (no answer).

@@ -13,7 +13,7 @@
 // exists.
 //
 // Contexts: weather, forecast-graphs, status-bars, alerts, layout, calendar, theme, health,
-// settings, wire, notices, telemetry. Two homes are not contexts: shell (the composition root)
+// settings, wire, notices. Two homes are not contexts: shell (the composition root)
 // and lib (generic helpers). A file that mixes rules with runtime calls is filed as domain and
 // listed in the test's allow-list, so the split it needs stays visible.
 
@@ -26,7 +26,7 @@ const HOMES = {
 };
 
 const CONTEXTS = ['weather', 'forecast-graphs', 'status-bars', 'alerts', 'layout', 'calendar',
-  'theme', 'health', 'settings', 'wire', 'notices', 'telemetry'];
+  'theme', 'health', 'settings', 'wire', 'notices'];
 const ROLES = ['domain', 'application', 'adapter'];
 
 const BY_FILE = {};

@@ -34,15 +34,13 @@ test('Setup lists the privacy summary and every data source with its licence', (
   ['Open-Meteo.com', 'MET Norway', 'Deutscher Wetterdienst', 'OpenWeather', 'Tomorrow.io', 'Weather Underground',
     'Yandex Weather', 'Rainbow.ai', 'Copernicus Atmosphere Monitoring Service', 'World Air Quality Index Project',
     'powered by Esri', 'LocationIQ.com', 'GeoNames', 'Nager.Date', 'CC BY 4.0', '&copy; OpenWeather',
-    'never sends your location'].forEach((name) => assert.ok(texts.indexOf(name) !== -1, name));
+    'collects no usage data'].forEach((name) => assert.ok(texts.indexOf(name) !== -1, name));
   assert.ok(setup.sections.some((s) => s.id === 'privacy'), 'the card sits in Setup');
 });
 
-test('the telemetry switch sits in Setup › Privacy & data sources, above what it sends, not in Misc', () => {
+test('the privacy card holds no telemetry switch: nothing is collected', () => {
   const setup = schema.tabs.find((t) => t.id === 'setup');
   const privacy = setup.sections.find((s) => s.id === 'privacy');
-  assert.equal(privacy.items[0].messageKey, 'telemetryEnabled', 'the card opens with the switch');
-  assert.equal(privacy.items[0].defaultValue, true);
-  const misc = setup.sections.find((s) => s.id === 'about');
-  assert.ok(!misc.items.some((i) => i.messageKey === 'telemetryEnabled'), 'no longer in Misc');
+  assert.ok(privacy.items.every((i) => i.type === 'staticText'), 'only the summary and the data sources');
+  assert.equal(byKey('telemetryEnabled'), undefined);
 });

@@ -42,7 +42,7 @@ const DEFAULT_SCREENS = [
  */
 function preset(over) {
   return Object.assign({ layoutPreset: 'compactCal', radarMode: 'graph', healthMode: 'all', swapClockStatus: true,
-    radarEnabled: true, radarProvider: 'rainbow', viewCount: '1' }, over || {});
+    radarEnabled: true, radarProvider: 'metno', viewCount: '1' }, over || {});
 }
 
 /**
@@ -159,7 +159,7 @@ test('Rain radar Off keeps the source, and the radar\'s screen with it', () => {
   const S = preset();
   SP.radarSourcePicked(S, 'rainbow', 'off', EMERY);
   assert.equal(S.radarEnabled, false);
-  assert.equal(S.radarProvider, 'rainbow', 'Off keeps the source');
+  assert.equal(S.radarProvider, 'metno', 'Off keeps the source');
   assert.equal(S.radarMode, 'off', 'no radar fetch');
   assert.equal(S.layoutPreset, 'custom', 'turned custom first: a preset\'s screens follow its modes');
   assert.deepEqual(M.screensOf(S, EMERY), DEFAULT_SCREENS, 'the Rain radar screen stays, drawn without radar');
@@ -616,7 +616,7 @@ test('the radar off: the Rain radar row says so with a way back on, and the pict
   page.openSelect('radarSource');
   page.pickOption('radarSource', 'off');
   assert.equal(page.S.radarEnabled, false);
-  assert.equal(page.S.radarProvider, 'rainbow', 'the source is kept');
+  assert.equal(page.S.radarProvider, 'dwd', 'the source is kept');
   page.clickTab('watchface');
   assert.equal(cardRows(page.scroll.innerHTML)[2][1], 'Clock · Radar bar · Rain radar (off)');
   page.tapAction('openScreen', 2);
@@ -627,7 +627,7 @@ test('the radar off: the Rain radar row says so with a way back on, and the pict
   page.tapEditor({ se: 'radaron' });
   ed = editorOf(page);
   assert.equal(page.S.radarEnabled, true);
-  assert.equal(page.S.radarProvider, 'rainbow');
+  assert.equal(page.S.radarProvider, 'dwd');
   assert.equal(ed.body.indexOf('The rain radar is off.'), -1);
   assert.equal(page.S.radarMode, 'graph');
 });

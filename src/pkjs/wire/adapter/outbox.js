@@ -31,14 +31,10 @@
  * only, never a wake-up: the ride-along (setRideAlong) is asked once the message is
  * known to go out, and its values join it wherever they differ from what was last
  * sent (the phone battery's exact reading, phone-battery.js statusRideAlong).
- *
- * Every compare/send cycle is reported to dev-stats as a semantic descriptor
- * (skip immediately; ack/nack from the AppMessage callbacks).
  */
 
 var KEYS = require('../../settings/domain/storage-keys');
 var ChangeDetector = require('./change-detector');
-var devStats = require('../../telemetry/adapter/dev-stats');
 
 // Numbers each send in this PKJS life (sendCount) and keeps, per cache key, the
 // number of the newest send that carried its category (newestSend): an ACK
@@ -48,34 +44,17 @@ var newestSend = {};
 
 var WEATHER_CATEGORIES = require('../domain/weather-categories.js');
 
-// The two kinds of message, and what sets them apart: the label a send logs, the type
-// dev-stats records it as, and the ride-along a weather message asks (setRideAlong) and
-// a settings message never takes.
-var WEATHER = { label: 'weather', statsType: 'weather', rideAlong: null };
-var CLAY = { label: 'clay', statsType: 'setting', rideAlong: null };
-
-/**
- * Distill a comparison result into the dev-stats descriptor.
- *
- * @param {string} type 'weather' or 'setting'.
- * @param {Object} result ChangeDetector result.
- * @param {string} outcome 'ack', 'nack', or 'skip'.
- * @returns {{type: string, outcome: string, categories: Object}} Descriptor for devStats.record().
- */
-function statsDescriptor(type, result, outcome) {
-    var categories = {};
-    result.categories.forEach(function(entry) {
-        categories[entry.name] = entry.changed ? 'updated' : 'cached';
-    });
-    return { type: type, outcome: outcome, categories: categories };
-}
+// The two kinds of message, and what sets them apart: the label a send logs and the
+// ride-along a weather message asks (setRideAlong) and a settings message never takes.
+var WEATHER = { label: 'weather', rideAlong: null };
+var CLAY = { label: 'clay', rideAlong: null };
 
 /**
  * Send the changed parts of a payload as one AppMessage.
  *
  * @param {Object} payload Full candidate payload.
  * @param {Array} categories Category descriptors to dedupe against.
- * @param {{label: string, statsType: string, rideAlong: ?Function}} kind WEATHER or CLAY.
+ * @param {{label: string, rideAlong: ?Function}} kind WEATHER or CLAY.
  * @param {Function} [onSuccess] Called after ACK, or immediately when nothing changed.
  * @param {Function} [onFailure] Called on NACK.
  * @returns {void}
@@ -109,7 +88,6 @@ function sendChangedCategories(payload, categories, kind, onSuccess, onFailure) 
 
     if (changed.length === 0) {
         console.log('Outbox: ' + label + ' unchanged, skipping send.');
-        devStats.record(statsDescriptor(kind.statsType, result, 'skip'));
         if (typeof onSuccess === 'function') {
             onSuccess();
         }
@@ -135,13 +113,11 @@ function sendChangedCategories(payload, categories, kind, onSuccess, onFailure) 
                 localStorage.setItem(entry.cacheKey, entry.serialized);
             }
         });
-        devStats.record(statsDescriptor(kind.statsType, result, 'ack'));
         console.log('Outbox: ' + label + ' sent successfully.');
         if (typeof onSuccess === 'function') {
             onSuccess();
         }
     }, function(e) {
-        devStats.record(statsDescriptor(kind.statsType, result, 'nack'));
         console.log('Outbox: ' + label + ' send failed: ' + JSON.stringify(e));
         if (typeof onFailure === 'function') {
             onFailure(e);

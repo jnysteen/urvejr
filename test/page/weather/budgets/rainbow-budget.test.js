@@ -5,7 +5,7 @@ const budget = require('../../../../src/pkjs/page/weather/budgets/rainbow-budget
 const tio = require('../../../../src/pkjs/page/weather/budgets/tomorrowio-budget.js');
 const radarFactory = require('../../../../src/pkjs/weather/adapter/radar-factory.js');
 
-// Base state: radar on "Rainbow (own key)", graph mode, night pause off.
+// Base state: radar on Rainbow, graph mode, night pause off.
 function S(over) {
   return Object.assign({
     radarProvider: 'rainbowkey', radarMode: 'graph',
@@ -33,9 +33,8 @@ test('callsPerCycle: one call whenever Rainbow on the user\'s own key drives a r
   assert.equal(budget.callsPerCycle(noMode), 1, 'a missing radarMode counts as on');
 });
 
-test('callsPerCycle: nothing billed with radar off, "Rainbow (limited)" or any other radar source', () => {
+test('callsPerCycle: nothing billed with radar off or any other radar source', () => {
   assert.equal(budget.callsPerCycle(S({ radarMode: 'off' })), 0, 'radar off');
-  assert.equal(budget.callsPerCycle(S({ radarProvider: 'rainbow' })), 0, 'the shared Rainbow radar bills the user nothing');
   ['tomorrowio', 'dwd', 'metno'].forEach((src) => {
     assert.equal(budget.callsPerCycle(S({ radarProvider: src })), 0, 'radarProvider ' + src);
   });

@@ -49,8 +49,7 @@ var NIGHT_LIGHT_BYTES = 5;
 /**
  * Is the Dim backlight switch on? ABSENT reads as ON — the toggle ships on
  * (schema.js's backlightDim defaultValue), so a blob that predates it, or one a
- * fixture built by hand, must not read as off. Same rule as telemetry-settings.js's
- * boolDefaultOn, which reports the same toggle.
+ * fixture built by hand, must not read as off.
  *
  * @param {Object} settings Clay settings blob (reads backlightDim).
  * @returns {boolean} True when the feature is enabled.

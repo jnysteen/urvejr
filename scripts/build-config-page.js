@@ -147,7 +147,7 @@ var APP_FILES = [
   path.join(ROOT, 'src/pkjs/page/forecast-graphs/forecast-sample.js'),
   path.join(ROOT, 'src/pkjs/page/forecast-graphs/preview-forecast.js'),
   path.join(ROOT, 'src/pkjs/page/weather/preview-radar.js'),
-  path.join(ROOT, 'src/pkjs/page/telemetry/preview-diagnostics.js'),
+  path.join(ROOT, 'src/pkjs/page/weather/last-fetch.js'),
   // The slot-text chain the watch-runtime bake prints every phone-baked slot through
   // (window.Utf8 -> window.StatusPair -> window.SlotText, each reading the ones before
   // it, and StatusLineCatalog, at IIFE time) and the date slot's formats
@@ -252,13 +252,10 @@ var APP_FILES = [
   path.join(ROOT, 'src/pkjs/page/settings/wizard/wizard-upsell.js'),
   path.join(ROOT, 'src/pkjs/page/settings/wizard/wizard.js'),
   path.join(ROOT, 'src/pkjs/page/settings/onbuild.js'),
-  // key-test.js must precede its three consumers (window.KeyTest factory).
+  // key-test.js must precede its two consumers (window.KeyTest factory).
   path.join(ROOT, 'src/pkjs/page/weather/keys/key-test.js'),
   path.join(ROOT, 'src/pkjs/page/weather/keys/owm-key-test.js'),
   path.join(ROOT, 'src/pkjs/page/weather/keys/tomorrowio-key-test.js'),
-  path.join(ROOT, 'src/pkjs/page/weather/keys/rainbow-key-test.js'),
-  path.join(ROOT, 'src/pkjs/notices/domain/news-protocol.js'),
-  path.join(ROOT, 'src/pkjs/page/notices/news.js'),
   path.join(ROOT, 'src/pkjs/page/theme/theme-convert.js'),
   path.join(ROOT, 'src/pkjs/page/status-bars/reset-status-defaults.js'),
   path.join(ROOT, 'src/pkjs/page/notices/notices-panel.js'),

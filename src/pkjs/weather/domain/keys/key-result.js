@@ -9,7 +9,7 @@
 // by source id:
 //   {<id>: {keyHash, status}}
 // — the source the phone asked (a weather provider's id, or a radar source's:
-// 'rainbowkey' for "Rainbow (own key)"), the fingerprint of the key the request carried
+// 'rainbowkey' for "Rainbow"), the fingerprint of the key the request carried
 // (key-fingerprint.js, never the key itself) and the HTTP status that answered it.
 // Tomorrow.io's key serves the forecast and the radar under the one id 'tomorrowio', so
 // the newest answer either of them got is that key's verdict. Who writes it:

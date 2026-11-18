@@ -22,7 +22,7 @@ function probe(platform, opts) {
 }
 
 test('the sky request goes out while the radar request is still in flight', () => {
-  const out = probe('emery', { settings: { radarProvider: 'rainbow', radarSky: true }, holdRadar: true });
+  const out = probe('emery', { settings: { radarProvider: 'rainbowkey', rainbowApiKey: 'K', radarSky: true }, holdRadar: true });
   assert.ok(out.radarRequests >= 1, 'the radar half did run');
   assert.ok(out.skyRequests >= 1, 'the sky half did run');
   assert.equal(out.skyBeforeRadarAnswer, true, 'the sky did not wait for the radar to answer');
