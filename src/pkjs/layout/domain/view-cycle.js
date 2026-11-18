@@ -709,8 +709,6 @@ function buildViewCycle(presetKey, healthMode, radarMode, swapClockStatus) {
   // DORMANT: the settings page hides the option and shows "Compact calendar" (and its
   // swap toggle) in its place. Its cycle is already compactCal's, so compile it AS
   // compactCal — swap included — or the watch would ignore the swap the page offers.
-  // Keep in step with schema.js's swapClockStatus gate (aplite's Layout card, the one
-  // place a preset is still picked).
   if (presetKey === 'compactDense' && mode === 'off' && !radarShowsView) {
     presetKey = 'compactCal';
   }

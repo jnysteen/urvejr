@@ -33,9 +33,8 @@
 // too (cardSaid).
 //
 // WHICH ONES A WATCH GETS. Only the ones it can draw (offered): Blank and the forecast screen on
-// every watch, Dense on one with the rain radar, Health and Health + forecast on a watch with
-// health, Rain radar and Radar + forecast on one with the rain radar; the templates on a watch with
-// graph styles (templates). aplite has no screens.
+// every watch, Dense, Health and Health + forecast, Rain radar and Radar + forecast; the
+// templates (templates).
 //
 // Dual-context: a CommonJS module in the tests, a plain concatenated <script> in the settings-page
 // webview (scripts/build-config-page.js' APP_FILES, after screens.js and ahead of the modules that

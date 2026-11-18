@@ -363,10 +363,7 @@
 
   /**
    * The warn look a kind takes while its thresh<Kind>WarnLook is unset: goal kinds
-   * the outline (their green "close" ring), weather kinds a fill on a colour watch
-   * and an outline on a B&W one — there a warn fill would be the danger fill (both
-   * solid in the one ink), so the outline is the only look that keeps the two
-   * levels apart. The settings page's defaultFrom resolver (blocks.js
+   * the outline (their green "close" ring), weather kinds a fill. The settings page's defaultFrom resolver (blocks.js
    * warnLookDefault) calls this too, so the page and the packer always agree,
    * and the page never stores the look it resolves here (the item's defaultFrom
    * is sticky: false): the key stays unset until a pick differs from the saving

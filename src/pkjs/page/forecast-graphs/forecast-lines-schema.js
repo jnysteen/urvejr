@@ -162,8 +162,7 @@ function lineShowCopy(pickerKey, metric) {
 /**
  * One Draw from [Bottom | Top] row (draw-from.js ROWS entry) under one picker: shown under
  * the FIRST line that hangs from the key (draw-from.js rowLine, the wire's own reading):
- * one that draws one of the row's metrics (never a stored repeat) as a line or marks, on
- * a watch with line styles (aplite never hangs a line). When the first wind/gust line is
+ * one that draws one of the row's metrics (never a stored repeat) as a line or marks. When the first wind/gust line is
  * a stripe the row moves to the next one that is a line (a stripe keeps its own
  * Top/Bottom). Stored per metric (wind and gusts share one key), so the row follows its
  * metric from picker to picker; a stored Top on a stripe or an undrawn line lies dormant

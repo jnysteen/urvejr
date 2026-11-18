@@ -205,8 +205,7 @@ var PConf = (typeof global !== 'undefined' && global.PConf) ? global.PConf
 
     /**
      * The rows of an item's Shows on grid (alerts-schema.js showsOnRows; a checklist): one per
-     * status bar the watch draws (on-demand.js barExists, the rule the Status bars tab's
-     * bar gates RADAR_BAR_WHEN / HEALTH_BAR_WHEN state), in the page's order. Each row
+     * status bar the watch draws (on-demand.js barExists), in the page's order. Each row
      * names its two side lists in meta.keys (Left, Right), the lists its ticks read and
      * write (reset-status-defaults.js onDemandTick). A bar no screen shows keeps an inert
      * row that says so. While the item
@@ -225,9 +224,8 @@ var PConf = (typeof global !== 'undefined' && global.PConf) ? global.PConf
             var bar = b.bar;
             var reason = null;
             if (!onDemand.barExists(S, bar)) {
-                // A bar this watch can never draw (no radar or health on aplite-class
-                // hardware) has no row; one whose view is merely off is shown inert, with
-                // the reason, so the grid always lists the same bars.
+                // A bar 4 to 6 not made has no row; one no screen shows is shown inert,
+                // with the reason, so the grid always lists the same bars.
                 reason = barOffReason(S, bar, env);
                 if (reason === null) { return; }
             }
@@ -241,8 +239,7 @@ var PConf = (typeof global !== 'undefined' && global.PConf) ? global.PConf
 
     /**
      * Why a bar is not drawn, for its inert Shows on row: no screen shows it, by its name. null
-     * for a bar this watch cannot draw at all, and a bar 4 to 6 not made (no row then: screens.js
-     * offered).
+     * for a bar 4 to 6 not made (no row then: screens.js offered).
      * @param {Object} S Live settings state.
      * @param {string} bar An on-demand.js BARS bar.
      * @param {Object} env Platform env.

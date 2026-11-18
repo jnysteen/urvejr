@@ -213,9 +213,7 @@ var PConf = (typeof global !== 'undefined' && global.PConf) ? global.PConf
      * (alertScaleCopy) and the UV line's Visible values hint (lineShowHint).
      * @param {string} metric The line's metric.
      * @param {Object} [S] Live settings state.
-     * @param {Object} [env] Platform env, as line-alert.js alertBands reads it: `lineStyles`
-     *   = the watch draws the Third and Fourth metric lines (whose metrics can share a
-     *   band); `onDemand` false = no Alerts tab (aplite), so every line draws All.
+     * @param {Object} [env] Platform env; unused.
      * @returns {?{bottom: string, top: string, full: string}} The three levels as
      *   printed ('UV 6', '40 kph'); null when the line is not drawn or shows All.
      */

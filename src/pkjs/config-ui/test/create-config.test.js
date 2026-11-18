@@ -69,7 +69,7 @@ test('Layer-1 Clay-compat: getSettings persists, setSettings RMW, meta.userData 
   assert.equal(JSON.parse(store.getItem('clay-settings')).provider, 'dwd');
   // no-arg generateUrl reads values from storage + userData from meta.userData
   inst.meta.userData = { lastFetchSuccess: 'X' };
-  const decoded = decodeURIComponent(inst.generateUrl({ watchInfo: { platform: 'basalt' } }));
+  const decoded = decodeURIComponent(inst.generateUrl({}));
   assert.ok(decoded.indexOf('"provider":"dwd"') !== -1, 'values pulled from storage');
   assert.ok(decoded.indexOf('"lastFetchSuccess":"X"') !== -1, 'userData pulled from meta');
 });

@@ -90,7 +90,7 @@
      * Whether a wind or gust slot draws its direction arrow (status-lines.js
      * arrowSector, the sample having a bearing): its Show wind direction toggle is on,
      * the slot shows the current reading (Day max alone prints the peak, not the wind
-     * the arrow describes), and the watch has the arrow at all (not aplite). The slot's
+     * the arrow describes). The slot's
      * unit leaves the arrow its byte; packLine then appends it only into a free one.
      * @param {string} code The slot's item.
      * @param {Object} S Settings.
@@ -361,8 +361,7 @@
     /**
      * The pictures' frame: the watch's screen in its theme's ink. The watch draws the bars in
      * its theme's ink (status_row.c: theme_fg() on the theme's background), so a light theme
-     * previews black on white, except on a watch without the light polarity (aplite), which
-     * always draws white on black. Spans throughout, so a picture may sit inside a button (the
+     * previews black on white. Spans throughout, so a picture may sit inside a button (the
      * Your status bars card's rows).
      * @param {Object} S Settings.
      * @param {Object} env Platform env.

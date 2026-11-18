@@ -822,8 +822,8 @@ var PConf = (typeof global !== 'undefined' && global.PConf) ? global.PConf
     function barsCard(S, env) {
         var st = S || {}, cycle = VC.screensCycle(st);
         var h = ['top'].concat(M.yourBars(st)).map(function (bar) {
-            var name = M.barName(st, bar), places = cycle ? barPlaces(st, env, bar, cycle) : null;
-            var where = !places ? '' : places.length ? places.map(function (i) { return M.nameOf(st, i); }).join(', ')
+            var name = M.barName(st, bar), places = barPlaces(st, env, bar, cycle);
+            var where = places.length ? places.map(function (i) { return M.nameOf(st, i); }).join(', ')
                 : 'No screen';
             var sheet = M.barSheet(bar), alerts = barAlerts(st, env, bar);
             return '<div class="ui-row bl-bar"><button type="button" class="bl-open" data-edit-sheet="' + sheet + '">'
@@ -831,7 +831,7 @@ var PConf = (typeof global !== 'undefined' && global.PConf) ? global.PConf
                 + (where ? '<span class="ui-d">' + esc(where) + '</span>' : '') + '</span>'
                 + (alerts ? '<span class="ui-d bl-al"><span class="bl-al-cap">Alerts</span><span class="bl-al-runs">' + alerts
                     + '</span></span>' : '') + '</span>'
-                + PSB.barPicture(st, env, bar, { dim: Boolean(places && !places.length) }) + '</span>'
+                + PSB.barPicture(st, env, bar, { dim: !places.length }) + '</span>'
                 + '<span class="bl-go" aria-hidden="true">' + kit.navArrow() + '</span></button></div>';
         }).join('');
         if (M.freeBar(st)) {

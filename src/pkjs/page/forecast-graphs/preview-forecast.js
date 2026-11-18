@@ -453,8 +453,7 @@ var PConf = (typeof global !== 'undefined' && global.PConf && global.PConf.block
         var windMax = lineAlert.scaleTop(state, 'wind');
         var pCurve = PRESSURE_CURVES[state.pressureScale] || PRESSURE_CURVES.mid;
         // A wind, gust or UV line drawn Show: Alert: the band the bake maps it over, for
-        // the lines this watch draws (the shared wind/gust band only where both draw), on
-        // a watch with Alert settings (aplite draws every line All).
+        // the lines this watch draws (the shared wind/gust band only where both draw).
         var alertBands = lineAlert.alertBands(state);
         // Such a line draws its sample redrawn against the user's levels (alertSamples).
         var shown = alertSamples(state, alertBands, { wind: wind, gust: gust, uv: uv });
@@ -562,12 +561,7 @@ var PConf = (typeof global !== 'undefined' && global.PConf && global.PConf.block
         // and the temperature curve sits under it (yT). The hi/lo LABELS name the actual
         // temperature's range, wherever its curve sits. A flat joint range gives no scale:
         // then, as on the watch, it sits mid-plot. Each line is gated on its own
-        // LINES[i].on, not on bare effectiveLineMetric: previewing a watch without
-        // WW_LINE_STYLE turns the third- and fourth-metric lines off while
-        // effectiveLineMetric would still name their metric, and a line nobody draws must not
-        // widen that range. Previewing aplite none widens it: the bake never sends a feels or
-        // dew line there (forecast-series.js tempAxisLineDrawn) and the frozen fork has no
-        // fit, so a stored pick leaves the temperature on its own range. Each drawn line is
+        // LINES[i].on: a line nobody draws must not widen that range. Each drawn line is
         // kept with its samples, in line order: the range reads the samples, the numbers on
         // the graph (drawNumbersOnGraph) the lines' styles too.
         var axisLines = [];
@@ -623,7 +617,7 @@ var PConf = (typeof global !== 'undefined' && global.PConf && global.PConf.block
         // its label font's digit cap (status_metrics.h: half the size plus 2) and its pixel.
         var labelScale = watch ? { cap: (labelCh / 2 + 2) * watch.u, px: watch.u, row: watch.u } : undefined;
         // On an anchored edge (the rain bars' or a drawn amount line's with a value above 0:
-        // draw-from.js forecastAnchors; none previewing aplite, whose margins are frozen) the
+        // draw-from.js forecastAnchors) the
         // margin is at least the share (anchorShare: the eighth, or the curve past it) of the
         // band [MT, PB], the plot the metrics map into between the stripe bands —
         // temp_axis_pad.h temp_axis_margin, mirrored. Both edges start from the inset, the
@@ -834,7 +828,7 @@ var PConf = (typeof global !== 'undefined' && global.PConf && global.PConf.block
         }
         /**
          * Whether a metric's line hangs from the top (Draw from: Top, draw-from.js
-         * metricFromTop: never previewing aplite). Only the five amount metrics have the
+         * metricFromTop). Only the five amount metrics have the
          * setting; a temperature-axis curve never hangs. Only a drawn line or marks, or the
          * Main metric's fill, ever asks (stripes shade by level and keep their own
          * Top/Bottom), which is lineEdge's rule.
@@ -1367,7 +1361,7 @@ var PConf = (typeof global !== 'undefined' && global.PConf && global.PConf.block
         // Where they go is the left axis option (ax.numbers): on the axis (today), on
         // the graph (drawNumbersOnGraph) or nowhere.
         // On axis: where there is space each label's ink sits level with the curve's extreme
-        // it names (alignLabels; never previewing aplite, whose labels are frozen). Today's
+        // it names (alignLabels). Today's
         // reach gates the lo label always and the hi label only without a top stripe band:
         // under one the watch's plain rule applies (see alignLabels).
         if (axisOn && watch) {

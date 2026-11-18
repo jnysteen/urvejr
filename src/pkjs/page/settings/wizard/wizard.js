@@ -85,8 +85,8 @@ var PConf = (typeof global !== 'undefined' && global.PConf) ? global.PConf
         compactCal: 'Shows a two-row calendar, which leaves more room for the forecast.',
         noCal: 'Shows a big clock and the date above a full-size forecast.'
     };
-    // schema.js' two theme selects: colour watches get four, black-and-white ones dark and light.
-    var THEME_OPTS_COLOR = [['Dark', 'dark'], ['Light', 'light'], ['B&W', 'bw'], ['B&W inverted', 'bw-light']];
+    // schema.js' theme select's four themes.
+    var THEME_OPTS = [['Dark', 'dark'], ['Light', 'light'], ['B&W', 'bw'], ['B&W inverted', 'bw-light']];
     var THEME_DESC = {
         dark: 'Shows white text and lines on a black background. This is the default.',
         light: 'Shows black text and lines on a white background.',
@@ -108,7 +108,7 @@ var PConf = (typeof global !== 'undefined' && global.PConf) ? global.PConf
             write: pickLayout
         },
         theme: {
-            options: function () { return THEME_OPTS_COLOR; },
+            options: function () { return THEME_OPTS; },
             desc: function () { return THEME_DESC; },
             write: pickTheme
         },

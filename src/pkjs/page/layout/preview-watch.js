@@ -783,7 +783,7 @@
         + 'body.light .wpv-card{box-shadow:0 4px 12px rgba(0,0,0,.16),0 0 0 1px var(--card-line)}'
         + '.wpv-scr{display:block;width:100%;height:auto}'
         + '.wpv-cap{display:block;margin-top:7px;font:700 11.5px Inter,-apple-system,system-ui,sans-serif;color:var(--muted)}'
-        // A screen is a button that opens its editor (screens-page.js), on every watch but aplite.
+        // A screen is a button that opens its editor (screens-page.js).
         + '.wpv-btn{border:none;background:none;padding:0;margin:0;cursor:pointer;font:inherit;color:inherit}'
         + '.wpv-btn:focus-visible .wpv-card{box-shadow:0 0 0 2px var(--link)}'
         + '.wpv-tap{display:block;margin-top:8px;text-align:center;font:500 11px Inter,-apple-system,system-ui,sans-serif;color:var(--faint)}';
@@ -801,10 +801,9 @@
     }
 
     /**
-     * The block: every screen as the watch draws it, side by side and named. On every watch
-     * but aplite each is a button that opens its editor (screens-page.js openScreen), a
-     * screen with nothing on it too (its bare screen: the watch skips it); aplite draws its
-     * one screen.
+     * The block: every screen as the watch draws it, side by side and named. Each is a
+     * button that opens its editor (screens-page.js openScreen), a screen with nothing on
+     * it too (its bare screen: the watch skips it).
      * @param {Object} S Live settings.
      * @param {Object} env Platform env.
      * @param {Object} [userData] Page userData.
