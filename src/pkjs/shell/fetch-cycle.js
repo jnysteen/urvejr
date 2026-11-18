@@ -25,7 +25,6 @@
 var storageKeys = require('../settings/domain/storage-keys.js');
 var fetchOptions = require('../weather/domain/fetch-options.js');
 var batterySaver = require('../wire/domain/battery-saver.js');
-var platformLib = require('../config-ui/lib/platform.js');
 var radarFactory = require('../weather/adapter/radar-factory.js');
 var radarWire = require('../weather/domain/radar/radar-wire.js');
 var radarSky = require('../weather/domain/radar/radar-sky.js');
@@ -253,7 +252,6 @@ function runCycle(deps) {
  *
  * @param {Object} deps Injected behavior + environment.
  * @param {function():Object} deps.getSettings Live Clay settings (index.js reassigns them on config close/reset — never cache the object).
- * @param {function():?Object} deps.getWatchInfo Live getActiveWatchInfo() result, or null.
  * @param {function():Object} deps.getProvider Live weather provider (refreshProvider replaces it mid-session).
  * @param {function():boolean} deps.isWatchConnected True when a watch is connected.
  * @param {{sendWeather: Function, clearWeatherCaches: Function, clearNoticeCache: Function}} deps.outbox The deduping outbox.
@@ -448,7 +446,7 @@ function createFetchCycle(deps) {
         console.log('Fetching from ' + provider.name);
         // This fetch's knobs (UV/AQI/pollen requests, feels work + formula, day-max
         // codes, units, the WAQI token) as one value — set before any request is built.
-        provider.options = fetchOptions.build(deps.getSettings(), deps.getWatchInfo(), { waqiToken: deps.env.waqiToken });
+        provider.options = fetchOptions.build(deps.getSettings(), { waqiToken: deps.env.waqiToken });
         fetchInProgress = true;
         // This fetch's once-guard: set by the first of success, failure or the
         // watchdog, after which every later completion from this fetch is a no-op.
@@ -609,7 +607,7 @@ function createFetchCycle(deps) {
          * @returns {Object} The render-ready wire payload.
          */
         function toRenderPayload(payload) {
-            return renderPayload.toRenderPayload(payload, deps.getSettings(), deps.getWatchInfo(),
+            return renderPayload.toRenderPayload(payload, deps.getSettings(),
                 deps.now(), typeof deps.getPhoneBattery === 'function' ? deps.getPhoneBattery() : null);
         }
 

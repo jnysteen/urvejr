@@ -2,7 +2,6 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const W = require('../lib/show-when.js');
-const platform = require('../../config-ui/lib/platform.js');
 const ctx = { secondaryLine: 'wind', provider: 'dwd', devStatsEnabled: true, env: { color: false, platform: 'flint' } };
 
 test('leaf operators: eq/ne/in/nin/truthy + env', () => {
@@ -23,23 +22,18 @@ test('combinators: all/any/not/array-shorthand', () => {
   assert.equal(W.evaluate([{ key: 'provider', eq: 'dwd' }, { key: 'devStatsEnabled' }], ctx), true);
 });
 
-test('itemPredicate AND-merges COLOR capability; isVisible hides COLOR on b&w', () => {
-  assert.deepEqual(W.itemPredicate({ capabilities: ['COLOR'] }), { env: 'color' });
-  assert.deepEqual(W.itemPredicate({ showWhen: { key: 'barSource', eq: 'rain' }, capabilities: ['COLOR'] }),
-    { all: [{ key: 'barSource', eq: 'rain' }, { env: 'color' }] });
+test('itemPredicate is the item\'s showWhen; an item without one is visible', () => {
+  assert.deepEqual(W.itemPredicate({ showWhen: { key: 'barSource', eq: 'rain' } }), { key: 'barSource', eq: 'rain' });
   assert.equal(W.itemPredicate({ messageKey: 'x' }), null);
-  assert.equal(W.isVisible({ capabilities: ['COLOR'] }, ctx), false);
   assert.equal(W.isVisible({ messageKey: 'x' }, ctx), true);
 });
 
-test('{ env: <fact> } reads the env: the watch\'s facts show an item, no env hides it', () => {
-  ['colorBacklight', 'onDemand'].forEach((fact) => {
-    const item = { messageKey: 'x', showWhen: { env: fact } };
-    assert.equal(W.isVisible(item, { env: platform.computeEnv() }), true, fact);
-    assert.equal(W.isVisible(item, { env: { [fact]: false } }), false, fact + ' off');
-  });
-  assert.equal(W.isVisible({ messageKey: 'x', showWhen: { env: 'colorBacklight' } }, {}), false,
-    'no env at all: fail closed');
+test('{ env: <fact> } reads the env: a true fact shows an item, a missing one hides it', () => {
+  const item = { messageKey: 'x', showWhen: { env: 'phoneBattery' } };
+  assert.equal(W.isVisible(item, { env: { phoneBattery: true } }), true);
+  assert.equal(W.isVisible(item, { env: { phoneBattery: false } }), false, 'off');
+  assert.equal(W.isVisible(item, { env: {} }), false, 'missing');
+  assert.equal(W.isVisible(item, {}), false, 'no env at all: fail closed');
 });
 
 test('when: a leaf asks the named resolver; an unregistered name reads false', () => {

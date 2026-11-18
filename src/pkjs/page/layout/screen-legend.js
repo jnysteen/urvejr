@@ -48,7 +48,7 @@
     function groups(spec, S, env, userData) {
         return PW.graphKinds(spec, 1).map(function (graph) {
             var rows = graph === 'forecast' ? PF.legend(GSP.screenSettings(S, env, spec), env, userData)
-                : graph === 'health' ? PH.legend(S, env) : PR.legend(S, env, userData);
+                : graph === 'health' ? PH.legend(S) : PR.legend(S, env, userData);
             return { graph: graph, rows: rows.map(function (r) {
                 return Object.assign({ name: NAME[r.metric] || FM.legendName(r.metric) }, r);
             }) };

@@ -46,7 +46,7 @@ function seeded(over) {
  * @returns {number[]}
  */
 function words(S, platform) {
-  const p = buildClayPayload(S, { platform }, NOW);
+  const p = buildClayPayload(S, NOW);
   return [p.CLAY_VIEW_0, p.CLAY_VIEW_1, p.CLAY_VIEW_2];
 }
 
@@ -62,7 +62,7 @@ test('every preset × health × radar × swap: the same Clay message and the sam
       assert.deepEqual([after.radarMode, after.healthMode], [radarMode, healthMode], label);
       assert.equal(after.radarEnabled, radarMode !== 'off', label);
       // The whole Clay message, the views, modes, rain alert window and alert cells included.
-      assert.deepEqual(buildClayPayload(after, { platform }, NOW), buildClayPayload(before, { platform }, NOW), label);
+      assert.deepEqual(buildClayPayload(after, NOW), buildClayPayload(before, NOW), label);
       assert.equal(r.send, false, label + ': nothing to send');
       n++;
     })))));
@@ -73,11 +73,11 @@ test('the moved preset reads as its screens, and the modes the page works out ar
   const S = seeded({ layoutPreset: 'compactCal', healthMode: 'all', radarMode: 'graph', swapClockStatus: true });
   migrateToScreens(S, {});
   const b = (k, o) => Object.assign({ k }, o || {});
-  assert.deepEqual(M.screensOf(S, { platform: 'basalt' }), [
+  assert.deepEqual(M.screensOf(S), [
     [b('strip'), b('cal', { rows: '2' }), b('clock'), b('fcbar'), b('fc', { size: 'fill' })],
     [b('strip'), b('clock'), b('healthbar'), b('health', { size: 'fill' })],
     [b('strip'), b('clock'), b('radarbar'), b('radar', { size: 'fill' })]]);
-  assert.deepEqual(M.deriveModes(S, { platform: 'basalt' }), { radarMode: 'graph', healthMode: 'all' });
+  assert.deepEqual(M.deriveModes(S), { radarMode: 'graph', healthMode: 'all' });
 });
 
 test('a custom layout keeps the views 2.5 drew: a Radar bar its radar mode hid stays hidden', () => {
@@ -129,7 +129,7 @@ test('a flick screen with nothing on it stays a screen the watch skips', () => {
   migrateToScreens(S, {});
   assert.equal(S.viewCount, '3');
   assert.deepEqual(words(S, 'basalt'), before);
-  assert.deepEqual(M.screensOf(S, { platform: 'basalt' })[2], [{ k: 'strip' }]);
+  assert.deepEqual(M.screensOf(S)[2], [{ k: 'strip' }]);
 });
 
 test('health off: a health item 2.5 drew as an empty slot is stored as Empty', () => {
@@ -150,7 +150,7 @@ test('health slot: a health item in a shown slot keeps it, and so does none', ()
   // With none, the screens cannot tell 'slot' from 'off': the install keeps what it had.
   const without = seeded({ layoutPreset: 'compactCal', healthMode: 'slot' });
   migrateToScreens(without, {});
-  assert.equal(M.deriveModes(without, { platform: 'basalt' }).healthMode, 'off');
+  assert.equal(M.deriveModes(without).healthMode, 'off');
   assert.equal(without.healthMode, 'slot');
 });
 

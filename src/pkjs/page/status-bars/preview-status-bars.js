@@ -90,7 +90,7 @@
      * Whether a wind or gust slot draws its direction arrow (status-lines.js
      * arrowSector, the sample having a bearing): its Show wind direction toggle is on,
      * the slot shows the current reading (Day max alone prints the peak, not the wind
-     * the arrow describes), and the watch has the arrow at all (not aplite). The slot's
+     * the arrow describes). The slot's
      * unit leaves the arrow its byte; packLine then appends it only into a free one.
      * @param {string} code The slot's item.
      * @param {Object} S Settings.
@@ -199,8 +199,8 @@
         // As the bake prints it: no text in the Icon look; the name, with its short form
         // after catalog.ALT_SEP where the slot has the bytes (barSlots splits them).
         case 'condition':
-            if (slotText.conditionLook(S, c.env) === 'icon') { return ''; }
-            return slotText.conditionText(SAMPLE.condition, cap, c.env, slotText.conditionName(S));
+            if (slotText.conditionLook(S) === 'icon') { return ''; }
+            return slotText.conditionText(SAMPLE.condition, cap, slotText.conditionName(S));
         case 'countdown':
             return slotText.formatCountdown(c.slotKey ? S[c.slotKey + 'Countdown'] : undefined, now,
                 slotText.unitEnabled(S, 'countdownSlotUnit'), cap);
@@ -228,11 +228,11 @@
      * @returns {?string} The glyph's <svg>, or null for none.
      */
     function slotIcon(code, env, S) {
-        if (code === 'condition' && slotText.conditionLook(S, env) === 'text') { return null; }
+        if (code === 'condition' && slotText.conditionLook(S) === 'text') { return null; }
         // The city draws the current weather's icon before its name (citySlotIcon); the
         // sample's weather is the condition slot's, partly cloudy.
         if (code === 'city') {
-            return slotText.cityIcon(S, env) && PConf && PConf.icons && PConf.icons.get
+            return slotText.cityIcon(S) && PConf && PConf.icons && PConf.icons.get
                 ? PConf.icons.get('condition') || null : null;
         }
         return (PConf && PConf.icons && PConf.icons.get && PConf.icons.get(code)) || null;
@@ -361,8 +361,7 @@
     /**
      * The pictures' frame: the watch's screen in its theme's ink. The watch draws the bars in
      * its theme's ink (status_row.c: theme_fg() on the theme's background), so a light theme
-     * previews black on white, except on a watch without the light polarity (aplite), which
-     * always draws white on black. Spans throughout, so a picture may sit inside a button (the
+     * previews black on white. Spans throughout, so a picture may sit inside a button (the
      * Your status bars card's rows).
      * @param {Object} S Settings.
      * @param {Object} env Platform env.
@@ -372,7 +371,7 @@
      * @returns {string} HTML
      */
     function frame(S, env, cls, label, inner) {
-        var ink = previewInk(env && env.themePolarity === false ? 'dark' : S.theme);
+        var ink = previewInk(S.theme);
         ensureStyle();
         return '<span class="' + cls + '" role="img" aria-label="' + esc(label)
             + '" style="--sbp-bg:' + ink.bg + ';--sbp-fg:' + ink.fg + ';--sbp-dim:' + ink.rgba('0.5') + ';--sbp-line:'
@@ -412,7 +411,7 @@
         var st = S || {}, o = opts || {}, b = null;
         BARS.forEach(function (x) { if (x.bar === bar) { b = x; } });
         if (!b) { return ''; }
-        var view = barView(VC.resolveViewCycle(st, env), b);
+        var view = barView(VC.resolveViewCycle(st), b);
         var cells = watchSlots(st, env, bar, view, new Date()).map(slotCell).join('');
         return frame(st, env, 'sbp one' + (o.big ? ' big' : '') + (o.dim ? ' dim' : ''), screens.barName(st, bar),
             '<span class="sbp-row">' + cells + '</span>');
@@ -432,11 +431,11 @@
         var st = S || {}, rows = '';
         var from = screens.barOfSheet(opts && opts.from);
         if (from) { return barPicture(st, env, from, {big: true}); }
-        var views = VC.resolveViewCycle(st, env);
+        var views = VC.resolveViewCycle(st);
         var now = new Date();
         BARS.forEach(function (b) {
             var optional = b.bar !== 'top' && b.bar !== 'forecast';
-            if (optional && !onDemand.barExists(st, b.bar, env)) { return; }
+            if (optional && !onDemand.barExists(st, b.bar)) { return; }
             // The Radar and Health bars (and a made bar 4 to 6) show while a screen shows
             // them, as their cards on the tab do (on-demand.js barExists). The Watch and Forecast bars show only
             // where a view seats them (Weather only without health has no top strip

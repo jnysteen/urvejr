@@ -29,6 +29,9 @@
 // generator skips its bold mode, so the sequence holds, and only the 1322 blobs with
 // statusBoldAll 'all' moved, each by Always in those two bits; with them masked, every
 // blob equals the previous digest.
+// Re-recorded when the packer stopped taking a watch env (the Pebble Time 2 alone): every
+// blob equals the previous packer handed the Pebble Time 2's env. The generator still draws
+// the env it used to, so the sequence holds.
 'use strict';
 const test = require('node:test');
 const assert = require('node:assert/strict');
@@ -38,7 +41,7 @@ const wire = require('../../../src/pkjs/alerts/domain/status-wire.js');
 const OD = require('../../../src/pkjs/status-bars/domain/on-demand.js');
 
 const COMBOS = 4000;
-const GOLDEN_SHA256 = '61f9eb09057a535c3ec7c4782e578feca7f317461f58830c2029ee9e166a4d2d';
+const GOLDEN_SHA256 = 'd2e0fd20a083b8137c632f692a9bf1710a6c4200d7de378939c9c5c43bce1d7d';
 
 /**
  * mulberry32: a small deterministic PRNG, so the generated set never varies.
@@ -81,7 +84,7 @@ function put(s, key, v) {
 }
 
 /**
- * One generated settings blob and the env it is packed for.
+ * One generated settings blob (and an env, drawn only to keep the sequence).
  * @param {function(): number} rnd The PRNG.
  * @returns {{settings: Object, env: ?Object}}
  */
@@ -129,7 +132,7 @@ test('CLAY_THRESHOLDS_UINT8 is byte-identical to the recorded packer over 4000 g
   const blobs = [];
   for (let i = 0; i < COMBOS; i++) {
     const c = combo(rnd);
-    const blob = wire.buildSettingsBlob(c.settings, c.env);
+    const blob = wire.buildSettingsBlob(c.settings);
     assert.equal(blob.length, wire.SETTINGS_BYTES);
     blobs.push(blob);
   }

@@ -86,10 +86,6 @@
     // FORECAST_SPAN_HALF_SLOTS whole columns to any plot.
     var DAY = { pitch: 8, sent: 24, wideSent: 26 };
     var HALF_SLOTS = 12;
-    // The 144 px watches' one grid (forecast_grid.h FORECAST_GRID_DEF at DISPLAY_WIDTH_144): pitch
-    // 7 (tick 1, pad 1, bar 4, pad 1) over the plot right of the label strip, which is never
-    // narrower than STRIP_MIN_W: the 142 px layer less the strip and its gap.
-    var SMALL = { pitch: 7, plot: 142 - STRIP_MIN_W - STRIP_GAP };
     // The stored values, the schema's options (test/weather/domain/forecast-span.test.js pins both). '48' is the
     // long span's token: the first cut stored the long span as '48', so the token stays and
     // nothing migrates. The row labels it with the whole hours the watch will show (spanOptions:
@@ -110,17 +106,6 @@
     function storedHours(settings) {
         var v = settings && settings.forecastHours;
         return CHOICES.indexOf(String(v)) !== -1 ? parseInt(v, 10) : DAY_HOURS;
-    }
-
-    /**
-     * The option this watch draws: categorical, not the hours sent. The stored
-     * 12 / 24 / 48 on a span watch (48 = the long span, whatever its label), else 24.
-     * @param {?Object} settings Clay settings.
-     * @param {?Object} env config-ui/lib/platform.js computeEnv() result.
-     * @returns {number} 12, 24 or 48.
-     */
-    function option(settings, env) {
-        return (env && env.forecastSpan) ? storedHours(settings) : DAY_HOURS;
     }
 
     /**
@@ -159,17 +144,15 @@
     /**
      * The hours the forecast graph shows with these settings on this watch: the long span's whole
      * hours for its feed and layout (longHours), 12 at 12 h, and at 24 h what the plot spans at the
-     * grid's fixed pitch: 22 beside emery's left axis, 25 with the high and low on the graph or off,
-     * 18 on the 144 px watches. The setup's preview draws these hours.
+     * grid's fixed pitch: 22 beside the left axis, 25 with the high and low on the graph or off.
+     * The setup's preview draws these hours.
      * @param {?Object} settings Clay settings.
-     * @param {?Object} [env] Platform env.
      * @returns {number} Hours on screen.
      */
-    function shownHours(settings, env) {
-        var span = option(settings, env);
+    function shownHours(settings) {
+        var span = storedHours(settings);
         if (span === 48) { return longHours(settings); }
         if (span === 12) { return HALF_SLOTS; }
-        if (!(env && env.forecastSpan)) { return gridHours(DAY_HOURS, SMALL.plot, SMALL); }
         var wide = forecastAxis.numbers(settings) !== forecastAxis.AXIS;
         return gridHours(wide ? DAY.wideSent : DAY.sent, plotWidth(settings), DAY);
     }
@@ -249,7 +232,6 @@
         CHOICES: CHOICES,
         DAY_HOURS: DAY_HOURS,
         storedHours: storedHours,
-        option: option,
         wholeHours: wholeHours,
         feedHours: feedHours,
         plotWidth: plotWidth,

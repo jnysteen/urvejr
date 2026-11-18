@@ -12,11 +12,9 @@ const fs = require('node:fs');
 const path = require('node:path');
 const forecastSpan = require('../../../src/pkjs/weather/domain/forecast-span.js');
 const hourlyWindow = require('../../../src/pkjs/weather/domain/hourly-window.js');
-const platform = require('../../../src/pkjs/config-ui/lib/platform.js');
 const schema = require('../../../src/pkjs/page/settings/schema.js');
 const forecastSpanHours = require('../../../src/pkjs/weather/domain/forecast-span-hours.js');
 
-const env = (p) => platform.computeEnv(p ? { platform: p } : null);
 
 test('storedHours: 12, 24 or 48 as stored; 24 for absent or junk', () => {
   assert.equal(forecastSpan.storedHours({ forecastHours: '12' }), 12);
@@ -34,12 +32,10 @@ test('storedHours: 12, 24 or 48 as stored; 24 for absent or junk', () => {
 
 test('hours: the hours sent for the stored span (14 / 24 / 68)', () => {
   assert.deepEqual(['12', '24', '48', '36', undefined].map((v) =>
-    forecastSpan.hours({ forecastHours: v }, env('emery'))), [14, 24, 68, 24, 24]);
-  assert.equal(forecastSpan.hours({ forecastHours: '12' }, env('emery')), forecastSpan.HALF_SENT_HOURS);
-  assert.equal(forecastSpan.hours({ forecastHours: '48' }, env('emery')), hourlyWindow.MAX_FORECAST_HOURS);
-  assert.equal(forecastSpan.hours({ forecastHours: '48' }, env(null)), 68, 'an unknown watch is the Pebble Time 2');
-  assert.equal(forecastSpan.hours({ forecastHours: '48' }, null), 24, 'no env at all');
-  assert.equal(forecastSpan.hours(null, env('emery')), 24, 'no settings');
+    forecastSpan.hours({ forecastHours: v })), [14, 24, 68, 24, 24]);
+  assert.equal(forecastSpan.hours({ forecastHours: '12' }), forecastSpan.HALF_SENT_HOURS);
+  assert.equal(forecastSpan.hours({ forecastHours: '48' }), hourlyWindow.MAX_FORECAST_HOURS);
+  assert.equal(forecastSpan.hours(null), 24, 'no settings');
 });
 
 test('hours: 24 h sends 26 with no left axis (the numbers On graph or Off)', () => {
@@ -49,17 +45,17 @@ test('hours: 24 h sends 26 with no left axis (the numbers On graph or Off)', () 
   [undefined, '24', 'junk'].forEach((v) => {
     NO_AXIS.forEach((a) => {
       const s = Object.assign({ forecastHours: v }, a);
-      assert.equal(forecastSpan.hours(s, env('emery')), forecastSpan.DAY_WIDE_HOURS, JSON.stringify(s));
+      assert.equal(forecastSpan.hours(s), forecastSpan.DAY_WIDE_HOURS, JSON.stringify(s));
     });
     AXIS.forEach((a) => {
       const s = Object.assign({ forecastHours: v }, a);
-      assert.equal(forecastSpan.hours(s, env('emery')), 24, 'On axis keeps today\'s 24: ' + JSON.stringify(s));
+      assert.equal(forecastSpan.hours(s), 24, 'On axis keeps today\'s 24: ' + JSON.stringify(s));
     });
   });
   // 12 h and the long span send the same hours wherever the numbers go.
   NO_AXIS.concat(AXIS).forEach((a) => {
-    assert.equal(forecastSpan.hours(Object.assign({ forecastHours: '12' }, a), env('emery')), 14);
-    assert.equal(forecastSpan.hours(Object.assign({ forecastHours: '48' }, a), env('emery')), 68);
+    assert.equal(forecastSpan.hours(Object.assign({ forecastHours: '12' }, a)), 14);
+    assert.equal(forecastSpan.hours(Object.assign({ forecastHours: '48' }, a)), 68);
   });
   assert.equal(forecastSpan.DAY_WIDE_HOURS, 26);
   // ceil(200 / 8) + 1: the screen-wide plot at the 24 h grid's 8 px pitch, plus the hour whose
@@ -67,15 +63,8 @@ test('hours: 24 h sends 26 with no left axis (the numbers On graph or Off)', () 
   assert.equal(forecastSpan.DAY_WIDE_HOURS, Math.ceil(200 / 8) + 1);
 });
 
-test('option: the stored option (12 / 24 / 48, categorical)', () => {
-  assert.deepEqual(['12', '24', '48', '36', undefined].map((v) =>
-    forecastSpan.option({ forecastHours: v }, env('emery'))), [12, 24, 48, 24, 24]);
-  assert.equal(forecastSpan.option({ forecastHours: '48' }, null), 24, 'no env at all');
-});
-
-test('maxHours: 68, 24 without env', () => {
-  assert.equal(forecastSpan.maxHours(env('emery')), 68);
-  assert.equal(forecastSpan.maxHours(null), 24);
+test('maxHours: 68', () => {
+  assert.equal(forecastSpan.maxHours(), 68);
 });
 
 test('signature: empty for the default and an absent key, the stored option otherwise (\'48\', not 68)', () => {

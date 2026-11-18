@@ -117,7 +117,7 @@ var STATUS_KEYS = WEATHER_CATEGORIES.find(function (category) {
 var SNAPSHOT_VERSION = 5;
 
 var deps = {};        // injected environment (see init)
-var snapshot = null;  // last bake inputs ({payload, watchInfo}) from THIS PKJS life
+var snapshot = null;  // last bake inputs ({payload}) from THIS PKJS life
 var restored = null;  // the same shape, read back from flash at init: the restart backstop
 var lastWritten = null;   // last serialized snapshot, to skip no-op flash writes
 var bakedNight;           // day or night of the last bake (undefined: nothing baked yet)
@@ -203,27 +203,23 @@ function snapshotPayload(payload) {
 }
 
 /**
- * Write the restart backstop: the bake-relevant payload slice plus the
- * watchInfo the bake's platform env comes from, version-stamped as one JSON
- * blob. A no-op when the serialization is unchanged — this runs on every
+ * Write the restart backstop: the bake-relevant payload slice, version-stamped as one
+ * JSON blob (a blob a 3.x build stored with a watchInfo beside it reads the same).
+ * A no-op when the serialization is unchanged — this runs on every
  * fetch, and the same write-only-when-it-changed discipline the watch side
  * applies to persist applies here. Nothing here may throw into
  * the forecast pipeline (render-payload.js): an unserializable payload or a full storage quota must
  * cost the backstop, not the fetch.
  *
  * @param {Object} payload Weather payload, pre-transform.
- * @param {Object|null} watchInfo getActiveWatchInfo() result, or null.
  * @returns {void}
  */
-function persistSnapshot(payload, watchInfo) {
+function persistSnapshot(payload) {
     var serialized;
     try {
         serialized = JSON.stringify({
             v: SNAPSHOT_VERSION,
-            payload: snapshotPayload(payload),
-            // Small and whole rather than trimmed to computeEnv's one field:
-            // ~100 bytes buys immunity from the bake reading more of it later.
-            watchInfo: watchInfo || null
+            payload: snapshotPayload(payload)
         });
     }
     catch (ex) {
@@ -247,7 +243,7 @@ function persistSnapshot(payload, watchInfo) {
  * "no snapshot", so the failure surfaces as the pre-existing skip-the-send
  * path rather than as a throw inside an event handler.
  *
- * @returns {{payload: Object, watchInfo: (Object|null)}|null} Restored inputs, or null.
+ * @returns {{payload: Object}|null} Restored inputs, or null.
  */
 function restoreSnapshot() {
     var raw = load(KEYS.PHONE_BATTERY_SNAPSHOT);
@@ -269,11 +265,7 @@ function restoreSnapshot() {
         return null;
     }
     lastWritten = raw;
-    return {
-        payload: parsed.payload,
-        watchInfo: (parsed.watchInfo && typeof parsed.watchInfo === 'object')
-            ? parsed.watchInfo : null
-    };
+    return { payload: parsed.payload };
 }
 
 /**
@@ -286,7 +278,7 @@ function currentSettings() {
 }
 
 /**
- * The inputs a micro-send re-bakes from: the stored payload and watchInfo of
+ * The inputs a micro-send re-bakes from: the stored payload of
  * this PKJS life's own snapshot when a fetch has already baked, else of the one
  * restored from flash at init() — paired, on either path, with the LIVE
  * settings blob (see the header for why never the bake's own).
@@ -295,7 +287,7 @@ function currentSettings() {
  * (re-baking against defaults would push text matching neither the watch nor
  * the user's config), so that degrades to "no snapshot" as well.
  *
- * @returns {{payload: Object, settings: Object, watchInfo: (Object|null)}|null} Bake inputs, or null.
+ * @returns {{payload: Object, settings: Object}|null} Bake inputs, or null.
  */
 function bakeInputs() {
     var src = snapshot || restored;
@@ -305,8 +297,7 @@ function bakeInputs() {
     if (!settings) { return null; }
     return {
         payload: src.payload,
-        settings: settings,
-        watchInfo: src.watchInfo
+        settings: settings
     };
 }
 
@@ -316,26 +307,21 @@ function bakeInputs() {
  * so the clone predates both the bake's own mutations and the transient-key
  * deletions that follow it.
  *
- * The payload is cloned because it is about to be mutated and pruned;
- * watchInfo is held by reference — the bake only reads it. The settings are
+ * The payload is cloned because it is about to be mutated and pruned. The settings are
  * not taken at all: every re-bake reads the live ones (bakeInputs). The same
  * inputs also go to flash so a trigger that lands after the next PKJS restart
  * still has something to re-bake.
  *
  * @param {Object} payload Weather payload, still carrying its transient bake keys.
- * @param {Object|null} watchInfo getActiveWatchInfo() result, or null.
  * @param {Date} [now] The instant the bake that follows runs at (its day or night is
  *   latched here); absent = the rebaker's clock.
  * @returns {void}
  */
-function rememberBakeInputs(payload, watchInfo, now) {
+function rememberBakeInputs(payload, now) {
     if (!payload) { return; }
-    snapshot = {
-        payload: shallowClone(payload),
-        watchInfo: watchInfo
-    };
+    snapshot = { payload: shallowClone(payload) };
     bakedNight = nightAt(payload, now ? now.getTime() / 1000 : nowSec());
-    persistSnapshot(payload, watchInfo);
+    persistSnapshot(payload);
 }
 
 /**
@@ -485,7 +471,7 @@ function rebake(phone) {
     bakedNight = nightAt(payload, at / 1000);
     build = deps.buildStatusLines || statusLines.buildStatusLines;
     try {
-        build(payload, inputs.settings, inputs.watchInfo, new Date(at), phone || phoneFacts());
+        build(payload, inputs.settings, new Date(at), phone || phoneFacts());
     }
     catch (ex) {
         return { status: null, error: ex };

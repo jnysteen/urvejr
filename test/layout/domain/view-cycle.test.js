@@ -869,7 +869,7 @@ test('weatherOnly: no top bar, radar on top, clock then weather row; health flic
   const cd = vc.buildViewCycle('weatherOnly', 'off', 'countdown');
   assert.equal(cd[0].stripOff, undefined, 'countdown keeps the top bar');
   assert.deepEqual(cd.map(vc.packWire), vc.buildViewCycle('noCal', 'off', 'off').map(vc.packWire));
-  assert.equal(vc.presetKeyFor({ layoutPreset: 'weatherOnly' }, { platform: 'emery' }), 'weatherOnly');
+  assert.equal(vc.resolvePresetKey({ layoutPreset: 'weatherOnly' }), 'weatherOnly');
   // Health flicks are No calendar's, whatever the radar.
   ['status', 'all'].forEach((h) => {
     const wo = vc.buildViewCycle('weatherOnly', h, 'graph').slice(1).map(vc.packWire);
@@ -883,10 +883,10 @@ test('resolveViewCycle: custom compiles the view keys; presets build their cycle
   const custom = { layoutPreset: 'custom', viewCount: '2', viewTop0: 'none', viewBody0: 'forecast',
     viewUpper0: 'weather', viewLower0: 'off', viewStripOff0: true, viewTop1: 'cal', viewBody1: 'radar',
     radarMode: 'graph', healthMode: 'off' };
-  assert.deepEqual(vc.resolveViewCycle(custom, { platform: 'emery' }), vc.buildCustomCycle(custom));
-  assert.deepEqual(vc.resolveViewCycle(custom, null), vc.buildCustomCycle(custom), 'unknown platform: custom-capable');
+  assert.deepEqual(vc.resolveViewCycle(custom), vc.buildCustomCycle(custom));
+  assert.deepEqual(vc.resolveViewCycle(custom), vc.buildCustomCycle(custom), 'unknown platform: custom-capable');
   const wo = { layoutPreset: 'weatherOnly', radarMode: 'status', healthMode: 'all' };
-  assert.deepEqual(vc.resolveViewCycle(wo, { platform: 'emery' }), vc.buildViewCycle('weatherOnly', 'all', 'status', false));
+  assert.deepEqual(vc.resolveViewCycle(wo), vc.buildViewCycle('weatherOnly', 'all', 'status', false));
   // Absent modes read healthMode off and radarMode graph; no settings at all is compactCal.
   assert.deepEqual(vc.resolveViewCycle({ layoutPreset: 'compactCal', swapClockStatus: 1 }),
     vc.buildViewCycle('compactCal', 'off', 'graph', true));
@@ -899,8 +899,7 @@ test('resolveViewCycle: custom compiles the view keys; presets build their cycle
 test('stackSeats: the seats stackNeed sums, the filling band marked', () => {
   const specs = [];
   ['fullCal', 'compactCal', 'compactDense', 'noCal', 'weatherOnly'].forEach((preset) => {
-    vc.resolveViewCycle({ layoutPreset: preset, radarMode: 'graph', healthMode: 'all' },
-      { platform: 'emery', color: true, health: true }).forEach((s) => { if (s) { specs.push(s); } });
+    vc.resolveViewCycle({ layoutPreset: preset, radarMode: 'graph', healthMode: 'all' }).forEach((s) => { if (s) { specs.push(s); } });
   });
   // Every stacked order over a three-row top, the clock, two rows and a sized body.
   for (let order = 0; order < vc.STACK_ORDERS.length; order++) {

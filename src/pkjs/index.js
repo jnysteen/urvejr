@@ -39,7 +39,6 @@ var statusRebake = require('./status-bars/application/status-rebake.js');
  * @type {{
  *     settings?: Object,
  *     provider?: Object,
- *     watchInfo?: Object,
  *     devConfig?: Object
  * }}
  */
@@ -69,7 +68,6 @@ var DEFAULT_HOLIDAY_COLORS = { white: DEFAULT_COLOR_WHITE, folly: DEFAULT_COLOR_
 // reconciliation.
 var fetchCycle = createFetchCycle({
     getSettings: function () { return app.settings; },
-    getWatchInfo: function () { return app.watchInfo; },
     getProvider: function () { return app.provider; },
     isWatchConnected: isWatchConnected,
     outbox: outbox,
@@ -166,13 +164,11 @@ Pebble.addEventListener('showConfiguration', function(e) {
     // $$RETURN_TO$$ helper placeholder in the emulator (see page/settings/index.js options).
     Pebble.openURL(settings.generateUrl({
         values: values,
-        watchInfo: app.watchInfo,
-        // Env facts the config-UI library can't derive from watchInfo because they
-        // describe the PHONE, not the watch. Whether this PKJS host exposes a battery
+        // Env facts the config-UI library can't know because they describe the PHONE,
+        // not the watch. Whether this PKJS host exposes a battery
         // API at all is one: Android's Chromium WebView does, iOS's JavaScriptCore and
         // the emulator never can. The catalog's needsPhoneBattery gate omits the
-        // phone-battery slot items wherever this is false. Merged over the derived env
-        // by createConfig, so this stays a single key.
+        // phone-battery slot items wherever this is false.
         env: { phoneBattery: phoneBatteryEnv },
         userData: userData
     }));
@@ -194,7 +190,7 @@ Pebble.addEventListener('webviewclosed', function(e) {
     // detect a change and force a resend. Colours are NOT here — rain/radar, graph lines
     // and fill, the theme itself: they ride the Clay message and the watch persists
     // them, so a colour or theme change needs no weather refetch.
-    var prevRender = renderSignature(app.settings, app.watchInfo);
+    var prevRender = renderSignature(app.settings);
     // fillFromPreserved: between a "Reset watchface" and the next boot the page
     // hydrates from an absent blob, so this response carries '' for every API key
     // the user did not retype — fill those from the parked copies (fill-only; a
@@ -253,7 +249,7 @@ Pebble.addEventListener('webviewclosed', function(e) {
         radarProviderChanged: oldRadarProvider !== app.settings.radarProvider
             || oldRadarMode !== app.settings.radarMode
             || oldRadarSky !== (app.settings.radarSky !== false),
-        renderSettingsChanged: prevRender !== renderSignature(app.settings, app.watchInfo),
+        renderSettingsChanged: prevRender !== renderSignature(app.settings),
         fetchToggle: app.settings.fetch === true,
         acked: acked,
         hadWatchNotice: hadWatchNotice,
@@ -299,13 +295,6 @@ Pebble.addEventListener('ready',
         claySettings.applyFixtureSettings(activeFixture, pebbleColors);
         console.log('PebbleKit JS ready!');
         app.settings = claySettings.read();
-        try {
-            app.watchInfo = Pebble.getActiveWatchInfo();
-        }
-        catch (ex) {
-            app.watchInfo = null;
-            console.log('Unable to read watch info: ' + ex.message);
-        }
         // Phone battery: detect + subscribe once. Inert on iOS and in the
         // emulator (no battery API there at all), so this is safe to run before
         // the fixture branch below — which is deliberate, so the dev-config
@@ -339,8 +328,8 @@ Pebble.addEventListener('ready',
         }
         if (activeFixture) {
             var sendFixture = function () {
-                fixtureWeather.sendFixtureWeather(activeFixture, { settings: app.settings, watchInfo: app.watchInfo,
-                    now: new Date(), phone: phoneBattery.bakeFacts() });
+                fixtureWeather.sendFixtureWeather(activeFixture, { settings: app.settings, now: new Date(),
+                    phone: phoneBattery.bakeFacts() });
             };
             // After the settings send, whether the watch ACKs it or not.
             sendClaySettings(sendFixture, sendFixture);
@@ -429,7 +418,7 @@ function refreshHolidays() {
     // The SAME window the HOLIDAYS tuple scans (clay-payload's holidayWindowOpts):
     // ensure() prunes every cached year outside `years`, so a narrower window here
     // deletes data the mask still reads.
-    var years = holidayMask.windowYears(holidayWindowOpts(app.settings, app.watchInfo), new Date());
+    var years = holidayMask.windowYears(holidayWindowOpts(app.settings), new Date());
     nagerSource.ensure(country, years, scheduler.onHolidaysUpdated);
 }
 
@@ -536,7 +525,7 @@ function isNightForTheme() {
  */
 function sendClaySettings(onSuccess, onFailure) {
     var effective = themeSchedule.effectiveSettings(app.settings, isNightForTheme());
-    var payload = buildClayPayload(effective, app.watchInfo, new Date(), nagerSource.isHoliday);
+    var payload = buildClayPayload(effective, new Date(), nagerSource.isHoliday);
     outbox.sendClay(payload, onSuccess, onFailure);
 }
 

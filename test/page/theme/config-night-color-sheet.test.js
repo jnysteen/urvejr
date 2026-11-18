@@ -27,14 +27,11 @@ require('../../../src/pkjs/lib/color.js');
 require('../../../src/pkjs/config-ui/lib/show-when.js');
 const eng = require('../../../src/pkjs/config-ui/lib/engine.js');
 require('../../../src/pkjs/page/settings/blocks.js');   // registers the rgbSwatch badge resolver
-const platform = require('../../../src/pkjs/config-ui/lib/platform.js');
 const { bootGeneratedPage } = require('../../helpers/page-harness.js');
 
 const SHEET_ID = 'backlightColor';
 const KEY = 'backlightDimColor';
-const emeryEnv = platform.computeEnv({ platform: 'emery' });
-// The gate's other side: a watch whose backlight cannot be tinted.
-const plainEnv = Object.assign(platform.computeEnv(), { colorBacklight: false });
+const emeryEnv = {};
 
 /** A render context over the real schema, hydrated then overlaid with `state`.
  * @param {Object} [state] Stored values to overlay on the hydrated defaults.
@@ -259,13 +256,11 @@ test('the row\'s sheetId resolves to a sheetOnly section holding the rgb control
 });
 
 test('the sheet is gated exactly like the row that opens it', () => {
-  // Forced open (an opener the user cannot reach still has to render nothing): a plain
-  // white backlight, and a switched-off Dim backlight, have no colour to pick.
-  assert.equal(colorSheet({}, plainEnv), '', 'no sheet on a watch whose backlight cannot be tinted');
-  assert.equal(colorSheet({ backlightDim: false }), '', 'nor while the dimming is switched off');
+  // Forced open (an opener the user cannot reach still has to render nothing): a
+  // switched-off Dim backlight has no colour to pick.
+  assert.equal(colorSheet({ backlightDim: false }), '', 'no sheet while the dimming is switched off');
   assert.ok(colorSheet().length > 0, 'emery with the switch on gets the sheet');
-  // ...and the row is gone in both cases too, so nothing offers to open it.
-  assert.equal(nightCard({}, plainEnv).indexOf('data-edit-sheet="' + SHEET_ID + '"'), -1);
+  // ...and the row is gone too, so nothing offers to open it.
   assert.equal(nightCard({ backlightDim: false }).indexOf('data-edit-sheet="' + SHEET_ID + '"'), -1);
 });
 

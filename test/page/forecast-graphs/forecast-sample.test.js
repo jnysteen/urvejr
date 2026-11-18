@@ -12,12 +12,11 @@ require('../../../src/pkjs/lib/color.js');
 const E = require('../../../src/pkjs/config-ui/lib/engine.js');
 require('../../../src/pkjs/page/settings/blocks.js');
 const schema = require('../../../src/pkjs/page/settings/schema.js');
-const platform = require('../../../src/pkjs/config-ui/lib/platform.js');
 const FC = require('../../../src/pkjs/page/forecast-graphs/preview-forecast.js');
 const FS = require('../../../src/pkjs/page/forecast-graphs/forecast-sample.js');
 const spanHours = require('../../../src/pkjs/weather/domain/forecast-span-hours.js');
 
-const EMERY = platform.computeEnv({ platform: 'emery' });
+const EMERY = {};
 // 24 hours under emery's left axis, as an upgraded install keeps them (a new install's graph
 // draws the high and low on the graph instead, which drops slot 0's label, over the long span).
 const S0 = Object.assign(E.hydrate(schema, {}, EMERY), { forecastAxisNumbers: 'axis', forecastHours: '24' });
@@ -78,7 +77,7 @@ test('without a sample the watch draws the hours its graph shows', () => {
   const drawn = {};
   ['12', '24', '48'].forEach((h) => ['c', 'f'].forEach((units) => {
     const S = Object.assign({}, S0, { forecastHours: h, temperatureUnits: units });
-    const hours = spanHours.shownHours(S, EMERY);
+    const hours = spanHours.shownHours(S);
     const svg = FC.forecastPreview(S, EMERY, {});
     assert.equal(svg, FC.forecastPreview(S, EMERY, {}, { sample: FS.sample(hours + 1, units) }), h + ' ' + units);
     if (units === 'c') { drawn[h] = { hours, labels: hourLabels(svg), nights: nightBands(svg) }; }
@@ -90,7 +89,7 @@ test('without a sample the watch draws the hours its graph shows', () => {
     'Weather Underground\'s 49-hour feed: 44 whole hours at a whole 4 px');
   // The owner's 66 h: a full feed with no left axis, its three nights.
   const full = Object.assign({}, S0, { forecastHours: '48', provider: 'openmeteo', forecastAxisNumbers: 'graph' });
-  assert.equal(spanHours.shownHours(full, EMERY), 66);
+  assert.equal(spanHours.shownHours(full), 66);
   assert.equal(nightBands(FC.forecastPreview(full, EMERY, {})), 3);
 });
 

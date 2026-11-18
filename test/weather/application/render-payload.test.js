@@ -42,10 +42,10 @@ function decodeStatusLine(bytes) {
 test('toRenderPayload stashes the bake inputs BEFORE the bake and before the transient deletes', () => {
   const realRemember = statusRebake.rememberBakeInputs;
   const seen = [];
-  statusRebake.rememberBakeInputs = function(payload, watchInfo, now) {
+  statusRebake.rememberBakeInputs = function(payload, now) {
     // Snapshot the argument as it looked AT THE CALL: the real module clones it,
     // and the payload it is handed is mutated and pruned moments later.
-    seen.push({ payload: Object.assign({}, payload), watchInfo, now, argc: arguments.length });
+    seen.push({ payload: Object.assign({}, payload), now, argc: arguments.length });
   };
   const payload = {
     CURRENT_TEMP: 68, CITY: 'Bonn', SUN_EVENTS: [1, 0, 0, 0, 0],
@@ -59,19 +59,17 @@ test('toRenderPayload stashes the bake inputs BEFORE the bake and before the tra
   // healthMode 'status' puts the Health bar on a screen, so all four lines bake.
   const settings = { secondaryLine: 'off', thirdLine: 'off', barSource: 'off',
                      temperatureUnits: 'c', axisTimeFormat: '24h', healthMode: 'status' };
-  const watchInfo = { platform: 'basalt' };
   let out;
   try {
-    out = toRenderPayload(payload, settings, watchInfo, NOW);
+    out = toRenderPayload(payload, settings, NOW);
   }
   finally {
     statusRebake.rememberBakeInputs = realRemember;
   }
 
   assert.equal(seen.length, 1, 'stashed exactly once per bake');
-  assert.equal(seen[0].argc, 3, 'no settings (a re-bake pairs the live ones), and the bake time');
+  assert.equal(seen[0].argc, 2, 'no settings (a re-bake pairs the live ones), and the bake time');
   assert.equal(seen[0].now, NOW, 'the latch takes the bake\'s own instant');
-  assert.equal(seen[0].watchInfo, watchInfo, 'watchInfo by reference');
 
   // BEFORE the bake: the packed lines do not exist on the payload yet, so the
   // stash cannot be a post-bake copy of an already-rendered result.
@@ -126,7 +124,7 @@ test('a phone-battery event re-bakes from the stash after the payload has been p
       TEMP_RAW_TREND: [12], TEMP_MIN: 0, TEMP_MAX: 30,
       FORECAST_START: 1700000000, NUM_ENTRIES: 1
     };
-    const out = toRenderPayload(payload, settings, { platform: 'basalt' }, NOW,
+    const out = toRenderPayload(payload, settings, NOW,
       phoneBattery.bakeFacts());
     const baked = decodeStatusLine(out.STATUS_LINE_1_UINT8);
     // The bucket is only the SEND trigger; the baked text is the exact reading.

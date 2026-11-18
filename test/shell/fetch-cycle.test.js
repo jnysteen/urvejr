@@ -504,7 +504,7 @@ test('start: a clean start counts the attempt, records it, builds the options, a
     assert.equal(h.pendingWatchdogs().length, 1, 'a watchdog is armed');
 
     // This fetch's knobs, derived from the live settings + watch + the WAQI token.
-    assert.deepEqual(p.options, fetchOptions.build(settings, RADAR_BLIND, { waqiToken: ENV.waqiToken }));
+    assert.deepEqual(p.options, fetchOptions.build(settings, { waqiToken: ENV.waqiToken }));
     assert.equal(p.options.fetchFeels, true, 'tempSlotDisplay both needs feels');
     assert.equal(p.options.windUnits, 'mph');
     assert.equal(p.options.feelsFormula, 'steadman');

@@ -12,23 +12,20 @@ require('../../../src/pkjs/config-ui/lib/engine.js');
 const WR = require('../../../src/pkjs/page/settings/when-resolvers.js');
 const drawFrom = require('../../../src/pkjs/forecast-graphs/domain/draw-from.js');
 const OD = require('../../../src/pkjs/status-bars/domain/on-demand.js');
-const platform = require('../../../src/pkjs/config-ui/lib/platform.js');
 
-const BASALT = platform.computeEnv({ platform: 'basalt' });
-// An env whose watch draws no line styles.
-const APLITE = Object.assign(platform.computeEnv(), { lineStyles: false });
+const ENV = {};
 const PICKERS = ['secondaryLine', 'thirdLine', 'fourthLine', 'fifthLine'];
 
 test('lineRow is registered, and a leaf asks it with the settings, their env and its args', () => {
   assert.equal(global.PConf.whenResolvers.get('lineRow'), WR.lineRow);
   const S = { secondaryLine: 'cloud', thirdLine: 'uv', fourthLine: 'off', fifthLine: 'off' };
   const leaf = (picker) => ({ when: 'lineRow', args: { picker, metrics: ['uv'] } });
-  assert.equal(showWhen.evaluate(leaf('thirdLine'), Object.assign({ env: BASALT }, S)), true);
-  assert.equal(showWhen.evaluate(leaf('secondaryLine'), Object.assign({ env: BASALT }, S)), false);
+  assert.equal(showWhen.evaluate(leaf('thirdLine'), Object.assign({ env: ENV }, S)), true);
+  assert.equal(showWhen.evaluate(leaf('secondaryLine'), Object.assign({ env: ENV }, S)), false);
 });
 
 test('metrics: the first picker whose line draws one of them', () => {
-  const host = (S, metrics, env) => WR.hostLine(S, env || BASALT, { metrics });
+  const host = (S, metrics, env) => WR.hostLine(S, env || ENV, { metrics });
   const S = { secondaryLine: 'precip_prob', thirdLine: 'gust', fourthLine: 'wind', fifthLine: 'pressure' };
   assert.equal(host(S, ['wind', 'gust']), 'thirdLine', 'wind and gusts: the first of the two');
   assert.equal(host(S, ['wind']), 'fourthLine');
@@ -41,15 +38,10 @@ test('metrics: the first picker whose line draws one of them', () => {
   assert.equal(host({ secondaryLine: 'uv', secondaryLineStyle: 'stripeTop' }, ['uv']), 'secondaryLine');
 });
 
-test('metrics: the Third and Fourth metric pickers count only on a watch with line styles', () => {
+test('metrics: every picker counts, the Third and Fourth metric too', () => {
   const S = { secondaryLine: 'cloud', thirdLine: 'off', fourthLine: 'wind', fifthLine: 'uv' };
-  assert.equal(WR.hostLine(S, BASALT, { metrics: ['wind'] }), 'fourthLine');
-  assert.equal(WR.hostLine(S, BASALT, { metrics: ['uv'] }), 'fifthLine');
-  [APLITE, {}, undefined].forEach((env) => {
-    assert.equal(WR.hostLine(S, env, { metrics: ['wind'] }), null, JSON.stringify(env));
-    assert.equal(WR.hostLine(S, env, { metrics: ['uv'] }), null, JSON.stringify(env));
-  });
-  assert.equal(WR.hostLine({ secondaryLine: 'cloud', thirdLine: 'wind' }, APLITE, { metrics: ['wind'] }), 'thirdLine');
+  assert.equal(WR.hostLine(S, ENV, { metrics: ['wind'] }), 'fourthLine');
+  assert.equal(WR.hostLine(S, ENV, { metrics: ['uv'] }), 'fifthLine');
 });
 
 test('from: a Draw from key sits under draw-from.js rowLine, the line that hangs from it', () => {
@@ -59,7 +51,7 @@ test('from: a Draw from key sits under draw-from.js rowLine, the line that hangs
     { secondaryLine: 'cloud', secondaryLineStyle: 'stripeBottom', thirdLine: 'cloud', fourthLine: 'off' },
     { secondaryLine: 'pressure', thirdLine: 'uv', fourthLine: 'precip_prob', fifthLine: 'cloud' }
   ];
-  states.forEach((S) => [BASALT, APLITE].forEach((env) => drawFrom.ROWS.forEach((row) => {
+  states.forEach((S) => [ENV].forEach((env) => drawFrom.ROWS.forEach((row) => {
     const want = drawFrom.rowLine(S, row.key, env);
     assert.equal(WR.hostLine(S, env, { from: row.key }), want, row.key + ' ' + JSON.stringify(S));
     PICKERS.forEach((picker) => assert.equal(WR.lineRow(S, env, { picker, from: row.key }), want === picker,
@@ -67,7 +59,7 @@ test('from: a Draw from key sits under draw-from.js rowLine, the line that hangs
   })));
   // The stripe the metrics path keeps moves the Draw from row on.
   const striped = { secondaryLine: 'uv', secondaryLineStyle: 'stripeTop', thirdLine: 'off', fourthLine: 'off' };
-  assert.equal(WR.hostLine(striped, BASALT, { from: 'uvLineFrom' }), null);
+  assert.equal(WR.hostLine(striped, ENV, { from: 'uvLineFrom' }), null);
 });
 
 test('onDemandPlaced is on-demand.js placedAnywhere: on a bar that exists, on a watch with Alerts', () => {
@@ -83,8 +75,8 @@ test('onDemandPlaced is on-demand.js placedAnywhere: on a bar that exists, on a 
     Object.assign({}, none, { statusHealthOnDemandLeftItems: 'uv', healthMode: 'slot' })
   ];
   let held = 0;
-  states.forEach((S) => [BASALT, APLITE].forEach((env) => OD.ITEMS.forEach((item) => {
-    const want = OD.placedAnywhere(S, item.code, env);
+  states.forEach((S) => [ENV].forEach((env) => OD.ITEMS.forEach((item) => {
+    const want = OD.placedAnywhere(S, item.code);
     if (want) { held += 1; }
     assert.equal(WR.onDemandPlaced(S, env, { code: item.code }), want, item.code + ' ' + JSON.stringify(S));
     assert.equal(showWhen.evaluate({ when: 'onDemandPlaced', args: { code: item.code } }, Object.assign({ env }, S)),
@@ -92,13 +84,13 @@ test('onDemandPlaced is on-demand.js placedAnywhere: on a bar that exists, on a 
   })));
   assert.ok(held > 10, 'premise: the states place items');
   // The radar bar does not exist in Rain alert only, the health bar not in 'slot'.
-  assert.equal(WR.onDemandPlaced(states[4], BASALT, { code: 'rain' }), false);
-  assert.equal(WR.onDemandPlaced(states[6], BASALT, { code: 'uv' }), false);
+  assert.equal(WR.onDemandPlaced(states[4], ENV, { code: 'rain' }), false);
+  assert.equal(WR.onDemandPlaced(states[6], ENV, { code: 'uv' }), false);
 });
 
 test('defaultViewLacksOnDemand: the Default view the watch runs has no strip and no bar with an item', () => {
   assert.equal(global.PConf.whenResolvers.get('defaultViewLacksOnDemand'), WR.defaultViewLacksOnDemand);
-  const lacks = (over, env) => WR.defaultViewLacksOnDemand(Object.assign({}, OD.DEFAULTS, over), env || BASALT);
+  const lacks = (over, env) => WR.defaultViewLacksOnDemand(Object.assign({}, OD.DEFAULTS, over), env || ENV);
   // Weather only drops the strip in every radar mode but Rain alert only; its Default view
   // shows the forecast bar, plus the radar bar in radar mode Status.
   assert.equal(lacks({ layoutPreset: 'weatherOnly', radarMode: 'graph' }), true);
@@ -128,7 +120,7 @@ test('defaultViewLacksOnDemand: the Default view the watch runs has no strip and
     'the Radar bar stays with the radar off, its items with it');
   // The leaf asks it.
   assert.equal(showWhen.evaluate({ when: 'defaultViewLacksOnDemand' },
-    Object.assign({ env: BASALT }, OD.DEFAULTS, custom)), true);
+    Object.assign({ env: ENV }, OD.DEFAULTS, custom)), true);
 });
 
 // The Left axis card's 'High/low includes feels-like & dew point' gate is forecast-axis.js' own
@@ -136,19 +128,16 @@ test('defaultViewLacksOnDemand: the Default view the watch runs has no strip and
 test('tempAxisLineDrawn is forecast-axis.js\' own reading, and a leaf asks it', () => {
   const forecastAxis = require('../../../src/pkjs/forecast-graphs/domain/forecast-axis.js');
   assert.equal(global.PConf.whenResolvers.get('tempAxisLineDrawn'), forecastAxis.tempAxisLineDrawn);
-  const EMERY = platform.computeEnv({ platform: 'emery' });
-  const UNKNOWN = platform.computeEnv(null);
   const leaf = (S, env) => showWhen.evaluate({ when: 'tempAxisLineDrawn' }, Object.assign({ env }, S));
   const states = [{}, { secondaryLine: 'feels' }, { thirdLine: 'dew' }, { fourthLine: 'dew' },
     { fifthLine: 'feels' }, { secondaryLine: 'wind', thirdLine: 'uv' }, { secondaryLine: 'dew', thirdLine: 'dew' }];
   let shown = 0;
-  [EMERY, BASALT, APLITE, UNKNOWN].forEach((env) => {
+  [ENV].forEach((env) => {
     states.forEach((S) => {
-      const want = forecastAxis.tempAxisLineDrawn(S, env);
-      assert.equal(leaf(S, env), want, JSON.stringify([env.platform, S]));
+      const want = forecastAxis.tempAxisLineDrawn(S);
+      assert.equal(leaf(S, env), want, JSON.stringify(S));
       if (want) { shown += 1; }
     });
   });
   assert.ok(shown > 0, 'premise: some state draws one');
-  assert.equal(leaf({ fifthLine: 'dew' }, APLITE), false, 'no line styles: no Fourth metric line');
 });

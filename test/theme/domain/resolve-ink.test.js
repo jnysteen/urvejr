@@ -1,7 +1,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const COLORS = require('../../../src/pkjs/theme/domain/pebble-colors.js');
-const { resolveInk, isLightPolarity, isBwTheme, drawsColor, effectiveTheme, barColorDefault,
+const { resolveInk, isLightPolarity, isBwTheme, drawsColor, barColorDefault,
   BAR_COLOR_KEYS } = require('../../../src/pkjs/theme/domain/resolve-ink.js');
 
 test('light theme: exact white flips to black', () => {
@@ -37,35 +37,9 @@ test('isBwTheme: true for bw and bw-light, false for dark and light', () => {
   assert.equal(isBwTheme('light'), false);
 });
 
-test('drawsColor: a colour display on a colour theme only', () => {
-  ['dark', 'light'].forEach((theme) => {
-    assert.equal(drawsColor({ color: true }, theme), true, theme + ' on colour');
-    assert.equal(drawsColor({ color: false }, theme), false, theme + ' on a B&W display');
-  });
-  ['bw', 'bw-light'].forEach((theme) => {
-    assert.equal(drawsColor({ color: true }, theme), false, theme + ' on colour');
-    assert.equal(drawsColor({ color: false }, theme), false, theme + ' on a B&W display');
-  });
-  // Only an explicit false is a B&W display: an absent env or flag reads as colour,
-  // the packer's rule for a blob packed without an env.
-  assert.equal(drawsColor(undefined, 'dark'), true);
-  assert.equal(drawsColor({}, 'dark'), true);
-  assert.equal(drawsColor(undefined, 'bw'), false);
-});
-
-test('effectiveTheme: polarity-capable platform leaves every theme unchanged', () => {
-  assert.equal(effectiveTheme('light', true), 'light');
-  assert.equal(effectiveTheme('bw-light', true), 'bw-light');
-  assert.equal(effectiveTheme('dark', true), 'dark');
-  assert.equal(effectiveTheme('bw', true), 'bw');
-});
-
-test('effectiveTheme: no-polarity platform (aplite) folds light-polarity themes to their dark twins', () => {
-  assert.equal(effectiveTheme('light', false), 'dark');
-  assert.equal(effectiveTheme('bw-light', false), 'bw');
-  // Dark-polarity themes already render as-is on aplite — untouched.
-  assert.equal(effectiveTheme('dark', false), 'dark');
-  assert.equal(effectiveTheme('bw', false), 'bw');
+test('drawsColor: a colour theme only', () => {
+  ['dark', 'light'].forEach((theme) => assert.equal(drawsColor(theme), true, theme));
+  ['bw', 'bw-light'].forEach((theme) => assert.equal(drawsColor(theme), false, theme));
 });
 
 test('barColorDefault answers per polarity, not per theme', () => {

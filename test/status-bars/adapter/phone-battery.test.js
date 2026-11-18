@@ -37,7 +37,7 @@ test('detects the legacy navigator.battery object', () => {
 test('the legacy object is still subscribed to, not just read once', () => {
   const mgr = fakeManager(0.41, false);
   const h = boot({ navigator: legacyNavigator(mgr) });
-  statusRebake.rememberBakeInputs({ CITY: 'Bonn' }, { platform: 'basalt' });
+  statusRebake.rememberBakeInputs({ CITY: 'Bonn' });
   mgr.setLevel(0.34);
   assert.equal(h.sends.length, 1, 'levelchange on the legacy manager triggers a send');
   assert.equal(phoneBattery.read().level, 34);
@@ -55,7 +55,7 @@ test('no battery API at all: inert, unsupported, no reading, nothing thrown', ()
     assert.deepEqual(phoneBattery.read(), { available: false, level: null, charging: false });
     // Every downstream entry point stays callable on such a phone.
     assert.doesNotThrow(() => phoneBattery.onTick());
-    assert.doesNotThrow(() => statusRebake.rememberBakeInputs({ CITY: 'X' }, null));
+    assert.doesNotThrow(() => statusRebake.rememberBakeInputs({ CITY: 'X' }));
     assert.doesNotThrow(() => phoneBattery.onTick());
     assert.equal(h.sends.length, 0);
   });
@@ -168,7 +168,7 @@ test('a real battery event after the heal still sends normally', () => {
   const h = boot({ navigator: modernNavigator(mgr) });
   // The last pre-reset fetch left an in-memory bake snapshot; the wipe takes the
   // flash copy but not this one, exactly as on a real reset.
-  statusRebake.rememberBakeInputs({ CITY: 'Bonn' }, { platform: 'basalt' });
+  statusRebake.rememberBakeInputs({ CITY: 'Bonn' });
   clearStorage();
   phoneBattery.read();                       // heals (and re-baselines) silently
   mgr.setLevel(0.55);                        // 60 bucket -> 55 bucket
@@ -232,7 +232,7 @@ test('83% -> 77% skips the exact multiple 75 but crosses a bucket, so it MUST se
   const mgr = fakeManager(0.83, false);
   const h = boot({ navigator: modernNavigator(mgr) });
   assert.equal(phoneBattery.read().level, 83);
-  statusRebake.rememberBakeInputs({ CITY: 'Bonn' }, { platform: 'basalt' });
+  statusRebake.rememberBakeInputs({ CITY: 'Bonn' });
 
   mgr.setLevel(0.77);
   assert.equal(h.sends.length, 1, 'the bucket moved 80 -> 75: one micro-send');
@@ -244,7 +244,7 @@ test('83% -> 77% skips the exact multiple 75 but crosses a bucket, so it MUST se
 test('a level move inside one bucket sends nothing but still updates the cache', () => {
   const mgr = fakeManager(0.83, false);
   const h = boot({ navigator: modernNavigator(mgr) });
-  statusRebake.rememberBakeInputs({ CITY: 'Bonn' }, { platform: 'basalt' });
+  statusRebake.rememberBakeInputs({ CITY: 'Bonn' });
   [[0.82, 82], [0.81, 81], [0.80, 80]].forEach(([level, pct]) => {
     mgr.setLevel(level);
     // The send trigger is untouched by this change: no bucket move, no send.
@@ -285,7 +285,7 @@ test('the trigger baseline is never persisted: the reading, the verdict and the 
 test('a charging flip sends immediately, without waiting for a bucket move', () => {
   const mgr = fakeManager(0.62, false);
   const h = boot({ navigator: modernNavigator(mgr) });
-  statusRebake.rememberBakeInputs({ CITY: 'Bonn' }, { platform: 'basalt' });
+  statusRebake.rememberBakeInputs({ CITY: 'Bonn' });
 
   mgr.setCharging(true);
   assert.equal(h.sends.length, 1, 'plugging in is the event a user looks at the watch to confirm');
@@ -299,7 +299,7 @@ test('a charging flip sends immediately, without waiting for a bucket move', () 
 test('a chargingchange that does not change the flag sends nothing', () => {
   const mgr = fakeManager(0.62, true);
   const h = boot({ navigator: modernNavigator(mgr) });
-  statusRebake.rememberBakeInputs({ CITY: 'Bonn' }, { platform: 'basalt' });
+  statusRebake.rememberBakeInputs({ CITY: 'Bonn' });
   mgr.fire('chargingchange');
   mgr.fire('levelchange');
   assert.equal(h.sends.length, 0, 'no bucket move and no flip: nothing to say');
@@ -314,7 +314,7 @@ test('the saver window suppresses a level update but still caches it', () => {
   const mgr = fakeManager(0.62, false);
   const h = boot({ navigator: modernNavigator(mgr), settings: SAVER_ON,
                    clock: new Date(2026, 0, 1, 3, 0, 0) });
-  statusRebake.rememberBakeInputs({ CITY: 'Bonn' }, { platform: 'basalt' });
+  statusRebake.rememberBakeInputs({ CITY: 'Bonn' });
 
   mgr.setLevel(0.42);
   assert.equal(h.sends.length, 0, 'no BLE wake-up for a battery readout overnight');
@@ -325,7 +325,7 @@ test('the saver window suppresses a charging flip too', () => {
   const mgr = fakeManager(0.62, false);
   const h = boot({ navigator: modernNavigator(mgr), settings: SAVER_ON,
                    clock: new Date(2026, 0, 1, 3, 0, 0) });
-  statusRebake.rememberBakeInputs({ CITY: 'Bonn' }, { platform: 'basalt' });
+  statusRebake.rememberBakeInputs({ CITY: 'Bonn' });
 
   mgr.setCharging(true);
   assert.equal(h.sends.length, 0, 'plugging in at 03:00 waits for the window to close');
@@ -336,7 +336,7 @@ test('the saver is off unless the user enabled it', () => {
   const mgr = fakeManager(0.62, false);
   const h = boot({ navigator: modernNavigator(mgr), settings: { sleepNightEnabled: false },
                    clock: new Date(2026, 0, 1, 3, 0, 0) });
-  statusRebake.rememberBakeInputs({ CITY: 'Bonn' }, { platform: 'basalt' });
+  statusRebake.rememberBakeInputs({ CITY: 'Bonn' });
   mgr.setLevel(0.42);
   assert.equal(h.sends.length, 1, '03:00 with the saver off is an ordinary minute');
 });
@@ -345,7 +345,7 @@ test('the first tick after the window closes pushes exactly once', () => {
   const mgr = fakeManager(0.62, false);
   const h = boot({ navigator: modernNavigator(mgr), settings: SAVER_ON,
                    clock: new Date(2026, 0, 1, 3, 0, 0) });
-  statusRebake.rememberBakeInputs({ CITY: 'Bonn' }, { platform: 'basalt' });
+  statusRebake.rememberBakeInputs({ CITY: 'Bonn' });
   mgr.setLevel(0.42);
   mgr.setCharging(true);
   assert.equal(h.sends.length, 0);
@@ -365,7 +365,7 @@ test('the post-window push waits out a fetch in flight, whose message carries th
   const mgr = fakeManager(0.62, false);
   const h = boot({ navigator: modernNavigator(mgr), settings: SAVER_ON,
                    clock: new Date(2026, 0, 1, 3, 0, 0) });
-  statusRebake.rememberBakeInputs({ CITY: 'Bonn' }, { platform: 'basalt' });
+  statusRebake.rememberBakeInputs({ CITY: 'Bonn' });
   mgr.setLevel(0.42);
   h.clock = new Date(2026, 0, 1, 7, 0, 0);
   phoneBattery.onTick(true);   // the window's first fetch started this minute
@@ -380,7 +380,7 @@ test('a tick inside the window pushes nothing', () => {
   const mgr = fakeManager(0.62, false);
   const h = boot({ navigator: modernNavigator(mgr), settings: SAVER_ON,
                    clock: new Date(2026, 0, 1, 3, 0, 0) });
-  statusRebake.rememberBakeInputs({ CITY: 'Bonn' }, { platform: 'basalt' });
+  statusRebake.rememberBakeInputs({ CITY: 'Bonn' });
   mgr.setLevel(0.42);
   h.clock = new Date(2026, 0, 1, 6, 59, 0);
   phoneBattery.onTick();
@@ -390,7 +390,7 @@ test('a tick inside the window pushes nothing', () => {
 test('a tick owing nothing sends nothing', () => {
   const mgr = fakeManager(0.62, false);
   const h = boot({ navigator: modernNavigator(mgr) });
-  statusRebake.rememberBakeInputs({ CITY: 'Bonn' }, { platform: 'basalt' });
+  statusRebake.rememberBakeInputs({ CITY: 'Bonn' });
   phoneBattery.onTick();
   phoneBattery.onTick();
   assert.equal(h.sends.length, 0, 'the per-minute hook is free when nothing was swallowed');
@@ -413,8 +413,8 @@ test('no bake snapshot yet: every trigger is a silent no-op', () => {
 test('rememberBakeInputs(null) is ignored rather than clobbering the snapshot', () => {
   const mgr = fakeManager(0.62, false);
   const h = boot({ navigator: modernNavigator(mgr) });
-  statusRebake.rememberBakeInputs({ CITY: 'Bonn' }, { platform: 'basalt' });
-  assert.doesNotThrow(() => statusRebake.rememberBakeInputs(null, null));
+  statusRebake.rememberBakeInputs({ CITY: 'Bonn' });
+  assert.doesNotThrow(() => statusRebake.rememberBakeInputs(null));
   mgr.setLevel(0.42);
   assert.equal(h.sends.length, 1, 'the earlier snapshot still stands');
 });
@@ -431,7 +431,7 @@ test('31% and plugged in: the charging send carries 31%, not the 30 bucket', () 
                    settings: { temperatureUnits: 'c', axisTimeFormat: '24h',
                                statusForecastLeft: 'phoneBattery' } });
   statusRebake.rememberBakeInputs(
-    { CITY: 'Bonn', CURRENT_TEMP: 68, SUN_EVENTS: [1, 0, 0, 0, 0] }, { platform: 'basalt' });
+    { CITY: 'Bonn', CURRENT_TEMP: 68, SUN_EVENTS: [1, 0, 0, 0, 0] });
   assert.equal(phoneBattery.levelBucket(0.31), 30, 'the trigger still buckets to 30...');
 
   mgr.setCharging(true);  // the user plugs the phone in
@@ -452,7 +452,7 @@ test('a 31% -> 30% drop inside one bucket does not send, and the next trigger sh
                    settings: { temperatureUnits: 'c', axisTimeFormat: '24h',
                                statusForecastLeft: 'phoneBattery' } });
   statusRebake.rememberBakeInputs(
-    { CITY: 'Bonn', CURRENT_TEMP: 68, SUN_EVENTS: [1, 0, 0, 0, 0] }, { platform: 'basalt' });
+    { CITY: 'Bonn', CURRENT_TEMP: 68, SUN_EVENTS: [1, 0, 0, 0, 0] });
 
   mgr.setLevel(0.30);
   assert.equal(h.sends.length, 0, '31 -> 30 stays in the 30 bucket: no BLE wake-up');
@@ -502,7 +502,7 @@ test('a fetch bakes the reading the watch was last sent: drift inside a bucket l
 test('a trigger shows the exact reading of its moment, level and charging alike', () => {
   const mgr = fakeManager(0.62, false);
   const h = boot({ navigator: modernNavigator(mgr) });
-  statusRebake.rememberBakeInputs({ CITY: 'Bonn' }, { platform: 'basalt' });
+  statusRebake.rememberBakeInputs({ CITY: 'Bonn' });
   mgr.setLevel(0.61);
   mgr.setLevel(0.59);   // 60 -> 55: a bucket move
   assert.equal(h.sends.length, 1);
@@ -516,7 +516,7 @@ test('a trigger shows the exact reading of its moment, level and charging alike'
 test('the ride-along brings the exact reading once it differs, and the watch shows it from then', () => {
   const mgr = fakeManager(0.62, false);
   boot({ navigator: modernNavigator(mgr), realBake: true, settings: SLOT_SETTINGS });
-  statusRebake.rememberBakeInputs(bakePayload(), { platform: 'basalt' });
+  statusRebake.rememberBakeInputs(bakePayload());
   assert.equal(phoneBattery.statusRideAlong(), null, 'nothing new to bring');
   mgr.setLevel(0.61);
   const extra = phoneBattery.statusRideAlong();
@@ -534,7 +534,7 @@ test('with nothing to re-bake, the ride-along brings nothing and the shown readi
   mgr.setLevel(0.61);
   assert.equal(phoneBattery.statusRideAlong(), null);
   assert.equal(phoneBattery.bakeFacts().reading().level, 62, 'the watch still shows 62%');
-  statusRebake.rememberBakeInputs(bakePayload(), { platform: 'basalt' });
+  statusRebake.rememberBakeInputs(bakePayload());
   assert.equal(decodeLine(phoneBattery.statusRideAlong().STATUS_LINE_1_UINT8)[0].text, '61%',
     'the first message with a bake to re-bake takes it along');
 });

@@ -293,18 +293,15 @@ var PConf = (typeof global !== 'undefined' && global.PConf && global.PConf.block
     }
 
     /**
-     * The weather a watch with a Forecast length (emery: env.forecastSpan) draws: the hours its
-     * graph shows (forecast-span-hours.js shownHours) of forecast-sample.js' sample, in the
-     * watch's temperature unit. The graph cards' pictures draw the same (wizard-forecast.js
-     * previewSvg), so the pinned preview follows the 12 h, 24 h and long spans with them. Null
-     * on every other watch: one span, and the noon scenario above.
+     * The weather the watch draws: the hours its graph shows (forecast-span-hours.js
+     * shownHours) of forecast-sample.js' sample, in the watch's temperature unit. The graph
+     * cards' pictures draw the same (wizard-forecast.js previewSvg), so the pinned preview
+     * follows the 12 h, 24 h and long spans with them.
      * @param {Object} state Settings.
-     * @param {?Object} env Platform env.
-     * @returns {?Object} The sample, in NOON's shape, or null.
+     * @returns {Object} The sample, in NOON's shape.
      */
-    function spanSample(state, env) {
-        if (!(env && env.forecastSpan)) { return null; }
-        return forecastSample.sample(spanHours.shownHours(state, env) + 1, state && state.temperatureUnits);
+    function spanSample(state) {
+        return forecastSample.sample(spanHours.shownHours(state) + 1, state && state.temperatureUnits);
     }
 
     /**
@@ -316,26 +313,15 @@ var PConf = (typeof global !== 'undefined' && global.PConf && global.PConf.block
      * @param {?Object} env Config-UI environment facts.
      * @param {Object} [userData] Page userData; `palette` is the page-open snapshot.
      * @returns {{cx: Object, gc: Object, isColor: boolean, ink: Object, P: Object, barFg: string,
-     *     barEdge: ?string, stylesFrozen: boolean, lines: Array<Object>, tempColor: string}}
+     *     barEdge: ?string, lines: Array<Object>, tempColor: string}}
      */
     function graphKey(state, env, userData) {
         // The graph's colours, resolved by the SAME function whose answer the watch's Clay
-        // wire packs (forecast-graphs/domain/graph-wire.js, over the connected watch's computeEnv)
+        // wire packs (forecast-graphs/domain/graph-wire.js)
         // and read off `state` — the LIVE settings object render() hands every block —
-        // so a pick shows up the moment it is made, not on the next page open. What the
-        // page supplies in place of a watchInfo:
-        //   color:         the DISPLAY's capability; the resolver folds bw/bw-light in.
-        //   themePolarity: TRUE unconditionally, even previewing aplite. The preview
-        //                  shows the theme the user picked; the aplite light→dark fold
-        //                  is a watch-render fact this preview has never modelled, and
-        //                  wiring it in here would change what aplite users see.
-        //   lineStyles:    the WW_LINE_STYLE mirror (stylesFrozen below), so a stored
-        //                  stripe cannot switch the fill off on a watch that ignores it.
-        // The other readings (draw-from.js, line-alert.js) take `env` itself.
-        var caps = { color: !(env && !env.color), themePolarity: true,
-            lineStyles: !(Boolean(env) && env.lineStyles === false) };
-        var cx = lineStyle.renderContextFor(state, caps);
-        var gc = lineStyle.resolveGraphColors(state, caps);
+        // so a pick shows up the moment it is made, not on the next page open.
+        var cx = lineStyle.renderContextFor(state);
+        var gc = lineStyle.resolveGraphColors(state);
         // The EFFECTIVE colour flag: a colour display renders as colour only when the
         // theme isn't Black & White, so a bw/bw-light theme reuses the exact preview a
         // B&W watch gets. Same value the resolver gated the picks on, by construction.
@@ -353,23 +339,15 @@ var PConf = (typeof global !== 'undefined' && global.PConf && global.PConf.block
         // silhouette on top (BAR_OUTLINED is drawn in every theme but colour-dark).
         var barEdge = (isColor && isLightPolarity(cx.theme)) ? ink.fg : null;
 
-        // The frozen-styles gate: env.lineStyles is the WW_LINE_STYLE mirror
-        // (platform.js). Previewing such a watch pins the pre-feature look —
-        // its style pickers are hidden and the watch ignores the style bytes —
-        // and it never draws the third-metric line. Only an explicit false
-        // freezes: a hand-built preview env without the fact stays capable.
-        var stylesFrozen = Boolean(env) && env.lineStyles === false;
         /**
-         * The effective style for one line-style key: the frozen built-in on a
-         * watch without WW_LINE_STYLE, else the stored pick (or its default) as
+         * The effective style for one line-style key: the stored pick (or its default) as
          * the bake resolves it — never a stripe on a metric that cannot be one
          * (line-style.js metricAllowsStripe), exactly as the watch draws it.
          * @param {string} styleKey secondaryLineStyle|thirdLineStyle|fourthLineStyle|fifthLineStyle.
          * @returns {string} 'line'|'bold'|'dots'|'x'|'stripeTop'|'stripeBottom'.
          */
         function styleFor(styleKey) {
-            return stylesFrozen ? lineStyle.LINE_STYLE_DEFAULTS[styleKey]
-                : lineStyle.lineStyleValue(state, styleKey);
+            return lineStyle.lineStyleValue(state, styleKey);
         }
         // The ordered metric lines, modelled ONCE for the draw pass and the
         // legend: colours off the resolver, styles off the pickers, on-gates
@@ -384,14 +362,14 @@ var PConf = (typeof global !== 'undefined' && global.PConf && global.PConf.block
               on: Boolean(lineStyle.effectiveLineMetric(state, 'thirdLine')),
               style: styleFor('thirdLineStyle'), color: hexColor(gc.third) },
             { key: 'fourthLine', metric: state.fourthLine,
-              on: !stylesFrozen && Boolean(lineStyle.effectiveLineMetric(state, 'fourthLine')),
+              on: Boolean(lineStyle.effectiveLineMetric(state, 'fourthLine')),
               style: styleFor('fourthLineStyle'), color: hexColor(gc.fourth) },
             { key: 'fifthLine', metric: state.fifthLine,
-              on: !stylesFrozen && Boolean(lineStyle.effectiveLineMetric(state, 'fifthLine')),
+              on: Boolean(lineStyle.effectiveLineMetric(state, 'fifthLine')),
               style: styleFor('fifthLineStyle'), color: hexColor(gc.fifth) }
         ];
         return { cx: cx, gc: gc, isColor: isColor, ink: ink, P: P, barFg: barFg, barEdge: barEdge,
-            stylesFrozen: stylesFrozen, lines: LINES, tempColor: isColor ? P.temp : ink.fg };
+            lines: LINES, tempColor: isColor ? P.temp : ink.fg };
     }
 
     /**
@@ -425,7 +403,7 @@ var PConf = (typeof global !== 'undefined' && global.PConf && global.PConf.block
         if (state.barSource === 'rain') {
             var tiers = k.isColor && state.rainBarColor !== 'white';
             out.push({ metric: 'rain', kind: 'bars', color: k.barFg, bold: false, fill: false,
-                top: drawFrom.barsFromTop(state, 'rain', env), outline: !k.isColor,
+                top: drawFrom.barsFromTop(state, 'rain'), outline: !k.isColor,
                 tiers: tiers ? k.P.rainTiers.map(function (t) { return t.color; }) : null });
         }
         return out;
@@ -438,14 +416,14 @@ var PConf = (typeof global !== 'undefined' && global.PConf && global.PConf.block
      * and geometry rules forecast_layer.c draws with.
      * Adapted from index.html:231-267's forecastSVG.
      * @param {Object} state Live settings (colours as hex strings).
-     * @param {Object} env Config-UI environment facts ({ color, platform, … }).
+     * @param {Object} env Config-UI environment facts.
      * @param {Object} [userData] Page userData; `palette` is the page-open snapshot.
      * @param {{sample: Object, minHeight: number, bleed: boolean, bare: boolean, axisY: number,
      *     watch: {u: number, f: number, w: number, h: number, pad: number, large: boolean}}} [opts]
      *   For the setup wizard and the Watchface tab's watch, which call this directly
      *   (window.PreviewForecast); the settings page's block call passes none. `sample`: the
      *   weather to draw in its shape (forecast-sample.js sample), so a span draws its own hours;
-     *   without one a span watch draws its span's (spanSample) and any other NOON. `minHeight`:
+     *   without one it draws its span's (spanSample). `minHeight`:
      *   the frame's least height in viewBox units, the background running on under the legend,
      *   so one height fits every look. `bleed: false`: the svg fills its box instead of bleeding
      *   over a settings card's padding. `bare`: no legend, the frame ending BARE_FOOT under the
@@ -461,13 +439,11 @@ var PConf = (typeof global !== 'undefined' && global.PConf && global.PConf.block
         // How the graph draws: its colours, its lines' styles and on-gates (graphKey).
         var key = graphKey(state, env, userData);
         var cx = key.cx, gc = key.gc, isColor = key.isColor, ink = key.ink, P = key.P;
-        var barFg = key.barFg, barEdge = key.barEdge, stylesFrozen = key.stylesFrozen, LINES = key.lines;
+        var barFg = key.barFg, barEdge = key.barEdge, LINES = key.lines;
 
-        // The weather drawn: the caller's sample (the setup wizard's spans), else on a watch
-        // with a Forecast length the hours its graph shows (spanSample), else the noon scenario
-        // above in the watch's temperature unit. Its nights are [from, to] slot positions.
-        var sample = (opts && opts.sample) || spanSample(state, env)
-            || noonIn(state && state.temperatureUnits);
+        // The weather drawn: the caller's sample (the setup wizard's spans), else the hours its
+        // graph shows (spanSample). Its nights are [from, to] slot positions.
+        var sample = (opts && opts.sample) || spanSample(state);
         var temps = sample.temps, precip = sample.precip, wind = sample.wind, rain = sample.rain,
             gust = sample.gust, uv = sample.uv, feels = sample.feels, dew = sample.dew,
             pressure = sample.pressure, cloud = sample.cloud;
@@ -477,9 +453,8 @@ var PConf = (typeof global !== 'undefined' && global.PConf && global.PConf.block
         var windMax = lineAlert.scaleTop(state, 'wind');
         var pCurve = PRESSURE_CURVES[state.pressureScale] || PRESSURE_CURVES.mid;
         // A wind, gust or UV line drawn Show: Alert: the band the bake maps it over, for
-        // the lines this watch draws (the shared wind/gust band only where both draw), on
-        // a watch with Alert settings (aplite draws every line All).
-        var alertBands = lineAlert.alertBands(state, env);
+        // the lines this watch draws (the shared wind/gust band only where both draw).
+        var alertBands = lineAlert.alertBands(state);
         // Such a line draws its sample redrawn against the user's levels (alertSamples).
         var shown = alertSamples(state, alertBands, { wind: wind, gust: gust, uv: uv });
         // metric -> { sample series, full-scale max, fill? }. Color resolves per render.
@@ -576,7 +551,7 @@ var PConf = (typeof global !== 'undefined' && global.PConf && global.PConf.block
         // (PX0_NO_AXIS), and the zero line, the ticks and the vertices follow PX0; the legend
         // keeps LEGEND_X0_NO_AXIS in. The axis line itself is not modelled (no preview draws
         // one).
-        var ax = forecastAxis.resolved(state, env);
+        var ax = forecastAxis.resolved(state);
         var axisOn = ax.numbers === forecastAxis.AXIS;
         // The temperature axis (temp_axis_pad.h THE SCALE, mirrored; owner, 2026-10-04:
         // "always fit all lines"): the lowest and highest value of the temperature and of
@@ -586,18 +561,13 @@ var PConf = (typeof global !== 'undefined' && global.PConf && global.PConf.block
         // and the temperature curve sits under it (yT). The hi/lo LABELS name the actual
         // temperature's range, wherever its curve sits. A flat joint range gives no scale:
         // then, as on the watch, it sits mid-plot. Each line is gated on its own
-        // LINES[i].on, not on bare effectiveLineMetric: previewing a watch without
-        // WW_LINE_STYLE turns the third- and fourth-metric lines off while
-        // effectiveLineMetric would still name their metric, and a line nobody draws must not
-        // widen that range. Previewing aplite none widens it: the bake never sends a feels or
-        // dew line there (forecast-series.js tempAxisLineDrawn) and the frozen fork has no
-        // fit, so a stored pick leaves the temperature on its own range. Each drawn line is
+        // LINES[i].on: a line nobody draws must not widen that range. Each drawn line is
         // kept with its samples, in line order: the range reads the samples, the numbers on
         // the graph (drawNumbersOnGraph) the lines' styles too.
         var axisLines = [];
         var AXIS_SAMPLES = { feels: feels, dew: dew };
         LINES.forEach(function (line) {
-            if (line.on && !stylesFrozen && lineStyle.isTempAxisMetric(line.metric)) {
+            if (line.on && lineStyle.isTempAxisMetric(line.metric)) {
                 axisLines.push({ line: line, samples: AXIS_SAMPLES[line.metric] });
             }
         });
@@ -647,12 +617,12 @@ var PConf = (typeof global !== 'undefined' && global.PConf && global.PConf.block
         // its label font's digit cap (status_metrics.h: half the size plus 2) and its pixel.
         var labelScale = watch ? { cap: (labelCh / 2 + 2) * watch.u, px: watch.u, row: watch.u } : undefined;
         // On an anchored edge (the rain bars' or a drawn amount line's with a value above 0:
-        // draw-from.js forecastAnchors; none previewing aplite, whose margins are frozen) the
+        // draw-from.js forecastAnchors) the
         // margin is at least the share (anchorShare: the eighth, or the curve past it) of the
         // band [MT, PB], the plot the metrics map into between the stripe bands —
         // temp_axis_pad.h temp_axis_margin, mirrored. Both edges start from the inset, the
         // top under a top stripe band too.
-        var anchored = drawFrom.forecastAnchors(state, env, function (key) {
+        var anchored = drawFrom.forecastAnchors(state, function (key) {
             if (key === 'bars') { return rainDrawn; }
             for (var li = 0; li < LINES.length; li += 1) {
                 if (LINES[li].key === key) { return LINES[li].drawn; }
@@ -858,7 +828,7 @@ var PConf = (typeof global !== 'undefined' && global.PConf && global.PConf.block
         }
         /**
          * Whether a metric's line hangs from the top (Draw from: Top, draw-from.js
-         * metricFromTop: never previewing aplite). Only the five amount metrics have the
+         * metricFromTop). Only the five amount metrics have the
          * setting; a temperature-axis curve never hangs. Only a drawn line or marks, or the
          * Main metric's fill, ever asks (stripes shade by level and keep their own
          * Top/Bottom), which is lineEdge's rule.
@@ -867,7 +837,7 @@ var PConf = (typeof global !== 'undefined' && global.PConf && global.PConf.block
          */
         function hangs(metric) {
             var m = METRIC[metric];
-            return Boolean(m) && !m.tempAxis && drawFrom.metricFromTop(state, metric, env);
+            return Boolean(m) && !m.tempAxis && drawFrom.metricFromTop(state, metric);
         }
         /**
          * One metric value's y in column/tick i, as drawn: metricYRaw's, mirrored over
@@ -1362,7 +1332,7 @@ var PConf = (typeof global !== 'undefined' && global.PConf && global.PConf.block
             var rainWhite = state.rainBarColor === 'white' || !isColor;
             // Bars from: Top hangs them from the plot's top (PTL: under a top stripe band),
             // the way the watch anchors them under its content's top row.
-            var barsTop = drawFrom.barsFromTop(state, 'rain', env);
+            var barsTop = drawFrom.barsFromTop(state, 'rain');
             for (var i = 0; i < n - 1; i += 1) {
                 e += rainBars(rain[i], gapCenter(i) - bw / 2, bw, barsTop ? PTL : PB, plotH, rainWhite,
                     P.rainTiers, !isColor, barFg, ink.bg, barEdge, barsTop);
@@ -1391,7 +1361,7 @@ var PConf = (typeof global !== 'undefined' && global.PConf && global.PConf.block
         // Where they go is the left axis option (ax.numbers): on the axis (today), on
         // the graph (drawNumbersOnGraph) or nowhere.
         // On axis: where there is space each label's ink sits level with the curve's extreme
-        // it names (alignLabels; never previewing aplite, whose labels are frozen). Today's
+        // it names (alignLabels). Today's
         // reach gates the lo label always and the hi label only without a top stripe band:
         // under one the watch's plain rule applies (see alignLabels).
         if (axisOn && watch) {
@@ -1401,8 +1371,7 @@ var PConf = (typeof global !== 'undefined' && global.PConf && global.PConf.block
             // each moved in to its curve's extreme where there is room (temp_labels_align).
             var u = watch.u, hiTop = watch.f ? 7 - (labelCh / 2 - 2) : -3;
             var loTop = Math.round(PB / u) - labelCh - 2;
-            var bases = stylesFrozen ? { hi: (hiTop + labelCh) * u, lo: (loTop + labelCh) * u }
-                : alignLabels((hiTop + labelCh) * u, (loTop + labelCh) * u, yT(tLabelMax), yT(tLabelMin),
+            var bases = alignLabels((hiTop + labelCh) * u, (loTop + labelCh) * u, yT(tLabelMax), yT(tLabelMin),
                     topBand ? -Infinity : MT + curveInsetPrev, PB - curveInsetPrev, labelScale);
             e += '<g transform="scale(' + u + ')">'
                 + WT.inBox(labelCh, false, { x: watch.pad, y: Math.round(bases.hi / u) - labelCh, w: stripW },
@@ -1411,8 +1380,7 @@ var PConf = (typeof global !== 'undefined' && global.PConf && global.PConf.block
                     'right', ink.fg, String(tLabelMin))
                 + '</g>';
         } else if (axisOn) {
-            var labels = stylesFrozen ? { hi: PT + 11, lo: PB - 1 }
-                : alignLabels(PT + 11, PB - 1, yT(tLabelMax), yT(tLabelMin),
+            var labels = alignLabels(PT + 11, PB - 1, yT(tLabelMax), yT(tLabelMin),
                     topBand ? -Infinity : MT + curveInsetPrev, PB - curveInsetPrev);
             e += txt(3, labels.hi, 8, '#AEB4BD', 'start', 600, tLabelMax + '°') + txt(3, labels.lo, 8, '#AEB4BD', 'start', 600, tLabelMin + '°');
         } else if (ax.numbers === forecastAxis.GRAPH) {

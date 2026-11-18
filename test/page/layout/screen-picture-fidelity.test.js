@@ -12,7 +12,6 @@ const eng = require('../../../src/pkjs/config-ui/lib/engine.js');
 require('../../../src/pkjs/page/settings/blocks.js');
 require('../../../src/pkjs/page/status-bars/status-slot-icons.js');
 const VC = require('../../../src/pkjs/layout/domain/view-cycle.js');
-const plat = require('../../../src/pkjs/config-ui/lib/platform.js');
 const schema = require('../../../src/pkjs/page/settings/schema.js');
 const pw = require('../../../src/pkjs/page/layout/preview-watch.js');
 const svgLib = require('../../../src/pkjs/page/settings/preview-svg.js');
@@ -28,9 +27,9 @@ const FRIDAY = new Date(2026, 10, 6);
  * @returns {string} The picture's markup.
  */
 function picture(platform, over) {
-  const env = plat.computeEnv({ platform: platform });
+  const env = {};
   const S = Object.assign(eng.hydrate(schema, {}), { radarMode: 'off', healthMode: 'off' }, over);
-  return pw.screenSvg(VC.resolveViewCycle(S, env)[0], 0, S, env, {}, 1, FRIDAY).svg;
+  return pw.screenSvg(VC.resolveViewCycle(S)[0], 0, S, env, {}, 1, FRIDAY).svg;
 }
 
 /**
@@ -83,9 +82,9 @@ test('the calendar draws in the watch\'s cells: its Gothic dates centred on them
     const S = { layoutPreset: 'compactCal', weekStartDay: 'mon', statusTopLeft: 'empty', statusTopMid: 'empty',
       statusTopRight: 'empty' };
     const svg = picture(p[0], S);
-    const env = plat.computeEnv({ platform: p[0] });
+    const env = {};
     const full = Object.assign(eng.hydrate(schema, {}), { radarMode: 'off', healthMode: 'off' }, S);
-    const cal = pw.layoutView(VC.resolveViewCycle(full, env)[0], f).bands.find((b) => b.band === 'T');
+    const cal = pw.layoutView(VC.resolveViewCycle(full)[0], f).bands.find((b) => b.band === 'T');
     // calendar_layer.c calendar_cell_rect: integer columns and rows of the band.
     const cell = (i) => ({ x: x0 + Math.trunc((i % 7) * W / 7), y: cal.y + Math.trunc(Math.floor(i / 7) * cal.h / 2),
       w: Math.trunc(W / 7), h: Math.trunc(cal.h / 2) });

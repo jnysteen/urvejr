@@ -49,7 +49,7 @@ var WeatherProvider = function() {
     // The per-fetch knobs (fetchUv/fetchAqi/fetchPollen/fetchFeels/feelsFormula/
     // dayPeakCodes/windUnits/aqiScale/aqiSource/aqicnToken) as ONE value, every
     // default in fetch-options.js. The fetch cycle (fetch-cycle.js) replaces it
-    // with fetchOptions.build(settings, ...) before each fetch; a provider that
+    // with fetchOptions.build(settings) before each fetch; a provider that
     // is never handed one runs on the defaults.
     this.options = fetchOptions.defaults();
     // The status slots' day max (the Day max / Both modes, day-peaks.js): each

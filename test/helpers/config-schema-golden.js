@@ -22,7 +22,6 @@ const fs = require('fs');
 const path = require('path');
 
 const schema = require('../../src/pkjs/page/settings/schema.js');
-const platform = require('../../src/pkjs/config-ui/lib/platform.js');
 const { eachItem } = require('../../src/pkjs/config-ui/lib/schema-walk.js');
 require('../../src/pkjs/lib/color.js');
 require('../../src/pkjs/config-ui/lib/show-when.js');
@@ -100,7 +99,7 @@ function buildSnapshot() {
   json.versionLabel = json.versionLabel.replace(/^v\S+( \(dev\))?/, 'v<version>');
   const levelRows = {};
   PLATFORMS.forEach((p) => {
-    const env = platform.computeEnv({ platform: p });
+    const env = {};
     const rows = {};
     eachItem(schema, (it) => {
       if (it.rangeFrom && it.rangeFrom.resolver === 'thresholdRange') {

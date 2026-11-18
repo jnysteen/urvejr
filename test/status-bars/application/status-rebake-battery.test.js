@@ -44,8 +44,7 @@ test('the micro-send carries the six status keys and nothing else', () => {
   const h = boot({ navigator: modernNavigator(mgr), settings: { temperatureUnits: 'c' } });
   statusRebake.rememberBakeInputs(
     { CITY: 'Bonn', CURRENT_TEMP: 68, TEMP_TREND_UINT8: [1, 2, 3], NUM_ENTRIES: 3,
-      FORECAST_START: 1700000000, SUN_EVENTS: [1, 0, 0, 0, 0] },
-    { platform: 'basalt' });
+      FORECAST_START: 1700000000, SUN_EVENTS: [1, 0, 0, 0, 0] });
 
   mgr.setLevel(0.42);
   assert.equal(h.sends.length, 1);
@@ -68,7 +67,7 @@ test('the re-bake runs against a CLONE of the snapshot, not the pruned payload',
   const h = boot({ navigator: modernNavigator(mgr), realBake: true, settings: settings });
   const payload = { CITY: 'Bonn', CURRENT_TEMP: 68, SUN_EVENTS: [1, 0, 0, 0, 0],
                     WIND_TREND_UINT8: [17], GUST_TREND_UINT8: [48], UV_TREND_UINT8: [64] };
-  statusRebake.rememberBakeInputs(payload, { platform: 'basalt' });
+  statusRebake.rememberBakeInputs(payload);
   // Exactly what applyForecastSeries does next.
   ['CITY', 'CURRENT_TEMP', 'WIND_TREND_UINT8', 'GUST_TREND_UINT8', 'UV_TREND_UINT8']
     .forEach((k) => { delete payload[k]; });
@@ -87,7 +86,7 @@ test('the re-bake renders the live reading through the real status-line pipeline
                    settings: { temperatureUnits: 'c', axisTimeFormat: '24h', healthMode: 'status',
                                statusForecastLeft: 'phoneBattery' } });
   statusRebake.rememberBakeInputs(
-    { CITY: 'Bonn', CURRENT_TEMP: 68, SUN_EVENTS: [1, 0, 0, 0, 0] }, { platform: 'basalt' });
+    { CITY: 'Bonn', CURRENT_TEMP: 68, SUN_EVENTS: [1, 0, 0, 0, 0] });
 
   mgr.setLevel(0.42);
   assert.deepEqual(Object.keys(h.sends[0]).sort(), SIX_STATUS_KEYS.slice().sort());
@@ -112,7 +111,7 @@ test('on a Pebble Time 2 the re-bake carries the line of a bar 4 to 6 a screen s
                                statusBar4Made: true, statusBar4Left: 'phoneBattery',
                                statusBar5Made: true, statusBar5Left: 'phoneBattery' } });
   statusRebake.rememberBakeInputs(
-    { CITY: 'Bonn', CURRENT_TEMP: 68, SUN_EVENTS: [1, 0, 0, 0, 0] }, { platform: 'emery' });
+    { CITY: 'Bonn', CURRENT_TEMP: 68, SUN_EVENTS: [1, 0, 0, 0, 0] });
 
   mgr.setLevel(0.42);
   assert.deepEqual(Object.keys(h.sends[0]).sort(),
@@ -138,7 +137,7 @@ test('a charging event after a PKJS restart still reaches the watch', () => {
   // state and must re-bake from flash.
   const mgr = fakeManager(0.62, false);
   boot({ navigator: modernNavigator(mgr), realBake: true, settings: SLOT_SETTINGS });
-  statusRebake.rememberBakeInputs(bakePayload(), { platform: 'basalt' });
+  statusRebake.rememberBakeInputs(bakePayload());
   assert.ok(storage[KEYS.PHONE_BATTERY_SNAPSHOT], 'the bake wrote the backstop');
 
   const mgr2 = fakeManager(0.62, false);
@@ -161,7 +160,7 @@ test('the re-bake changes the battery slot and reproduces every other slot exact
   // re-bakes byte-identically and only the battery one moves.
   const mgr = fakeManager(0.62, false);
   const h = boot({ navigator: modernNavigator(mgr), realBake: true, settings: SLOT_SETTINGS });
-  statusRebake.rememberBakeInputs(bakePayload(), { platform: 'basalt' });
+  statusRebake.rememberBakeInputs(bakePayload());
   mgr.setLevel(0.42);                       // a send from the LIVE snapshot
   const before = h.sends[h.sends.length - 1];
 
@@ -187,15 +186,13 @@ test('the stored blob holds only the payload keys the bake reads', () => {
   // the payload have no business on flash. Enumerated from status-lines.js
   // (formatValue + directionSentinel) and status-wire.js (displayValue).
   boot({ navigator: modernNavigator(fakeManager(0.62, false)), settings: SLOT_SETTINGS });
-  statusRebake.rememberBakeInputs(bakePayload(), { platform: 'basalt' });
+  statusRebake.rememberBakeInputs(bakePayload());
   const blob = JSON.parse(storage[KEYS.PHONE_BATTERY_SNAPSHOT]);
-  assert.deepEqual(Object.keys(blob).sort(), ['payload', 'v', 'watchInfo']);
+  assert.deepEqual(Object.keys(blob).sort(), ['payload', 'v']);
   assert.deepEqual(Object.keys(blob.payload).sort(),
     ['CITY', 'CURRENT_TEMP', 'FEELS_CURRENT', 'GUST_TREND_UINT8', 'SUN_EVENTS',
      'UV_TREND_UINT8', 'WIND_TREND_UINT8'],
     'present bake keys only -- no TEMP_TREND_UINT8, no radar, no FORECAST_START');
-  assert.deepEqual(blob.watchInfo, { platform: 'basalt' },
-    'the platform env the bake derives from survives too');
 });
 
 test('the restored payload is paired with the LIVE settings, not stored ones', () => {
@@ -203,7 +200,7 @@ test('the restored payload is paired with the LIVE settings, not stored ones', (
   // fetch would bake with (the in-memory path pairs the same way, test below).
   const mgr = fakeManager(0.62, false);
   boot({ navigator: modernNavigator(mgr), realBake: true, settings: SLOT_SETTINGS });
-  statusRebake.rememberBakeInputs(bakePayload(), { platform: 'basalt' });
+  statusRebake.rememberBakeInputs(bakePayload());
 
   const mgr2 = fakeManager(0.62, false);
   const h2 = boot({ navigator: modernNavigator(mgr2), realBake: true, keepStorage: true,
@@ -226,7 +223,7 @@ test('after a save, a micro-send from the in-memory snapshot bakes the NEW setti
   const h = boot({ navigator: modernNavigator(mgr), realBake: true, settings: before });
   const payload = bakePayload();
   payload.UV_TREND_UINT8 = [90];   // UV 9: danger on the seed pair
-  statusRebake.rememberBakeInputs(payload, { platform: 'basalt' });
+  statusRebake.rememberBakeInputs(payload);
   mgr.setLevel(0.42);
   assert.equal(h.sends[0].ALERT_ENTRIES_UINT8.length, 1, 'the UV alert is on the watch');
 
@@ -247,7 +244,7 @@ test('a restart does not turn its seed reading into a send', () => {
   // (the next fetch's bake carries it), and the first real event after it sends.
   const mgr = fakeManager(0.62, false);
   boot({ navigator: modernNavigator(mgr), realBake: true, settings: SLOT_SETTINGS });
-  statusRebake.rememberBakeInputs(bakePayload(), { platform: 'basalt' });
+  statusRebake.rememberBakeInputs(bakePayload());
 
   const mgr2 = fakeManager(0.55, false);  // drained while PKJS was down
   const h2 = boot({ navigator: modernNavigator(mgr2), realBake: true,
@@ -264,7 +261,7 @@ test('a restart does not turn its seed reading into a send', () => {
 test('re-baking a restored snapshot never writes back to the stored blob', () => {
   const mgr = fakeManager(0.62, false);
   boot({ navigator: modernNavigator(mgr), realBake: true, settings: SLOT_SETTINGS });
-  statusRebake.rememberBakeInputs(bakePayload(), { platform: 'basalt' });
+  statusRebake.rememberBakeInputs(bakePayload());
   const stored = storage[KEYS.PHONE_BATTERY_SNAPSHOT];
 
   const mgr2 = fakeManager(0.62, false);
@@ -280,8 +277,8 @@ test('a re-bake from the LIVE snapshot is preferred over the stored one', () => 
   const h = boot({ navigator: modernNavigator(mgr), realBake: true, settings: SLOT_SETTINGS });
   const stale = bakePayload();
   stale.CITY = 'Köln';
-  statusRebake.rememberBakeInputs(stale, { platform: 'basalt' });
-  statusRebake.rememberBakeInputs(bakePayload(), { platform: 'basalt' });
+  statusRebake.rememberBakeInputs(stale);
+  statusRebake.rememberBakeInputs(bakePayload());
   mgr.setCharging(true);
   assert.equal(decodeLine(h.sends[0].STATUS_LINE_1_UINT8)[1].text, 'Bonn',
     'the newest bake wins, in memory and on flash');
@@ -329,7 +326,7 @@ test('a restored snapshot with no settings supplier degrades to no snapshot', ()
   // matching neither the watch nor the user's config.
   const mgr = fakeManager(0.62, false);
   boot({ navigator: modernNavigator(mgr), realBake: true, settings: SLOT_SETTINGS });
-  statusRebake.rememberBakeInputs(bakePayload(), { platform: 'basalt' });
+  statusRebake.rememberBakeInputs(bakePayload());
 
   const sends = [];
   const mgr2 = fakeManager(0.62, false);

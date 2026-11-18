@@ -3,7 +3,6 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const schema = require('../../../src/pkjs/page/settings/schema.js');
 const showWhen = require('../../../src/pkjs/config-ui/lib/show-when.js');
-const platform = require('../../../src/pkjs/config-ui/lib/platform.js');
 // The settings instance clay-settings.js seeds a fresh install from (getDefaults).
 const settings = require('../../../src/pkjs/page/settings/index');
 // Pulled in so PConf.optionsResolvers is populated (blocks.js registers layoutPresetOptions
@@ -100,7 +99,7 @@ const EXPECTED_KEYS = [
   'conditionSlotLook', 'conditionSlotName', 'citySlotIcon',
   'barSource','rainBarColor','provider','owmApiKey','yandexApiKey','tomorrowioApiKey','tomorrowioFitBudget','rainbowApiKey','rainbowFitBudget','radarMode','radarProvider','radarColor','radarSky','radarNoRainText','rainCountdownHorizon',
   'layoutPreset','largeGraphFont','forecastHours',
-  'forecastAxisNumbers','forecastAxisScale','doubleFlick','viewResetMin','swapClockStatus','configTheme','showQt','vibe','btIcons','onboardingDone','startOnWeatherTab',
+  'forecastAxisNumbers','forecastAxisScale','doubleFlick','viewResetMin','swapClockStatus','configTheme','vibe','btIcons','onboardingDone','startOnWeatherTab',
   // Setup › Misc › Hide info text: page-only like startOnWeatherTab (rides the saved blob,
   // never read watch-side), but a stored key all the same.
   'hideInfoText','reset',
@@ -128,10 +127,10 @@ const EXPECTED_KEYS = [
   'statusForecastLeft','statusForecastLeftCountdown','statusForecastMid','statusForecastMidCountdown','statusForecastRight','statusForecastRightCountdown',
   'statusRadarLeft','statusRadarLeftCountdown','statusRadarMid','statusRadarMidCountdown','statusRadarRight','statusRadarRightCountdown',
   'statusTopLeft','statusTopLeftCountdown','statusTopMid','statusTopMidCountdown','statusTopRight','statusTopRightCountdown',
-  'batteryLowOnly','statusHealthLeft','statusHealthLeftCountdown','statusHealthMid','statusHealthMidCountdown','statusHealthRight','statusHealthRightCountdown'
+  'statusHealthLeft','statusHealthLeftCountdown','statusHealthMid','statusHealthMidCountdown','statusHealthRight','statusHealthRightCountdown'
 ].concat(THRESH_KEYS).concat(UNIT_KEYS).concat(GRAPH_COLOR_KEYS).concat(ALERT_KEYS);
 
-test('every Clay messageKey present; theme/windScale/colorUSFederal are the only duplicates (contextual slots)', () => {
+test('every Clay messageKey present; the duplicates are contextual slots', () => {
   EXPECTED_KEYS.forEach((k) => assert.ok(byKey(k), 'missing messageKey: ' + k));
   // uiOnly items (the shared Night hours' pickers and its Separate hours toggle) are
   // page-only: never stored, never sent, so they are not Clay keys at all.
@@ -140,18 +139,14 @@ test('every Clay messageKey present; theme/windScale/colorUSFederal are the only
   seen.forEach((k) => { counts[k] = (counts[k] || 0) + 1; });
   const dups = Object.keys(counts).filter((k) => counts[k] > 1);
   // windScale: one slot per metric picker (main / second / third / fourth metric) and wind
-  // unit. pressureScale: one per metric picker. theme: color-env (4 options) vs. B&W-env
-  // (2 options) — two slots, not four: the 'Day theme' pair is gone and the Theme
-  // row is never renamed. themeNight is the same color/B&W split. colorUSFederal:
-  // dark-exclude-white vs. light-exclude-black.
+  // unit. pressureScale: one per metric picker. colorUSFederal: dark-exclude-white vs.
+  // light-exclude-black.
   // tomorrowioApiKey/tomorrowioFitBudget: the Setup tab's Tomorrow.io key sheet (weather
   // provider) vs. the Graphs tab's radar one (radar-only) — mutually-exclusive showWhen,
   // so only one instance ever renders.
   // The five alert kinds' levels live in ONE place, their alert sheet (the slot
   // sheet only points there), so each of their keys appears exactly once.
-  // batteryLowLevel: the Battery sheet's 5 % (emery) and 10 % (every other watch)
-  // sliders, gated apart. vibe/btIcons: the Bluetooth sheet vs aplite's Watch Status
-  // Bar rows, gated apart. themeAutoMode: the Night theme's Hours row in the shared Night
+  // themeAutoMode: the Night theme's Hours row in the shared Night
   // hours mode vs. with Separate hours (same stored values, relabelled options), gated
   // apart. rainCountdownHorizon is NOT here: the Rain sheet's Time window is its one row
   // (the Radar tab's copy went, the owner's of 2026-10-02).
@@ -159,9 +154,9 @@ test('every Clay messageKey present; theme/windScale/colorUSFederal are the only
   // pressureScale — the row follows its metric to whichever picker shows it. The four
   // Draw from keys the same way (rainBarFrom/radarBarFrom are one row each).
   assert.deepEqual(dups.sort(),
-    ['batteryLowLevel', 'btIcons', 'cloudLineFrom', 'colorUSFederal', 'gustLineShow',
-      'precipLineFrom', 'pressureScale', 'theme', 'themeAutoMode', 'themeNight',
-      'tomorrowioApiKey', 'tomorrowioFitBudget', 'uvLineFrom', 'uvLineShow', 'vibe',
+    ['cloudLineFrom', 'colorUSFederal', 'gustLineShow',
+      'precipLineFrom', 'pressureScale', 'themeAutoMode',
+      'tomorrowioApiKey', 'tomorrowioFitBudget', 'uvLineFrom', 'uvLineShow',
       'windLineFrom', 'windLineShow', 'windScale'],
     'unexpected duplicates: ' + dups.join(','));
   ['windLineShow', 'gustLineShow', 'uvLineShow',
@@ -173,13 +168,10 @@ test('every Clay messageKey present; theme/windScale/colorUSFederal are the only
       'thresh' + stem + suffix + ' appears once (the alert sheet)')));
   assert.equal(counts.windScale, 12, 'windScale appears in twelve slots (4 pickers × 3 units)');
   assert.equal(counts.pressureScale, 4, 'pressureScale appears in four slots (one per metric picker)');
-  assert.equal(counts.theme, 2, 'theme appears in two slots (color / B&W env)');
-  assert.equal(counts.themeNight, 2, 'themeNight appears in two slots (color / B&W env)');
   assert.equal(counts.colorUSFederal, 2, 'colorUSFederal appears in exactly two slots');
   assert.equal(counts.tomorrowioApiKey, 2, 'tomorrow.io key in the Setup + Graphs tabs\' key sheets');
   assert.equal(counts.tomorrowioFitBudget, 2, 'tomorrow.io budget guard in the Setup + Graphs tabs\' key sheets');
-  ['batteryLowLevel', 'btIcons', 'vibe', 'themeAutoMode'].forEach((k) =>
-    assert.equal(counts[k], 2, k + ' appears in exactly two slots'));
+  assert.equal(counts.themeAutoMode, 2, 'themeAutoMode appears in exactly two slots');
   assert.equal(counts.rainCountdownHorizon, 1, 'the rain window appears once (the Rain sheet)');
   assert.deepEqual(Object.keys(counts).sort(), EXPECTED_KEYS.slice().sort());
 });
@@ -223,9 +215,9 @@ test('defaults match Clay/clay-settings (not the prototype drift)', () => {
 
 test('B/W bar-scale hints: the radar legend is a gated staticText, the forecast one rides the Bars hint', () => {
   const hints = items.filter((i) => i.type === 'staticText' && i.showWhen && i.showWhen.all);
-  // Effective color: real B&W hardware OR the Black & White theme (bw/bw-light) on a color watch.
+  // Effective color: the Black & White theme (bw/bw-light).
   const isBwGated = (h, cond) =>
-    JSON.stringify(h.showWhen.all) === JSON.stringify([{ not: { all: [{ env: 'color' }, { key: 'theme', nin: ['bw', 'bw-light'] }] } }, cond]);
+    JSON.stringify(h.showWhen.all) === JSON.stringify([{ not: { key: 'theme', nin: ['bw', 'bw-light'] } }, cond]);
   assert.ok(hints.some((h) => isBwGated(h, { key: 'radarMode', eq: 'graph' })), 'radar B/W hint missing');
   // The forecast's scale note and B/W legend folded into the Bars row's own info text:
   // no staticText of its own any more, the resolver picks the note per effective colour.
@@ -267,16 +259,15 @@ test('B/W bar-scale hints actually show for bw-light (not just bw) via the show-
   assert.equal(resolve({ theme: 'dark' }, { color: true }, args('off')), null, 'no scale note with the bars off');
 });
 
-test('COLOR-capability + showWhen wiring', () => {
-  ['rainBarColor','radarColor','colorTime'].forEach((k) => assert.ok(byKey(k).capabilities.indexOf('COLOR') >= 0));
+test('showWhen wiring', () => {
+  ['rainBarColor','radarColor','colorTime'].forEach((k) => assert.equal(byKey(k).capabilities, undefined, k));
   // Fill is available for every metric EXCEPT feels-like and dew point, which ride the
   // temperature axis and so have no meaningful zero to fill down to — and not for a
-  // stripe-styled main line, which has no curve to fill below (unless the watch ignores
-  // the styles, or the metric cannot be a stripe and so draws a stored one as a line).
+  // stripe-styled main line, which has no curve to fill below (unless the metric cannot be a
+  // stripe and so draws a stored one as a line).
   assert.deepEqual(byKey('secondaryLineFill').showWhen, { all: [
     { key: 'secondaryLine', nin: ['feels', 'dew'] },
-    { any: [{ not: { env: 'lineStyles' } },
-      { key: 'secondaryLineStyle', nin: ['stripeTop', 'stripeBottom'] },
+    { any: [{ key: 'secondaryLineStyle', nin: ['stripeTop', 'stripeBottom'] },
       { key: 'secondaryLine', nin: ['precip_prob', 'cloud', 'wind', 'gust', 'uv'] }] }
   ] });
   assert.deepEqual(byKey('owmApiKey').showWhen, { key: 'provider', eq: 'openweathermap' });
@@ -294,8 +285,6 @@ test('the fill toggle hides for feels-like and stays visible for every other met
   ['stripeTop', 'stripeBottom'].forEach((st) => {
     assert.equal(showWhen.isVisible(fill, { secondaryLine: 'cloud', secondaryLineStyle: st,
       env: { lineStyles: true } }), false, st + ' hides the fill row');
-    assert.equal(showWhen.isVisible(fill, { secondaryLine: 'cloud', secondaryLineStyle: st,
-      env: { lineStyles: false } }), true, st + ' is ignored where the watch ignores styles');
     // Pressure cannot be a stripe: a stored one draws as a line, which fills — and the
     // row must say so in the same render the metric changed in, before the style row's
     // display-snap has rewritten the stored value.
@@ -353,7 +342,7 @@ test('no key rows on the Data sources card: every key lives in a key sheet that 
   });
 });
 
-test('your bars: the Health and Radar bars\' dialogs and slots show on every watch that draws them, whatever the modes', () => {
+test('your bars: the Health and Radar bars\' dialogs and slots show whatever the modes', () => {
   // Since 3.0.0 the Status bars tab lists every bar, also one no screen shows (the Your status bars
   // card says "No screen"), so any bar can go onto any screen: the gate is the watch's alone.
   const watch = schema.tabs.find((t) => t.id === 'watch');
@@ -364,8 +353,6 @@ test('your bars: the Health and Radar bars\' dialogs and slots show on every wat
       ['off', 'slot', 'status', 'all'].forEach((healthMode) => ['off', 'countdown', 'status', 'graph'].forEach((radarMode) =>
         assert.equal(showWhen.isVisible(item, { healthMode, radarMode, env: { health: true, radar: true } }), true,
           k + ' ' + healthMode + ' ' + radarMode)));
-      assert.equal(showWhen.isVisible(item, { healthMode: 'all', radarMode: 'graph', env: { [cap]: false } }), false,
-        k + ': none on a watch without it');
     });
     // The bar's name is a page-only hidden key its dialog's title renames: no row to gate.
     assert.deepEqual(byKey(prefix + 'Name'), { type: 'hidden', messageKey: prefix + 'Name', defaultValue: '',
@@ -373,7 +360,7 @@ test('your bars: the Health and Radar bars\' dialogs and slots show on every wat
   });
 });
 
-test('hrScale is a range slider gated to HR hardware and the graph mode', () => {
+test('hrScale is a range slider gated to the graph mode', () => {
   const it = byKey('hrScale');
   assert.ok(it, 'hrScale item exists');
   assert.equal(it.type, 'range');
@@ -394,25 +381,17 @@ test('hrScale is a range slider gated to HR hardware and the graph mode', () => 
   assert.equal(it.step, 5);
   assert.equal(it.minSpan, 50);
   assert.equal(it.unit, 'BPM');
-  // The HR *line* only exists in the graph, and only sensor watches ever have data.
-  assert.deepEqual(it.showWhen, {
-    all: [{ env: 'hr' }, { key: 'healthMode', eq: 'all' }],
-  });
+  // The HR *line* only exists in the graph.
+  assert.deepEqual(it.showWhen, { key: 'healthMode', eq: 'all' });
 });
 
-test('hrScale shows with the health graph, and hides without the HR sensor', () => {
+test('hrScale shows with the health graph', () => {
   const it = byKey('hrScale');
   const S = { healthMode: 'all' };
-  const vis = (plat) => showWhen.isVisible(it, Object.assign({}, S, {
-    env: platform.computeEnv({ platform: plat }),
-  }));
-  assert.equal(vis('emery'), true, 'Pebble Time 2 has an HR sensor');
-  assert.equal(showWhen.isVisible(it, Object.assign({}, S, {
-    env: Object.assign(platform.computeEnv(), { hr: false }),
-  })), false, 'no HR sensor -> no scale to set');
-  // Right watch, wrong mode.
+  assert.equal(showWhen.isVisible(it, Object.assign({ env: {} }, S)), true, 'the health graph');
+  // The wrong mode.
   assert.equal(showWhen.isVisible(it, {
-    healthMode: 'status', env: platform.computeEnv({ platform: 'emery' }),
+    healthMode: 'status', env: {},
   }), false, 'no graph in status mode');
 });
 
@@ -447,7 +426,7 @@ test('radarNoRainText: visible default, 24-char UI cap, graph-only', () => {
   const eng = require('../../../src/pkjs/config-ui/lib/engine.js');
   const S = eng.hydrate(schema, {});
   S.radarMode = 'graph';   // a screen shows the radar graph (a new install has none)
-  const ENV = platform.computeEnv({ platform: 'basalt' });
+  const ENV = {};
   const body = eng.renderBody(schema, 'graphs', {
     S: S, ENV: ENV, USERDATA: {}, openColor: null, openSelect: null,
     openEdit: null, selectQuery: '', collapsed: {}, activePane: { graphs: 'radar' },
@@ -506,7 +485,7 @@ test('windScale has twelve contextual slots: one per picker and wind unit, and o
   const pickers = ['secondaryLine', 'thirdLine', 'fourthLine', 'fifthLine'];
   const units = ['kph', 'mph', 'knots'];
   const midShows = { kph: '50 kph', mph: '31 mph', knots: '27 kn' };
-  const env = platform.computeEnv({ platform: 'basalt' });
+  const env = {};
   // Wind on one picker in one unit: exactly that picker's copy for that unit shows, the
   // copies in picker order, each picker's three in unit order.
   pickers.forEach((picker, p) => units.forEach((windUnits, u) => {
@@ -527,8 +506,7 @@ test('windScale has twelve contextual slots: one per picker and wind unit, and o
 const nightSection = () => schema.tabs.find((t) => t.id === 'watchface').sections
   .find((s) => s.id === 'themeNight');
 // An env without the colour backlight: the gate the Dim backlight rows carry.
-const basaltEnv = Object.assign(platform.computeEnv(), { colorBacklight: false });
-const emeryEnv = platform.computeEnv({ platform: 'emery' });
+const emeryEnv = {};
 const visIn = (env) => (item, S) => showWhen.isVisible(item, Object.assign({ env: env }, S));
 // Separate hours on: the one state that brings each feature's own hour pair on screen.
 const NIGHT_SEPARATE = { key: 'nightHoursSeparate', eq: true };
@@ -538,8 +516,7 @@ test('the Alerts tab: between Status bars and Graphs, holding the alerts\' cards
     ['weather', 'watchface', 'watch', 'alerts', 'graphs', 'setup']);
   const tab = schema.tabs.find((t) => t.id === 'alerts');
   assert.equal(tab.label, 'Alerts');
-  assert.deepEqual(tab.showWhen, { env: 'onDemand' }, 'env-hidden where the watch has no Alerts');
-  assert.equal(showWhen.isVisible(tab, { env: platform.computeEnv() }), true, 'shown');
+  assert.equal(tab.showWhen, undefined, 'always shown');
   const cards = tab.sections.filter((s) => !s.sheetOnly);
   assert.deepEqual(cards.map((s) => s.id), ['onDemand', 'onDemandItems'],
     'the About alerts card and the alert items\' card, and no other card');
@@ -560,11 +537,11 @@ test('the Theme & night card sits between the screens\' cards and Time, and open
   // right below the card whose row opens it.
   const cards = wf.sections.filter((s) => !s.sheetOnly);
   const nightIndex = cards.indexOf(night);
-  assert.deepEqual(cards.slice(1, nightIndex).map((c) => c.id), ['screens', 'layout', 'screenSwitching'],
-    'the Screens card (Layout on aplite) and Screen switching above it');
+  assert.deepEqual(cards.slice(1, nightIndex).map((c) => c.id), ['screens', 'screenSwitching'],
+    'the Screens card and Screen switching above it');
   assert.equal(cards[nightIndex + 1].id, 'time', 'Time follows Theme & night');
   // The theme pickers moved here from General's top card; the location rows did not.
-  assert.deepEqual(night.items.slice(0, 2).map((i) => i.messageKey), ['theme', 'theme']);
+  assert.equal(night.items[0].messageKey, 'theme');
   ['locationMode', 'location', 'gpsCacheMin'].forEach((k) =>
     assert.ok(!night.items.some((i) => i.messageKey === k), k + ' is not in the Theme & night card'));
 });
@@ -579,9 +556,9 @@ test('the Theme & night card: the theme, the Night hours, then dim backlight, th
   // alternative (the sun) to choose — one key, relabelled per mode.
   assert.deepEqual(nightSection().items.map(
     (i) => i.messageKey || (i.sheetId ? '>' + i.sheetId : '#' + i.text)), [
-    'theme', 'theme', 'nightHoursFrom', 'nightHoursTo',
+    'theme', 'nightHoursFrom', 'nightHoursTo',
     'backlightDim', 'backlightDimStartHour', 'backlightDimEndHour',
-    'themeAuto', 'themeNight', 'themeNight', 'themeAutoMode', 'themeAutoMode',
+    'themeAuto', 'themeNight', 'themeAutoMode', 'themeAutoMode',
     'themeAutoStartHour', 'themeAutoEndHour',
     'sleepNightEnabled', 'sleepStartHour', 'sleepEndHour',
     'nightHoursSeparate', '>backlightColor'
@@ -606,7 +583,7 @@ test('themeAutoMode is the only mode key in the Theme & night card', () => {
   modes.forEach((m) => assert.equal(m.defaultValue, 'sun'));
   // Gated apart by Separate hours: exactly one shows at a time.
   [false, true].forEach((sep) => {
-    const shown = modes.filter((m) => visIn(basaltEnv)(m, { themeAuto: true, nightHoursSeparate: sep }));
+    const shown = modes.filter((m) => visIn(emeryEnv)(m, { themeAuto: true, nightHoursSeparate: sep }));
     assert.deepEqual(shown, [modes[sep ? 1 : 0]], 'Separate hours ' + sep + ': one Hours row');
   });
   ['sleepNightMode', 'sleepNightStartHour', 'sleepNightEndHour', 'backlightDimMode']
@@ -777,21 +754,6 @@ test('Theme & night: a group is separated from the one above even when it is col
   ]);
 });
 
-test('Theme & night: a group the watch cannot offer takes its line with it', () => {
-  // Without a colour backlight the whole Dim backlight group is gated away — switch and
-  // rows, and its colour under More options. The card simply steps from the Night hours to
-  // the NIGHT theme, with no stray line or empty row left where the dim group used to be.
-  assert.deepEqual(nightOutline({}, basaltEnv), [
-    'row:Theme', 'row hours:Night hours',
-    'row:Night theme',
-    'row:Battery saver',
-    'row more-row:More options',
-  ]);
-  assert.deepEqual(nightOutline({}, basaltEnv, true).filter(isGroupOpener).map(titleOf),
-    ['Theme', 'Night hours', 'Night theme', 'Battery saver', 'Separate hours', 'Fewer options'],
-    'no dim colour under More options either');
-});
-
 // --- the card's SPACING rule (owner review of the rendered page) ---
 // Dropping the divider is only half of "one block": the rows also have to step evenly.
 // The engine has two join flavours and they space differently — a TIGHT join
@@ -886,7 +848,7 @@ test('Theme & night: the card steps in the Watchface tab\'s row rhythm, on every
   // and a B/W one (diorite/flint), and only rendering both pins each copy's own join.
   const envs = {};
   require('../../../package.template.json').pebble.targetPlatforms.forEach((p) => {
-    envs[p] = platform.computeEnv({ platform: p });
+    envs[p] = {};
   });
   let seams = 0;
   Object.keys(envs).forEach((envName) => {
@@ -976,9 +938,9 @@ test('the battery saver owns its hours outright and still talks about SENDING', 
   assert.equal(on.hint,
     'Stop sending updates to your watch between the hours below to save battery.');
   assert.equal(on.hintFrom.resolver, 'nightFeatureHint');
-  assert.equal(nightHours.nightFeatureHint({ nightHoursSeparate: false }, basaltEnv, on.hintFrom.args),
+  assert.equal(nightHours.nightFeatureHint({ nightHoursSeparate: false }, emeryEnv, on.hintFrom.args),
     'Stop sending updates to your watch during Night hours to save battery.', 'the shared-mode copy');
-  assert.equal(nightHours.nightFeatureHint({ nightHoursSeparate: true }, basaltEnv, on.hintFrom.args), null,
+  assert.equal(nightHours.nightFeatureHint({ nightHoursSeparate: true }, emeryEnv, on.hintFrom.args), null,
     'with Separate hours the row\'s own hint stands');
 
   const from = byKey('sleepStartHour'), to = byKey('sleepEndHour');
@@ -994,7 +956,7 @@ test('the battery saver owns its hours outright and still talks about SENDING', 
   assert.deepEqual(from.showWhen, { all: [{ key: 'sleepNightEnabled', eq: true }, NIGHT_SEPARATE] });
   assert.deepEqual(to.showWhen, { all: [{ key: 'sleepNightEnabled', eq: true }, NIGHT_SEPARATE] });
 
-  const vis = visIn(basaltEnv);
+  const vis = visIn(emeryEnv);
   assert.equal(vis(from, { sleepNightEnabled: false, nightHoursSeparate: true }), false,
     'the hours follow the switch');
   assert.equal(vis(from, { sleepNightEnabled: true, nightHoursSeparate: true }), true);
@@ -1003,13 +965,11 @@ test('the battery saver owns its hours outright and still talks about SENDING', 
     'with the shared Night hours the pair is the Night hours row');
 });
 
-test('Dim backlight follows the colour backlight, on by default, and carries a dim-red RGB colour', () => {
+test('Dim backlight: on by default, and carries a dim-red RGB colour', () => {
   const on = byKey('backlightDim');
   assert.equal(on.type, 'toggle');
   assert.equal(on.defaultValue, true);
-  // The LED fact, NOT capabilities:['COLOR'] — that one means "colour screen" and is
-  // true on basalt, which has a plain white backlight.
-  assert.deepEqual(on.showWhen, { env: 'colorBacklight' });
+  assert.equal(on.showWhen, undefined);
   assert.equal(on.capabilities, undefined);
 
   // The dim window is the feature's own pair, under the switch with Separate hours (the
@@ -1033,11 +993,7 @@ test('Dim backlight follows the colour backlight, on by default, and carries a d
 
   const BACKLIGHT_KEYS = ['backlightDim', 'backlightDimStartHour', 'backlightDimEndHour'];
   const on_ = { backlightDim: true, nightHoursSeparate: true };
-  BACKLIGHT_KEYS.forEach((k) => {
-    assert.equal(visIn(emeryEnv)(byKey(k), on_), true, k + ' shows on emery');
-    assert.equal(visIn(basaltEnv)(byKey(k), on_), false,
-      k + ' hides without the colour backlight');
-  });
+  BACKLIGHT_KEYS.forEach((k) => assert.equal(visIn(emeryEnv)(byKey(k), on_), true, k + ' shows'));
   const vis = visIn(emeryEnv);
   assert.equal(vis(from, { backlightDim: true, nightHoursSeparate: true }), true,
     'switched on, the hours are right there');
@@ -1076,9 +1032,9 @@ const engineLib = require('../../../src/pkjs/config-ui/lib/engine.js');
 const LINE_KEYS = ['secondaryLine', 'thirdLine', 'fourthLine', 'fifthLine'];
 const GRAPH_METRIC_IDS = ['precip_prob', 'cloud', 'wind', 'gust', 'uv', 'pressure', 'feels', 'dew'];
 const STYLE_IDS = ['line', 'bold', 'dots', 'x', 'stripeTop', 'stripeBottom'];
-const STYLED_ENV = platform.computeEnv({ platform: 'basalt' });
+const STYLED_ENV = {};
 // An env whose watch draws no line styles.
-const APLITE_ENV = Object.assign(platform.computeEnv(), { lineStyles: false });
+const APLITE_ENV = Object.assign({}, { lineStyles: false });
 /** A row's resolved hint for settings S (the row shows S[key]). */
 const hintOf = (key, S, env) => engineLib.resolveHint(byKey(key), S, env, S[key]);
 
@@ -1127,29 +1083,6 @@ test('a metric picker names a gap in the picked provider only', () => {
   assert.equal(pick('gust', 'metno'), 'Shows the hourly peak. ' + METNO);
   assert.equal(pick('cloud', 'metno'), '', 'Met.no sends clouds');
   assert.equal(pick('precip_prob', 'dwd'), '', 'nothing for a provider without the gap');
-});
-
-test('without style pickers the metric picker keeps the height scale after its note', () => {
-  const expected = {
-    precip_prob: 'Half height is a 50% chance of rain, full height is 100%.',
-    cloud: 'Half height is half the sky covered, full height is overcast.',
-    wind: 'The height follows the Wind graph scale setting.',
-    gust: 'Shows the hourly peak. The height follows the Wind graph scale setting.',
-    uv: 'Half height is UV 5.5, full height is UV 11 (extreme).',
-    pressure: 'Shows sea-level pressure. The height follows the Pressure graph scale below.',
-    feels: 'Uses the same scale as the temperature curve.',
-    dew: 'The closer it runs to the temperature, the more humid it feels. '
-      + 'Uses the same scale as the temperature curve.'
-  };
-  GRAPH_METRIC_IDS.forEach((m) => {
-    assert.equal(hintOf('secondaryLine', { secondaryLine: m }, APLITE_ENV), expected[m], 'no styles ' + m);
-    // The same truthy test as the style rows' {env: 'lineStyles'} gate: whenever those
-    // rows are hidden, the metric picker explains the scale itself.
-    assert.equal(hintOf('thirdLine', { thirdLine: m }, {}), expected[m], 'no lineStyles fact ' + m);
-  });
-  assert.equal(hintOf('thirdLine', { thirdLine: 'off' }, APLITE_ENV), '', 'Off explains itself');
-  // The style rows really are hidden wherever this wording shows.
-  assert.equal(showWhen.isVisible(byKey('secondaryLineStyle'), { env: APLITE_ENV }), false);
 });
 
 test('line-style pickers: the scale of their own line\'s metric, one resolver for all four', () => {
@@ -1316,36 +1249,6 @@ test('startOnWeatherTab is a page-only toggle that defaults to Watchface', () =>
     'and a key the watch DOES receive shows up in it');
 });
 
-// aplite has no screens (no flick, no radar, no Health): its Watchface tab keeps a plain
-// Layout choice, the three calendars. Every other watch edits its screens instead.
-test('aplite\'s Layout card: Full calendar, Compact calendar, No calendar, the rest dormant', () => {
-  const watchface = schema.tabs.find((tab) => tab.id === 'watchface');
-  const section = watchface.sections.find((s) => s.id === 'layout');
-  assert.equal(section.title, 'Layout');
-  assert.deepEqual(section.showWhen, { env: 'platform', eq: 'aplite' }, 'aplite only');
-  const t = section.items[0];
-  assert.equal(t.messageKey, 'layoutPreset');
-  assert.equal(t.type, 'radio');
-  assert.equal(t.defaultValue, 'compactCal');
-  assert.equal(t.options, undefined, 'derived, so the engine\'s dormant fallback applies');
-  assert.deepEqual(t.optionsFrom, { resolver: 'apliteLayouts' });
-  assert.deepEqual(global.PConf.optionsResolvers.get('apliteLayouts')({}, platform.computeEnv({ platform: 'aplite' })),
-    [['Full calendar', 'fullCal'], ['Compact calendar', 'compactCal'], ['No calendar', 'noCal']]);
-  assert.deepEqual(t.hintByValue, { fullCal: 'Shows a calendar with 3 rows.', compactCal: 'Shows a calendar with 2 rows.',
-    noCal: 'No calendar, so the forecast graph is bigger.' });
-  // A stored value aplite runs as Compact calendar (view-cycle.js presetKeyFor: Weather only
-  // and a custom layout fold to it; compactDense draws it without a status row) lies dormant.
-  assert.deepEqual(t.dormantValues, ['compactDense', 'weatherOnly', 'custom']);
-  assert.equal(byKey('layoutPreset'), t, 'the one layoutPreset row');
-  assert.equal(watchface.pinBlock, 'watchPreview', 'the watch, every screen of it, is pinned atop the tab');
-  // Not in Setup's Misc card (the old More tab's Misc).
-  const misc = schema.tabs.find((tab) => tab.id === 'setup').sections.find((s) => s.id === 'about');
-  assert.equal(misc.title, 'Misc');
-  assert.ok(!misc.items.some((i) => i.messageKey === 'layoutPreset'), 'not in the Misc section');
-  // "First week to display" only matters for a 3-row calendar; it is always shown.
-  assert.equal(byKey('firstWeek').showWhen, undefined);
-});
-
 test('Screen switching: Double flick and Back to Default after, once there is a screen to flick to', () => {
   const sec = schema.tabs.find((t) => t.id === 'watchface').sections.find((s) => s.id === 'screenSwitching');
   assert.equal(sec.title, 'Screen switching');
@@ -1365,7 +1268,7 @@ test('Screen switching: Double flick and Back to Default after, once there is a 
   // Shown on a watch with flick screens while there are two screens or more (manyScreens).
   const custom = (viewCount) => ({ layoutPreset: 'custom', customLayoutSeeded: true, viewCount,
     viewTop1: 'none', viewBody1: 'forecast', viewUpper1: 'weather', viewLower1: 'off' });
-  const vis = (S) => showWhen.isVisible(sec, Object.assign({ env: platform.computeEnv() }, S));
+  const vis = (S) => showWhen.isVisible(sec, Object.assign({ env: {} }, S));
   assert.equal(vis(custom('1')), false, 'the Default screen alone');
   assert.equal(vis(custom('2')), true, 'a screen to flick to');
 });
@@ -1378,8 +1281,7 @@ test('largeGraphFont is offered on the Pebble Time 2', () => {
   // screen, so it is the shipped default rather than something to go and find.
   assert.equal(it.defaultValue, true);
   assert.equal(it.label, 'Larger graph fonts');
-  assert.deepEqual(it.showWhen, { env: 'platform', eq: 'emery' });
-  assert.equal(showWhen.isVisible(it, { env: platform.computeEnv(null) }), true, 'shown, watchInfo or not');
+  assert.equal(it.showWhen, undefined);
 });
 
 test('the Forecast pane is the Your graphs card; a graph\'s cards are its dialog\'s, Other after Rain bars', () => {
@@ -1417,7 +1319,7 @@ test('forecastHours: the Forecast length row closes the Other card', () => {
   assert.deepEqual(it.optionsFrom, { resolver: 'forecastSpanOptions' });
   const resolve = global.PConf.optionsResolvers.get('forecastSpanOptions');
   assert.equal(typeof resolve, 'function', 'forecast-hints.js registers forecastSpanOptions');
-  const emery = platform.computeEnv({ platform: 'emery' });
+  const emery = {};
   const labels = (over) => resolve(Object.assign({}, settings.getDefaults(), over), emery, {});
   assert.deepEqual(labels({}).map((o) => o[1]), forecastSpan.CHOICES, 'the stored values are CHOICES');
   assert.deepEqual(labels({}), [['12 h', '12'], ['24 h', '24'], ['40 h', '48']],
@@ -1441,12 +1343,11 @@ test('forecastHours: the Forecast length row closes the Other card', () => {
     + 'the graph\'s layout.');
   assert.equal(it.hintByValue['12'], 'The next 12 hours, in wider columns.');
   assert.equal(it.hintByValue['24'], 'The next 24 hours.');
-  assert.deepEqual(it.showWhen, { env: 'forecastSpan' });
+  assert.equal(it.showWhen, undefined);
   assert.ok(!it.more, 'the span frames the whole graph: never behind More');
-  assert.equal(showWhen.isVisible(it, { env: platform.computeEnv(null) }), true, 'shown');
 });
 
-// The forecast's left axis options (emery only; src/pkjs/forecast-graphs/domain/forecast-axis.js).
+// The forecast's left axis options (src/pkjs/forecast-graphs/domain/forecast-axis.js).
 test('Left axis: Left axis values in the card, the scale and the font size under More, after Other', () => {
   const forecastAxis = require('../../../src/pkjs/forecast-graphs/domain/forecast-axis.js');
   const titles = dialogCards(schema).map((c) => c.head.text);
@@ -1455,10 +1356,7 @@ test('Left axis: Left axis values in the card, the scale and the font size under
   assert.equal(titles[at - 1], 'Other', 'directly after Other');
   assert.equal(titles[at + 1], '', 'directly before the Graph colors card');
   const card = dialogCard(schema, 'Left axis');
-  // Emery only: each row carries the gate, and a card with no row to show drops out (engine
-  // buildCards), so its subheader needs none.
   assert.equal(card.head.showWhen, undefined);
-  card.items.forEach((it) => assert.match(JSON.stringify(it.showWhen), /"eq":"emery"/, it.messageKey + ': emery only'));
   // The betas' Axis line and Number outline rows are gone: both follow where the numbers go.
   // Larger graph fonts joined it from the Views card (the owner's Screens plan): it sizes
   // the axis labels.
@@ -1494,9 +1392,8 @@ test('Left axis: Left axis values in the card, the scale and the font size under
   assert.equal(forecastAxis.scale({}), scale.defaultValue);
 
   const vis = (it, p, S) => showWhen.isVisible(it, Object.assign({}, S || {}, {
-    env: platform.computeEnv(p ? { platform: p } : null) }));
+    env: {} }));
   assert.equal(vis(nums, 'emery'), true, 'numbers shown');
-  assert.equal(vis(nums, null), true, 'numbers shown without watchInfo');
   // The scale: numbers drawn and a feels-like or dew point line drawn, on any line.
   ['secondaryLine', 'thirdLine', 'fourthLine', 'fifthLine'].forEach((key) => {
     ['feels', 'dew'].forEach((metric) => {
@@ -1513,7 +1410,7 @@ test('Left axis: Left axis values in the card, the scale and the font size under
 });
 
 const radarItem = () => byKey('radarSource');
-const RADAR_ON_WHEN = { all: [{ env: 'radar' }, { key: 'radarEnabled', ne: false }] };
+const RADAR_ON_WHEN = { key: 'radarEnabled', ne: false };
 
 test('the Rain radar picker (Setup › Data sources): Off, then DWD/Met.no/Rainbow/Tomorrow.io', () => {
   const item = radarItem();
@@ -1529,7 +1426,7 @@ test('the Rain radar picker (Setup › Data sources): Off, then DWD/Met.no/Rainb
   ], 'Off first, then one option per radar source (radar-factory.js)');
   assert.deepEqual(item.options[0][2], { desc: 'No rain radar and no rain alert' });
   assert.equal(item.defaultValue, 'dwd', 'the schema default; the wizard turns it off where DWD does not cover');
-  assert.deepEqual(item.showWhen, { env: 'radar' }, 'no Rain radar row on aplite');
+  assert.equal(item.showWhen, undefined);
   assert.equal(item.recommendFrom, 'recommendedRadarProvider');
   // Page-only over two stored keys, so Off keeps the source (screens-page.js): the picker
   // opens on Off or the source, and a pick writes radarEnabled and, for a source, radarProvider.
@@ -1767,13 +1664,13 @@ test('theme switching: toggle + Night theme + mode + custom hours, gated correct
     'first enable seeds a night theme, and the switch joins the shared Night hours');
   ['backlightDim', 'sleepNightEnabled'].forEach((k) => assert.equal(byKey(k).onChange, 'nightFeatureOn', k));
   items.filter((i) => i.messageKey === 'themeAutoMode').forEach((it) => assert.equal(it.onChange, 'nightFeatureOn', 'both Hours rows'));
-  assert.deepEqual(auto.showWhen, { env: 'themePolarity' }, 'gated like the theme picker');
+  assert.equal(auto.showWhen, undefined);
   assert.equal(byKey('themeAutoStartHour').label, 'From',
     'hour labels match the other night rows');
   assert.equal(byKey('themeAutoEndHour').label, 'To');
 
   const nightItems = items.filter((i) => i.messageKey === 'themeNight');
-  assert.equal(nightItems.length, 2, 'a color and a B&W-polarity Night select');
+  assert.equal(nightItems.length, 1, 'one Night select');
   nightItems.forEach((i) => {
     assert.equal(i.defaultValue, 'dark');
     assert.equal(i.label, 'Theme at night');
@@ -1809,7 +1706,7 @@ test('theme switching: toggle + Night theme + mode + custom hours, gated correct
   // Visibility contract on a color watch: the Theme select stays put whatever the
   // switch is doing (it IS the day theme), and only the custom hour rows follow the
   // mode.
-  const colorEnv = platform.computeEnv({ platform: 'emery' });
+  const colorEnv = {};
   const vis = (item, S) => showWhen.isVisible(item, Object.assign({ env: colorEnv }, S));
   const themeItems = items.filter((i) => i.messageKey === 'theme');
   const plainColor = themeItems.find((i) => i.hintByValue);
@@ -1823,15 +1720,20 @@ test('theme switching: toggle + Night theme + mode + custom hours, gated correct
     false, 'with the shared Night hours the Night hours row stands for the pair');
 });
 
-// Each capabilities:[COLOR] item with the gate that must carry its theme exclusion
+// Each colour row with the gate that must carry its theme exclusion
 // (`when`): its OWN showWhen, or, only for an item with no gate of its own (the Graph
 // colors card's lone nav row), its section's, which gates it the way a sheet gates its
 // rows. `rendered` is the full gate the row renders under (own AND section, real
 // predicates only: an empty `{}` would evaluate false and make every check vacuous).
+// The colour rows: every colour picker, the two bar-colour pickers and the rows that open the
+// graph's colour sheets.
+const isColorRow = (i) => i.type === 'color' || i.messageKey === 'rainBarColor' || i.messageKey === 'radarColor'
+  || (i.type === 'sheet' && (i.sheetId === 'graphColors' || Boolean(i.editSheetFrom
+    && i.editSheetFrom.resolver === 'lineColorSheet')));
 const colorGatedWithSection = () => {
   const out = [];
   schema.tabs.forEach((t) => t.sections.forEach((sec) => sec.items.forEach((i) => {
-    if (i.capabilities && i.capabilities.indexOf('COLOR') >= 0) {
+    if (isColorRow(i)) {
       const gates = [i.showWhen, sec.showWhen].filter(Boolean);
       out.push({ item: i, when: i.showWhen || sec.showWhen || null,
         rendered: gates.length ? { all: gates } : null });
@@ -1839,20 +1741,20 @@ const colorGatedWithSection = () => {
   })));
   return out;
 };
-// A context in which every non-theme condition a COLOR row (or its section) can carry is
-// met: every env fact a section needs, the health/radar/bars views on, the holiday
+// A context in which every non-theme condition a colour row (or its section) can carry is
+// met: the health/radar/bars views on, the holiday
 // calendar on, every forecast line drawn. Only the theme can hide a row under it.
 const COLOR_ROW_CTX = {
-  env: { color: true, health: true, hr: true, thresholds: true, onDemand: true, radar: true, lineStyles: true },
+  env: {},
   healthMode: 'all', radarMode: 'graph', barSource: 'rain', radarProvider: 'dwd', holidaysEnabled: true,
   secondaryLine: 'precip_prob', thirdLine: 'uv', fourthLine: 'cloud', fifthLine: 'wind',
 };
 const colorRowVisible = (item, when, theme) => showWhen.isVisible(Object.assign({}, item, { showWhen: when }),
   Object.assign({}, COLOR_ROW_CTX, { theme }));
 
-test('every capabilities:[COLOR] item additionally requires theme not in [bw, bw-light] (effective color)', () => {
+test('every colour row additionally requires theme not in [bw, bw-light] (effective color)', () => {
   const colorGated = colorGatedWithSection();
-  assert.ok(colorGated.length > 0, 'expected at least one capabilities:[COLOR] item');
+  assert.ok(colorGated.length > 0, 'expected at least one colour row');
   colorGated.forEach(({ item: i, when }) => {
     const asStr = JSON.stringify(when);
     assert.ok(asStr.indexOf('"theme"') >= 0, i.messageKey + ' (label "' + i.label + '") is missing a theme gate: ' + asStr);
@@ -1866,7 +1768,7 @@ test('every capabilities:[COLOR] item additionally requires theme not in [bw, bw
 
 test('bw-light hides every effective-color gate (color pickers, B/W legends, scale notes) via the show-when evaluator', () => {
   const colorGated = colorGatedWithSection();
-  assert.ok(colorGated.length > 0, 'expected at least one capabilities:[COLOR] item');
+  assert.ok(colorGated.length > 0, 'expected at least one colour row');
   colorGated.forEach(({ item: i, when, rendered }) => {
     const name = (i.messageKey || i.type) + ' (label "' + i.label + '")';
     // Guard the guard: under the same context a colour theme shows the row (dark, or light
@@ -1929,8 +1831,7 @@ test('Status bars tab (id watch): Your status bars, the All status bars card, th
   ['bar4', 'bar5', 'bar6'].forEach((id, i) => {
     const card = watch.sections.find((s) => s.sheetId === 'bar-' + id);
     const prefix = 'statusBar' + (i + 4);
-    assert.deepEqual(card.showWhen, { all: [{ env: 'extraBars' }, { key: prefix + 'Made', eq: true }] },
-      id + ': once made, on a watch that has it');
+    assert.deepEqual(card.showWhen, { key: prefix + 'Made', eq: true }, id + ': once made');
     // Delete status bar: the page's one Delete (style 'delete'), drawn under the Slots card; no card
     // of its own (no empty subheader before it).
     const del = card.items[card.items.length - 1];
@@ -1989,17 +1890,13 @@ test('Status bars tab (id watch): Your status bars, the All status bars card, th
   const rightIdx = wsb.findIndex((i) => i.messageKey === 'statusTopRight');
   const countdownIdx = wsb.findIndex((i) => i.messageKey === 'statusTopRightCountdown');
   const alertsIdx = wsb.findIndex((i) => i.type === 'button' && i.label === 'Alerts');
-  const battIdx = wsb.findIndex((i) => i.messageKey === 'batteryLowOnly');
   assert.equal(countdownIdx, rightIdx + 1, 'top-right countdown date follows its slot');
   assert.equal(alertsIdx, countdownIdx + 1, 'the Alerts row follows the slots');
-  assert.deepEqual(wsb[alertsIdx + 1], { type: 'subheader', text: 'Icons and vibration', showWhen: { not: ON_DEMAND_WHEN } },
-    'then aplite\'s card of its own');
-  assert.equal(battIdx, alertsIdx + 2, 'aplite\'s battery toggle leads it');
+  assert.equal(wsb.length, alertsIdx + 1, 'and closes the dialog');
 });
 
 // --- Alerts: each bar's Alerts row, the side lists' hidden items, the Alerts tab's cards and
 // their item sheets with their Shows on grids ---
-const ON_DEMAND_WHEN = { env: 'onDemand' };
 const OD = require('../../../src/pkjs/status-bars/domain/on-demand.js');
 const alertsTab = () => schema.tabs.find((t) => t.id === 'alerts');
 // The Alerts tab's first card, About alerts (the old Alert settings card's intro and reset).
@@ -2023,7 +1920,7 @@ test('the eight side lists: one plain hidden item each, ahead of the Alerts tab\
   });
   const sec = alertSheet('odLists');
   assert.equal(sec.sheetOnly, true);
-  assert.deepEqual(sec.showWhen, ON_DEMAND_WHEN);
+  assert.equal(sec.showWhen, undefined);
   assert.equal(sec.title, undefined, 'never opened');
   assert.deepEqual(sec.items.map((i) => i.messageKey), keys, 'BARS order, left then right');
   // The lists moved with the alerts to the Alerts tab: its first sheet, right before the
@@ -2086,7 +1983,7 @@ test('the Quiet time and Sleep sheets: the Shows on card, nothing else', () => {
       + ' (Watchface › Theme & night).']].forEach(([id, title, code, intro]) => {
     const sheet = alertSheet(id);
     assert.equal(sheet.sheetOnly, true);
-    assert.deepEqual(sheet.showWhen, ON_DEMAND_WHEN);
+    assert.equal(sheet.showWhen, undefined);
     assert.equal(sheet.title, title);
     assert.equal(sheet.intro, intro);
     assert.deepEqual(sheet.items.map((i) => i.type), ['subheader', 'checklist', 'staticText'],
@@ -2099,7 +1996,7 @@ test('the Alerts tab\'s cards: gated to a watch with On demand; About alerts\' i
   const sec = onDemandSection();
   assert.equal(sec.title, 'About alerts');
   assert.equal(sec.groupCard, undefined, 'a card of its own');
-  assert.deepEqual(sec.showWhen, ON_DEMAND_WHEN);
+  assert.equal(sec.showWhen, undefined);
   // The owner's wording, 2026-10-01: when an alert shows, then examples; its last sentence
   // the owner's of 2026-10-02 (each item's sheet opens on its Shows on grid). Its reset
   // left the copy for a link row of its own.
@@ -2115,9 +2012,7 @@ test('the Alerts tab\'s cards: gated to a watch with On demand; About alerts\' i
   assert.equal(sec.intro.indexOf('data-action'), -1, 'no inline reset in the intro any more');
   const rowsSec = onDemandItemsSection();
   [sec, rowsSec].forEach((s) => {
-    assert.equal(showWhen.isVisible(s, { env: platform.computeEnv() }), true, s.id + ': shown');
-    assert.equal(showWhen.isVisible(s, { env: Object.assign(platform.computeEnv(), { onDemand: false }) }), false,
-      s.id + ': gone without On demand');
+    assert.equal(showWhen.isVisible(s, { env: {} }), true, s.id + ': shown');
   });
   assert.deepEqual(sec.items[0], { type: 'button', style: 'link', action: 'resetOnDemand',
     label: 'Reset alert settings to defaults' }, 'the reset, a link row');
@@ -2127,7 +2022,7 @@ test('the Alerts tab\'s cards: gated to a watch with On demand; About alerts\' i
   assert.equal(sec.items[1].text, 'Your Default screen has no Watch bar, so Alerts won’t show there.'
     + ' Open an alert and, under Shows on, pick another status bar that screen shows.');
   assert.equal(rowsSec.title, undefined, 'the rows\' card is untitled: its sub-headers name its groups');
-  assert.deepEqual(rowsSec.showWhen, ON_DEMAND_WHEN);
+  assert.equal(rowsSec.showWhen, undefined);
   const it = rowsSec.items;
   assert.deepEqual(it.map((i) => i.sheetId || i.label || i.text || i.type), [
     'System info', 'odBattery', 'odBluetooth', 'odQuiet', 'odSleep', 'Weather alerts',
@@ -2194,39 +2089,28 @@ test('the Alerts tab\'s alert rows and the alert sheets follow the contract\'s A
 test('the Battery sheet: the warn level in the watch\'s charge steps, and the Look', () => {
   const sheet = alertSheet('odBattery');
   assert.equal(sheet.title, 'Battery');
-  assert.deepEqual(sheet.showWhen, ON_DEMAND_WHEN);
+  assert.equal(sheet.showWhen, undefined);
   assert.equal(sheet.intro, 'Shows the battery icon at the edge of a status bar while the watch battery is'
     + ' at or below the warn level. If a bar already shows the battery in a status slot (Watch battery or Watch'
     + ' battery percentage), the icon stays off that bar until that slot is hidden to make room.');
   // The Shows on card (header, grid, Default view note), then the Alert card.
   assert.deepEqual(sheet.items.slice(0, 3).map((i) => i.type), ['subheader', 'checklist', 'staticText']);
   assert.deepEqual(sheet.items[3], { type: 'subheader', text: 'Alert' });
-  const row = (step, gate) => ({ type: 'range', single: true, messageKey: 'batteryLowLevel', label: 'Warn level',
-    min: step, max: 30, step, unit: '%', defaultValue: '10',
-    hint: 'Shows the battery icon when the battery is at or below this level.',
-    showWhen: gate });
-  assert.deepEqual(sheet.items[4], row(5, { env: 'fineBattery' }), 'emery: 5..30 in 5s');
-  assert.deepEqual(sheet.items[5], row(10, { not: { env: 'fineBattery' } }), 'every other watch: 10..30 in 10s');
-  assert.deepEqual(sheet.items[6], {
+  assert.deepEqual(sheet.items[4], { type: 'range', single: true, messageKey: 'batteryLowLevel', label: 'Warn level',
+    min: 5, max: 30, step: 5, unit: '%', defaultValue: '10',
+    hint: 'Shows the battery icon when the battery is at or below this level.' }, '5..30 in 5s');
+  assert.deepEqual(sheet.items[5], {
     type: 'segmented', messageKey: 'batteryLowDisplay', label: 'Look', defaultValue: 'icon',
     options: [['Icon', 'icon'], ['Icon + value', 'value']],
     hintByValue: { value: 'Adds the charge after the icon, like 8%. When the bar runs out of room, the status slot'
       + ' on the alert’s side and the middle slot first shorten, then hide. Only then does it drop to the icon alone.' }
   });
-  assert.equal(sheet.items.length, 7);
-  // Exactly one Warn level row shows.
-  const shown = (env) => sheet.items.slice(4, 6).filter((i) => showWhen.isVisible(i, { env }));
-  assert.deepEqual(shown(platform.computeEnv()).map((i) => i.step), [5]);
-  const coarse = Object.assign(platform.computeEnv(), { fineBattery: false });
-  assert.deepEqual(shown(coarse).map((i) => i.step), [10], 'without the 5 % steps');
-  // The 10 % slider shows a stored 5/15/25 at the next step up, the value the phone sends.
+  assert.equal(sheet.items.length, 6);
+  // The slider shows a stored level as the value the phone sends.
   const RC = require('../../../src/pkjs/config-ui/lib/range-control.js');
   for (let v = 5; v <= 30; v += 5) {
     const S = { batteryLowLevel: String(v) };
-    assert.equal(RC.parseSingle(S.batteryLowLevel, sheet.items[5]), OD.batteryLevel(S, coarse),
-      'coarse ' + v);
-    assert.equal(RC.parseSingle(S.batteryLowLevel, sheet.items[4]), OD.batteryLevel(S, platform.computeEnv({ platform: 'emery' })),
-      'emery ' + v);
+    assert.equal(RC.parseSingle(S.batteryLowLevel, sheet.items[4]), OD.batteryLevel(S), String(v));
   }
 });
 
@@ -2300,7 +2184,7 @@ test('the All status bars card carries the reset-status-bars link row, ungated',
   // 3.2.0's Weather alerts replace slots moved into the Rain alert dialog (below).
   assert.deepEqual(intro.items.slice(0, -1).map((i) => i.messageKey), ['statusBoldAll']);
   assert.equal(byKey('statusBoldAll').more, undefined, 'Bold values is not tucked under More options');
-  assert.deepEqual(byKey('statusBoldAll').showWhen, { env: 'thresholds' });
+  assert.equal(byKey('statusBoldAll').showWhen, undefined);
 });
 
 // The Rain alert's "Replaces the slot" (the owner's, 2026-11-14: one switch, in the Rain alert
@@ -2358,32 +2242,27 @@ test('every threshold sheet is sheetOnly and gated on the thresholds capability'
   assert.deepEqual(odSheets.map((s) => s.sheetId),
     ['odLists', 'odBattery', 'odBluetooth', 'odQuiet', 'odSleep',
       'alertRain', 'alertGust', 'alertUv', 'alertAqi', 'alertPollen', 'alertWind']);
-  odSheets.forEach((s) => {
-    assert.deepEqual(s.showWhen, { env: 'onDemand' }, s.sheetId + ' is On demand-gated');
-  });
+  odSheets.forEach((s) => assert.equal(s.showWhen, undefined, s.sheetId + ' is ungated'));
   const threshSections = sheets.filter((s) => /^thresh/.test(s.sheetId));
   threshSections.forEach((sec, i) =>
-    assert.deepEqual(sec.showWhen, { env: 'thresholds' },
-      'threshold sheet ' + i + ' (' + sec.title + ') carries the platform gate'));
+    assert.equal(sec.showWhen, undefined, 'threshold sheet ' + i + ' (' + sec.title + ') is ungated'));
 
-  const emery = { env: platform.computeEnv({ platform: 'emery' }) };
+  const emery = { env: {} };
   threshSections.forEach((sec) => {
     assert.equal(showWhen.isVisible(sec, emery), true, (sec.title || 'intro') + ' shown');
   });
 
   // Composition check: the health kinds' slider keeps the health gate (showWhen);
   // the slider is never muted by the highlight toggle (the warn level also sets the
-  // day-max hold) — and the color pickers keep COLOR + non-B&W-theme, unchanged.
+  // day-max hold) — and the color pickers keep the non-B&W-theme gate, unchanged.
   assert.deepEqual(byKey('threshStepsWarn').showWhen,
-    { all: [{ env: 'health' }, { key: 'healthMode', ne: 'off' }] },
-    'health kinds keep the health/healthMode item gate');
+    { key: 'healthMode', ne: 'off' }, 'health kinds keep the healthMode item gate');
   assert.equal(byKey('threshAqiWarn').showWhen, undefined,
     'weather kinds carry no item gate — the section gate is theirs');
   assert.equal(byKey('threshAqiWarn').disabledWhen, undefined,
     'the slider stays live while the highlight is off');
   THRESH_COLOR_KEYS.forEach((k) => {
-    assert.deepEqual(byKey(k).capabilities, ['COLOR'], k + ' keeps the COLOR capability');
-    assert.equal(showWhen.isVisible(byKey(k), { env: platform.computeEnv({ platform: 'emery' }), theme: 'bw', healthMode: 'status' }), false,
+    assert.equal(showWhen.isVisible(byKey(k), { env: {}, theme: 'bw', healthMode: 'status' }), false,
       k + ' still hidden by a B&W theme');
   });
 });
@@ -2403,7 +2282,7 @@ test('the Phone battery sheet exists once and BOTH phone-battery slot codes reso
   const sheet = sheets[0];
   assert.equal(sheet.title, 'Phone battery slot');
   assert.equal(sheet.sheetOnly, true, 'opened from a slot pencil, never rendered as a card');
-  assert.deepEqual(sheet.showWhen, { env: 'thresholds' }, 'gated on the thresholds capability');
+  assert.equal(sheet.showWhen, undefined, 'ungated');
   // Bold is its whole sheet: no thresholds, no levels, no extra rows.
   assert.deepEqual(sheet.items.map((i) => i.messageKey), ['threshPhoneBatteryBoldMode'],
     'one Bold row and nothing else — the slot has no levels to threshold');
@@ -2419,14 +2298,9 @@ test('the Phone battery sheet exists once and BOTH phone-battery slot codes reso
   assert.ok(resolve, 'blocks.js registered statusSlotEditSheet');
   ['phoneBattery', 'phoneBatteryPlain'].forEach((code) => {
     assert.equal(
-      resolve({ statusForecastLeft: code }, { thresholds: true }, { messageKey: 'statusForecastLeft' }),
+      resolve({ statusForecastLeft: code }, {}, { messageKey: 'statusForecastLeft' }),
       'threshPhoneBattery', code + ' opens the shared Phone battery sheet');
   });
-  // The gate is the same env flag the section carries.
-  assert.equal(
-    resolve({ statusForecastLeft: 'phoneBattery' },
-      { thresholds: false }, { messageKey: 'statusForecastLeft' }),
-    null, 'no edit pencil without the threshold machinery');
 });
 
 test('threshold config lives in per-slot edit sheets: a pencil and its sheet', () => {
@@ -2437,7 +2311,7 @@ test('threshold config lives in per-slot edit sheets: a pencil and its sheet', (
   function watchCx(platformName, openEdit) {
     // statusTopRight defaults to 'aqi' (a threshold kind).
     const S = Object.assign(eng.hydrate(schema, {}), { healthMode: 'status' });
-    const ENV = platform.computeEnv({ platform: platformName });
+    const ENV = {};
     return {
       S: S, ENV: ENV, USERDATA: {}, openColor: null, openSelect: null,
       openEdit: openEdit || null, selectQuery: '', collapsed: {},
@@ -2739,7 +2613,7 @@ test('goalSlotSheet gates its slot rows without clobbering their own showWhen', 
     'goalSlotSheet must gate through the shared gateAll pass');
   const gateAll = require('../../../src/pkjs/page/settings/schema-gates.js').gateAll;
   const own = { key: 'a', eq: 'b' };
-  const gate = { env: 'health' };
+  const gate = { key: 'healthMode', ne: 'off' };
   const rows = gateAll([{ showWhen: own }, {}], gate);
   assert.equal(rows[0].showWhen, own, 'gateAll must keep a row\'s own showWhen');
   assert.equal(rows[1].showWhen, gate, 'gateAll must gate a row that has none');
@@ -2749,7 +2623,7 @@ test('goalSlotSheet gates its slot rows without clobbering their own showWhen', 
   const health = schema.tabs.find((t) => t.id === 'watch').sections
     .find((s) => s.sheetId === 'threshSteps');
   health.items.filter((i) => i.type !== 'hidden').forEach((i) =>
-    assert.match(JSON.stringify(i.showWhen), /"env":"health"/,
+    assert.match(JSON.stringify(i.showWhen), /"healthMode","ne":"off"/,
       (i.messageKey || i.type) + ' lost the health gate'));
 });
 
@@ -2786,46 +2660,29 @@ test('the Third and Fourth metric pickers offer feels and dew, and exclude sibli
   }
 });
 
-test('the Third metric row and every line-style row hide behind the lineStyles capability', () => {
-  // Row-level showWhen, not option-gating: a hidden row is never rendered, so
-  // the engine's display-snap can't rewrite the stored value on a watch that
-  // lacks the line.
-  const LINE_STYLES_GATE = { env: 'lineStyles' };
-  assert.deepEqual(byKey('fourthLine').showWhen, LINE_STYLES_GATE);
+test('the Third metric row and every line-style row show without a capability gate', () => {
+  assert.equal(byKey('fourthLine').showWhen, undefined);
   assert.equal(byKey('fourthLine').defaultValue, 'off', 'the third metric debuts off');
-  // The picker is the Third metric dialog's Metric row; the dialog and the Lines card's
-  // row that opens it carry the same gate, so neither shows on a watch without the line.
   assert.equal(byKey('fourthLine').label, 'Metric');
   const thirdSheet = lineSheetById('lineThird');
   assert.equal(thirdSheet.title, 'Third metric');
   assert.ok(thirdSheet.items.indexOf(byKey('fourthLine')) !== -1, 'the picker lives in the Third metric dialog');
-  assert.deepEqual(thirdSheet.showWhen, LINE_STYLES_GATE);
+  assert.equal(thirdSheet.showWhen, undefined);
   const linesCard = dialogCard(schema, 'Lines');
-  assert.deepEqual(linesCard.items.find((i) => i.sheetId === 'lineThird').showWhen, LINE_STYLES_GATE);
+  assert.equal(linesCard.items.find((i) => i.sheetId === 'lineThird').showWhen, undefined);
   assert.equal(linesCard.items.find((i) => i.sheetId === 'lineThird').label, 'Third metric');
-  assert.deepEqual(byKey('secondaryLineStyle').showWhen, { all: [LINE_STYLES_GATE] });
-  assert.deepEqual(byKey('thirdLineStyle').showWhen,
-    { all: [LINE_STYLES_GATE, { key: 'thirdLine', ne: 'off' }] });
-  assert.deepEqual(byKey('fourthLineStyle').showWhen,
-    { all: [LINE_STYLES_GATE, { key: 'fourthLine', ne: 'off' }] });
-  const platformLib = require('../../../src/pkjs/config-ui/lib/platform.js');
-  // The rows that follow a metric (the graph scales, Visible values, Draw from) never
-  // show under the Third or Fourth metric on a watch without the lines either, or a
-  // re-paired incapable watch (its stored pick kept by the row-level hide above) would
-  // render an orphaned row for a line it never draws.
+  assert.equal(byKey('secondaryLineStyle').showWhen, undefined);
+  assert.deepEqual(byKey('thirdLineStyle').showWhen, { key: 'thirdLine', ne: 'off' });
+  assert.deepEqual(byKey('fourthLineStyle').showWhen, { key: 'fourthLine', ne: 'off' });
   const followers = forecastItems(schema).filter((i) => i.messageKey === 'windScale'
     || i.messageKey === 'pressureScale' || i.label === 'Visible values' || i.label === 'Draw from');
   assert.equal(followers.length, 44, 'twelve wind scales, four pressure scales, twelve Visible values, sixteen Draw from');
   ['wind', 'gust', 'uv', 'pressure', 'precip_prob'].forEach((metric) => ['fourthLine', 'fifthLine'].forEach((line) => {
     const S = { secondaryLine: 'feels', thirdLine: 'off', fourthLine: 'off', fifthLine: 'off', windUnits: 'kph' };
     S[line] = metric;
-    const shown = (env) => followers.filter((i) => showWhen.isVisible(i, Object.assign({ env }, S)));
-    assert.deepEqual(shown(Object.assign(platformLib.computeEnv(), { lineStyles: false })), [],
-      'no line styles ' + line + '=' + metric);
-    assert.ok(shown(platformLib.computeEnv()).length > 0, line + '=' + metric);
+    assert.ok(followers.some((i) => showWhen.isVisible(i, Object.assign({ env: {} }, S))), line + '=' + metric);
   }));
 });
-
 test('the line-style pickers offer thin/thick/dots/x/top/bottom with per-line defaults matching the wire', () => {
   const lineStyle = require('../../../src/pkjs/forecast-graphs/domain/line-style.js');
   const OPTIONS = [['Thin line', 'line'], ['Thick line', 'bold'], ['Square dots', 'dots'],
@@ -2898,7 +2755,7 @@ test('pressureScale shows for the main line, and for a later line only when no e
   const scales = items.filter((i) => i.messageKey === 'pressureScale');
   const pickers = ['secondaryLine', 'thirdLine', 'fourthLine', 'fifthLine'];
   const shown = (S, p) => scales.filter((s) =>
-    showWhen.isVisible(s, Object.assign({ env: p || platform.computeEnv() }, S)));
+    showWhen.isVisible(s, Object.assign({ env: p || {} }, S)));
   const none = { secondaryLine: 'cloud', thirdLine: 'off', fourthLine: 'off', fifthLine: 'off' };
   assert.deepEqual(shown(none), [], 'no pressure line: no scale');
   pickers.forEach((picker, p) => {
@@ -2907,9 +2764,6 @@ test('pressureScale shows for the main line, and for a later line only when no e
     // A stored repeat on every later picker still shows the one copy, the first one.
     pickers.slice(p + 1).forEach((later) => { S[later] = 'pressure'; });
     assert.deepEqual(shown(S), [scales[p]], picker + ' and repeats after it');
-    // Without line styles the Third and Fourth metric lines are not drawn: no scale for them.
-    assert.deepEqual(shown(Object.assign({}, none, { [picker]: 'pressure' }),
-      Object.assign(platform.computeEnv(), { lineStyles: false })), p < 2 ? [scales[p]] : [], 'no styles ' + picker);
   });
 });
 
@@ -2960,24 +2814,22 @@ test('a graph\'s dialog carries ONE Graph colors card, a row with no title above
   // the theme gate, and a card with no row to show drops out (engine buildCards), so a B&W theme
   // leaves no empty card under the plain subheader.
   assert.deepEqual(card.items, [{ type: 'sheet', sheetId: 'graphColors', label: 'Graph colors',
-    hint: 'Pick the colors of each metric and of the night shading.', navNote: '9', capabilities: ['COLOR'],
+    hint: 'Pick the colors of each metric and of the night shading.', navNote: '9',
     showWhen: { key: 'theme', nin: ['bw', 'bw-light'] } }]);
   const dialog = graphColorsDialog();
   assert.equal(dialog.sheetOnly, true);
   assert.equal(dialog.title, 'Graph colors');
   assert.ok(dialog.intro, 'the dialog says what its rows are');
   assert.equal(dialog.pinBlock, 'forecastPreview', 'the forecast preview pinned atop it');
-  assert.deepEqual(dialog.capabilities, ['COLOR']);
+  assert.equal(dialog.capabilities, undefined);
   assert.deepEqual(card.head, { type: 'subheader', text: '' });
   [card.items[0], dialog].forEach((sec) => {
-    assert.deepEqual(sec.capabilities, ['COLOR']);
     assert.deepEqual(sec.showWhen, { key: 'theme', nin: ['bw', 'bw-light'] });
-    // Both gates, evaluated: a B&W theme or a B&W watch hides the whole card, header
+    // The gate, evaluated: a B&W theme hides the whole card, header
     // included (buildSectionBody runs before renderSection's open test).
-    assert.equal(showWhen.isVisible(sec, { theme: 'dark', env: { color: true } }), true);
-    assert.equal(showWhen.isVisible(sec, { theme: 'bw', env: { color: true } }), false);
-    assert.equal(showWhen.isVisible(sec, { theme: 'bw-light', env: { color: true } }), false);
-    assert.equal(showWhen.isVisible(sec, { theme: 'dark', env: { color: false } }), false);
+    assert.equal(showWhen.isVisible(sec, { theme: 'dark', env: {} }), true);
+    assert.equal(showWhen.isVisible(sec, { theme: 'bw', env: {} }), false);
+    assert.equal(showWhen.isVisible(sec, { theme: 'bw-light', env: {} }), false);
   });
 });
 
@@ -3013,10 +2865,7 @@ test('each row has a sheetOnly section carrying BOTH gates, the forecast preview
     assert.ok(sec, 'missing sheet: ' + id);
     assert.equal(sec.sheetOnly, true);
     assert.equal(sec.collapsible, undefined, 'a sheet is a dialog body, not a card');
-    // capabilities alone does not gate a SECTION — buildSectionBody and renderEditModal
-    // test sec.showWhen first.
     assert.deepEqual(sec.showWhen, { key: 'theme', nin: ['bw', 'bw-light'] });
-    assert.deepEqual(sec.capabilities, ['COLOR']);
     // No inline block heads these sheets; the forecast preview rides the dialog's own
     // pinned header (the dialog's pinBlock), like every forecast dialog's. That header lets
     // go while the 64-swatch palette is open, so on a narrow phone it never sits over the
@@ -3046,9 +2895,6 @@ test('every graph colour is a Dark/Light pair on one label, one visible at a tim
       assert.equal(dark.messageKey, lineStyle.graphColorKey(scope, role, 'Dark'));
       assert.equal(light.messageKey, lineStyle.graphColorKey(scope, role, 'Light'));
       assert.equal(dark.label, light.label, dark.messageKey + ' pair shares one label');
-      [dark, light].forEach((row) => {
-        assert.deepEqual(row.capabilities, ['COLOR']);
-      });
       // The default is the built-in taken FROM the renderer, as an int (the
       // colorUSFederal shape) — never a hex transcribed into the schema.
       assert.equal(typeof dark.defaultValue, 'number');
@@ -3065,10 +2911,6 @@ test('every graph colour is a Dark/Light pair on one label, one visible at a tim
         assert.equal(showWhen.isVisible(dark, graphState({ theme })), false, dark.messageKey + ' hides on ' + theme);
         assert.equal(showWhen.isVisible(light, graphState({ theme })), false, light.messageKey + ' hides on ' + theme);
       });
-      // A B&W watch never renders a colour: the COLOR capability hides both rows
-      // whatever the stored theme says.
-      assert.equal(showWhen.isVisible(dark, graphState({ env: { color: false } })), false);
-      assert.equal(showWhen.isVisible(light, graphState({ theme: 'light', env: { color: false } })), false);
     });
   });
 });

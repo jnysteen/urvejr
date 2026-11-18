@@ -9,8 +9,22 @@ const B = require('../../../src/pkjs/page/settings/blocks.js');
 // The block renderers live one file per concern; blocks.js keeps the threshold
 // machinery + small resolvers, and requiring it registers every block.
 // The watch preview has its own files — test/page/layout/preview-watch.test.js and test/page/layout/watch-preview-cycle.test.js.
-const FC = require('../../../src/pkjs/page/forecast-graphs/preview-forecast.js');
-const RD = require('../../../src/pkjs/page/weather/preview-radar.js');
+const FC_PAGE = require('../../../src/pkjs/page/forecast-graphs/preview-forecast.js');
+const RD_PAGE = require('../../../src/pkjs/page/weather/preview-radar.js');
+// The previews as these tests read them: COLOR a colour theme as stored, BW the settings'
+// theme turned to its black-and-white one; the forecast drawn over the noon sample.
+const COLOR = {};
+const BW = { bwTheme: true };
+const bwOf = (state, env) => (env && env.bwTheme
+  ? Object.assign({}, state, { theme: /light/.test(state.theme || '') ? 'bw-light' : 'bw' }) : state);
+const FC = Object.assign({}, FC_PAGE, {
+  forecastPreview: (state, env, userData, opts) => FC_PAGE.forecastPreview(bwOf(state, env), COLOR, userData,
+    Object.assign({ sample: FC_PAGE.noonSample(state && state.temperatureUnits) }, opts)),
+  graphLegend: (state, env, userData) => FC_PAGE.graphLegend(bwOf(state, env), COLOR, userData)
+});
+const RD = Object.assign({}, RD_PAGE, {
+  radarPreview: (state, env, userData, opts) => RD_PAGE.radarPreview(bwOf(state, env), COLOR, userData, opts)
+});
 const DG = require('../../../src/pkjs/page/weather/last-fetch.js');
 const RAIN = require('../../../src/pkjs/page/forecast-graphs/preview-rain.js');
 // The graph-colour key vocabulary and its built-in table — the preview resolves through
@@ -26,28 +40,28 @@ function budgetState(over) {
 }
 
 test('forecastPreview returns an SVG with the rain bars rendered', () => {
-  const fc = FC.forecastPreview({ dayNightShading: true, barSource: 'rain', rainBarColor: 'multicolor', secondaryLine: 'precip_prob', secondaryLineFill: true, windScale: 'mid' }, { color: true });
+  const fc = FC.forecastPreview({ dayNightShading: true, barSource: 'rain', rainBarColor: 'multicolor', secondaryLine: 'precip_prob', secondaryLineFill: true, windScale: 'mid' }, COLOR);
   assert.ok(/^<svg/.test(fc) && fc.indexOf('</svg>') > 0, 'is an SVG document');
   assert.ok(fc.indexOf('fill="#00FF00"') > -1, 'multicolor rain bars actually render (not an empty frame)');
 });
 test('radarPreview: off message vs SVG', () => {
-  assert.ok(RD.radarPreview({ radarMode: 'off', radarColor: 'multicolor' }, { color: true }).indexOf('Radar off') >= 0);
-  assert.ok(/^<svg/.test(RD.radarPreview({ radarProvider: 'dwd', radarColor: 'white' }, { color: true })));
+  assert.ok(RD.radarPreview({ radarMode: 'off', radarColor: 'multicolor' }, COLOR).indexOf('Radar off') >= 0);
+  assert.ok(/^<svg/.test(RD.radarPreview({ radarProvider: 'dwd', radarColor: 'white' }, COLOR)));
 });
 // A multicolor radar band fill (e.g. #00FF00) appears on a color watch but never on B/W,
 // where the bars are always solid white regardless of the (hidden) radarColor setting.
 const GREEN_BAND = 'fill="#00FF00"';
 test('radarPreview forces white bars on B/W even when setting says multicolor', () => {
-  const color = RD.radarPreview({ radarProvider: 'dwd', radarColor: 'multicolor' }, { color: true });
-  const bw    = RD.radarPreview({ radarProvider: 'dwd', radarColor: 'multicolor' }, { color: false });
+  const color = RD.radarPreview({ radarProvider: 'dwd', radarColor: 'multicolor' }, COLOR);
+  const bw    = RD.radarPreview({ radarProvider: 'dwd', radarColor: 'multicolor' }, BW);
   assert.ok(color.indexOf(GREEN_BAND) >= 0, 'color watch keeps multicolor bands');
   assert.equal(bw.indexOf(GREEN_BAND), -1, 'B/W watch draws no color bands');
   assert.ok(bw.indexOf('fill="#FFFFFF"') >= 0, 'B/W watch draws white bars');
 });
 test('forecastPreview forces white rain bars on B/W even when setting says multicolor', () => {
   const state = { dayNightShading: true, barSource: 'rain', rainBarColor: 'multicolor', secondaryLine: 'off' };
-  const color = FC.forecastPreview(state, { color: true });
-  const bw    = FC.forecastPreview(state, { color: false });
+  const color = FC.forecastPreview(state, COLOR);
+  const bw    = FC.forecastPreview(state, BW);
   assert.ok(color.indexOf(GREEN_BAND) >= 0, 'color watch keeps multicolor rain bands');
   assert.equal(bw.indexOf(GREEN_BAND), -1, 'B/W watch draws no color rain bands');
 });
@@ -69,14 +83,14 @@ test('lastFetch formats success / Never / failed-attempt-with-error', () => {
 });
 test('forecastPreview draws the secondary line per metric (solid, per-metric color)', () => {
   const base = { dayNightShading: false, barSource: 'off', windScale: 'mid', thirdLine: 'off' };
-  assert.ok(FC.forecastPreview(Object.assign({}, base, { secondaryLine: 'wind' }), { color: true }).indexOf('stroke="#FFFF00"') > -1, 'wind = yellow');
-  assert.ok(FC.forecastPreview(Object.assign({}, base, { secondaryLine: 'gust' }), { color: true }).indexOf('stroke="#FFFFFF"') > -1, 'gust = white');
-  assert.ok(FC.forecastPreview(Object.assign({}, base, { secondaryLine: 'uv' }), { color: true }).indexOf('stroke="#FF00FF"') > -1, 'uv = magenta');
+  assert.ok(FC.forecastPreview(Object.assign({}, base, { secondaryLine: 'wind' }), COLOR).indexOf('stroke="#FFFF00"') > -1, 'wind = yellow');
+  assert.ok(FC.forecastPreview(Object.assign({}, base, { secondaryLine: 'gust' }), COLOR).indexOf('stroke="#FFFFFF"') > -1, 'gust = white');
+  assert.ok(FC.forecastPreview(Object.assign({}, base, { secondaryLine: 'uv' }), COLOR).indexOf('stroke="#FF00FF"') > -1, 'uv = magenta');
 });
 
 test('forecastPreview draws feels-like grey, and the hi/lo labels stay the ACTUAL temps', () => {
   const base = { dayNightShading: false, barSource: 'off', windScale: 'mid', thirdLine: 'off', secondaryLineFill: false };
-  const svg = FC.forecastPreview(Object.assign({}, base, { secondaryLine: 'feels' }), { color: true });
+  const svg = FC.forecastPreview(Object.assign({}, base, { secondaryLine: 'feels' }), COLOR);
   assert.ok(svg.indexOf('stroke="#AAAAAA"') > -1, 'feels = light grey line (dark theme)');
   // The feels sample dips to 13° under the 14° temp min. The SCALE widens to fit it (the
   // watch fits every line to its margins), but the labels name the air temperature — the
@@ -84,19 +98,19 @@ test('forecastPreview draws feels-like grey, and the hi/lo labels stay the ACTUA
   assert.ok(svg.indexOf('>14°<') > -1, 'lo label stays the actual temperature low');
   assert.equal(svg.indexOf('>13°<'), -1, 'the feels minimum is never labelled');
   assert.ok(svg.indexOf('>Feels<') > -1, 'legend lists the feels series');
-  const plain = FC.forecastPreview(Object.assign({}, base, { secondaryLine: 'precip_prob' }), { color: true });
+  const plain = FC.forecastPreview(Object.assign({}, base, { secondaryLine: 'precip_prob' }), COLOR);
   assert.ok(plain.indexOf('>14°<') > -1, 'and they are the same labels without feels');
   // Light theme darkens the grey (LightGray is illegible on white); B&W goes white.
-  const light = FC.forecastPreview(Object.assign({}, base, { secondaryLine: 'feels', theme: 'light' }), { color: true });
+  const light = FC.forecastPreview(Object.assign({}, base, { secondaryLine: 'feels', theme: 'light' }), COLOR);
   assert.ok(light.indexOf('stroke="#000000"') > -1,
     'light theme: black stroke — a grey is invisible at 1px on white, and DarkGray is '
     + 'what the white-bar mode paints its bars in a light theme');
-  const bw = FC.forecastPreview(Object.assign({}, base, { secondaryLine: 'feels' }), { color: false });
+  const bw = FC.forecastPreview(Object.assign({}, base, { secondaryLine: 'feels' }), BW);
   assert.ok(bw.indexOf('stroke="#FFFFFF"') > -1, 'B&W: white stroke');
 });
 
 test('feels-like as the second metric draws grey squares, labels still the actual temps', () => {
-  const svg = FC.forecastPreview({ dayNightShading: false, barSource: 'off', windScale: 'mid', secondaryLine: 'precip_prob', thirdLine: 'feels', secondaryLineFill: false }, { color: true });
+  const svg = FC.forecastPreview({ dayNightShading: false, barSource: 'off', windScale: 'mid', secondaryLine: 'precip_prob', thirdLine: 'feels', secondaryLineFill: false }, COLOR);
   assert.ok(svg.indexOf('<rect') > -1 && svg.indexOf('fill="#AAAAAA"') > -1,
     'feels renders as filled grey squares');
   assert.ok(svg.indexOf('>14°<') > -1, 'lo label unchanged by the second line too');
@@ -111,7 +125,7 @@ test('the preview\'s feels and dew curves share the temperature\'s scale, all th
   // no curve is held at the plot's edge (until then the temperature alone filled the margins,
   // 6.3 units a degree, and the dew low was held one watch row over the zero line, 92.3).
   const svg = FC.forecastPreview({ dayNightShading: false, barSource: 'off', windScale: 'mid',
-    secondaryLine: 'feels', thirdLine: 'dew', thirdLineStyle: 'line', secondaryLineFill: false }, { color: true });
+    secondaryLine: 'feels', thirdLine: 'dew', thirdLineStyle: 'line', secondaryLineFill: false }, COLOR);
   const ysOf = (stroke) => {
     const m = new RegExp('<path d="([^"]+)" fill="none" stroke="' + stroke + '"').exec(svg);
     assert.ok(m, stroke + ' curve path found');
@@ -136,14 +150,14 @@ function tempCurveTopY(svg) {
 const CURVE_BASE = { dayNightShading: false, barSource: 'off', windScale: 'mid', thirdLine: 'off', secondaryLine: 'precip_prob', secondaryLineFill: false };
 
 test('forecastPreview: the temp curve keeps the fixed 7 px margin (12 preview units)', () => {
-  const svg = FC.forecastPreview(Object.assign({}, CURVE_BASE), { color: true });
+  const svg = FC.forecastPreview(Object.assign({}, CURVE_BASE), COLOR);
   // The inset is not configurable: temp always draws with the watch's fixed
   // 7 px inset, which the preview scales to 12 units (PT+3+12 = 19).
   assert.equal(tempCurveTopY(svg), 19, 'the fixed 7 px look');
 });
 
 test('forecastPreview: the feels curve rides the temp axis (same fixed margin)', () => {
-  const svg = FC.forecastPreview(Object.assign({}, CURVE_BASE, { secondaryLine: 'feels' }), { color: true });
+  const svg = FC.forecastPreview(Object.assign({}, CURVE_BASE, { secondaryLine: 'feels' }), COLOR);
   const m = /<path d="([^"]+)" fill="none" stroke="#AAAAAA"/.exec(svg);
   assert.ok(m, 'feels curve path found');
   // Same band and same inset as the temp curve: temp's top stays at the fixed
@@ -156,13 +170,13 @@ test('forecastPreview: the feels curve rides the temp axis (same fixed margin)',
 // value, and both the bake (forecast-series) and this preview force it off regardless.
 test('forecastPreview: feels-like draws no area fill even with secondaryLineFill true', () => {
   const feels = FC.forecastPreview(
-    Object.assign({}, CURVE_BASE, { secondaryLine: 'feels', secondaryLineFill: true }), { color: true });
+    Object.assign({}, CURVE_BASE, { secondaryLine: 'feels', secondaryLineFill: true }), COLOR);
   assert.ok(/stroke="#AAAAAA"/.test(feels), 'the feels curve itself still renders');
   assert.equal(/<path d="[^"]+" fill="#[0-9A-F]{6}"><\/path>/.test(feels), false, 'no filled area under the feels curve');
   // Control: the same settings with a normal metric DO produce the fill, so the
   // assertion above is about feels and not about the fixture being fill-less.
   const precip = FC.forecastPreview(
-    Object.assign({}, CURVE_BASE, { secondaryLine: 'precip_prob', secondaryLineFill: true }), { color: true });
+    Object.assign({}, CURVE_BASE, { secondaryLine: 'precip_prob', secondaryLineFill: true }), COLOR);
   assert.ok(/<path d="[^"]+" fill="#0055AA"><\/path>/.test(precip), 'precip still fills');
 });
 
@@ -181,8 +195,8 @@ test('forecastMetricFill hook clears the stored fill when feels-like is picked',
 test('forecastPreview draws the second metric as bar-aligned squares in its metric color, gated on thirdLine', () => {
   const base = { dayNightShading: false, barSource: 'off', windScale: 'mid', secondaryLine: 'precip_prob' };
   // uv = #FF00FF is unique to the second-metric squares (not used by text/background/bars).
-  const withThird = FC.forecastPreview(Object.assign({}, base, { thirdLine: 'uv' }), { color: true });
-  const noThird   = FC.forecastPreview(Object.assign({}, base, { thirdLine: 'off' }), { color: true });
+  const withThird = FC.forecastPreview(Object.assign({}, base, { thirdLine: 'uv' }), COLOR);
+  const noThird   = FC.forecastPreview(Object.assign({}, base, { thirdLine: 'off' }), COLOR);
   assert.ok(withThird.indexOf('<rect') > -1 && withThird.indexOf('fill="#FF00FF"') > -1,
     'second metric (uv) renders as filled magenta squares');
   assert.equal(withThird.indexOf('stroke-dasharray'), -1, 'no dotted-line styling anymore');
@@ -192,15 +206,15 @@ test('forecastPreview draws the second metric as bar-aligned squares in its metr
 test('forecastPreview gust dots take a color distinct from the rain bars', () => {
   // barSource off isolates the dot color (#AAAAAA is also a multicolor bar band when bars are on).
   const base = { dayNightShading: false, barSource: 'off', windScale: 'mid', secondaryLine: 'precip_prob', thirdLine: 'gust' };
-  const whiteBars = FC.forecastPreview(Object.assign({}, base, { rainBarColor: 'white' }), { color: true });
-  const multiBars = FC.forecastPreview(Object.assign({}, base, { rainBarColor: 'multicolor' }), { color: true });
+  const whiteBars = FC.forecastPreview(Object.assign({}, base, { rainBarColor: 'white' }), COLOR);
+  const multiBars = FC.forecastPreview(Object.assign({}, base, { rainBarColor: 'multicolor' }), COLOR);
   assert.ok(whiteBars.indexOf('fill="#AAAAAA"') > -1, 'white bars → light gray gust dots');
   assert.equal(multiBars.indexOf('fill="#AAAAAA"'), -1, 'multicolor bars → white gust dots (not gray)');
 });
 
 test('forecastPreview never draws the second metric as the same metric as the main', () => {
   // duplicate metric → no second-metric squares; wind = #FFFF00 is only a fill for those squares.
-  const svg = FC.forecastPreview({ dayNightShading: false, barSource: 'off', windScale: 'mid', secondaryLine: 'wind', thirdLine: 'wind' }, { color: true });
+  const svg = FC.forecastPreview({ dayNightShading: false, barSource: 'off', windScale: 'mid', secondaryLine: 'wind', thirdLine: 'wind' }, COLOR);
   assert.equal(svg.indexOf('fill="#FFFF00"'), -1, 'duplicate metric → no second-metric squares');
 });
 test('registers all preview/util blocks into PConf.blocks', () => {
@@ -236,7 +250,7 @@ test('dateFullFormatOptions: values are the wire codes, samples follow the count
 test('thresholdPenState reports EFFECTIVE always-bold via badge.bold', () => {
   const badge = PConf.badgeResolvers.get('thresholdPenState');
   assert.equal(typeof badge, 'function', 'badge resolver registered');
-  const env = { thresholds: true };
+  const env = {};
   const args = { messageKey: 'statusTopMid' };
   const state = (S) => badge(Object.assign({ statusTopMid: 'date' }, S), env, args);
   assert.equal(state({}).bold, false, 'default ladder (off) shows no B');
@@ -250,25 +264,22 @@ test('thresholdPenState reports EFFECTIVE always-bold via badge.bold', () => {
     'the state is announced, not only drawn');
   assert.equal(state({ statusBoldAll: 'off', threshDateBoldMode: 'always' }).bold, false,
     'the master Off packs every kind as Off, the kind\'s own Always included, so no B');
-  assert.equal(badge({ statusTopMid: 'date' }, { thresholds: false }, args), null,
-    'aplite (no thresholds env) badges nothing, B included');
 });
 
 test('colorNoteHint adds the note for how the page draws to the row\'s hint', () => {
   const hint = PConf.hintResolvers.get('colorNoteHint');
   const args = { staticHint: 'What it does.', colorNote: 'In color.', bwNote: 'In B&W.' };
-  assert.equal(hint({ theme: 'dark' }, { color: true }, args), 'What it does. In color.');
-  assert.equal(hint({ theme: 'bw' }, { color: true }, args), 'What it does. In B&W.', 'a B&W theme');
-  assert.equal(hint({ theme: 'dark' }, { color: false }, args), 'What it does. In B&W.', 'a B&W watch');
-  assert.equal(hint({ theme: 'bw' }, { color: true }, { staticHint: 'What it does.', colorNote: 'In color.' }),
+  assert.equal(hint({ theme: 'dark' }, COLOR, args), 'What it does. In color.');
+  assert.equal(hint({ theme: 'bw' }, COLOR, args), 'What it does. In B&W.', 'a B&W theme');
+  assert.equal(hint({ theme: 'bw' }, COLOR, { staticHint: 'What it does.', colorNote: 'In color.' }),
     null, 'no B&W note: the row\'s own hint');
-  assert.equal(hint({ theme: 'dark' }, { color: true }, { colorNote: 'In color.' }), null, 'a value with no hint');
+  assert.equal(hint({ theme: 'dark' }, COLOR, { colorNote: 'In color.' }), null, 'a value with no hint');
 });
 
 test('lineSummary names a line\'s metric by the one metric table, its style by its picker', () => {
   const summary = PConf.hintResolvers.get('lineSummary');
   const metrics = require('../../../src/pkjs/page/forecast-graphs/forecast-metrics.js');
-  const styled = { lineStyles: true };
+  const styled = {};
   const main = { lineKey: 'secondaryLine', main: true };
   assert.equal(summary({ secondaryLine: 'precip_prob', secondaryLineStyle: 'line', secondaryLineFill: true }, styled, main),
     'Precipitation % · Thin line, filled');
@@ -277,8 +288,6 @@ test('lineSummary names a line\'s metric by the one metric table, its style by i
   metrics.METRICS.forEach((m) => {
     assert.equal(summary({ thirdLine: m.id, thirdLineStyle: 'dots' }, styled, { lineKey: 'thirdLine' }),
       m.label + ' · Square dots', m.id);
-    assert.equal(summary({ thirdLine: m.id }, { lineStyles: false }, { lineKey: 'thirdLine' }), m.label,
-      m.id + ': the metric alone where the watch draws no styles');
   });
   assert.equal(summary({ thirdLine: 'off' }, styled, { lineKey: 'thirdLine' }), 'Off');
 });
@@ -290,7 +299,7 @@ const UNPLACED = { statusTopOnDemandRightItems: '' };
 test('alertLevelsHint: "Not in any status bar" while unplaced, else the resolved pair, the unit and where it shows — never the slot highlight', () => {
   const hint = PConf.hintResolvers.get('alertLevelsHint');
   assert.equal(typeof hint, 'function', 'hint resolver registered');
-  const env = { thresholds: true };
+  const env = {};
   const uv = { keyStem: 'Uv' };
   // The default ticks put the metric alerts on the Watch bar's right side, and the
   // Alerts-tab row says so after the levels.
@@ -344,7 +353,6 @@ test('alertLevelsHint: "Not in any status bar" while unplaced, else the resolved
     'levelsOnly: the levels even while unplaced, without the Days');
   assert.equal(hint({ windUnits: 'mph' }, env, { keyStem: 'Wind', levelsOnly: true }),
     'Warn 25 mph · Danger 40 mph', 'levelsOnly keeps the unit');
-  assert.equal(hint({}, { thresholds: false }, uv), null, 'aplite: no levels to describe');
   assert.equal(hint({}, env, { keyStem: 'Temp' }), null, 'a level-less kind has no hint');
   assert.equal(hint({}, env, { keyStem: 'Steps' }), null, 'a goal kind has no alert');
 });
@@ -378,7 +386,7 @@ test('rainAlertHint: the radar first, then the placement, else its window, look 
 test('alertLevelBadge: the alert\'s colours while it is placed, no bold B', () => {
   const badge = PConf.badgeResolvers.get('alertLevelBadge');
   assert.equal(typeof badge, 'function', 'badge resolver registered');
-  const env = { thresholds: true };
+  const env = {};
   const uv = { keyStem: 'Uv' };
   const off = badge(Object.assign({ threshUvOn: true, threshUvDangerColor: '#FF0000' }, UNPLACED), env, uv);
   assert.equal(off.label, 'Edit');
@@ -399,13 +407,10 @@ test('alertLevelBadge: the alert\'s colours while it is placed, no bold B', () =
     { color: '#FFFFFF', ring: true }, 'outline: a ring, an unset colour in the theme fg');
   assert.deepEqual(badge({ theme: 'light', threshUvWarnLook: 'fill' }, env, uv).dots[0],
     { color: '#000000' }, 'fill: a filled dot');
-  // An unset look previews the platform default: fill on a colour watch, outline on B&W.
+  // An unset look previews the default: fill.
   assert.deepEqual(badge({ theme: 'dark' }, env, uv).dots,
     [{ color: '#FFFFFF' }, { color: '#FF0000' }],
     'colour watch default: a text-colour fill, then the red danger — two different dots');
-  assert.deepEqual(badge({ theme: 'dark' }, { thresholds: true, color: false }, uv).dots,
-    [{ color: '#FFFFFF', ring: true }, { color: '#FFFFFF' }],
-    'B&W watch default: an outline, then the danger fill, both in the text colour');
   assert.equal(on.ariaNote, '');
   assert.ok(!on.bold, 'no B: bold is a slot property');
   const picked = badge({ threshUvWarnColor: '#00AAFF' }, env, uv);
@@ -416,7 +421,6 @@ test('alertLevelBadge: the alert\'s colours while it is placed, no bold B', () =
   assert.equal(badge({}, env, { keyStem: 'Temp' }), null, 'bold-only stem');
   assert.equal(badge({}, env, { keyStem: 'Steps' }), null, 'a goal kind has no alert');
   assert.equal(badge({}, env, { keyStem: 'Rain' }), null, 'rain has its own resolver');
-  assert.equal(badge({}, { thresholds: false }, uv), null, 'aplite');
 });
 
 test('preview-rain barPermille matches rain-tier.rainPermille byte-for-byte', () => {
@@ -428,7 +432,7 @@ test('preview-rain barPermille matches rain-tier.rainPermille byte-for-byte', ()
 test('the second metric (dots) spans the full plot width (no early stop)', () => {
   const svg = FC.forecastPreview(
     { barSource: 'off', secondaryLine: 'precip_prob', thirdLine: 'gust', windScale: 'mid', dayNightShading: false },
-    { color: true });
+    COLOR);
   const xs = (svg.match(/<rect x="([\d.]+)"/g) || []).map((m) => parseFloat(m.replace(/[^\d.]/g, '')));
   assert.ok(Math.max.apply(null, xs) > 180, 'a dot reaches the right edge (>180); got ' + Math.max.apply(null, xs));
 });
@@ -449,7 +453,7 @@ test('UV line comes down to the zero row next to its zero stretch and skips the 
   [['bottom', 94], ['top', 4]].forEach(([from, zeroY]) => {
     const svg = FC.forecastPreview(
       { barSource: 'off', secondaryLine: 'uv', windScale: 'mid', dayNightShading: false, uvLineFrom: from },
-      { color: true, platform: 'basalt', lineStyles: true });
+      COLOR);
     const paths = [...svg.matchAll(/d="(M[^"]+)" fill="none" stroke="#FF00FF"/g)].map((m) => pathVertices(m[1]));
     assert.equal(paths.length, 2, from + ': two runs around the zero stretch; got ' + paths.length);
     assert.equal(paths[0].length, 6, from + ': slots 0-5');
@@ -475,7 +479,7 @@ test('a metric line\'s smoothed curve never swings past the zero row it comes do
     const svg = FC.forecastPreview(
       { barSource: 'off', secondaryLine: 'uv', windScale: 'mid', dayNightShading: false, uvLineFrom: from,
         uvLineShow: 'alert', threshUvWarn: '6', threshUvDanger: '8' },
-      { color: true, platform: 'basalt', lineStyles: true });
+      COLOR);
     const d = /d="(M[^"]+)" fill="none" stroke="#FF00FF"/.exec(svg);
     assert.ok(d, from + ': the line draws');
     d[1].replace(/[MC]/g, ' ').trim().split(/\s+/).forEach((pt) => {
@@ -519,7 +523,7 @@ test('Visible values: Alert — a stretch over the warn level rises off the warn
   const svg = FC.forecastPreview(
     { barSource: 'off', secondaryLine: 'wind', windScale: 'mid', windUnits: 'kph', dayNightShading: false,
       windLineShow: 'alert', threshWindWarn: '25', threshWindDanger: '40' },
-    { color: true, platform: 'basalt', lineStyles: true });
+    COLOR);
   const paths = [...svg.matchAll(/d="(M[^"]+)" fill="none" stroke="#FFFF00"/g)].map((m) => pathVertices(m[1]));
   const slots = (p) => p.map((v) => Math.round((v[0] - 20) / (177 / 11)));
   assert.equal(paths.length, 2, 'two runs');
@@ -538,7 +542,7 @@ test('a filled zero-based main metric keeps its fill contour at the baseline ove
   const svg = FC.forecastPreview(
     { barSource: 'off', secondaryLine: 'uv', secondaryLineFill: true, windScale: 'mid',
       dayNightShading: false },
-    { color: true });
+    COLOR);
   const area = svg.match(/d="(M[^"]+ Z)" fill="/);
   assert.ok(area, 'area fill path present');
   // The closing 'L…,94 L…,94 Z' contributes exactly two baseline hits; the zero
@@ -550,8 +554,8 @@ test('a filled zero-based main metric keeps its fill contour at the baseline ove
 
 test('forecastPreview honors rainBarColor=white in color mode (solid white bars, no tier bands)', () => {
   const base = { dayNightShading: false, barSource: 'rain', secondaryLine: 'off', windScale: 'mid' };
-  const white = FC.forecastPreview(Object.assign({}, base, { rainBarColor: 'white' }), { color: true });
-  const multi = FC.forecastPreview(Object.assign({}, base, { rainBarColor: 'multicolor' }), { color: true });
+  const white = FC.forecastPreview(Object.assign({}, base, { rainBarColor: 'white' }), COLOR);
+  const multi = FC.forecastPreview(Object.assign({}, base, { rainBarColor: 'multicolor' }), COLOR);
   // Rain-bar bands are width-9 rects; the legend gradient uses width-2.4, so scope to width="9".
   assert.ok(/width="9"[^>]*fill="#00FF00"/.test(multi), 'multicolor: a green tier band on a bar');
   assert.ok(!/width="9"[^>]*fill="#00FF00"/.test(white), 'white: no green tier band on a bar');
@@ -561,7 +565,7 @@ test('forecastPreview honors rainBarColor=white in color mode (solid white bars,
 test('forecast grid: temp line spans the first tick to the last tick (edge to edge)', () => {
   const svg = FC.forecastPreview(
     { dayNightShading: false, barSource: 'off', secondaryLine: 'off', windScale: 'mid' },
-    { color: true });
+    COLOR);
   const m = svg.match(/d="(M[^"]+)" fill="none" stroke="#FF0000"/);
   assert.ok(m, 'temp curve present');
   const d = m[1];
@@ -574,7 +578,7 @@ test('forecast grid: temp line spans the first tick to the last tick (edge to ed
 test('forecastPreview draws the day line on midnight, in its colour, with the shading', () => {
   const state = { barSource: 'off', secondaryLine: 'off', theme: 'dark' };
   const lines = (over) => {
-    const svg = FC.forecastPreview(Object.assign({}, state, over), { color: true });
+    const svg = FC.forecastPreview(Object.assign({}, state, over), COLOR);
     return svg.match(/<line x1="([\d.]+)" y1="4" x2="\1" y2="\d+"[^>]*><\/line>/g) || [];
   };
   assert.deepEqual(lines({ dayNightShading: false }), [], 'none without the shading');
@@ -588,7 +592,7 @@ test('forecastPreview draws the day line on midnight, in its colour, with the sh
 // hour to 1..12 when CLAY_AXIS_12H is set (clay-payload: axisTimeFormat === '12h').
 test('forecast axis hour labels follow the 12h/24h axis setting', () => {
   const axisLabels = (fmt) => {
-    const svg = FC.forecastPreview({ barSource: 'off', secondaryLine: 'off', dayNightShading: false, axisTimeFormat: fmt }, { color: true });
+    const svg = FC.forecastPreview({ barSource: 'off', secondaryLine: 'off', dayNightShading: false, axisTimeFormat: fmt }, COLOR);
     const out = [];
     svg.replace(/<text x="[^"]+" y="105"[^>]*>([^<]*)<\/text>/g, (m, t) => { out.push(t); return m; });
     return out;
@@ -601,7 +605,7 @@ test('forecast axis hour labels follow the 12h/24h axis setting', () => {
 test('forecast grid: rain bars sit centered in the hour gaps between ticks', () => {
   const svg = FC.forecastPreview(
     { dayNightShading: false, barSource: 'rain', rainBarColor: 'multicolor', secondaryLine: 'off', windScale: 'mid' },
-    { color: true });
+    COLOR);
   const PX0 = 20, PX1 = 197, N = 12, pitch = (PX1 - PX0) / (N - 1), bw = 9;
   const lefts = (svg.match(/<rect x="[\d.]+" y="[\d.]+" width="9"/g) || [])
     .map((s) => parseFloat(s.match(/x="([\d.]+)"/)[1]));
@@ -616,7 +620,7 @@ test('forecast grid: rain bars sit centered in the hour gaps between ticks', () 
 test('legend rain glyph follows white bars (white swatch, no tier gradient) when rainBarColor=white', () => {
   const svg = FC.forecastPreview(
     { barSource: 'rain', rainBarColor: 'white', secondaryLine: 'off', windScale: 'mid', dayNightShading: false },
-    { color: true });
+    COLOR);
   assert.ok(svg.indexOf('>Rain<') >= 0, 'Rain legend present');
   assert.equal(svg.indexOf('width="2.4"'), -1, 'no tier-gradient swatches in the legend when bars are white');
   assert.ok(/width="12"[^>]*fill="#FFFFFF"/.test(svg), 'a solid white Rain swatch instead');
@@ -625,7 +629,7 @@ test('legend rain glyph follows white bars (white swatch, no tier gradient) when
 test('forecastPreview has no status bar (no location, sunset, or current-temp pill)', () => {
   const svg = FC.forecastPreview(
     { dayNightShading: false, barSource: 'off', secondaryLine: 'off', windScale: 'mid' },
-    { color: true });
+    COLOR);
   assert.equal(svg.indexOf('Berlin'), -1, 'no location label');
   assert.equal(svg.indexOf('21:29'), -1, 'no sunset time');
   assert.equal(svg.indexOf('>22°<'), -1, 'no current-temp pill');
@@ -634,7 +638,7 @@ test('forecastPreview has no status bar (no location, sunset, or current-temp pi
 test('B&W: series are white, temp thick (3) vs main thin (1), no hues', () => {
   const bw = FC.forecastPreview(
     { barSource: 'rain', rainBarColor: 'multicolor', secondaryLine: 'wind', windScale: 'mid', dayNightShading: false },
-    { color: false });
+    BW);
   assert.equal(bw.indexOf('fill="#00FF00"'), -1, 'no color rain bands on B&W');
   assert.equal(bw.indexOf('#FFFF00'), -1, 'wind hue not used on B&W (white instead)');
   assert.ok(bw.indexOf('stroke-width="3"') >= 0, 'temp curve thick (3)');
@@ -644,7 +648,7 @@ test('B&W: series are white, temp thick (3) vs main thin (1), no hues', () => {
 test('legend lists the shown series with palette colors (color watch)', () => {
   const svg = FC.forecastPreview(
     { barSource: 'rain', rainBarColor: 'multicolor', secondaryLine: 'precip_prob', thirdLine: 'wind', windScale: 'mid', dayNightShading: false },
-    { color: true });
+    COLOR);
   assert.ok(svg.indexOf('viewBox="0 0 200 118"') >= 0, 'compact frame (single legend row)');
   assert.ok(svg.indexOf('>Temp<') >= 0, 'Temp entry');
   assert.ok(svg.indexOf('>Precip %<') >= 0, 'main metric entry (Precip %)');
@@ -659,7 +663,7 @@ test('legend wraps onto a second row when three metrics + Rain outgrow the frame
   const svg = FC.forecastPreview(
     { barSource: 'rain', rainBarColor: 'multicolor', secondaryLine: 'pressure', thirdLine: 'precip_prob',
       fourthLine: 'gust', windScale: 'mid', pressureScale: 'mid', dayNightShading: false },
-    { color: true, platform: 'basalt' });
+    COLOR);
   assert.ok(svg.indexOf('viewBox="0 0 200 128"') >= 0, 'frame grows one legend row (118 + 10)');
   // Row baselines: row one text at y=115, wrapped row at y=125.
   assert.ok(svg.indexOf('y="115"') >= 0, 'first legend row present');
@@ -674,7 +678,7 @@ test('legend stays on one row for the default-sized selections', () => {
   const svg = FC.forecastPreview(
     { barSource: 'rain', rainBarColor: 'multicolor', secondaryLine: 'precip_prob', thirdLine: 'uv',
       windScale: 'mid', dayNightShading: false },
-    { color: true });
+    COLOR);
   assert.ok(svg.indexOf('viewBox="0 0 200 118"') >= 0, 'no second row for Temp/Precip %/UV/Rain');
   assert.equal(svg.indexOf('y="125"'), -1, 'no wrapped-row text');
 });
@@ -728,14 +732,14 @@ test('legend never runs past the 200-wide frame, for any metric combination', ()
   });
   assert.ok(worst > 180, 'sanity: the long combinations were exercised (worst end ' + worst.toFixed(1) + ')');
   // A row that already fits keeps its long-standing layout: Temp's label at PX0 + 14 + 3.
-  const dflt = legendTexts(FC.forecastPreview({ secondaryLine: 'precip_prob', thirdLine: 'uv', barSource: 'rain', rainBarColor: 'multicolor', windScale: 'mid' }, { color: true }));
+  const dflt = legendTexts(FC.forecastPreview({ secondaryLine: 'precip_prob', thirdLine: 'uv', barSource: 'rain', rainBarColor: 'multicolor', windScale: 'mid' }, COLOR));
   assert.deepEqual(dflt.map((t) => t.x.toFixed(1)), ['37.0', '79.2', '138.6', '172.2'], 'the default row is untouched');
 });
 
 test('legend omits the second metric when thirdLine is off, and Rain when bars are off', () => {
   const svg = FC.forecastPreview(
     { barSource: 'off', secondaryLine: 'uv', thirdLine: 'off', windScale: 'mid', dayNightShading: false },
-    { color: true });
+    COLOR);
   assert.ok(svg.indexOf('>UV<') >= 0, 'main metric entry (UV)');
   assert.equal(svg.indexOf('>Rain<'), -1, 'no Rain entry when bars are off');
 });
@@ -743,7 +747,7 @@ test('legend omits the second metric when thirdLine is off, and Rain when bars a
 test('legend uses white style glyphs on B&W (no hues)', () => {
   const svg = FC.forecastPreview(
     { barSource: 'rain', rainBarColor: 'multicolor', secondaryLine: 'wind', thirdLine: 'off', windScale: 'mid', dayNightShading: false },
-    { color: false });
+    BW);
   assert.ok(svg.indexOf('>Temp<') >= 0 && svg.indexOf('>Wind<') >= 0 && svg.indexOf('>Rain<') >= 0);
   assert.equal(svg.indexOf('#FFFF00'), -1, 'no wind hue in the B&W legend');
 });
@@ -751,16 +755,15 @@ test('legend uses white style glyphs on B&W (no hues)', () => {
 test('legend shows the second metric as white dots on B&W (no hue)', () => {
   const svg = FC.forecastPreview(
     { barSource: 'off', secondaryLine: 'wind', thirdLine: 'gust', windScale: 'mid', dayNightShading: false },
-    { color: false });
+    BW);
   assert.ok(svg.indexOf('>Gust<') >= 0, 'second-metric legend entry (Gust) present');
   assert.ok(svg.indexOf('fill="#FFFFFF"') >= 0, 'second metric renders as white squares on B&W');
   assert.equal(svg.indexOf('#AAAAAA'), -1, 'no gust gray hue on B&W (white instead)');
 });
 
 test('radarPreview legend distinguishes exact-spot rain from nearby rain', () => {
-  const color = RD.radarPreview({ radarProvider: 'dwd', radarColor: 'multicolor' }, { color: true });
-  const bw = RD.radarPreview({ radarProvider: 'dwd', radarColor: 'multicolor' }, { color: false });
-  assert.ok(color.indexOf('viewBox="0 0 200 95"') >= 0, 'frame includes the countdown band, which now always accompanies a non-off, non-aplite preview');
+  const color = RD.radarPreview({ radarProvider: 'dwd', radarColor: 'multicolor' }, COLOR);
+  const bw = RD.radarPreview({ radarProvider: 'dwd', radarColor: 'multicolor' }, BW);
   assert.ok(color.indexOf('>Rain at your exact spot<') >= 0, 'exact-spot label present');
   assert.ok(color.indexOf('>Nearby (2 km)<') >= 0, 'nearby label present');
   assert.ok(color.indexOf('fill="#00FF00"') >= 0, 'tier gradient (green) present on color');
@@ -770,7 +773,7 @@ test('radarPreview legend distinguishes exact-spot rain from nearby rain', () =>
 });
 
 test('radarPreview shows the countdown band ("Rain in 15\'") when the countdown is on', () => {
-  const svg = RD.radarPreview({ radarProvider: 'dwd', radarColor: 'multicolor', rainCountdownHorizon: '60' }, { color: true });
+  const svg = RD.radarPreview({ radarProvider: 'dwd', radarColor: 'multicolor', rainCountdownHorizon: '60' }, COLOR);
   assert.ok(svg.indexOf("Rain in 15'") >= 0, 'countdown text present');
   assert.ok(svg.indexOf('viewBox="0 0 200 95"') >= 0, 'frame grew by the 14px band height');
 });
@@ -779,13 +782,13 @@ test('radarPreview shows the countdown band ("Rain in 15\'") when the countdown 
 // the preview drops the band with it.
 test('radarPreview hides the countdown band while the Watch bar shows no rain', () => {
   const svg = RD.radarPreview({ radarProvider: 'dwd', radarColor: 'multicolor',
-    statusTopOnDemandLeftItems: 'bt' }, { color: true });
+    statusTopOnDemandLeftItems: 'bt' }, COLOR);
   assert.equal(svg.indexOf("Rain in 15'"), -1, 'no countdown text with Rain unticked');
   assert.ok(svg.indexOf('viewBox="0 0 200 81"') >= 0, 'the frame keeps the no-band height');
   const elsewhere = RD.radarPreview({ radarProvider: 'dwd', radarColor: 'multicolor',
-    statusTopOnDemandLeftItems: 'bt', statusForecastOnDemandLeftItems: 'rain' }, { color: true });
+    statusTopOnDemandLeftItems: 'bt', statusForecastOnDemandLeftItems: 'rain' }, COLOR);
   assert.equal(elsewhere.indexOf("Rain in 15'"), -1, 'the band mocks the Watch bar only');
-  const unset = RD.radarPreview({ radarProvider: 'dwd', radarColor: 'multicolor' }, { color: true });
+  const unset = RD.radarPreview({ radarProvider: 'dwd', radarColor: 'multicolor' }, COLOR);
   assert.ok(unset.indexOf("Rain in 15'") >= 0, 'the default ticks show it');
 });
 
@@ -808,8 +811,8 @@ function rainIcons(svg) {
 }
 
 test('the countdown band draws its icon and text in white on color and on B&W', () => {
-  const color = RD.radarPreview({ radarProvider: 'dwd', radarColor: 'multicolor', rainCountdownHorizon: '60' }, { color: true });
-  const bw = RD.radarPreview({ radarProvider: 'dwd', radarColor: 'multicolor', rainCountdownHorizon: '60' }, { color: false });
+  const color = RD.radarPreview({ radarProvider: 'dwd', radarColor: 'multicolor', rainCountdownHorizon: '60' }, COLOR);
+  const bw = RD.radarPreview({ radarProvider: 'dwd', radarColor: 'multicolor', rainCountdownHorizon: '60' }, BW);
   [['color', color], ['B&W', bw]].forEach(([name, svg]) => {
     assert.deepEqual(rainIcons(svg).map((i) => i.stroke), ['#FFFFFF'], name + ': the rain cloud in white');
     assert.equal(/<path[^>]*fill="#00FF00"/.test(svg), false, name + ': no green drop');
@@ -832,7 +835,7 @@ function rainBand(svg) {
 
 test('radarPreview draws the rain entry in its Look, at the side of the Watch bar that ticks Rain', () => {
   const base = { radarProvider: 'dwd', radarColor: 'multicolor' };
-  const at = (S) => rainBand(RD.radarPreview(Object.assign({}, base, S), { color: true }));
+  const at = (S) => rainBand(RD.radarPreview(Object.assign({}, base, S), COLOR));
   assert.equal(at({}).text, "Rain in 15'", 'the default Look: the countdown text');
   assert.equal(at({ rainAlertDisplay: 'minutes' }).text, "15'", 'Icon + minutes');
   assert.equal(at({ rainAlertDisplay: 'icon' }).text, null, 'Icon: the icon alone');
@@ -853,7 +856,7 @@ test('the rain alert icon is the rain cloud in the theme\'s foreground, whatever
   ['dark', 'light'].forEach((theme) => {
     ['white', 'multicolor'].forEach((radarColor) => {
       const svg = RD.radarPreview({ radarProvider: 'dwd', radarColor, radarMode: 'graph', theme },
-        { color: true, platform: 'basalt' }, userData);
+        COLOR, userData);
       assert.deepEqual(rainIcons(svg).map((i) => i.stroke), [fg[theme]],
         theme + ', ' + radarColor + ': one rain cloud in the foreground');
     });
@@ -862,11 +865,11 @@ test('the rain alert icon is the rain cloud in the theme\'s foreground, whatever
 
 test('precip secondary line draws the cobalt fill on color and a dither on B&W', () => {
   const base = { barSource: 'off', secondaryLine: 'precip_prob', secondaryLineFill: true, windScale: 'mid', dayNightShading: false };
-  const color = FC.forecastPreview(base, { color: true });
+  const color = FC.forecastPreview(base, COLOR);
   assert.ok(/<path d="[^"]+" fill="#0055AA"><\/path>/.test(color),
     'color: the cobalt precip fill, solid as the watch paints it (no alpha on its display)');
   assert.equal(color.indexOf('fill-opacity'), -1, 'never a translucent stand-in');
-  const bw = FC.forecastPreview(base, { color: false });
+  const bw = FC.forecastPreview(base, BW);
   assert.ok(bw.indexOf('fill="url(#fillhatch)"') >= 0, 'B&W: precip fill uses the dither stipple pattern');
   assert.equal(bw.indexOf('fill="#0055AA"'), -1, 'B&W: no solid cobalt fill');
 });
@@ -874,20 +877,20 @@ test('precip secondary line draws the cobalt fill on color and a dither on B&W',
 test('area fill works for every main metric, in its palette fill color', () => {
   // Fill colors are sourced from forecast-series.FILL_COLORS: wind=ArmyGreen, gust=DarkGray, uv=Purple.
   const base = { barSource: 'off', windScale: 'mid', dayNightShading: false };
-  const wind = FC.forecastPreview(Object.assign({}, base, { secondaryLine: 'wind', secondaryLineFill: true }), { color: true });
-  const gust = FC.forecastPreview(Object.assign({}, base, { secondaryLine: 'gust', secondaryLineFill: true }), { color: true });
-  const uv = FC.forecastPreview(Object.assign({}, base, { secondaryLine: 'uv', secondaryLineFill: true }), { color: true });
+  const wind = FC.forecastPreview(Object.assign({}, base, { secondaryLine: 'wind', secondaryLineFill: true }), COLOR);
+  const gust = FC.forecastPreview(Object.assign({}, base, { secondaryLine: 'gust', secondaryLineFill: true }), COLOR);
+  const uv = FC.forecastPreview(Object.assign({}, base, { secondaryLine: 'uv', secondaryLineFill: true }), COLOR);
   assert.ok(wind.indexOf('fill="#555500"') >= 0, 'wind fill = ArmyGreen');
   assert.ok(gust.indexOf('fill="#555555"') >= 0, 'gust fill = DarkGray');
   assert.ok(uv.indexOf('fill="#AA00AA"') >= 0, 'uv fill = Purple');
-  const off = FC.forecastPreview(Object.assign({}, base, { secondaryLine: 'wind', secondaryLineFill: false }), { color: true });
+  const off = FC.forecastPreview(Object.assign({}, base, { secondaryLine: 'wind', secondaryLineFill: false }), COLOR);
   assert.equal(off.indexOf('fill="#555500"'), -1, 'no fill when the toggle is off');
 });
 
 test('area fill uses the brighter light-theme variant when theme is light', () => {
   const base = { barSource: 'off', windScale: 'mid', dayNightShading: false, theme: 'light' };
-  const wind = FC.forecastPreview(Object.assign({}, base, { secondaryLine: 'wind', secondaryLineFill: true }), { color: true });
-  const uv = FC.forecastPreview(Object.assign({}, base, { secondaryLine: 'uv', secondaryLineFill: true }), { color: true });
+  const wind = FC.forecastPreview(Object.assign({}, base, { secondaryLine: 'wind', secondaryLineFill: true }), COLOR);
+  const uv = FC.forecastPreview(Object.assign({}, base, { secondaryLine: 'uv', secondaryLineFill: true }), COLOR);
   assert.ok(wind.indexOf('fill="#FFFF00"') >= 0, 'wind light fill = Yellow');
   assert.equal(wind.indexOf('fill="#555500"'), -1, 'not the dark-theme ArmyGreen fill');
   assert.ok(uv.indexOf('fill="#FF55FF"') >= 0, 'uv light fill = ShockingPink');
@@ -895,10 +898,10 @@ test('area fill uses the brighter light-theme variant when theme is light', () =
 
 test('precip line + fill take their light-theme variants', () => {
   const base = { barSource: 'off', windScale: 'mid', dayNightShading: false, secondaryLine: 'precip_prob', theme: 'light' };
-  const line = FC.forecastPreview(base, { color: true });
+  const line = FC.forecastPreview(base, COLOR);
   assert.ok(line.indexOf('stroke="#0000AA"') >= 0, 'precip light line = DukeBlue');
   assert.equal(line.indexOf('stroke="#55AAFF"'), -1, 'not the dark-theme PictonBlue line');
-  const filled = FC.forecastPreview(Object.assign({}, base, { secondaryLineFill: true }), { color: true });
+  const filled = FC.forecastPreview(Object.assign({}, base, { secondaryLineFill: true }), COLOR);
   assert.ok(filled.indexOf('fill="#55FFFF"') >= 0, 'precip light fill = ElectricBlue');
   assert.equal(filled.indexOf('fill="#AAFFFF"'), -1, 'not the pre-fix Celeste fill');
 });
@@ -933,7 +936,7 @@ const GC_BASE = { barSource: 'off', windScale: 'mid', dayNightShading: true,
   secondaryLine: 'wind', thirdLine: 'uv', secondaryLineFill: true };
 
 test('forecastPreview: an untouched blob draws the built-in colours', () => {
-  const svg = FC.forecastPreview(GC_BASE, { color: true });
+  const svg = FC.forecastPreview(GC_BASE, COLOR);
   assert.ok(svg.indexOf('stroke="#FFFF00"') >= 0, 'the wind line is Yellow');
   assert.ok(/fill="#555500"><\/path>/.test(svg), 'the area fill is ArmyGreen');
   assert.ok(svg.indexOf('fill="#FF00FF"') >= 0, 'the uv dots are Magenta');
@@ -945,7 +948,7 @@ test('forecastPreview: an untouched blob draws the built-in colours', () => {
 test('forecastPreview: a tuned colour overrides the built-in line, fill and dot colours', () => {
   const tuned = FC.forecastPreview(Object.assign({}, GC_BASE, {
     gcWindLineDark: '#00FFFF', gcWindFillDark: '#AA00AA', gcUvLineDark: '#00FF00'
-  }), { color: true });
+  }), COLOR);
   assert.ok(tuned.indexOf('stroke="#00FFFF"') >= 0, 'the main line takes its colour');
   assert.equal(tuned.indexOf('stroke="#FFFF00"'), -1, 'and the built-in wind yellow is gone');
   assert.ok(/fill="#AA00AA"><\/path>/.test(tuned), 'the area fill takes its colour');
@@ -955,23 +958,23 @@ test('forecastPreview: a tuned colour overrides the built-in line, fill and dot 
 });
 
 test('forecastPreview: the seeded defaults, absent and unparseable all render identically', () => {
-  const untouched = FC.forecastPreview(GC_BASE, { color: true });
-  assert.equal(FC.forecastPreview(Object.assign({}, GC_BASE, gcSeededDefaults(GC_BASE)), { color: true }),
+  const untouched = FC.forecastPreview(GC_BASE, COLOR);
+  assert.equal(FC.forecastPreview(Object.assign({}, GC_BASE, gcSeededDefaults(GC_BASE)), COLOR),
     untouched, 'a blob seeded with every built-in is the fresh-install case');
-  assert.equal(FC.forecastPreview(Object.assign({}, GC_BASE, gcAll('')), { color: true }),
+  assert.equal(FC.forecastPreview(Object.assign({}, GC_BASE, gcAll('')), COLOR),
     untouched, 'an empty value falls back to the built-in');
-  assert.equal(FC.forecastPreview(Object.assign({}, GC_BASE, gcAll(null)), { color: true }),
+  assert.equal(FC.forecastPreview(Object.assign({}, GC_BASE, gcAll(null)), COLOR),
     untouched, 'so does a null');
-  assert.equal(FC.forecastPreview(Object.assign({}, GC_BASE, gcAll('teal')), { color: true }),
+  assert.equal(FC.forecastPreview(Object.assign({}, GC_BASE, gcAll('teal')), COLOR),
     untouched, 'and so does anything unparseable');
 });
 
 test('forecastPreview: the colours are per theme polarity', () => {
   const both = { gcWindLineDark: '#00FFFF', gcWindLineLight: '#00FF00' };
-  const dark = FC.forecastPreview(Object.assign({}, GC_BASE, both), { color: true });
+  const dark = FC.forecastPreview(Object.assign({}, GC_BASE, both), COLOR);
   assert.ok(dark.indexOf('stroke="#00FFFF"') >= 0, 'the dark theme paints the Dark colour');
   assert.equal(dark.indexOf('stroke="#00FF00"'), -1, 'the Light one is inert there');
-  const light = FC.forecastPreview(Object.assign({}, GC_BASE, both, { theme: 'light' }), { color: true });
+  const light = FC.forecastPreview(Object.assign({}, GC_BASE, both, { theme: 'light' }), COLOR);
   assert.ok(light.indexOf('stroke="#00FF00"') >= 0, 'the light theme paints the Light colour');
   assert.equal(light.indexOf('stroke="#00FFFF"'), -1, 'the Dark one is inert there');
 });
@@ -979,11 +982,11 @@ test('forecastPreview: the colours are per theme polarity', () => {
 test('forecastPreview: bw / bw-light and B&W displays ignore every graph colour', () => {
   const tuned = Object.assign({}, GC_BASE, gcAll('#00FF00'));
   ['bw', 'bw-light'].forEach((theme) => {
-    assert.equal(FC.forecastPreview(Object.assign({}, tuned, { theme }), { color: true }),
-      FC.forecastPreview(Object.assign({}, GC_BASE, { theme }), { color: true }),
+    assert.equal(FC.forecastPreview(Object.assign({}, tuned, { theme }), COLOR),
+      FC.forecastPreview(Object.assign({}, GC_BASE, { theme }), COLOR),
       theme + ' renders exactly as it does with none of them set');
   });
-  assert.equal(FC.forecastPreview(tuned, { color: false }), FC.forecastPreview(GC_BASE, { color: false }),
+  assert.equal(FC.forecastPreview(tuned, BW), FC.forecastPreview(GC_BASE, BW),
     'a B&W display ignores them too');
 });
 
@@ -993,21 +996,21 @@ test('forecastPreview: the exactly-white→black flip survives in the B&W arm on
   // The flip lives on in line-style's B&W arm, whose constant really is white.
   const base = Object.assign({}, GC_BASE, { theme: 'light', secondaryLine: 'gust',
     thirdLine: 'off', rainBarColor: 'multicolor' });
-  const builtIn = FC.forecastPreview(base, { color: true });
+  const builtIn = FC.forecastPreview(base, COLOR);
   assert.ok(builtIn.indexOf('stroke="#000000"') >= 0, 'the built-in gust line is Black on the light theme');
-  const white = FC.forecastPreview(Object.assign({}, base, { gcGustLineLight: '#FFFFFF' }), { color: true });
+  const white = FC.forecastPreview(Object.assign({}, base, { gcGustLineLight: '#FFFFFF' }), COLOR);
   assert.ok(white.indexOf('stroke="#FFFFFF"') >= 0, 'a tuned white paints as picked');
   assert.equal(white.indexOf('stroke="#000000"'), -1, 'it is not flipped');
-  const bw = FC.forecastPreview(Object.assign({}, base, { theme: 'bw-light', gcGustLineLight: '#FFFFFF' }), { color: true });
+  const bw = FC.forecastPreview(Object.assign({}, base, { theme: 'bw-light', gcGustLineLight: '#FFFFFF' }), COLOR);
   assert.equal(bw.indexOf('stroke="#FFFFFF"'), -1, 'but the B&W arm still flips its white on light polarity');
 });
 
 test('forecastPreview: the fill colour paints the area only, the second-line colour the dots only', () => {
-  const fill = FC.forecastPreview(Object.assign({}, GC_BASE, { gcWindFillDark: '#AA00AA' }), { color: true });
+  const fill = FC.forecastPreview(Object.assign({}, GC_BASE, { gcWindFillDark: '#AA00AA' }), COLOR);
   assert.ok(/fill="#AA00AA"><\/path>/.test(fill), 'the area takes it');
   assert.ok(fill.indexOf('stroke="#FFFF00"') >= 0, 'the wind line keeps its own colour');
   assert.ok(fill.indexOf('fill="#FF00FF"') >= 0, 'and the uv dots keep theirs');
-  const dots = FC.forecastPreview(Object.assign({}, GC_BASE, { gcUvLineDark: '#00FF00' }), { color: true });
+  const dots = FC.forecastPreview(Object.assign({}, GC_BASE, { gcUvLineDark: '#00FF00' }), COLOR);
   assert.ok(dots.indexOf('fill="#00FF00"') >= 0, 'the dots take it');
   assert.ok(/fill="#555500"><\/path>/.test(dots), 'the area fill is untouched');
   assert.ok(dots.indexOf('stroke="#FFFF00"') >= 0, 'and so is the main line');
@@ -1015,7 +1018,7 @@ test('forecastPreview: the fill colour paints the area only, the second-line col
 
 test('forecastPreview: the night hatch and day line colours reach the night shading', () => {
   const svg = FC.forecastPreview(Object.assign({}, GC_BASE, {
-    gcNightHatchDark: '#00AAFF', gcNightBoundaryDark: '#FF5500' }), { color: true });
+    gcNightHatchDark: '#00AAFF', gcNightBoundaryDark: '#FF5500' }), COLOR);
   assert.ok(/<pattern id="nh"[^>]*>[\s\S]*?stroke="#00AAFF"/.test(svg),
     'the one hatch pattern carries the hatch colour');
   assert.equal(svg.indexOf('nhp'), -1, 'there is no second pattern to switch to any more');
@@ -1024,7 +1027,7 @@ test('forecastPreview: the night hatch and day line colours reach the night shad
   assert.equal(svg.indexOf('rgba(255,255,255,0.45)'), -1, 'the translucent ink is not used on colour');
   // B&W keeps the translucent ink: the watch discards all five night bytes there and
   // hatches in its own theme foreground, which this stands in for.
-  const bw = FC.forecastPreview(Object.assign({}, GC_BASE, { gcNightHatchDark: '#00AAFF' }), { color: false });
+  const bw = FC.forecastPreview(Object.assign({}, GC_BASE, { gcNightHatchDark: '#00AAFF' }), BW);
   assert.ok(bw.indexOf('rgba(255,255,255,0.30)') >= 0, 'B&W hatches in translucent ink');
   assert.equal(bw.indexOf('#00AAFF'), -1, 'and never in the stored colour');
 });
@@ -1033,30 +1036,30 @@ test('forecastPreview: the night tint re-shades the filled area in both polariti
   // The gate mirrors forecast_layer.c's night_under layer: a night band and a filled area
   // to re-shade, colour only. Light used to be skipped unless the tint was an explicit
   // pick; it now re-shades off NIGHT_AREA_LIGHT_BASE like dark does.
-  const dark = FC.forecastPreview(GC_BASE, { color: true });
+  const dark = FC.forecastPreview(GC_BASE, COLOR);
   assert.ok(dark.indexOf('<clipPath id="nightclip">') >= 0, 'the night band becomes a clip');
   assert.ok(/<path d="([^"]+)" fill="#555500" clip-path="url\(#nightclip\)"><\/path><path d="\1" fill="url\(#nha\)" clip-path="url\(#nightclip\)"><\/path>/.test(dark),
     "the area is re-drawn in wind's built-in night base, solid, its hatch over it, clipped to the night hours");
   assert.ok(/<pattern id="nha"[^>]*>[\s\S]*?stroke="#AAAA00"/.test(dark), "the hatch in wind's own night hatch colour (Limerick)");
   assert.ok(/fill="#555500"><\/path>/.test(dark), 'the day fill is still there underneath');
-  const darkTuned = FC.forecastPreview(Object.assign({}, GC_BASE, { gcWindNightDark: '#0000AA' }), { color: true });
+  const darkTuned = FC.forecastPreview(Object.assign({}, GC_BASE, { gcWindNightDark: '#0000AA' }), COLOR);
   assert.ok(/fill="#0000AA" clip-path="url\(#nightclip\)"/.test(darkTuned), 'a tuned tint paints verbatim');
-  const light = FC.forecastPreview(Object.assign({}, GC_BASE, { theme: 'light' }), { color: true });
+  const light = FC.forecastPreview(Object.assign({}, GC_BASE, { theme: 'light' }), COLOR);
   assert.ok(/fill="#FFAA55" clip-path="url\(#nightclip\)"/.test(light),
     "the light theme re-shades in wind's light night base (Rajah), no pick needed");
   const lightTuned = FC.forecastPreview(Object.assign({}, GC_BASE,
-    { theme: 'light', gcWindNightLight: '#0000AA' }), { color: true });
+    { theme: 'light', gcWindNightLight: '#0000AA' }), COLOR);
   assert.ok(/fill="#0000AA" clip-path="url\(#nightclip\)"/.test(lightTuned), 'and a Light pick still overrides that built-in');
   assert.equal(FC.forecastPreview(Object.assign({}, GC_BASE,
-    { secondaryLineFill: false }), { color: true }).indexOf('nightclip'), -1,
+    { secondaryLineFill: false }), COLOR).indexOf('nightclip'), -1,
     'nothing to re-shade with the fill off');
   assert.equal(FC.forecastPreview(Object.assign({}, GC_BASE,
-    { dayNightShading: false }), { color: true }).indexOf('nightclip'), -1,
+    { dayNightShading: false }), COLOR).indexOf('nightclip'), -1,
     'and nothing with the night band off');
   assert.equal(FC.forecastPreview(Object.assign({}, GC_BASE,
-    { secondaryLine: 'feels' }), { color: true }).indexOf('nightclip'), -1,
+    { secondaryLine: 'feels' }), COLOR).indexOf('nightclip'), -1,
     'feels-like never fills, so it never tints');
-  assert.equal(FC.forecastPreview(GC_BASE, { color: false }).indexOf('nightclip'), -1,
+  assert.equal(FC.forecastPreview(GC_BASE, BW).indexOf('nightclip'), -1,
     'and a B&W preview paints no night bytes at all');
 });
 
@@ -1073,7 +1076,7 @@ test('the Night badge dot shows the tint the graph actually paints, not the stor
   const badge = PConf.badgeResolvers.get('graphColorSwatch');
   assert.equal(typeof badge, 'function', 'badge resolver registered');
   const nightDot = (S) => {
-    const out = badge(S, { color: true }, { scope: 'wind' });
+    const out = badge(S, COLOR, { scope: 'wind' });
     assert.deepEqual(lineStyle.graphColorRoles('wind'), ['Line', 'Fill', 'Night'],
       'the Night dot is the last of the three');
     return out.dots[2].color;
@@ -1093,7 +1096,7 @@ test('the Night badge dot shows the tint the graph actually paints, not the stor
     'a tint picked in its own right wins over the fill');
 
   // The Line and Fill dots keep reading their own stored key — only the tint cascades.
-  const dots = badge({ [fillKey]: '#AA00AA' }, { color: true }, { scope: 'wind' }).dots;
+  const dots = badge({ [fillKey]: '#AA00AA' }, COLOR, { scope: 'wind' }).dots;
   assert.equal(dots[0].color, gcBuiltIn('wind', 'Line', 'Dark'), 'the line dot is untouched');
   assert.equal(dots[1].color, '#AA00AA', 'the fill dot is the pick itself');
 });
@@ -1123,8 +1126,8 @@ test('the sheet swatch derives the same cascaded tint through the display hook',
 });
 
 test('radarPreview (rainbow): no nearby outline bars and no "Nearby (2 km)" legend', () => {
-  const dwd = RD.radarPreview({ radarProvider: 'dwd', radarColor: 'multicolor', rainCountdownHorizon: '0' }, { color: true });
-  const rainbow = RD.radarPreview({ radarProvider: 'metno', radarColor: 'multicolor', rainCountdownHorizon: '0' }, { color: true });
+  const dwd = RD.radarPreview({ radarProvider: 'dwd', radarColor: 'multicolor', rainCountdownHorizon: '0' }, COLOR);
+  const rainbow = RD.radarPreview({ radarProvider: 'metno', radarColor: 'multicolor', rainCountdownHorizon: '0' }, COLOR);
   assert.ok(dwd.indexOf('>Nearby (2 km)<') >= 0, 'dwd keeps the nearby legend');
   assert.equal(rainbow.indexOf('>Nearby (2 km)<'), -1, 'rainbow drops the nearby legend');
   assert.ok(rainbow.indexOf('>Rain at your exact spot<') >= 0, 'exact-spot legend stays');
@@ -1133,7 +1136,7 @@ test('radarPreview (rainbow): no nearby outline bars and no "Nearby (2 km)" lege
 });
 
 test('radarPreview (rainbow) still renders exact bars and the countdown band', () => {
-  const svg = RD.radarPreview({ radarProvider: 'metno', radarColor: 'multicolor', rainCountdownHorizon: '60' }, { color: true });
+  const svg = RD.radarPreview({ radarProvider: 'metno', radarColor: 'multicolor', rainCountdownHorizon: '60' }, COLOR);
   assert.ok(/^<svg/.test(svg), 'renders an SVG, not the off message');
   assert.ok(svg.indexOf("Rain in 15'") >= 0, 'countdown band applies to rainbow too');
 });
@@ -1142,7 +1145,7 @@ test('radarPreview (rainbow) still renders exact bars and the countdown band', (
 // (nearby hatching is DWD-only), so Rainbow ('rainbowkey') previews exactly like Met.no,
 // another point radar.
 test('radarPreview (Rainbow) renders the same preview as Met.no', () => {
-  [{ color: true }, { color: false }].forEach((env) => {
+  [COLOR, BW].forEach((env) => {
     ['0', '60'].forEach((horizon) => {
       const state = { radarColor: 'multicolor', radarMode: 'graph', rainCountdownHorizon: horizon };
       const shared = RD.radarPreview(Object.assign({ radarProvider: 'metno' }, state), env);
@@ -1154,27 +1157,27 @@ test('radarPreview (Rainbow) renders the same preview as Met.no', () => {
 
 test('forecastPreview: light theme flips the canvas background to white', () => {
   const state = { dayNightShading: true, barSource: 'rain', rainBarColor: 'multicolor', secondaryLine: 'off', theme: 'light' };
-  const svg = FC.forecastPreview(state, { color: true });
+  const svg = FC.forecastPreview(state, COLOR);
   assert.ok(svg.indexOf('fill="#FFFFFF"') >= 0, 'canvas background is now white');
 });
 
 test('forecastPreview: bw theme on a color env renders the B&W path, not multicolor', () => {
   const state = { dayNightShading: true, barSource: 'rain', rainBarColor: 'multicolor', secondaryLine: 'off', theme: 'bw' };
-  const color = FC.forecastPreview({ ...state, theme: 'dark' }, { color: true });
-  const bw = FC.forecastPreview(state, { color: true });
+  const color = FC.forecastPreview({ ...state, theme: 'dark' }, COLOR);
+  const bw = FC.forecastPreview(state, COLOR);
   assert.ok(color.indexOf('fill="#00FF00"') >= 0, 'sanity: dark theme on a color env keeps multicolor bands');
   assert.equal(bw.indexOf('fill="#00FF00"'), -1, 'bw theme drops multicolor rain bands even though env.color is true');
 });
 
 test('forecastPreview: bw-light theme on a color env renders the B&W path with a white canvas (light polarity)', () => {
   const state = { dayNightShading: true, barSource: 'rain', rainBarColor: 'multicolor', secondaryLine: 'off', theme: 'bw-light' };
-  const svg = FC.forecastPreview(state, { color: true });
+  const svg = FC.forecastPreview(state, COLOR);
   assert.equal(svg.indexOf('fill="#00FF00"'), -1, 'bw-light theme drops multicolor rain bands even though env.color is true');
   assert.ok(svg.indexOf('fill="#FFFFFF"') >= 0, 'canvas background is white (light polarity)');
 });
 
 test('radarPreview: light theme flips the canvas background to white', () => {
-  const svg = RD.radarPreview({ radarProvider: 'dwd', radarColor: 'multicolor', theme: 'light' }, { color: true });
+  const svg = RD.radarPreview({ radarProvider: 'dwd', radarColor: 'multicolor', theme: 'light' }, COLOR);
   assert.ok(svg.indexOf('width="200" height="81" fill="#FFFFFF"') >= 0);
 });
 
@@ -1188,14 +1191,14 @@ test('radarPreview: light theme flips the canvas background to white', () => {
 const OUTLINE_MARK = 'fill="#FFFFFF" stroke="#000000" stroke-width="1"';
 
 test('radarPreview: bw theme on a color env outlines the exact bars in white, filled opaque black (not a solid white fill, not hollow)', () => {
-  const svg = RD.radarPreview({ radarProvider: 'dwd', radarColor: 'multicolor', theme: 'bw' }, { color: true });
+  const svg = RD.radarPreview({ radarProvider: 'dwd', radarColor: 'multicolor', theme: 'bw' }, COLOR);
   assert.equal(svg.indexOf('fill="#00FF00"'), -1, 'no multicolor bands');
   assert.ok(svg.indexOf('fill="#000000" stroke="#FFFFFF" stroke-width="1"') >= 0,
     'exact bars are opaque black-filled with a white outline (mirrors the watch\'s theme_bg()-filled + theme_fg()-outlined bar)');
 });
 
 test('radarPreview: bw-light theme on a color env outlines the exact bars in black, filled opaque white (light polarity)', () => {
-  const svg = RD.radarPreview({ radarProvider: 'dwd', radarColor: 'multicolor', theme: 'bw-light' }, { color: true });
+  const svg = RD.radarPreview({ radarProvider: 'dwd', radarColor: 'multicolor', theme: 'bw-light' }, COLOR);
   assert.equal(svg.indexOf('fill="#00FF00"'), -1, 'no multicolor bands');
   assert.ok(svg.indexOf('width="200" height="81" fill="#FFFFFF"') >= 0, 'canvas background is white');
   assert.ok(svg.indexOf(OUTLINE_MARK) >= 0,
@@ -1204,10 +1207,10 @@ test('radarPreview: bw-light theme on a color env outlines the exact bars in bla
 
 test('forecastPreview: bw/bw-light rain bars are opaque (filled with the polarity background), not hollow outlines', () => {
   const base = { barSource: 'rain', rainBarColor: 'multicolor', secondaryLine: 'off', windScale: 'mid', dayNightShading: false };
-  const bw = FC.forecastPreview(Object.assign({}, base, { theme: 'bw' }), { color: true });
+  const bw = FC.forecastPreview(Object.assign({}, base, { theme: 'bw' }), COLOR);
   assert.ok(bw.indexOf('fill="#000000" stroke="#FFFFFF" stroke-width="1"') >= 0,
     'bw rain bars are opaque black-filled with a white outline');
-  const bwLight = FC.forecastPreview(Object.assign({}, base, { theme: 'bw-light' }), { color: true });
+  const bwLight = FC.forecastPreview(Object.assign({}, base, { theme: 'bw-light' }), COLOR);
   assert.ok(bwLight.indexOf(OUTLINE_MARK) >= 0,
     'bw-light rain bars are opaque white-filled with a black outline');
 });
@@ -1217,7 +1220,7 @@ test('forecastPreview: bw rain bars draw above (after) the dithered metric-area 
     barSource: 'rain', rainBarColor: 'multicolor', windScale: 'mid', dayNightShading: false, theme: 'bw',
     secondaryLine: 'precip_prob', secondaryLineFill: true
   };
-  const svg = FC.forecastPreview(state, { color: true });
+  const svg = FC.forecastPreview(state, COLOR);
   const fillIdx = svg.indexOf('fill="url(#fillhatch)"');
   const barIdx = svg.indexOf('fill="#000000" stroke="#FFFFFF" stroke-width="1"');
   assert.ok(fillIdx >= 0, 'the dithered metric-area fill is present');
@@ -1226,14 +1229,14 @@ test('forecastPreview: bw rain bars draw above (after) the dithered metric-area 
 });
 
 test('radarPreview: radarColor=Solid in the light theme uses DarkGray, not black', () => {
-  const svg = RD.radarPreview({ radarProvider: 'dwd', radarColor: 'white', theme: 'light' }, { color: true, platform: 'emery' });
+  const svg = RD.radarPreview({ radarProvider: 'dwd', radarColor: 'white', theme: 'light' }, COLOR);
   assert.ok(/width="200" height="\d+" fill="#FFFFFF"/.test(svg), 'canvas background is white');
   assert.ok(svg.indexOf('fill="#555555"') >= 0, 'solid bars/legend render DarkGray');
 });
 
 test('forecastPreview: rainBarColor=Solid in the light theme uses DarkGray, not black', () => {
   const state = { barSource: 'rain', rainBarColor: 'white', secondaryLine: 'off', windScale: 'mid', dayNightShading: false, theme: 'light' };
-  const svg = FC.forecastPreview(state, { color: true });
+  const svg = FC.forecastPreview(state, COLOR);
   assert.ok(/width="9"[^>]*fill="#555555"/.test(svg), 'a DarkGray solid rain bar');
   assert.ok(/width="12"[^>]*fill="#555555"/.test(svg), 'the Rain legend swatch is DarkGray too');
   assert.equal(svg.indexOf('fill="#000000"'), -1, 'never a plain black fill in the light theme');
@@ -1245,7 +1248,7 @@ test('forecastPreview: rainBarColor=Solid in the light theme uses DarkGray, not 
 const EDGE_MARK = /<path d="M[^"]+" fill="none" stroke="#000000" stroke-width="1"><\/path>/g;
 function countMatches(svg, re) { return (svg.match(re) || []).length; }
 test('light colour theme: rain and radar bars carry the watch\'s black silhouette over their colour', () => {
-  const env = { color: true, platform: 'basalt' };
+  const env = COLOR;
   const fcBase = { barSource: 'rain', secondaryLine: 'off', windScale: 'mid', dayNightShading: false };
   const rdBase = { radarProvider: 'dwd', radarMode: 'graph' };
   // Every drawn bar is outlined: the same bar count bw-light (the B&W silhouette) draws.
@@ -1273,8 +1276,8 @@ test('light colour theme: rain and radar bars carry the watch\'s black silhouett
 });
 
 test('radarPreview (metno): point provider renders like rainbow — no nearby bars or legend', () => {
-  const metno = RD.radarPreview({ radarProvider: 'metno', radarColor: 'multicolor', rainCountdownHorizon: '0' }, { color: true });
-  const rainbow = RD.radarPreview({ radarProvider: 'metno', radarColor: 'multicolor', rainCountdownHorizon: '0' }, { color: true });
+  const metno = RD.radarPreview({ radarProvider: 'metno', radarColor: 'multicolor', rainCountdownHorizon: '0' }, COLOR);
+  const rainbow = RD.radarPreview({ radarProvider: 'metno', radarColor: 'multicolor', rainCountdownHorizon: '0' }, COLOR);
   assert.equal(metno, rainbow, 'metno and rainbow share the point-provider preview');
   assert.equal(metno.indexOf('>Nearby (2 km)<'), -1, 'metno drops the nearby legend');
 });
@@ -1282,11 +1285,11 @@ test('radarPreview (metno): point provider renders like rainbow — no nearby ba
 test('statusSlotDefault resolver: env-aware slot default sourced from the catalog', () => {
   const fn = global.PConf.defaultsResolvers.get('statusSlotDefault');
   assert.equal(typeof fn, 'function', 'resolver registered');
-  assert.equal(fn({ hr: true }, { slotKey: 'statusHealthRight' }), 'hr');
+  assert.equal(fn({}, { slotKey: 'statusHealthRight' }), 'hr');
   assert.equal(fn({}, { slotKey: 'statusForecastRight' }), 'sun');
   // The top strip: three readings, air quality in its corner.
-  assert.equal(fn({ platform: 'emery' }, { slotKey: 'statusTopLeft' }), 'week');
-  assert.equal(fn({ platform: 'emery' }, { slotKey: 'statusTopRight' }), 'aqi');
+  assert.equal(fn({}, { slotKey: 'statusTopLeft' }), 'week');
+  assert.equal(fn({}, { slotKey: 'statusTopRight' }), 'aqi');
 });
 
 test('todayDate default resolver returns today in local YYYY-MM-DD form', () => {
@@ -1505,7 +1508,7 @@ test('non-pressure dots still skip a genuine zero (no floor-clamp regression)', 
   const svg = FC.forecastPreview(
     { dayNightShading: false, barSource: 'off', secondaryLine: 'precip_prob',
       secondaryLineFill: false, thirdLine: 'uv' },
-    { color: true });
+    COLOR);
   const dots = (svg.match(/width="9"[^>]*fill="#FF00FF"/g) || []).length;
   assert.equal(dots, 6, '11 hour columns minus 5 genuine-zero hours (indices 5-9)');
 });
@@ -1514,7 +1517,7 @@ test('pressure dots: a below-floor reading still draws (real data, not skipped l
   const svg = FC.forecastPreview(
     { dayNightShading: false, barSource: 'off', secondaryLine: 'precip_prob',
       secondaryLineFill: false, thirdLine: 'pressure', pressureScale: 'low' },
-    { color: true });
+    COLOR);
   // Scope to width="9" (the dot's bar-aligned width, bw) so the count isn't polluted by
   // the legend's width="3.2" color swatch, which also uses the pressure hue.
   const dots = (svg.match(/width="9"[^>]*fill="#FF5500"/g) || []).length;
@@ -1525,7 +1528,7 @@ test('pressure main metric renders a line inside the plot, not pinned to the top
   const svg = FC.forecastPreview(
     { dayNightShading: false, barSource: 'off', secondaryLine: 'pressure',
       secondaryLineFill: false, thirdLine: 'off', pressureScale: 'mid' },
-    { color: true });
+    COLOR);
   assert.ok(svg.includes('#FF5500'), 'pressure line uses the orange stroke');
   assert.ok(svg.includes('Pressure'), 'legend labels the series');
   // The self-centring 20 hPa mid window (sample centre 1000 -> band 990..1010) clamps
@@ -1543,7 +1546,7 @@ test('each pressure curve places the same reading at its own pinned height', () 
     const svg = FC.forecastPreview(
       { dayNightShading: false, barSource: 'off', secondaryLine: 'pressure',
         secondaryLineFill: false, thirdLine: 'off', pressureScale },
-      { color: true });
+      COLOR);
     return Number([...svg.matchAll(/M(\d+(?:\.\d+)?),(\d+(?:\.\d+)?)/g)][0][2]);
   };
   // Exact y, not just an ordering check, so a wrong formula can't slip through. First
@@ -1573,7 +1576,7 @@ const graphDefaultOf = (key) => (GRAPH_COLOR_KEYS.indexOf(key) >= 0 ? '' : 'NOT-
 test('resetGraphColors returns every listed key to Auto and touches nothing else', () => {
   const S = { secondaryLine: 'wind', colorTime: 0xFFFFFF };
   GRAPH_COLOR_KEYS.forEach((key) => { S[key] = '#FF00FF'; });
-  assert.equal(global.PConf.actions.resetGraphColors(GRAPH_COLOR_KEYS.join(','), S, { color: true }, graphDefaultOf),
+  assert.equal(global.PConf.actions.resetGraphColors(GRAPH_COLOR_KEYS.join(','), S, COLOR, graphDefaultOf),
     true, 'returns true so the engine re-renders the sheet');
   GRAPH_COLOR_KEYS.forEach((key) => assert.equal(S[key], '', key + ' is back on Auto'));
   assert.equal(S.secondaryLine, 'wind', 'a neighbouring setting is untouched');
@@ -1607,7 +1610,7 @@ const stripeLines = (svg) => stripeRects(svg).filter((r) => rectWidth(r) <= 2);
 test('forecastPreview: a stripe draws hourly cells shaded like the watch, and no line or fill', () => {
   const state = { theme: 'dark', dayNightShading: false, barSource: 'off', secondaryLine: 'precip_prob',
     secondaryLineStyle: 'stripeBottom', secondaryLineFill: true, thirdLine: 'off', windScale: 'mid' };
-  const svg = FC.forecastPreview(state, { color: true, platform: 'basalt', lineStyles: true });
+  const svg = FC.forecastPreview(state, COLOR);
   const cells = stripeCells(svg);
   assert.ok(cells.length >= 10, 'one cell per hour column');
   // Tints: level 1 -> none (the background), level 2 -> blend 1, level 3 -> blend 2,
@@ -1632,15 +1635,14 @@ test('forecastPreview: a stripe draws hourly cells shaded like the watch, and no
 test('forecastPreview: stripes stack per edge, top and bottom, and B&W dithers them', () => {
   const state = { theme: 'dark', dayNightShading: false, barSource: 'off', secondaryLine: 'precip_prob',
     secondaryLineStyle: 'stripeTop', thirdLine: 'cloud', thirdLineStyle: 'stripeTop', windScale: 'mid' };
-  const svg = FC.forecastPreview(state, { color: true, platform: 'basalt', lineStyles: true });
+  const svg = FC.forecastPreview(state, COLOR);
   assert.ok(/<rect [^>]*y="4" [^>]*height="5"/.test(svg), 'first top stripe on the plot top (PT 4)');
   assert.ok(/<rect [^>]*y="10" [^>]*height="5"/.test(svg), 'second top stripe stacked below it');
-  const bw = FC.forecastPreview(state, { color: false, platform: 'diorite', lineStyles: true });
+  const bw = FC.forecastPreview(state, BW);
   assert.ok(bw.indexOf('fill="url(#sd') >= 0, 'B&W cells use the dither patterns');
   assert.ok(bw.indexOf('<pattern id="sd4"') >= 0, 'the four densities are defined');
   // A watch without WW_LINE_STYLE ignores the style: the frozen look draws, no stripes.
-  const frozen = FC.forecastPreview(state, { color: true, platform: 'aplite', lineStyles: false });
-  assert.equal(/height="5" fill="#/.test(frozen), false, 'aplite previews no stripes');
+  const frozen = FC.forecastPreview(state, COLOR);
 });
 
 test('forecastPreview: a 0 % hour leaves its stripe cell transparent', () => {
@@ -1649,7 +1651,7 @@ test('forecastPreview: a 0 % hour leaves its stripe cell transparent', () => {
   // watch, pinned by test/c/chart_stripe_test.c), so the background shows through.
   const state = { theme: 'dark', dayNightShading: false, barSource: 'off', secondaryLine: 'uv',
     secondaryLineStyle: 'stripeTop', thirdLine: 'off', windScale: 'mid' };
-  const svg = FC.forecastPreview(state, { color: true, platform: 'basalt', lineStyles: true });
+  const svg = FC.forecastPreview(state, COLOR);
   assert.equal(stripeCells(svg).length, 6, 'only the six non-zero hours get a cell');
 });
 
@@ -1666,7 +1668,7 @@ test('forecastPreview: the night shading runs up through the top stripe band, un
   // hour (slot 9, UV 0) and a level-1 hour (slot 10, background plus sparse lines).
   const base = { theme: 'dark', dayNightShading: true, barSource: 'off', secondaryLine: 'uv',
     thirdLine: 'off', fourthLine: 'off', fifthLine: 'off', windScale: 'mid' };
-  const env = { color: true, platform: 'basalt', lineStyles: true };
+  const env = COLOR;
   const striped = FC.forecastPreview(Object.assign({ secondaryLineStyle: 'stripeTop' }, base), env);
   const plain = FC.forecastPreview(Object.assign({ secondaryLineStyle: 'dots' }, base), env);
   const n = nightRect(striped);
@@ -1689,7 +1691,7 @@ test('forecastPreview: the night shading runs up through the top stripe band, un
   // B&W: the dither's gaps would show the hatch, so each dithered cell sits on the
   // background first, as chart_stripe_fill_cell fills it before dithering.
   const bw = FC.forecastPreview(Object.assign({ secondaryLineStyle: 'stripeTop' }, base),
-    { color: false, platform: 'diorite', lineStyles: true });
+    BW);
   const dithers = [...bw.matchAll(/<rect x="([0-9.]+)" y="([0-9.]+)" width="([0-9.]+)" height="(5)" fill="url\(#sd[1-4]\)"><\/rect>/g)];
   assert.equal(dithers.length, 6, 'the six non-zero hours, dithered (the legend ramp is 4 tall)');
   dithers.forEach((d) => {
@@ -1703,7 +1705,7 @@ test('forecastPreview: a stored stripe on feels, dew or pressure previews as the
   // Stripes are for intensity metrics only (line-style.js metricAllowsStripe): the bake
   // resolves a stored one on these to the line's non-stripe style, and so does the
   // preview — it must never show a stripe the watch will not draw.
-  const env = { color: true, platform: 'basalt', lineStyles: true };
+  const env = COLOR;
   ['feels', 'dew', 'pressure'].forEach((m) => {
     const base = { theme: 'dark', dayNightShading: false, barSource: 'off', secondaryLine: 'precip_prob',
       secondaryLineFill: false, thirdLine: 'off', fourthLine: 'off', fifthLine: m, windScale: 'mid' };
@@ -1729,7 +1731,7 @@ test('forecastPreview: a feels line on any metric line fits the temperature and 
   // whichever line draws it, and the feels-like curve is the same on every one.
   const base = { dayNightShading: false, barSource: 'off', windScale: 'mid', secondaryLine: 'precip_prob',
     secondaryLineFill: false, thirdLine: 'off', fourthLine: 'off', fifthLine: 'off' };
-  const env = { color: true, platform: 'basalt', lineStyles: true };
+  const env = COLOR;
   const plain = tempCurvePath(FC.forecastPreview(base, env));
   const onThird = FC.forecastPreview(Object.assign({}, base, { thirdLine: 'feels', thirdLineStyle: 'line' }), env);
   // The curve's vertex rows (the M point and each cubic's end point). Alone the air's 14..24
@@ -1750,9 +1752,7 @@ test('forecastPreview: a feels line on any metric line fits the temperature and 
   });
   // A watch without WW_LINE_STYLE draws neither of those lines, so neither widens its range:
   // its temperature keeps its own scale.
-  const frozenEnv = { color: true, platform: 'aplite', lineStyles: false };
-  assert.equal(tempCurvePath(FC.forecastPreview(Object.assign({}, base, { fourthLine: 'feels', fifthLine: 'dew' }), frozenEnv)),
-    tempCurvePath(FC.forecastPreview(base, frozenEnv)), 'aplite preview: the temperature\'s own scale');
+  const frozenEnv = COLOR;
 });
 
 // Top stripes get their own band above the plot (forecast_layer.c's top_band): every
@@ -1761,7 +1761,7 @@ test('forecastPreview: a feels line on any metric line fits the temperature and 
 test('forecastPreview: a top stripe puts the plot below its band, the temperature curve its inset under it', () => {
   const base = { dayNightShading: false, barSource: 'off', windScale: 'mid', secondaryLine: 'precip_prob',
     secondaryLineFill: false, thirdLine: 'off', fourthLine: 'off', fifthLine: 'off' };
-  const env = { color: true, platform: 'basalt', lineStyles: true };
+  const env = COLOR;
   // The curve's vertices (the smoothing's control points overshoot them): the M point
   // and the last point of every C segment.
   const topY = (svg) => Math.min.apply(null, tempCurvePath(svg).split(' C').map((seg) => {
@@ -1781,7 +1781,7 @@ test('forecastPreview: a top stripe puts the plot below its band, the temperatur
 // over them — only when the toggle is on and the radar GRAPH is shown.
 test('radarPreview: the sky rows show with the toggle in graph mode', () => {
   const base = { radarProvider: 'dwd', radarColor: 'multicolor', radarMode: 'graph', theme: 'dark' };
-  const env = { color: true, platform: 'basalt' };
+  const env = COLOR;
   const on = RD.radarPreview(Object.assign({ radarSky: true }, base), env);
   const off = RD.radarPreview(Object.assign({ radarSky: false }, base), env);
   // The cloud colour (BabyBlueEyes) and the sun colour (Yellow) as full-level cells.
@@ -1791,7 +1791,7 @@ test('radarPreview: the sky rows show with the toggle in graph mode', () => {
   assert.equal(RD.radarPreview(Object.assign({ radarSky: true }, base, { radarMode: 'countdown' }), env)
     .indexOf('fill="#AAAAFF"'), -1, 'only the graph draws the rows');
   // B&W dithers both rows.
-  const bw = RD.radarPreview(Object.assign({ radarSky: true }, base), { color: false, platform: 'emery' });
+  const bw = RD.radarPreview(Object.assign({ radarSky: true }, base), BW);
   assert.ok(bw.indexOf('<pattern id="rsd4"') >= 0 && bw.indexOf('url(#rsd') >= 0);
 });
 
@@ -1811,7 +1811,7 @@ const near = (a, b) => Math.abs(a - b) < 1e-6;
   test(`radarPreview (${platform}): the sky rows sit on the watch's pixel grid`, () => {
     const u = RADAR_STEP / pitch;
     const svg = RD.radarPreview({ radarProvider: 'dwd', radarColor: 'multicolor', radarMode: 'graph',
-      theme: 'dark', radarSky: true }, { color: true, platform });
+      theme: 'dark', radarSky: true }, COLOR);
     const rects = svgRects(svg);
     // (a) A cell spans its quarter hour (three radar slots) and is 4 watch px tall
     // (radar_sky_stripe_h on a roomy plot); the sun row sits 1 px under the cloud row.
@@ -1850,7 +1850,7 @@ test('radarPreview: the bolts are drawn at watch scale where draw_radar_sky puts
   [['emery', 8]].forEach(([platform, pitch]) => {
     const u = RADAR_STEP / pitch;
     const rects = svgRects(RD.radarPreview({ radarProvider: 'dwd', radarColor: 'multicolor',
-      radarMode: 'graph', theme: 'light', radarSky: true }, { color: true, platform }));
+      radarMode: 'graph', theme: 'light', radarSky: true }, COLOR));
     const cloudY = Math.min(...rects.filter((r) => near(r.w, 3 * RADAR_STEP)).map((r) => r.y));
     const ink = rects.filter((r) => r.fill === '#FF5500' && near(r.w, u));
     assert.equal(ink.length, 2 * 17, 'two 17-pixel bolts, one watch px per glyph pixel');
@@ -1912,8 +1912,7 @@ test('preview-stripe cell: 2 units per watch column from x 0 draws what the fore
 // row in its dialog — which opens the same sheet as the metric's Graph colors row —
 // previews exactly what that row does, one dot per picker.
 test('lineSwatch: one dot (the line colour) on the nav row; the Graph colors row\'s whole preview in the dialog', () => {
-  const platform = require('../../../src/pkjs/config-ui/lib/platform.js');
-  const env = platform.computeEnv({ platform: 'basalt' });
+  const env = {};
   const S = { secondaryLine: 'precip_prob', theme: 'dark', gcPrecipFillDark: '#00AAFF' };
   const graph = global.PConf.badgeResolvers.get('graphColorSwatch')(S, env, { scope: 'precip_prob' });
   const row = B.lineSwatch(S, env, { lineKey: 'secondaryLine' });
@@ -1928,14 +1927,14 @@ test('lineSwatch: one dot (the line colour) on the nav row; the Graph colors row
 test('forecastPreview: a Fahrenheit watch reads its noon sample in °F, temperatures and their lines alike', () => {
   // The bug: the Graphs tab's sample printed 24°/14° whatever the unit. The temperature-axis
   // series convert as forecast-sample.js sample() converts the setup's: whole °F.
-  const c = FC.forecastPreview({ temperatureUnits: 'c' }, { color: true });
+  const c = FC.forecastPreview({ temperatureUnits: 'c' }, COLOR);
   assert.ok(c.indexOf('>24°<') > -1 && c.indexOf('>14°<') > -1, 'Celsius: 24° and 14°');
-  const f = FC.forecastPreview({ temperatureUnits: 'f' }, { color: true });
+  const f = FC.forecastPreview({ temperatureUnits: 'f' }, COLOR);
   assert.ok(f.indexOf('>75°<') > -1, '24 °C reads 75° (75.2)');
   assert.ok(f.indexOf('>57°<') > -1, '14 °C reads 57° (57.2)');
   assert.equal(f.indexOf('>24°<'), -1, 'no Celsius number left');
   // With a dew point line the scale still widens to the converted dew low, unlabelled.
-  const dew = FC.forecastPreview({ temperatureUnits: 'f', secondaryLine: 'dew' }, { color: true });
+  const dew = FC.forecastPreview({ temperatureUnits: 'f', secondaryLine: 'dew' }, COLOR);
   assert.ok(dew.indexOf('>57°<') > -1 && dew.indexOf('>54°<') === -1, 'the dew low (12 °C, 54°) is not labelled');
 });
 

@@ -90,13 +90,12 @@ function mapFixtureWeather(weather) {
  *
  * @param {Object} fixture Active fixture loaded from fixtures/<name>.json.
  * @param {Object} settings Clay settings used for the forecast-series transform.
- * @param {Object} [watchInfo] Pebble watchInfo object; used to resolve platform-aware colours.
  * @param {Date} now The instant the payload is baked at (the caller's clock).
  * @param {?Object} [phone] The phone's battery facts (phone-battery.js bakeFacts); absent on a
  *   host that cannot read them.
  * @returns {Object|null} Pebble weather payload, or null when invalid.
  */
-function getFixtureWeatherPayload(fixture, settings, watchInfo, now, phone) {
+function getFixtureWeatherPayload(fixture, settings, now, phone) {
     var weather;
     var provider;
     var sunEvents;
@@ -127,7 +126,7 @@ function getFixtureWeatherPayload(fixture, settings, watchInfo, now, phone) {
     // fixture sends 68 only on an emery set to the long span (stored '48'; the 48-hour fixture is a
     // short feed there), and a longer fixture (the 39-hour time-lapse) sends the 24 every
     // other watch takes, never more than its inbox holds.
-    var span = graphStyleWire.hoursSent(settings, watchInfo);
+    var span = graphStyleWire.hoursSent(settings);
     provider.numEntries = Array.isArray(weather.temps) ? Math.min(weather.temps.length, span) : 0;
     // A fixture sources every series it carries, whatever the settings select:
     // UV and feels-like always adopt (the fixture's feels ship verbatim, so the
@@ -164,8 +163,7 @@ function getFixtureWeatherPayload(fixture, settings, watchInfo, now, phone) {
     // The bake runs at the caller's time (the real clock in the app), not the fixture's
     // watch.now: the showcase's countdown target moves with the generation day
     // (scripts/gen-showcase-fixtures.js).
-    return renderPayload.toRenderPayload(provider.getPayload(), settings, watchInfo,
-        now, phone || null);
+    return renderPayload.toRenderPayload(provider.getPayload(), settings, now, phone || null);
 }
 
 /**
@@ -244,12 +242,12 @@ function getFixtureRadarTuples(fixture) {
  * Send fixture weather directly to the watch, bypassing live provider fetch logic.
  *
  * @param {Object} fixture Active fixture loaded from fixtures/<name>.json.
- * @param {{settings: Object, watchInfo: Object|null, now: Date, phone: (Object|undefined)}} deps
- *   Clay settings, watch info, the time and the phone's battery facts (phone-battery.js bakeFacts).
+ * @param {{settings: Object, now: Date, phone: (Object|undefined)}} deps
+ *   Clay settings, the time and the phone's battery facts (phone-battery.js bakeFacts).
  * @returns {void}
  */
 function sendFixtureWeather(fixture, deps) {
-    var payload = getFixtureWeatherPayload(fixture, deps.settings, deps.watchInfo, deps.now, deps.phone);
+    var payload = getFixtureWeatherPayload(fixture, deps.settings, deps.now, deps.phone);
     var radarTuples;
     var radarKey;
 
@@ -276,7 +274,7 @@ function sendFixtureWeather(fixture, deps) {
     // the last real settings send left on the watch. The inbox handlers each dict_find
     // their own key, so a Clay tuple is read just as happily off the weather message.
     // The fixture's claySettings block drives them like any settings blob.
-    Object.assign(payload, graphWire.buildGraphTuples(deps.settings, deps.watchInfo));
+    Object.assign(payload, graphWire.buildGraphTuples(deps.settings));
 
     // Dev: let a fixture exercise sleep mode (the snooze indicator + frozen
     // weather slots). The live path derives IS_SLEEPING from the sleep window;

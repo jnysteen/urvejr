@@ -102,53 +102,21 @@
             "id": "screens",
             "title": "Screens",
             "block": "screensCard",
-            "showWhen": {
-              "env": "platform",
-              "ne": "aplite"
-            },
             "items": []
           },
           {
-            "id": "layout",
-            "title": "Layout",
-            "showWhen": {
-              "env": "platform",
-              "eq": "aplite"
-            },
+            "sheetOnly": true,
+            "sheetId": "layoutKeys",
             "items": [
               {
-                "type": "radio",
+                "type": "hidden",
                 "messageKey": "layoutPreset",
-                "label": "Layout",
-                "defaultValue": "compactCal",
-                "hintByValue": {
-                  "fullCal": "Shows a calendar with 3 rows.",
-                  "compactCal": "Shows a calendar with 2 rows.",
-                  "noCal": "No calendar, so the forecast graph is bigger."
-                },
-                "optionsFrom": {
-                  "resolver": "apliteLayouts"
-                },
-                "dormantValues": [
-                  "compactDense",
-                  "weatherOnly",
-                  "custom"
-                ]
+                "defaultValue": "compactCal"
               },
               {
-                "type": "toggle",
+                "type": "hidden",
                 "messageKey": "swapClockStatus",
-                "label": "Swap clock and status row",
-                "defaultValue": true,
-                "hint": "Move the status row below the clock, next to the forecast.",
-                "more": true,
-                "showWhen": {
-                  "key": "layoutPreset",
-                  "nin": [
-                    "fullCal",
-                    "noCal"
-                  ]
-                }
+                "defaultValue": true
               }
             ]
           },
@@ -156,15 +124,7 @@
             "id": "screenSwitching",
             "title": "Screen switching",
             "showWhen": {
-              "all": [
-                {
-                  "env": "platform",
-                  "ne": "aplite"
-                },
-                {
-                  "when": "manyScreens"
-                }
-              ]
+              "when": "manyScreens"
             },
             "items": [
               {
@@ -456,43 +416,6 @@
                     "bw-light"
                   ]
                 ],
-                "showWhen": {
-                  "env": "color"
-                },
-                "onChange": "themeConvert",
-                "convertsDefaults": true
-              },
-              {
-                "type": "select",
-                "messageKey": "theme",
-                "label": "Theme",
-                "defaultValue": "dark",
-                "hintByValue": {
-                  "dark": "White text and lines on a black background (the default).",
-                  "light": "Black text and lines on a white background."
-                },
-                "options": [
-                  [
-                    "Dark",
-                    "dark"
-                  ],
-                  [
-                    "Light",
-                    "light"
-                  ]
-                ],
-                "showWhen": {
-                  "all": [
-                    {
-                      "not": {
-                        "env": "color"
-                      }
-                    },
-                    {
-                      "env": "themePolarity"
-                    }
-                  ]
-                },
                 "onChange": "themeConvert",
                 "convertsDefaults": true
               },
@@ -624,21 +547,11 @@
                     {
                       "any": [
                         {
-                          "all": [
-                            {
-                              "env": "colorBacklight"
-                            },
-                            {
-                              "key": "backlightDim",
-                              "eq": true
-                            }
-                          ]
+                          "key": "backlightDim",
+                          "eq": true
                         },
                         {
                           "all": [
-                            {
-                              "env": "themePolarity"
-                            },
                             {
                               "key": "themeAuto",
                               "eq": true
@@ -781,21 +694,11 @@
                     {
                       "any": [
                         {
-                          "all": [
-                            {
-                              "env": "colorBacklight"
-                            },
-                            {
-                              "key": "backlightDim",
-                              "eq": true
-                            }
-                          ]
+                          "key": "backlightDim",
+                          "eq": true
                         },
                         {
                           "all": [
-                            {
-                              "env": "themePolarity"
-                            },
                             {
                               "key": "themeAuto",
                               "eq": true
@@ -827,10 +730,7 @@
                     "shared": "Dim the backlight when it comes on during Night hours, so it is easier on your eyes."
                   }
                 },
-                "onChange": "nightFeatureOn",
-                "showWhen": {
-                  "env": "colorBacklight"
-                }
+                "onChange": "nightFeatureOn"
               },
               {
                 "type": "select",
@@ -942,15 +842,8 @@
                 "showWhen": {
                   "all": [
                     {
-                      "all": [
-                        {
-                          "env": "colorBacklight"
-                        },
-                        {
-                          "key": "backlightDim",
-                          "eq": true
-                        }
-                      ]
+                      "key": "backlightDim",
+                      "eq": true
                     },
                     {
                       "key": "nightHoursSeparate",
@@ -1066,15 +959,8 @@
                 "showWhen": {
                   "all": [
                     {
-                      "all": [
-                        {
-                          "env": "colorBacklight"
-                        },
-                        {
-                          "key": "backlightDim",
-                          "eq": true
-                        }
-                      ]
+                      "key": "backlightDim",
+                      "eq": true
                     },
                     {
                       "key": "nightHoursSeparate",
@@ -1089,9 +975,6 @@
                 "label": "Night theme",
                 "defaultValue": false,
                 "hint": "Switch between two themes automatically, at sunrise and sunset or at fixed hours. The phone makes the switch, so it can happen a little late while the watch is disconnected.",
-                "showWhen": {
-                  "env": "themePolarity"
-                },
                 "onChange": [
                   "themeAutoPreset",
                   "nightFeatureOn"
@@ -1123,49 +1006,8 @@
                 "indent": true,
                 "joinPrevious": true,
                 "showWhen": {
-                  "all": [
-                    {
-                      "env": "color"
-                    },
-                    {
-                      "key": "themeAuto",
-                      "eq": true
-                    }
-                  ]
-                }
-              },
-              {
-                "type": "select",
-                "messageKey": "themeNight",
-                "label": "Theme at night",
-                "defaultValue": "dark",
-                "options": [
-                  [
-                    "Dark",
-                    "dark"
-                  ],
-                  [
-                    "Light",
-                    "light"
-                  ]
-                ],
-                "indent": true,
-                "joinPrevious": true,
-                "showWhen": {
-                  "all": [
-                    {
-                      "not": {
-                        "env": "color"
-                      }
-                    },
-                    {
-                      "env": "themePolarity"
-                    },
-                    {
-                      "key": "themeAuto",
-                      "eq": true
-                    }
-                  ]
+                  "key": "themeAuto",
+                  "eq": true
                 }
               },
               {
@@ -1188,9 +1030,6 @@
                 "onChange": "nightFeatureOn",
                 "showWhen": {
                   "all": [
-                    {
-                      "env": "themePolarity"
-                    },
                     {
                       "key": "themeAuto",
                       "eq": true
@@ -1224,9 +1063,6 @@
                 "onChange": "nightFeatureOn",
                 "showWhen": {
                   "all": [
-                    {
-                      "env": "themePolarity"
-                    },
                     {
                       "key": "themeAuto",
                       "eq": true
@@ -1348,9 +1184,6 @@
                 "showWhen": {
                   "all": [
                     {
-                      "env": "themePolarity"
-                    },
-                    {
                       "key": "themeAuto",
                       "eq": true
                     },
@@ -1471,9 +1304,6 @@
                 "inline": "themeAutoStartHourHours",
                 "showWhen": {
                   "all": [
-                    {
-                      "env": "themePolarity"
-                    },
                     {
                       "key": "themeAuto",
                       "eq": true
@@ -1753,50 +1583,26 @@
                 "onChange": "nightHoursMode",
                 "more": true,
                 "showWhen": {
-                  "all": [
+                  "any": [
                     {
-                      "any": [
+                      "key": "backlightDim",
+                      "eq": true
+                    },
+                    {
+                      "all": [
                         {
-                          "env": "themePolarity"
+                          "key": "themeAuto",
+                          "eq": true
                         },
                         {
-                          "env": "colorBacklight"
+                          "key": "themeAutoMode",
+                          "eq": "manual"
                         }
                       ]
                     },
                     {
-                      "any": [
-                        {
-                          "all": [
-                            {
-                              "env": "colorBacklight"
-                            },
-                            {
-                              "key": "backlightDim",
-                              "eq": true
-                            }
-                          ]
-                        },
-                        {
-                          "all": [
-                            {
-                              "env": "themePolarity"
-                            },
-                            {
-                              "key": "themeAuto",
-                              "eq": true
-                            },
-                            {
-                              "key": "themeAutoMode",
-                              "eq": "manual"
-                            }
-                          ]
-                        },
-                        {
-                          "key": "sleepNightEnabled",
-                          "eq": true
-                        }
-                      ]
+                      "key": "sleepNightEnabled",
+                      "eq": true
                     }
                   ]
                 }
@@ -1814,15 +1620,8 @@
                 },
                 "more": true,
                 "showWhen": {
-                  "all": [
-                    {
-                      "env": "colorBacklight"
-                    },
-                    {
-                      "key": "backlightDim",
-                      "eq": true
-                    }
-                  ]
+                  "key": "backlightDim",
+                  "eq": true
                 }
               }
             ]
@@ -1832,15 +1631,8 @@
             "sheetId": "backlightColor",
             "title": "Dim backlight color",
             "showWhen": {
-              "all": [
-                {
-                  "env": "colorBacklight"
-                },
-                {
-                  "key": "backlightDim",
-                  "eq": true
-                }
-              ]
+              "key": "backlightDim",
+              "eq": true
             },
             "intro": "Pick the color the backlight glows during the hours you set for Dim backlight. Lower values dim it further. Your watch’s own brightness setting still applies on top.",
             "items": [
@@ -1914,9 +1706,6 @@
                 "messageKey": "colorTime",
                 "label": "Clock color",
                 "defaultValue": 16777215,
-                "capabilities": [
-                  "COLOR"
-                ],
                 "more": true,
                 "showWhen": {
                   "key": "theme",
@@ -3417,9 +3206,6 @@
                 "messageKey": "colorToday",
                 "label": "Today highlight",
                 "defaultValue": 0,
-                "capabilities": [
-                  "COLOR"
-                ],
                 "hint": "Black (the default) uses the date color. Any other color replaces it.",
                 "more": true,
                 "showWhen": {
@@ -3435,9 +3221,6 @@
                 "messageKey": "colorSunday",
                 "label": "Sunday color",
                 "defaultValue": 16711765,
-                "capabilities": [
-                  "COLOR"
-                ],
                 "more": true,
                 "showWhen": {
                   "key": "theme",
@@ -3452,9 +3235,6 @@
                 "messageKey": "colorSaturday",
                 "label": "Saturday color",
                 "defaultValue": 16711765,
-                "capabilities": [
-                  "COLOR"
-                ],
                 "more": true,
                 "showWhen": {
                   "key": "theme",
@@ -3469,9 +3249,6 @@
                 "messageKey": "colorUSFederal",
                 "label": "Holiday color",
                 "defaultValue": 22015,
-                "capabilities": [
-                  "COLOR"
-                ],
                 "excludeColors": [
                   "#FFFFFF"
                 ],
@@ -3494,9 +3271,6 @@
                 "messageKey": "colorUSFederal",
                 "label": "Holiday color",
                 "defaultValue": 22015,
-                "capabilities": [
-                  "COLOR"
-                ],
                 "excludeColors": [
                   "#000000"
                 ],
@@ -3558,10 +3332,7 @@
                     "All",
                     "all"
                   ]
-                ],
-                "showWhen": {
-                  "env": "thresholds"
-                }
+                ]
               },
               {
                 "type": "button",
@@ -3743,82 +3514,6 @@
                     "bar": "top",
                     "where": "None"
                   }
-                },
-                "showWhen": {
-                  "env": "onDemand"
-                }
-              },
-              {
-                "type": "subheader",
-                "text": "Icons and vibration",
-                "showWhen": {
-                  "not": {
-                    "env": "onDemand"
-                  }
-                }
-              },
-              {
-                "type": "toggle",
-                "messageKey": "batteryLowOnly",
-                "label": "Show battery below 10%",
-                "defaultValue": true,
-                "hint": "Replaces the top-right slot when your battery drops below 10%.",
-                "showWhen": {
-                  "not": {
-                    "env": "onDemand"
-                  }
-                }
-              },
-              {
-                "type": "toggle",
-                "messageKey": "showQt",
-                "label": "Show quiet time icon",
-                "defaultValue": true,
-                "showWhen": {
-                  "not": {
-                    "env": "onDemand"
-                  }
-                }
-              },
-              {
-                "type": "toggle",
-                "messageKey": "vibe",
-                "label": "Vibrate on bluetooth disconnect",
-                "defaultValue": true,
-                "showWhen": {
-                  "not": {
-                    "env": "onDemand"
-                  }
-                }
-              },
-              {
-                "type": "select",
-                "messageKey": "btIcons",
-                "label": "Show icon for bluetooth",
-                "defaultValue": "disconnected",
-                "joinPrevious": "loose",
-                "options": [
-                  [
-                    "Disconnected",
-                    "disconnected"
-                  ],
-                  [
-                    "Connected",
-                    "connected"
-                  ],
-                  [
-                    "Both",
-                    "both"
-                  ],
-                  [
-                    "None",
-                    "none"
-                  ]
-                ],
-                "showWhen": {
-                  "not": {
-                    "env": "onDemand"
-                  }
                 }
               }
             ]
@@ -3994,9 +3689,6 @@
                     "bar": "forecast",
                     "where": "None"
                   }
-                },
-                "showWhen": {
-                  "env": "onDemand"
                 }
               }
             ],
@@ -4056,9 +3748,6 @@
                     "slotKey": "statusHealthLeft",
                     "position": "left"
                   }
-                },
-                "showWhen": {
-                  "env": "health"
                 }
               },
               {
@@ -4070,15 +3759,8 @@
                 },
                 "joinPrevious": true,
                 "showWhen": {
-                  "all": [
-                    {
-                      "env": "health"
-                    },
-                    {
-                      "key": "statusHealthLeft",
-                      "eq": "countdown"
-                    }
-                  ]
+                  "key": "statusHealthLeft",
+                  "eq": "countdown"
                 }
               },
               {
@@ -4114,9 +3796,6 @@
                     "position": "mid"
                   }
                 },
-                "showWhen": {
-                  "env": "health"
-                },
                 "joinPrevious": true
               },
               {
@@ -4128,15 +3807,8 @@
                 },
                 "joinPrevious": true,
                 "showWhen": {
-                  "all": [
-                    {
-                      "env": "health"
-                    },
-                    {
-                      "key": "statusHealthMid",
-                      "eq": "countdown"
-                    }
-                  ]
+                  "key": "statusHealthMid",
+                  "eq": "countdown"
                 }
               },
               {
@@ -4172,9 +3844,6 @@
                     "position": "right"
                   }
                 },
-                "showWhen": {
-                  "env": "health"
-                },
                 "joinPrevious": true
               },
               {
@@ -4186,15 +3855,8 @@
                 },
                 "joinPrevious": true,
                 "showWhen": {
-                  "all": [
-                    {
-                      "env": "health"
-                    },
-                    {
-                      "key": "statusHealthRight",
-                      "eq": "countdown"
-                    }
-                  ]
+                  "key": "statusHealthRight",
+                  "eq": "countdown"
                 }
               },
               {
@@ -4208,16 +3870,6 @@
                     "bar": "health",
                     "where": "None"
                   }
-                },
-                "showWhen": {
-                  "all": [
-                    {
-                      "env": "onDemand"
-                    },
-                    {
-                      "env": "health"
-                    }
-                  ]
                 }
               }
             ],
@@ -4226,9 +3878,6 @@
               "label": "Status bar name",
               "placeholder": "Health bar",
               "maxlength": 24
-            },
-            "showWhen": {
-              "env": "health"
             }
           },
           {
@@ -4280,9 +3929,6 @@
                     "slotKey": "statusRadarLeft",
                     "position": "left"
                   }
-                },
-                "showWhen": {
-                  "env": "radar"
                 }
               },
               {
@@ -4294,15 +3940,8 @@
                 },
                 "joinPrevious": true,
                 "showWhen": {
-                  "all": [
-                    {
-                      "env": "radar"
-                    },
-                    {
-                      "key": "statusRadarLeft",
-                      "eq": "countdown"
-                    }
-                  ]
+                  "key": "statusRadarLeft",
+                  "eq": "countdown"
                 }
               },
               {
@@ -4338,9 +3977,6 @@
                     "position": "mid"
                   }
                 },
-                "showWhen": {
-                  "env": "radar"
-                },
                 "joinPrevious": true
               },
               {
@@ -4352,15 +3988,8 @@
                 },
                 "joinPrevious": true,
                 "showWhen": {
-                  "all": [
-                    {
-                      "env": "radar"
-                    },
-                    {
-                      "key": "statusRadarMid",
-                      "eq": "countdown"
-                    }
-                  ]
+                  "key": "statusRadarMid",
+                  "eq": "countdown"
                 }
               },
               {
@@ -4396,9 +4025,6 @@
                     "position": "right"
                   }
                 },
-                "showWhen": {
-                  "env": "radar"
-                },
                 "joinPrevious": true
               },
               {
@@ -4410,15 +4036,8 @@
                 },
                 "joinPrevious": true,
                 "showWhen": {
-                  "all": [
-                    {
-                      "env": "radar"
-                    },
-                    {
-                      "key": "statusRadarRight",
-                      "eq": "countdown"
-                    }
-                  ]
+                  "key": "statusRadarRight",
+                  "eq": "countdown"
                 }
               },
               {
@@ -4432,16 +4051,6 @@
                     "bar": "radar",
                     "where": "None"
                   }
-                },
-                "showWhen": {
-                  "all": [
-                    {
-                      "env": "onDemand"
-                    },
-                    {
-                      "env": "radar"
-                    }
-                  ]
                 }
               }
             ],
@@ -4450,9 +4059,6 @@
               "label": "Status bar name",
               "placeholder": "Radar bar",
               "maxlength": 24
-            },
-            "showWhen": {
-              "env": "radar"
             }
           },
           {
@@ -4506,15 +4112,8 @@
                   }
                 },
                 "showWhen": {
-                  "all": [
-                    {
-                      "env": "extraBars"
-                    },
-                    {
-                      "key": "statusBar4Made",
-                      "eq": true
-                    }
-                  ]
+                  "key": "statusBar4Made",
+                  "eq": true
                 }
               },
               {
@@ -4528,15 +4127,8 @@
                 "showWhen": {
                   "all": [
                     {
-                      "all": [
-                        {
-                          "env": "extraBars"
-                        },
-                        {
-                          "key": "statusBar4Made",
-                          "eq": true
-                        }
-                      ]
+                      "key": "statusBar4Made",
+                      "eq": true
                     },
                     {
                       "key": "statusBar4Left",
@@ -4579,15 +4171,8 @@
                   }
                 },
                 "showWhen": {
-                  "all": [
-                    {
-                      "env": "extraBars"
-                    },
-                    {
-                      "key": "statusBar4Made",
-                      "eq": true
-                    }
-                  ]
+                  "key": "statusBar4Made",
+                  "eq": true
                 },
                 "joinPrevious": true
               },
@@ -4602,15 +4187,8 @@
                 "showWhen": {
                   "all": [
                     {
-                      "all": [
-                        {
-                          "env": "extraBars"
-                        },
-                        {
-                          "key": "statusBar4Made",
-                          "eq": true
-                        }
-                      ]
+                      "key": "statusBar4Made",
+                      "eq": true
                     },
                     {
                       "key": "statusBar4Mid",
@@ -4653,15 +4231,8 @@
                   }
                 },
                 "showWhen": {
-                  "all": [
-                    {
-                      "env": "extraBars"
-                    },
-                    {
-                      "key": "statusBar4Made",
-                      "eq": true
-                    }
-                  ]
+                  "key": "statusBar4Made",
+                  "eq": true
                 },
                 "joinPrevious": true
               },
@@ -4676,15 +4247,8 @@
                 "showWhen": {
                   "all": [
                     {
-                      "all": [
-                        {
-                          "env": "extraBars"
-                        },
-                        {
-                          "key": "statusBar4Made",
-                          "eq": true
-                        }
-                      ]
+                      "key": "statusBar4Made",
+                      "eq": true
                     },
                     {
                       "key": "statusBar4Right",
@@ -4706,22 +4270,8 @@
                   }
                 },
                 "showWhen": {
-                  "all": [
-                    {
-                      "env": "onDemand"
-                    },
-                    {
-                      "all": [
-                        {
-                          "env": "extraBars"
-                        },
-                        {
-                          "key": "statusBar4Made",
-                          "eq": true
-                        }
-                      ]
-                    }
-                  ]
+                  "key": "statusBar4Made",
+                  "eq": true
                 }
               },
               {
@@ -4739,15 +4289,8 @@
               "maxlength": 24
             },
             "showWhen": {
-              "all": [
-                {
-                  "env": "extraBars"
-                },
-                {
-                  "key": "statusBar4Made",
-                  "eq": true
-                }
-              ]
+              "key": "statusBar4Made",
+              "eq": true
             }
           },
           {
@@ -4801,15 +4344,8 @@
                   }
                 },
                 "showWhen": {
-                  "all": [
-                    {
-                      "env": "extraBars"
-                    },
-                    {
-                      "key": "statusBar5Made",
-                      "eq": true
-                    }
-                  ]
+                  "key": "statusBar5Made",
+                  "eq": true
                 }
               },
               {
@@ -4823,15 +4359,8 @@
                 "showWhen": {
                   "all": [
                     {
-                      "all": [
-                        {
-                          "env": "extraBars"
-                        },
-                        {
-                          "key": "statusBar5Made",
-                          "eq": true
-                        }
-                      ]
+                      "key": "statusBar5Made",
+                      "eq": true
                     },
                     {
                       "key": "statusBar5Left",
@@ -4874,15 +4403,8 @@
                   }
                 },
                 "showWhen": {
-                  "all": [
-                    {
-                      "env": "extraBars"
-                    },
-                    {
-                      "key": "statusBar5Made",
-                      "eq": true
-                    }
-                  ]
+                  "key": "statusBar5Made",
+                  "eq": true
                 },
                 "joinPrevious": true
               },
@@ -4897,15 +4419,8 @@
                 "showWhen": {
                   "all": [
                     {
-                      "all": [
-                        {
-                          "env": "extraBars"
-                        },
-                        {
-                          "key": "statusBar5Made",
-                          "eq": true
-                        }
-                      ]
+                      "key": "statusBar5Made",
+                      "eq": true
                     },
                     {
                       "key": "statusBar5Mid",
@@ -4948,15 +4463,8 @@
                   }
                 },
                 "showWhen": {
-                  "all": [
-                    {
-                      "env": "extraBars"
-                    },
-                    {
-                      "key": "statusBar5Made",
-                      "eq": true
-                    }
-                  ]
+                  "key": "statusBar5Made",
+                  "eq": true
                 },
                 "joinPrevious": true
               },
@@ -4971,15 +4479,8 @@
                 "showWhen": {
                   "all": [
                     {
-                      "all": [
-                        {
-                          "env": "extraBars"
-                        },
-                        {
-                          "key": "statusBar5Made",
-                          "eq": true
-                        }
-                      ]
+                      "key": "statusBar5Made",
+                      "eq": true
                     },
                     {
                       "key": "statusBar5Right",
@@ -5001,22 +4502,8 @@
                   }
                 },
                 "showWhen": {
-                  "all": [
-                    {
-                      "env": "onDemand"
-                    },
-                    {
-                      "all": [
-                        {
-                          "env": "extraBars"
-                        },
-                        {
-                          "key": "statusBar5Made",
-                          "eq": true
-                        }
-                      ]
-                    }
-                  ]
+                  "key": "statusBar5Made",
+                  "eq": true
                 }
               },
               {
@@ -5034,15 +4521,8 @@
               "maxlength": 24
             },
             "showWhen": {
-              "all": [
-                {
-                  "env": "extraBars"
-                },
-                {
-                  "key": "statusBar5Made",
-                  "eq": true
-                }
-              ]
+              "key": "statusBar5Made",
+              "eq": true
             }
           },
           {
@@ -5096,15 +4576,8 @@
                   }
                 },
                 "showWhen": {
-                  "all": [
-                    {
-                      "env": "extraBars"
-                    },
-                    {
-                      "key": "statusBar6Made",
-                      "eq": true
-                    }
-                  ]
+                  "key": "statusBar6Made",
+                  "eq": true
                 }
               },
               {
@@ -5118,15 +4591,8 @@
                 "showWhen": {
                   "all": [
                     {
-                      "all": [
-                        {
-                          "env": "extraBars"
-                        },
-                        {
-                          "key": "statusBar6Made",
-                          "eq": true
-                        }
-                      ]
+                      "key": "statusBar6Made",
+                      "eq": true
                     },
                     {
                       "key": "statusBar6Left",
@@ -5169,15 +4635,8 @@
                   }
                 },
                 "showWhen": {
-                  "all": [
-                    {
-                      "env": "extraBars"
-                    },
-                    {
-                      "key": "statusBar6Made",
-                      "eq": true
-                    }
-                  ]
+                  "key": "statusBar6Made",
+                  "eq": true
                 },
                 "joinPrevious": true
               },
@@ -5192,15 +4651,8 @@
                 "showWhen": {
                   "all": [
                     {
-                      "all": [
-                        {
-                          "env": "extraBars"
-                        },
-                        {
-                          "key": "statusBar6Made",
-                          "eq": true
-                        }
-                      ]
+                      "key": "statusBar6Made",
+                      "eq": true
                     },
                     {
                       "key": "statusBar6Mid",
@@ -5243,15 +4695,8 @@
                   }
                 },
                 "showWhen": {
-                  "all": [
-                    {
-                      "env": "extraBars"
-                    },
-                    {
-                      "key": "statusBar6Made",
-                      "eq": true
-                    }
-                  ]
+                  "key": "statusBar6Made",
+                  "eq": true
                 },
                 "joinPrevious": true
               },
@@ -5266,15 +4711,8 @@
                 "showWhen": {
                   "all": [
                     {
-                      "all": [
-                        {
-                          "env": "extraBars"
-                        },
-                        {
-                          "key": "statusBar6Made",
-                          "eq": true
-                        }
-                      ]
+                      "key": "statusBar6Made",
+                      "eq": true
                     },
                     {
                       "key": "statusBar6Right",
@@ -5296,22 +4734,8 @@
                   }
                 },
                 "showWhen": {
-                  "all": [
-                    {
-                      "env": "onDemand"
-                    },
-                    {
-                      "all": [
-                        {
-                          "env": "extraBars"
-                        },
-                        {
-                          "key": "statusBar6Made",
-                          "eq": true
-                        }
-                      ]
-                    }
-                  ]
+                  "key": "statusBar6Made",
+                  "eq": true
                 }
               },
               {
@@ -5329,15 +4753,8 @@
               "maxlength": 24
             },
             "showWhen": {
-              "all": [
-                {
-                  "env": "extraBars"
-                },
-                {
-                  "key": "statusBar6Made",
-                  "eq": true
-                }
-              ]
+              "key": "statusBar6Made",
+              "eq": true
             }
           },
           {
@@ -5401,9 +4818,6 @@
           {
             "sheetOnly": true,
             "sheetId": "threshAqi",
-            "showWhen": {
-              "env": "thresholds"
-            },
             "title": "Air quality (AQI) slot",
             "items": [
               {
@@ -5669,9 +5083,6 @@
                     ],
                     "levelsOnly": true
                   }
-                },
-                "showWhen": {
-                  "env": "onDemand"
                 }
               }
             ],
@@ -5680,9 +5091,6 @@
           {
             "sheetOnly": true,
             "sheetId": "threshPollen",
-            "showWhen": {
-              "env": "thresholds"
-            },
             "title": "Pollen slot",
             "items": [
               {
@@ -5770,9 +5178,6 @@
                     ],
                     "levelsOnly": true
                   }
-                },
-                "showWhen": {
-                  "env": "onDemand"
                 }
               }
             ],
@@ -5781,9 +5186,6 @@
           {
             "sheetOnly": true,
             "sheetId": "threshWind",
-            "showWhen": {
-              "env": "thresholds"
-            },
             "title": "Wind speed slot",
             "items": [
               {
@@ -6050,9 +5452,6 @@
                     ],
                     "levelsOnly": true
                   }
-                },
-                "showWhen": {
-                  "env": "onDemand"
                 }
               }
             ],
@@ -6061,9 +5460,6 @@
           {
             "sheetOnly": true,
             "sheetId": "threshGust",
-            "showWhen": {
-              "env": "thresholds"
-            },
             "title": "Wind gusts slot",
             "items": [
               {
@@ -6330,9 +5726,6 @@
                     ],
                     "levelsOnly": true
                   }
-                },
-                "showWhen": {
-                  "env": "onDemand"
                 }
               }
             ],
@@ -6341,9 +5734,6 @@
           {
             "sheetOnly": true,
             "sheetId": "threshUv",
-            "showWhen": {
-              "env": "thresholds"
-            },
             "title": "UV index slot",
             "items": [
               {
@@ -6596,9 +5986,6 @@
                     ],
                     "levelsOnly": true
                   }
-                },
-                "showWhen": {
-                  "env": "onDemand"
                 }
               }
             ],
@@ -6607,9 +5994,6 @@
           {
             "sheetOnly": true,
             "sheetId": "threshSteps",
-            "showWhen": {
-              "env": "thresholds"
-            },
             "title": "Steps slot",
             "items": [
               {
@@ -6651,15 +6035,8 @@
                   }
                 },
                 "showWhen": {
-                  "all": [
-                    {
-                      "env": "health"
-                    },
-                    {
-                      "key": "healthMode",
-                      "ne": "off"
-                    }
-                  ]
+                  "key": "healthMode",
+                  "ne": "off"
                 }
               },
               {
@@ -6673,15 +6050,8 @@
                   "label": "Reset to defaults"
                 },
                 "showWhen": {
-                  "all": [
-                    {
-                      "env": "health"
-                    },
-                    {
-                      "key": "healthMode",
-                      "ne": "off"
-                    }
-                  ]
+                  "key": "healthMode",
+                  "ne": "off"
                 }
               },
               {
@@ -6690,15 +6060,8 @@
                 "label": "Goals",
                 "defaultValue": false,
                 "showWhen": {
-                  "all": [
-                    {
-                      "env": "health"
-                    },
-                    {
-                      "key": "healthMode",
-                      "ne": "off"
-                    }
-                  ]
+                  "key": "healthMode",
+                  "ne": "off"
                 }
               },
               {
@@ -6720,15 +6083,8 @@
                   }
                 },
                 "showWhen": {
-                  "all": [
-                    {
-                      "env": "health"
-                    },
-                    {
-                      "key": "healthMode",
-                      "ne": "off"
-                    }
-                  ]
+                  "key": "healthMode",
+                  "ne": "off"
                 }
               },
               {
@@ -6794,15 +6150,8 @@
                 },
                 "joinPrevious": true,
                 "showWhen": {
-                  "all": [
-                    {
-                      "env": "health"
-                    },
-                    {
-                      "key": "healthMode",
-                      "ne": "off"
-                    }
-                  ]
+                  "key": "healthMode",
+                  "ne": "off"
                 },
                 "disabledWhen": {
                   "not": {
@@ -6824,23 +6173,13 @@
                 },
                 "joinPrevious": true,
                 "more": true,
-                "capabilities": [
-                  "COLOR"
-                ],
                 "showWhen": {
                   "all": [
                     {
                       "all": [
                         {
-                          "all": [
-                            {
-                              "env": "health"
-                            },
-                            {
-                              "key": "healthMode",
-                              "ne": "off"
-                            }
-                          ]
+                          "key": "healthMode",
+                          "ne": "off"
                         },
                         {
                           "key": "theme",
@@ -6879,21 +6218,11 @@
                 },
                 "joinPrevious": true,
                 "more": true,
-                "capabilities": [
-                  "COLOR"
-                ],
                 "showWhen": {
                   "all": [
                     {
-                      "all": [
-                        {
-                          "env": "health"
-                        },
-                        {
-                          "key": "healthMode",
-                          "ne": "off"
-                        }
-                      ]
+                      "key": "healthMode",
+                      "ne": "off"
                     },
                     {
                       "key": "theme",
@@ -6916,9 +6245,6 @@
           {
             "sheetOnly": true,
             "sheetId": "threshSleep",
-            "showWhen": {
-              "env": "thresholds"
-            },
             "title": "Sleep slot",
             "items": [
               {
@@ -6960,15 +6286,8 @@
                   }
                 },
                 "showWhen": {
-                  "all": [
-                    {
-                      "env": "health"
-                    },
-                    {
-                      "key": "healthMode",
-                      "ne": "off"
-                    }
-                  ]
+                  "key": "healthMode",
+                  "ne": "off"
                 }
               },
               {
@@ -6982,15 +6301,8 @@
                   "label": "Reset to defaults"
                 },
                 "showWhen": {
-                  "all": [
-                    {
-                      "env": "health"
-                    },
-                    {
-                      "key": "healthMode",
-                      "ne": "off"
-                    }
-                  ]
+                  "key": "healthMode",
+                  "ne": "off"
                 }
               },
               {
@@ -6999,15 +6311,8 @@
                 "label": "Goals",
                 "defaultValue": false,
                 "showWhen": {
-                  "all": [
-                    {
-                      "env": "health"
-                    },
-                    {
-                      "key": "healthMode",
-                      "ne": "off"
-                    }
-                  ]
+                  "key": "healthMode",
+                  "ne": "off"
                 }
               },
               {
@@ -7029,15 +6334,8 @@
                   }
                 },
                 "showWhen": {
-                  "all": [
-                    {
-                      "env": "health"
-                    },
-                    {
-                      "key": "healthMode",
-                      "ne": "off"
-                    }
-                  ]
+                  "key": "healthMode",
+                  "ne": "off"
                 }
               },
               {
@@ -7103,15 +6401,8 @@
                 },
                 "joinPrevious": true,
                 "showWhen": {
-                  "all": [
-                    {
-                      "env": "health"
-                    },
-                    {
-                      "key": "healthMode",
-                      "ne": "off"
-                    }
-                  ]
+                  "key": "healthMode",
+                  "ne": "off"
                 },
                 "disabledWhen": {
                   "not": {
@@ -7133,23 +6424,13 @@
                 },
                 "joinPrevious": true,
                 "more": true,
-                "capabilities": [
-                  "COLOR"
-                ],
                 "showWhen": {
                   "all": [
                     {
                       "all": [
                         {
-                          "all": [
-                            {
-                              "env": "health"
-                            },
-                            {
-                              "key": "healthMode",
-                              "ne": "off"
-                            }
-                          ]
+                          "key": "healthMode",
+                          "ne": "off"
                         },
                         {
                           "key": "theme",
@@ -7188,21 +6469,11 @@
                 },
                 "joinPrevious": true,
                 "more": true,
-                "capabilities": [
-                  "COLOR"
-                ],
                 "showWhen": {
                   "all": [
                     {
-                      "all": [
-                        {
-                          "env": "health"
-                        },
-                        {
-                          "key": "healthMode",
-                          "ne": "off"
-                        }
-                      ]
+                      "key": "healthMode",
+                      "ne": "off"
                     },
                     {
                       "key": "theme",
@@ -7225,9 +6496,6 @@
           {
             "sheetOnly": true,
             "sheetId": "threshDistance",
-            "showWhen": {
-              "env": "thresholds"
-            },
             "title": "Walked distance slot",
             "items": [
               {
@@ -7269,15 +6537,8 @@
                   }
                 },
                 "showWhen": {
-                  "all": [
-                    {
-                      "env": "health"
-                    },
-                    {
-                      "key": "healthMode",
-                      "ne": "off"
-                    }
-                  ]
+                  "key": "healthMode",
+                  "ne": "off"
                 }
               },
               {
@@ -7291,15 +6552,8 @@
                   "label": "Reset to defaults"
                 },
                 "showWhen": {
-                  "all": [
-                    {
-                      "env": "health"
-                    },
-                    {
-                      "key": "healthMode",
-                      "ne": "off"
-                    }
-                  ]
+                  "key": "healthMode",
+                  "ne": "off"
                 }
               },
               {
@@ -7308,15 +6562,8 @@
                 "label": "Goals",
                 "defaultValue": false,
                 "showWhen": {
-                  "all": [
-                    {
-                      "env": "health"
-                    },
-                    {
-                      "key": "healthMode",
-                      "ne": "off"
-                    }
-                  ]
+                  "key": "healthMode",
+                  "ne": "off"
                 }
               },
               {
@@ -7338,15 +6585,8 @@
                   }
                 },
                 "showWhen": {
-                  "all": [
-                    {
-                      "env": "health"
-                    },
-                    {
-                      "key": "healthMode",
-                      "ne": "off"
-                    }
-                  ]
+                  "key": "healthMode",
+                  "ne": "off"
                 }
               },
               {
@@ -7412,15 +6652,8 @@
                 },
                 "joinPrevious": true,
                 "showWhen": {
-                  "all": [
-                    {
-                      "env": "health"
-                    },
-                    {
-                      "key": "healthMode",
-                      "ne": "off"
-                    }
-                  ]
+                  "key": "healthMode",
+                  "ne": "off"
                 },
                 "disabledWhen": {
                   "not": {
@@ -7442,23 +6675,13 @@
                 },
                 "joinPrevious": true,
                 "more": true,
-                "capabilities": [
-                  "COLOR"
-                ],
                 "showWhen": {
                   "all": [
                     {
                       "all": [
                         {
-                          "all": [
-                            {
-                              "env": "health"
-                            },
-                            {
-                              "key": "healthMode",
-                              "ne": "off"
-                            }
-                          ]
+                          "key": "healthMode",
+                          "ne": "off"
                         },
                         {
                           "key": "theme",
@@ -7497,21 +6720,11 @@
                 },
                 "joinPrevious": true,
                 "more": true,
-                "capabilities": [
-                  "COLOR"
-                ],
                 "showWhen": {
                   "all": [
                     {
-                      "all": [
-                        {
-                          "env": "health"
-                        },
-                        {
-                          "key": "healthMode",
-                          "ne": "off"
-                        }
-                      ]
+                      "key": "healthMode",
+                      "ne": "off"
                     },
                     {
                       "key": "theme",
@@ -7534,9 +6747,6 @@
           {
             "sheetOnly": true,
             "sheetId": "threshTemp",
-            "showWhen": {
-              "env": "thresholds"
-            },
             "title": "Temperature slot",
             "items": [
               {
@@ -7703,9 +6913,6 @@
           {
             "sheetOnly": true,
             "sheetId": "threshPressure",
-            "showWhen": {
-              "env": "thresholds"
-            },
             "title": "Air pressure (hPa) slot",
             "items": [
               {
@@ -7747,9 +6954,6 @@
           {
             "sheetOnly": true,
             "sheetId": "threshSun",
-            "showWhen": {
-              "env": "thresholds"
-            },
             "title": "Sunrise/sunset slot",
             "items": [
               {
@@ -7784,9 +6988,6 @@
           {
             "sheetOnly": true,
             "sheetId": "threshDate",
-            "showWhen": {
-              "env": "thresholds"
-            },
             "title": "Date slot",
             "items": [
               {
@@ -7868,9 +7069,6 @@
           {
             "sheetOnly": true,
             "sheetId": "threshWeek",
-            "showWhen": {
-              "env": "thresholds"
-            },
             "title": "Calendar week slot",
             "items": [
               {
@@ -7905,9 +7103,6 @@
           {
             "sheetOnly": true,
             "sheetId": "threshCity",
-            "showWhen": {
-              "env": "thresholds"
-            },
             "title": "City slot",
             "items": [
               {
@@ -7951,9 +7146,6 @@
           {
             "sheetOnly": true,
             "sheetId": "threshCountdown",
-            "showWhen": {
-              "env": "thresholds"
-            },
             "title": "Date countdown slot",
             "items": [
               {
@@ -7995,9 +7187,6 @@
           {
             "sheetOnly": true,
             "sheetId": "threshHr",
-            "showWhen": {
-              "env": "thresholds"
-            },
             "title": "Heart rate slot",
             "items": [
               {
@@ -8026,18 +7215,8 @@
                   ]
                 },
                 "showWhen": {
-                  "all": [
-                    {
-                      "env": "health"
-                    },
-                    {
-                      "key": "healthMode",
-                      "ne": "off"
-                    },
-                    {
-                      "env": "hr"
-                    }
-                  ]
+                  "key": "healthMode",
+                  "ne": "off"
                 }
               }
             ],
@@ -8046,9 +7225,6 @@
           {
             "sheetOnly": true,
             "sheetId": "threshBatteryPct",
-            "showWhen": {
-              "env": "thresholds"
-            },
             "title": "Battery percentage slot",
             "items": [
               {
@@ -8083,9 +7259,6 @@
           {
             "sheetOnly": true,
             "sheetId": "threshDew",
-            "showWhen": {
-              "env": "thresholds"
-            },
             "title": "Dew point slot",
             "items": [
               {
@@ -8127,9 +7300,6 @@
           {
             "sheetOnly": true,
             "sheetId": "threshPhoneBattery",
-            "showWhen": {
-              "env": "thresholds"
-            },
             "title": "Phone battery slot",
             "items": [
               {
@@ -8164,9 +7334,6 @@
           {
             "sheetOnly": true,
             "sheetId": "threshCondition",
-            "showWhen": {
-              "env": "thresholds"
-            },
             "title": "Weather condition slot",
             "items": [
               {
@@ -8268,16 +7435,10 @@
         "id": "alerts",
         "label": "Alerts",
         "icon": "tab-alerts",
-        "showWhen": {
-          "env": "onDemand"
-        },
         "sections": [
           {
             "id": "onDemand",
             "title": "About alerts",
-            "showWhen": {
-              "env": "onDemand"
-            },
             "intro": "An alert shows at the edge of a status bar only when it reaches its warn level or is active right now. The rest of the time it stays hidden. For example, the battery is low, Bluetooth is disconnected, rain is coming, or the UV or wind forecast reaches its warn level. Open an alert to choose which status bars show it, on the left or the right.<p class=\"intro-more\">The warn level works on the graph too. Set the Visible values of a wind, gust or UV line to Alert (<button type=\"button\" class=\"txt-link\" data-goto-tab=\"graphs\" data-goto-pane=\"forecast\">Graphs › Forecast › a graph</button>), and the line shows only in the hours that reach the warn level.</p>",
             "items": [
               {
@@ -8298,9 +7459,6 @@
           },
           {
             "id": "onDemandItems",
-            "showWhen": {
-              "env": "onDemand"
-            },
             "items": [
               {
                 "type": "subheader",
@@ -8618,9 +7776,6 @@
           {
             "sheetOnly": true,
             "sheetId": "odLists",
-            "showWhen": {
-              "env": "onDemand"
-            },
             "items": [
               {
                 "type": "hidden",
@@ -8697,9 +7852,6 @@
           {
             "sheetOnly": true,
             "sheetId": "odBattery",
-            "showWhen": {
-              "env": "onDemand"
-            },
             "title": "Battery",
             "intro": "Shows the battery icon at the edge of a status bar while the watch battery is at or below the warn level. If a bar already shows the battery in a status slot (Watch battery or Watch battery percentage), the icon stays off that bar until that slot is hidden to make room.",
             "items": [
@@ -8751,27 +7903,7 @@
                 "step": 5,
                 "unit": "%",
                 "defaultValue": "10",
-                "hint": "Shows the battery icon when the battery is at or below this level.",
-                "showWhen": {
-                  "env": "fineBattery"
-                }
-              },
-              {
-                "type": "range",
-                "single": true,
-                "messageKey": "batteryLowLevel",
-                "label": "Warn level",
-                "min": 10,
-                "max": 30,
-                "step": 10,
-                "unit": "%",
-                "defaultValue": "10",
-                "hint": "Shows the battery icon when the battery is at or below this level.",
-                "showWhen": {
-                  "not": {
-                    "env": "fineBattery"
-                  }
-                }
+                "hint": "Shows the battery icon when the battery is at or below this level."
               },
               {
                 "type": "segmented",
@@ -8797,9 +7929,6 @@
           {
             "sheetOnly": true,
             "sheetId": "odBluetooth",
-            "showWhen": {
-              "env": "onDemand"
-            },
             "title": "Bluetooth",
             "intro": "Shows the Bluetooth icon at the edge of a status bar.",
             "items": [
@@ -8867,9 +7996,6 @@
                 "hintByValue": {
                   "both": "Shows the icon while connected and a crossed-out icon while disconnected.",
                   "none": "The icon never shows. Vibrate on disconnect still works."
-                },
-                "showWhen": {
-                  "env": "onDemand"
                 }
               },
               {
@@ -8878,19 +8004,13 @@
                 "label": "Vibrate on disconnect",
                 "defaultValue": true,
                 "hint": "Stays quiet during Quiet Time.",
-                "joinPrevious": "loose",
-                "showWhen": {
-                  "env": "onDemand"
-                }
+                "joinPrevious": "loose"
               }
             ]
           },
           {
             "sheetOnly": true,
             "sheetId": "odQuiet",
-            "showWhen": {
-              "env": "onDemand"
-            },
             "title": "Quiet time",
             "intro": "Shows the quiet time icon at the edge of a status bar while Quiet Time is on.",
             "items": [
@@ -8933,9 +8053,6 @@
           {
             "sheetOnly": true,
             "sheetId": "odSleep",
-            "showWhen": {
-              "env": "onDemand"
-            },
             "title": "Battery saver",
             "intro": "Shows the sleep icon at the edge of a status bar during the Battery saver hours (Watchface › Theme & night).",
             "items": [
@@ -8978,9 +8095,6 @@
           {
             "sheetOnly": true,
             "sheetId": "alertRain",
-            "showWhen": {
-              "env": "onDemand"
-            },
             "title": "Rain alert",
             "intro": "Shows the rain icon at the edge of a status bar while it rains at your location or when rain is due within the time window. The icon is hidden during the Battery saver hours.",
             "items": [
@@ -9112,9 +8226,6 @@
           {
             "sheetOnly": true,
             "sheetId": "alertGust",
-            "showWhen": {
-              "env": "onDemand"
-            },
             "title": "Wind gusts alert",
             "intro": "Shows the gust icon at the edge of a status bar when the gust speed reaches your warn level at any time in the rest of today, so an afternoon peak already shows in the morning.",
             "introNotes": [
@@ -9365,9 +8476,6 @@
                 },
                 "joinPrevious": true,
                 "more": true,
-                "capabilities": [
-                  "COLOR"
-                ],
                 "showWhen": {
                   "all": [
                     {
@@ -9400,9 +8508,6 @@
                 },
                 "joinPrevious": true,
                 "more": true,
-                "capabilities": [
-                  "COLOR"
-                ],
                 "showWhen": {
                   "key": "theme",
                   "nin": [
@@ -9416,9 +8521,6 @@
           {
             "sheetOnly": true,
             "sheetId": "alertUv",
-            "showWhen": {
-              "env": "onDemand"
-            },
             "title": "UV index alert",
             "intro": "Shows the UV icon at the edge of a status bar when the UV index reaches your warn level at any time in the rest of today, so an afternoon peak already shows in the morning.",
             "introNotes": [
@@ -9643,9 +8745,6 @@
                 },
                 "joinPrevious": true,
                 "more": true,
-                "capabilities": [
-                  "COLOR"
-                ],
                 "showWhen": {
                   "all": [
                     {
@@ -9678,9 +8777,6 @@
                 },
                 "joinPrevious": true,
                 "more": true,
-                "capabilities": [
-                  "COLOR"
-                ],
                 "showWhen": {
                   "key": "theme",
                   "nin": [
@@ -9694,9 +8790,6 @@
           {
             "sheetOnly": true,
             "sheetId": "alertAqi",
-            "showWhen": {
-              "env": "onDemand"
-            },
             "title": "Air quality (AQI) alert",
             "intro": "Shows the air quality icon at the edge of a status bar when the air quality index reaches your warn level at any time in the rest of today, so an afternoon peak already shows in the morning. To look ahead to later today and tomorrow, pick Open-Meteo for Air quality (Setup › Data sources). WAQI, which Auto mostly reads, has no forecast, so with it the alert uses the current reading.",
             "introNotes": [
@@ -9950,9 +9043,6 @@
                 },
                 "joinPrevious": true,
                 "more": true,
-                "capabilities": [
-                  "COLOR"
-                ],
                 "showWhen": {
                   "all": [
                     {
@@ -9985,9 +9075,6 @@
                 },
                 "joinPrevious": true,
                 "more": true,
-                "capabilities": [
-                  "COLOR"
-                ],
                 "showWhen": {
                   "key": "theme",
                   "nin": [
@@ -10001,9 +9088,6 @@
           {
             "sheetOnly": true,
             "sheetId": "alertPollen",
-            "showWhen": {
-              "env": "onDemand"
-            },
             "title": "Pollen alert",
             "intro": "Shows the pollen icon at the edge of a status bar when the pollen index reaches your warn level at any time in the rest of today, so an afternoon peak already shows in the morning.",
             "introNotes": [
@@ -10228,9 +9312,6 @@
                 },
                 "joinPrevious": true,
                 "more": true,
-                "capabilities": [
-                  "COLOR"
-                ],
                 "showWhen": {
                   "all": [
                     {
@@ -10263,9 +9344,6 @@
                 },
                 "joinPrevious": true,
                 "more": true,
-                "capabilities": [
-                  "COLOR"
-                ],
                 "showWhen": {
                   "key": "theme",
                   "nin": [
@@ -10279,9 +9357,6 @@
           {
             "sheetOnly": true,
             "sheetId": "alertWind",
-            "showWhen": {
-              "env": "onDemand"
-            },
             "title": "Wind speed alert",
             "intro": "Shows the wind icon at the edge of a status bar when the wind speed reaches your warn level at any time in the rest of today, so an afternoon peak already shows in the morning.",
             "introNotes": [
@@ -10532,9 +9607,6 @@
                 },
                 "joinPrevious": true,
                 "more": true,
-                "capabilities": [
-                  "COLOR"
-                ],
                 "showWhen": {
                   "all": [
                     {
@@ -10567,9 +9639,6 @@
                 },
                 "joinPrevious": true,
                 "more": true,
-                "capabilities": [
-                  "COLOR"
-                ],
                 "showWhen": {
                   "key": "theme",
                   "nin": [
@@ -10594,25 +9663,12 @@
           {
             "id": "radar",
             "label": "Rain radar",
-            "pinBlock": "radarPreview",
-            "showWhen": {
-              "env": "radar"
-            }
+            "pinBlock": "radarPreview"
           },
           {
             "id": "health",
             "label": "Health",
-            "pinBlock": "healthPreview",
-            "showWhen": {
-              "all": [
-                {
-                  "env": "health"
-                },
-                {
-                  "env": "hr"
-                }
-              ]
-            }
+            "pinBlock": "healthPreview"
           }
         ],
         "sections": [
@@ -10653,10 +9709,7 @@
               "placeholderBy": {
                 "resolver": "graphDefaultName"
               },
-              "maxlength": 24,
-              "showWhen": {
-                "env": "graphStyles"
-              }
+              "maxlength": 24
             },
             "pinBlock": "forecastPreview",
             "block": "graphShowOn",
@@ -10664,7 +9717,7 @@
               {
                 "type": "subheader",
                 "text": "Lines",
-                "intro": "The forecast graph shows up to 24 hours ahead. On Pebble Time 2 you can pick 12, 24 or up to 66 hours under Forecast length. Temperature is always drawn, and the metrics and rain bars you pick below are added to it."
+                "intro": "The forecast graph shows up to 24 hours ahead. You can pick 12, 24 or up to 66 hours under Forecast length. Temperature is always drawn, and the metrics and rain bars you pick below are added to it."
               },
               {
                 "type": "sheet",
@@ -10718,9 +9771,6 @@
                   "args": {
                     "lineKey": "fourthLine"
                   }
-                },
-                "showWhen": {
-                  "env": "lineStyles"
                 }
               },
               {
@@ -10739,9 +9789,6 @@
                   "args": {
                     "lineKey": "fifthLine"
                   }
-                },
-                "showWhen": {
-                  "env": "lineStyles"
                 }
               },
               {
@@ -10783,9 +9830,6 @@
                   "multicolor": "Colors each part of a bar by how heavy the rain is:<span style=\"display:inline-flex;gap:7px;margin-top:6px;align-items:flex-end;\"><span style=\"text-align:center;font-size:10px;\"><span style=\"display:block;width:17px;height:8px;border-radius:2px;background:#AAAAAA;margin-bottom:3px;\"></span>0.1</span><span style=\"text-align:center;font-size:10px;\"><span style=\"display:block;width:17px;height:8px;border-radius:2px;background:#55FFFF;margin-bottom:3px;\"></span>0.5</span><span style=\"text-align:center;font-size:10px;\"><span style=\"display:block;width:17px;height:8px;border-radius:2px;background:#00FF00;margin-bottom:3px;\"></span>2</span><span style=\"text-align:center;font-size:10px;\"><span style=\"display:block;width:17px;height:8px;border-radius:2px;background:#FFFF00;margin-bottom:3px;\"></span>10</span><span style=\"text-align:center;font-size:10px;\"><span style=\"display:block;width:17px;height:8px;border-radius:2px;background:#FF5555;margin-bottom:3px;\"></span>40</span></span>",
                   "white": "Shows every bar in a single color."
                 },
-                "capabilities": [
-                  "COLOR"
-                ],
                 "options": [
                   [
                     "Multicolor",
@@ -10833,15 +9877,8 @@
                 ],
                 "more": true,
                 "showWhen": {
-                  "all": [
-                    {
-                      "key": "barSource",
-                      "eq": "rain"
-                    },
-                    {
-                      "env": "lineStyles"
-                    }
-                  ]
+                  "key": "barSource",
+                  "eq": "rain"
                 }
               },
               {
@@ -10873,9 +9910,6 @@
                 },
                 "optionsFrom": {
                   "resolver": "forecastSpanOptions"
-                },
-                "showWhen": {
-                  "env": "forecastSpan"
                 }
               },
               {
@@ -10904,10 +9938,6 @@
                 "hintByValue": {
                   "graph": "Removes the left axis and draws the high and low values on the graph.",
                   "off": "Removes the left axis and the high and low values."
-                },
-                "showWhen": {
-                  "env": "platform",
-                  "eq": "emery"
                 }
               },
               {
@@ -10919,10 +9949,6 @@
                 "more": true,
                 "showWhen": {
                   "all": [
-                    {
-                      "env": "platform",
-                      "eq": "emery"
-                    },
                     {
                       "key": "forecastAxisNumbers",
                       "ne": "off"
@@ -10943,10 +9969,6 @@
                 "defaultValue": true,
                 "hint": "Draw the graph axis labels in bigger type.",
                 "more": true,
-                "showWhen": {
-                  "env": "platform",
-                  "eq": "emery"
-                },
                 "hintTailFrom": {
                   "resolver": "graphStyleShared"
                 }
@@ -10961,9 +9983,6 @@
                 "label": "Graph colors",
                 "hint": "Pick the colors of each metric and of the night shading.",
                 "navNote": "9",
-                "capabilities": [
-                  "COLOR"
-                ],
                 "showWhen": {
                   "key": "theme",
                   "nin": [
@@ -10994,9 +10013,6 @@
             "sheetOnly": true,
             "sheetId": "graphColors",
             "title": "Graph colors",
-            "capabilities": [
-              "COLOR"
-            ],
             "showWhen": {
               "key": "theme",
               "nin": [
@@ -11156,9 +10172,6 @@
             "sheetOnly": true,
             "sheetId": "gcPrecip",
             "title": "Precipitation % colors",
-            "capabilities": [
-              "COLOR"
-            ],
             "showWhen": {
               "key": "theme",
               "nin": [
@@ -11178,9 +10191,6 @@
                 "label": "Line",
                 "hint": null,
                 "defaultValue": 5614335,
-                "capabilities": [
-                  "COLOR"
-                ],
                 "showWhen": {
                   "all": [
                     {
@@ -11196,9 +10206,6 @@
                 "label": "Line",
                 "hint": null,
                 "defaultValue": 170,
-                "capabilities": [
-                  "COLOR"
-                ],
                 "showWhen": {
                   "all": [
                     {
@@ -11214,9 +10221,6 @@
                 "label": "Area fill",
                 "hint": "Only drawn while this is the Main metric and “Area fill” is on.",
                 "defaultValue": 21930,
-                "capabilities": [
-                  "COLOR"
-                ],
                 "showWhen": {
                   "all": [
                     {
@@ -11232,9 +10236,6 @@
                 "label": "Area fill",
                 "hint": "Only drawn while this is the Main metric and “Area fill” is on.",
                 "defaultValue": 5636095,
-                "capabilities": [
-                  "COLOR"
-                ],
                 "showWhen": {
                   "all": [
                     {
@@ -11250,9 +10251,6 @@
                 "label": "Night fill tint",
                 "hint": "Colors the filled area during the night hours. Until you pick a color here, it uses the fill color.",
                 "defaultValue": 170,
-                "capabilities": [
-                  "COLOR"
-                ],
                 "showWhen": {
                   "all": [
                     {
@@ -11275,9 +10273,6 @@
                 "label": "Night fill tint",
                 "hint": "Colors the filled area during the night hours. Until you pick a color here, it uses the fill color.",
                 "defaultValue": 65535,
-                "capabilities": [
-                  "COLOR"
-                ],
                 "showWhen": {
                   "all": [
                     {
@@ -11301,9 +10296,6 @@
             "sheetOnly": true,
             "sheetId": "gcCloud",
             "title": "Cloud cover % colors",
-            "capabilities": [
-              "COLOR"
-            ],
             "showWhen": {
               "key": "theme",
               "nin": [
@@ -11323,9 +10315,6 @@
                 "label": "Line",
                 "hint": null,
                 "defaultValue": 11184895,
-                "capabilities": [
-                  "COLOR"
-                ],
                 "showWhen": {
                   "all": [
                     {
@@ -11341,9 +10330,6 @@
                 "label": "Line",
                 "hint": null,
                 "defaultValue": 5592490,
-                "capabilities": [
-                  "COLOR"
-                ],
                 "showWhen": {
                   "all": [
                     {
@@ -11359,9 +10345,6 @@
                 "label": "Area fill",
                 "hint": "Only drawn while this is the Main metric and “Area fill” is on.",
                 "defaultValue": 5592490,
-                "capabilities": [
-                  "COLOR"
-                ],
                 "showWhen": {
                   "all": [
                     {
@@ -11377,9 +10360,6 @@
                 "label": "Area fill",
                 "hint": "Only drawn while this is the Main metric and “Area fill” is on.",
                 "defaultValue": 11184895,
-                "capabilities": [
-                  "COLOR"
-                ],
                 "showWhen": {
                   "all": [
                     {
@@ -11395,9 +10375,6 @@
                 "label": "Night fill tint",
                 "hint": "Colors the filled area during the night hours. Until you pick a color here, it uses the fill color.",
                 "defaultValue": 85,
-                "capabilities": [
-                  "COLOR"
-                ],
                 "showWhen": {
                   "all": [
                     {
@@ -11420,9 +10397,6 @@
                 "label": "Night fill tint",
                 "hint": "Colors the filled area during the night hours. Until you pick a color here, it uses the fill color.",
                 "defaultValue": 11184895,
-                "capabilities": [
-                  "COLOR"
-                ],
                 "showWhen": {
                   "all": [
                     {
@@ -11446,9 +10420,6 @@
             "sheetOnly": true,
             "sheetId": "gcWind",
             "title": "Wind speed colors",
-            "capabilities": [
-              "COLOR"
-            ],
             "showWhen": {
               "key": "theme",
               "nin": [
@@ -11468,9 +10439,6 @@
                 "label": "Line",
                 "hint": null,
                 "defaultValue": 16776960,
-                "capabilities": [
-                  "COLOR"
-                ],
                 "showWhen": {
                   "all": [
                     {
@@ -11486,9 +10454,6 @@
                 "label": "Line",
                 "hint": null,
                 "defaultValue": 16755200,
-                "capabilities": [
-                  "COLOR"
-                ],
                 "showWhen": {
                   "all": [
                     {
@@ -11504,9 +10469,6 @@
                 "label": "Area fill",
                 "hint": "Only drawn while this is the Main metric and “Area fill” is on.",
                 "defaultValue": 5592320,
-                "capabilities": [
-                  "COLOR"
-                ],
                 "showWhen": {
                   "all": [
                     {
@@ -11522,9 +10484,6 @@
                 "label": "Area fill",
                 "hint": "Only drawn while this is the Main metric and “Area fill” is on.",
                 "defaultValue": 16776960,
-                "capabilities": [
-                  "COLOR"
-                ],
                 "showWhen": {
                   "all": [
                     {
@@ -11540,9 +10499,6 @@
                 "label": "Night fill tint",
                 "hint": "Colors the filled area during the night hours. Until you pick a color here, it uses the fill color.",
                 "defaultValue": 5592320,
-                "capabilities": [
-                  "COLOR"
-                ],
                 "showWhen": {
                   "all": [
                     {
@@ -11565,9 +10521,6 @@
                 "label": "Night fill tint",
                 "hint": "Colors the filled area during the night hours. Until you pick a color here, it uses the fill color.",
                 "defaultValue": 16755285,
-                "capabilities": [
-                  "COLOR"
-                ],
                 "showWhen": {
                   "all": [
                     {
@@ -11591,9 +10544,6 @@
             "sheetOnly": true,
             "sheetId": "gcGust",
             "title": "Wind gusts colors",
-            "capabilities": [
-              "COLOR"
-            ],
             "showWhen": {
               "key": "theme",
               "nin": [
@@ -11613,9 +10563,6 @@
                 "label": "Line",
                 "hint": null,
                 "defaultValue": 16777215,
-                "capabilities": [
-                  "COLOR"
-                ],
                 "showWhen": {
                   "all": [
                     {
@@ -11631,9 +10578,6 @@
                 "label": "Line",
                 "hint": null,
                 "defaultValue": 0,
-                "capabilities": [
-                  "COLOR"
-                ],
                 "showWhen": {
                   "all": [
                     {
@@ -11649,9 +10593,6 @@
                 "label": "Area fill",
                 "hint": "Only drawn while this is the Main metric and “Area fill” is on.",
                 "defaultValue": 5592405,
-                "capabilities": [
-                  "COLOR"
-                ],
                 "showWhen": {
                   "all": [
                     {
@@ -11667,9 +10608,6 @@
                 "label": "Area fill",
                 "hint": "Only drawn while this is the Main metric and “Area fill” is on.",
                 "defaultValue": 11184810,
-                "capabilities": [
-                  "COLOR"
-                ],
                 "showWhen": {
                   "all": [
                     {
@@ -11685,9 +10623,6 @@
                 "label": "Night fill tint",
                 "hint": "Colors the filled area during the night hours. Until you pick a color here, it uses the fill color.",
                 "defaultValue": 5592405,
-                "capabilities": [
-                  "COLOR"
-                ],
                 "showWhen": {
                   "all": [
                     {
@@ -11710,9 +10645,6 @@
                 "label": "Night fill tint",
                 "hint": "Colors the filled area during the night hours. Until you pick a color here, it uses the fill color.",
                 "defaultValue": 11184810,
-                "capabilities": [
-                  "COLOR"
-                ],
                 "showWhen": {
                   "all": [
                     {
@@ -11736,9 +10668,6 @@
             "sheetOnly": true,
             "sheetId": "gcUv",
             "title": "UV Index colors",
-            "capabilities": [
-              "COLOR"
-            ],
             "showWhen": {
               "key": "theme",
               "nin": [
@@ -11758,9 +10687,6 @@
                 "label": "Line",
                 "hint": null,
                 "defaultValue": 16711935,
-                "capabilities": [
-                  "COLOR"
-                ],
                 "showWhen": {
                   "all": [
                     {
@@ -11776,9 +10702,6 @@
                 "label": "Line",
                 "hint": null,
                 "defaultValue": 11141290,
-                "capabilities": [
-                  "COLOR"
-                ],
                 "showWhen": {
                   "all": [
                     {
@@ -11794,9 +10717,6 @@
                 "label": "Area fill",
                 "hint": "Only drawn while this is the Main metric and “Area fill” is on.",
                 "defaultValue": 11141290,
-                "capabilities": [
-                  "COLOR"
-                ],
                 "showWhen": {
                   "all": [
                     {
@@ -11812,9 +10732,6 @@
                 "label": "Area fill",
                 "hint": "Only drawn while this is the Main metric and “Area fill” is on.",
                 "defaultValue": 16733695,
-                "capabilities": [
-                  "COLOR"
-                ],
                 "showWhen": {
                   "all": [
                     {
@@ -11830,9 +10747,6 @@
                 "label": "Night fill tint",
                 "hint": "Colors the filled area during the night hours. Until you pick a color here, it uses the fill color.",
                 "defaultValue": 5570645,
-                "capabilities": [
-                  "COLOR"
-                ],
                 "showWhen": {
                   "all": [
                     {
@@ -11855,9 +10769,6 @@
                 "label": "Night fill tint",
                 "hint": "Colors the filled area during the night hours. Until you pick a color here, it uses the fill color.",
                 "defaultValue": 16733695,
-                "capabilities": [
-                  "COLOR"
-                ],
                 "showWhen": {
                   "all": [
                     {
@@ -11881,9 +10792,6 @@
             "sheetOnly": true,
             "sheetId": "gcPressure",
             "title": "Air pressure (hPa) colors",
-            "capabilities": [
-              "COLOR"
-            ],
             "showWhen": {
               "key": "theme",
               "nin": [
@@ -11903,9 +10811,6 @@
                 "label": "Line",
                 "hint": null,
                 "defaultValue": 16733440,
-                "capabilities": [
-                  "COLOR"
-                ],
                 "showWhen": {
                   "all": [
                     {
@@ -11921,9 +10826,6 @@
                 "label": "Line",
                 "hint": null,
                 "defaultValue": 16733440,
-                "capabilities": [
-                  "COLOR"
-                ],
                 "showWhen": {
                   "all": [
                     {
@@ -11939,9 +10841,6 @@
                 "label": "Area fill",
                 "hint": "Only drawn while this is the Main metric and “Area fill” is on.",
                 "defaultValue": 11162880,
-                "capabilities": [
-                  "COLOR"
-                ],
                 "showWhen": {
                   "all": [
                     {
@@ -11957,9 +10856,6 @@
                 "label": "Area fill",
                 "hint": "Only drawn while this is the Main metric and “Area fill” is on.",
                 "defaultValue": 16755285,
-                "capabilities": [
-                  "COLOR"
-                ],
                 "showWhen": {
                   "all": [
                     {
@@ -11975,9 +10871,6 @@
                 "label": "Night fill tint",
                 "hint": "Colors the filled area during the night hours. Until you pick a color here, it uses the fill color.",
                 "defaultValue": 11162880,
-                "capabilities": [
-                  "COLOR"
-                ],
                 "showWhen": {
                   "all": [
                     {
@@ -12000,9 +10893,6 @@
                 "label": "Night fill tint",
                 "hint": "Colors the filled area during the night hours. Until you pick a color here, it uses the fill color.",
                 "defaultValue": 16755285,
-                "capabilities": [
-                  "COLOR"
-                ],
                 "showWhen": {
                   "all": [
                     {
@@ -12026,9 +10916,6 @@
             "sheetOnly": true,
             "sheetId": "gcFeels",
             "title": "Feels-like temperature colors",
-            "capabilities": [
-              "COLOR"
-            ],
             "showWhen": {
               "key": "theme",
               "nin": [
@@ -12048,9 +10935,6 @@
                 "label": "Line",
                 "hint": null,
                 "defaultValue": 11184810,
-                "capabilities": [
-                  "COLOR"
-                ],
                 "showWhen": {
                   "all": [
                     {
@@ -12066,9 +10950,6 @@
                 "label": "Line",
                 "hint": null,
                 "defaultValue": 0,
-                "capabilities": [
-                  "COLOR"
-                ],
                 "showWhen": {
                   "all": [
                     {
@@ -12085,9 +10966,6 @@
             "sheetOnly": true,
             "sheetId": "gcDew",
             "title": "Dew point colors",
-            "capabilities": [
-              "COLOR"
-            ],
             "showWhen": {
               "key": "theme",
               "nin": [
@@ -12107,9 +10985,6 @@
                 "label": "Line",
                 "hint": null,
                 "defaultValue": 5614250,
-                "capabilities": [
-                  "COLOR"
-                ],
                 "showWhen": {
                   "all": [
                     {
@@ -12125,9 +11000,6 @@
                 "label": "Line",
                 "hint": null,
                 "defaultValue": 21845,
-                "capabilities": [
-                  "COLOR"
-                ],
                 "showWhen": {
                   "all": [
                     {
@@ -12144,9 +11016,6 @@
             "sheetOnly": true,
             "sheetId": "gcNight",
             "title": "Night shading colors",
-            "capabilities": [
-              "COLOR"
-            ],
             "showWhen": {
               "key": "theme",
               "nin": [
@@ -12166,9 +11035,6 @@
                 "label": "Night hatch",
                 "hint": "Only drawn while “Day / night shading” is on.",
                 "defaultValue": 5592405,
-                "capabilities": [
-                  "COLOR"
-                ],
                 "showWhen": {
                   "all": [
                     {
@@ -12184,9 +11050,6 @@
                 "label": "Night hatch",
                 "hint": "Only drawn while “Day / night shading” is on.",
                 "defaultValue": 5592405,
-                "capabilities": [
-                  "COLOR"
-                ],
                 "showWhen": {
                   "all": [
                     {
@@ -12202,9 +11065,6 @@
                 "label": "Day line",
                 "hint": "The line at midnight. Only drawn while “Day / night shading” is on.",
                 "defaultValue": 5592405,
-                "capabilities": [
-                  "COLOR"
-                ],
                 "showWhen": {
                   "all": [
                     {
@@ -12220,9 +11080,6 @@
                 "label": "Day line",
                 "hint": "The line at midnight. Only drawn while “Day / night shading” is on.",
                 "defaultValue": 5592405,
-                "capabilities": [
-                  "COLOR"
-                ],
                 "showWhen": {
                   "all": [
                     {
@@ -12282,13 +11139,6 @@
                   "stripeTop",
                   "stripeBottom"
                 ],
-                "showWhen": {
-                  "all": [
-                    {
-                      "env": "lineStyles"
-                    }
-                  ]
-                },
                 "onChange": [
                   "graphLimitPicked"
                 ]
@@ -12425,11 +11275,6 @@
                     },
                     {
                       "any": [
-                        {
-                          "not": {
-                            "env": "lineStyles"
-                          }
-                        },
                         {
                           "key": "secondaryLineStyle",
                           "nin": [
@@ -12658,20 +11503,13 @@
                   ]
                 ],
                 "showWhen": {
-                  "all": [
-                    {
-                      "env": "onDemand"
-                    },
-                    {
-                      "when": "lineRow",
-                      "args": {
-                        "picker": "secondaryLine",
-                        "metrics": [
-                          "wind"
-                        ]
-                      }
-                    }
-                  ]
+                  "when": "lineRow",
+                  "args": {
+                    "picker": "secondaryLine",
+                    "metrics": [
+                      "wind"
+                    ]
+                  }
                 },
                 "onChange": [
                   "graphLimitPicked"
@@ -12699,20 +11537,13 @@
                   ]
                 ],
                 "showWhen": {
-                  "all": [
-                    {
-                      "env": "onDemand"
-                    },
-                    {
-                      "when": "lineRow",
-                      "args": {
-                        "picker": "secondaryLine",
-                        "metrics": [
-                          "gust"
-                        ]
-                      }
-                    }
-                  ]
+                  "when": "lineRow",
+                  "args": {
+                    "picker": "secondaryLine",
+                    "metrics": [
+                      "gust"
+                    ]
+                  }
                 },
                 "onChange": [
                   "graphLimitPicked"
@@ -12740,20 +11571,13 @@
                   ]
                 ],
                 "showWhen": {
-                  "all": [
-                    {
-                      "env": "onDemand"
-                    },
-                    {
-                      "when": "lineRow",
-                      "args": {
-                        "picker": "secondaryLine",
-                        "metrics": [
-                          "uv"
-                        ]
-                      }
-                    }
-                  ]
+                  "when": "lineRow",
+                  "args": {
+                    "picker": "secondaryLine",
+                    "metrics": [
+                      "uv"
+                    ]
+                  }
                 },
                 "onChange": [
                   "graphLimitPicked"
@@ -12857,9 +11681,6 @@
                     "all": true
                   }
                 },
-                "capabilities": [
-                  "COLOR"
-                ],
                 "showWhen": {
                   "all": [
                     {
@@ -12929,15 +11750,8 @@
                   "stripeBottom"
                 ],
                 "showWhen": {
-                  "all": [
-                    {
-                      "env": "lineStyles"
-                    },
-                    {
-                      "key": "thirdLine",
-                      "ne": "off"
-                    }
-                  ]
+                  "key": "thirdLine",
+                  "ne": "off"
                 },
                 "onChange": [
                   "graphLimitPicked"
@@ -13265,20 +12079,13 @@
                   ]
                 ],
                 "showWhen": {
-                  "all": [
-                    {
-                      "env": "onDemand"
-                    },
-                    {
-                      "when": "lineRow",
-                      "args": {
-                        "picker": "thirdLine",
-                        "metrics": [
-                          "wind"
-                        ]
-                      }
-                    }
-                  ]
+                  "when": "lineRow",
+                  "args": {
+                    "picker": "thirdLine",
+                    "metrics": [
+                      "wind"
+                    ]
+                  }
                 },
                 "onChange": [
                   "graphLimitPicked"
@@ -13306,20 +12113,13 @@
                   ]
                 ],
                 "showWhen": {
-                  "all": [
-                    {
-                      "env": "onDemand"
-                    },
-                    {
-                      "when": "lineRow",
-                      "args": {
-                        "picker": "thirdLine",
-                        "metrics": [
-                          "gust"
-                        ]
-                      }
-                    }
-                  ]
+                  "when": "lineRow",
+                  "args": {
+                    "picker": "thirdLine",
+                    "metrics": [
+                      "gust"
+                    ]
+                  }
                 },
                 "onChange": [
                   "graphLimitPicked"
@@ -13347,20 +12147,13 @@
                   ]
                 ],
                 "showWhen": {
-                  "all": [
-                    {
-                      "env": "onDemand"
-                    },
-                    {
-                      "when": "lineRow",
-                      "args": {
-                        "picker": "thirdLine",
-                        "metrics": [
-                          "uv"
-                        ]
-                      }
-                    }
-                  ]
+                  "when": "lineRow",
+                  "args": {
+                    "picker": "thirdLine",
+                    "metrics": [
+                      "uv"
+                    ]
+                  }
                 },
                 "onChange": [
                   "graphLimitPicked"
@@ -13464,9 +12257,6 @@
                     "all": true
                   }
                 },
-                "capabilities": [
-                  "COLOR"
-                ],
                 "showWhen": {
                   "all": [
                     {
@@ -13510,9 +12300,6 @@
                     ]
                   }
                 },
-                "showWhen": {
-                  "env": "lineStyles"
-                },
                 "blockBefore": "graphLimit",
                 "onChange": [
                   "graphLimitPicked"
@@ -13540,15 +12327,8 @@
                   "stripeBottom"
                 ],
                 "showWhen": {
-                  "all": [
-                    {
-                      "env": "lineStyles"
-                    },
-                    {
-                      "key": "fourthLine",
-                      "ne": "off"
-                    }
-                  ]
+                  "key": "fourthLine",
+                  "ne": "off"
                 },
                 "onChange": [
                   "graphLimitPicked"
@@ -13876,20 +12656,13 @@
                   ]
                 ],
                 "showWhen": {
-                  "all": [
-                    {
-                      "env": "onDemand"
-                    },
-                    {
-                      "when": "lineRow",
-                      "args": {
-                        "picker": "fourthLine",
-                        "metrics": [
-                          "wind"
-                        ]
-                      }
-                    }
-                  ]
+                  "when": "lineRow",
+                  "args": {
+                    "picker": "fourthLine",
+                    "metrics": [
+                      "wind"
+                    ]
+                  }
                 },
                 "onChange": [
                   "graphLimitPicked"
@@ -13917,20 +12690,13 @@
                   ]
                 ],
                 "showWhen": {
-                  "all": [
-                    {
-                      "env": "onDemand"
-                    },
-                    {
-                      "when": "lineRow",
-                      "args": {
-                        "picker": "fourthLine",
-                        "metrics": [
-                          "gust"
-                        ]
-                      }
-                    }
-                  ]
+                  "when": "lineRow",
+                  "args": {
+                    "picker": "fourthLine",
+                    "metrics": [
+                      "gust"
+                    ]
+                  }
                 },
                 "onChange": [
                   "graphLimitPicked"
@@ -13958,20 +12724,13 @@
                   ]
                 ],
                 "showWhen": {
-                  "all": [
-                    {
-                      "env": "onDemand"
-                    },
-                    {
-                      "when": "lineRow",
-                      "args": {
-                        "picker": "fourthLine",
-                        "metrics": [
-                          "uv"
-                        ]
-                      }
-                    }
-                  ]
+                  "when": "lineRow",
+                  "args": {
+                    "picker": "fourthLine",
+                    "metrics": [
+                      "uv"
+                    ]
+                  }
                 },
                 "onChange": [
                   "graphLimitPicked"
@@ -14075,9 +12834,6 @@
                     "all": true
                   }
                 },
-                "capabilities": [
-                  "COLOR"
-                ],
                 "showWhen": {
                   "all": [
                     {
@@ -14094,10 +12850,7 @@
                   ]
                 }
               }
-            ],
-            "showWhen": {
-              "env": "lineStyles"
-            }
+            ]
           },
           {
             "sheetOnly": true,
@@ -14124,9 +12877,6 @@
                       "fourthLine"
                     ]
                   }
-                },
-                "showWhen": {
-                  "env": "lineStyles"
                 },
                 "blockBefore": "graphLimit",
                 "onChange": [
@@ -14155,15 +12905,8 @@
                   "stripeBottom"
                 ],
                 "showWhen": {
-                  "all": [
-                    {
-                      "env": "lineStyles"
-                    },
-                    {
-                      "key": "fifthLine",
-                      "ne": "off"
-                    }
-                  ]
+                  "key": "fifthLine",
+                  "ne": "off"
                 },
                 "onChange": [
                   "graphLimitPicked"
@@ -14491,20 +13234,13 @@
                   ]
                 ],
                 "showWhen": {
-                  "all": [
-                    {
-                      "env": "onDemand"
-                    },
-                    {
-                      "when": "lineRow",
-                      "args": {
-                        "picker": "fifthLine",
-                        "metrics": [
-                          "wind"
-                        ]
-                      }
-                    }
-                  ]
+                  "when": "lineRow",
+                  "args": {
+                    "picker": "fifthLine",
+                    "metrics": [
+                      "wind"
+                    ]
+                  }
                 },
                 "onChange": [
                   "graphLimitPicked"
@@ -14532,20 +13268,13 @@
                   ]
                 ],
                 "showWhen": {
-                  "all": [
-                    {
-                      "env": "onDemand"
-                    },
-                    {
-                      "when": "lineRow",
-                      "args": {
-                        "picker": "fifthLine",
-                        "metrics": [
-                          "gust"
-                        ]
-                      }
-                    }
-                  ]
+                  "when": "lineRow",
+                  "args": {
+                    "picker": "fifthLine",
+                    "metrics": [
+                      "gust"
+                    ]
+                  }
                 },
                 "onChange": [
                   "graphLimitPicked"
@@ -14573,20 +13302,13 @@
                   ]
                 ],
                 "showWhen": {
-                  "all": [
-                    {
-                      "env": "onDemand"
-                    },
-                    {
-                      "when": "lineRow",
-                      "args": {
-                        "picker": "fifthLine",
-                        "metrics": [
-                          "uv"
-                        ]
-                      }
-                    }
-                  ]
+                  "when": "lineRow",
+                  "args": {
+                    "picker": "fifthLine",
+                    "metrics": [
+                      "uv"
+                    ]
+                  }
                 },
                 "onChange": [
                   "graphLimitPicked"
@@ -14690,9 +13412,6 @@
                     "all": true
                   }
                 },
-                "capabilities": [
-                  "COLOR"
-                ],
                 "showWhen": {
                   "all": [
                     {
@@ -14709,17 +13428,11 @@
                   ]
                 }
               }
-            ],
-            "showWhen": {
-              "env": "lineStyles"
-            }
+            ]
           },
           {
             "pane": "radar",
             "id": "radar",
-            "showWhen": {
-              "env": "radar"
-            },
             "items": [
               {
                 "type": "staticText",
@@ -14772,9 +13485,6 @@
                     "note": "The bars don't scale linearly. Their height is split into 5 parts, for rain up to 0.1, 0.5, 2, 10 and 40 mm/h, so light drizzle stays visible and heavy rain still has room to grow."
                   }
                 },
-                "capabilities": [
-                  "COLOR"
-                ],
                 "options": [
                   [
                     "Multicolor",
@@ -14809,17 +13519,10 @@
                   "all": [
                     {
                       "not": {
-                        "all": [
-                          {
-                            "env": "color"
-                          },
-                          {
-                            "key": "theme",
-                            "nin": [
-                              "bw",
-                              "bw-light"
-                            ]
-                          }
+                        "key": "theme",
+                        "nin": [
+                          "bw",
+                          "bw-light"
                         ]
                       }
                     },
@@ -14875,15 +13578,8 @@
                 ],
                 "more": true,
                 "showWhen": {
-                  "all": [
-                    {
-                      "key": "radarMode",
-                      "eq": "graph"
-                    },
-                    {
-                      "env": "lineStyles"
-                    }
-                  ]
+                  "key": "radarMode",
+                  "eq": "graph"
                 }
               }
             ]
@@ -14891,9 +13587,6 @@
           {
             "pane": "health",
             "id": "healthGraph",
-            "showWhen": {
-              "env": "health"
-            },
             "items": [
               {
                 "type": "range",
@@ -14907,15 +13600,8 @@
                 "unit": "BPM",
                 "hint": "Sets the top and bottom of the heart-rate line in the health graph. A narrower range makes small changes visible. Hours outside the range are drawn as dots on the edge.",
                 "showWhen": {
-                  "all": [
-                    {
-                      "env": "hr"
-                    },
-                    {
-                      "key": "healthMode",
-                      "eq": "all"
-                    }
-                  ]
+                  "key": "healthMode",
+                  "eq": "all"
                 }
               },
               {
@@ -14923,15 +13609,8 @@
                 "style": "info",
                 "text": "The heart-rate line is part of the health graph. Add the Health graph to a screen on the <button type=\"button\" class=\"txt-link\" data-goto-tab=\"watchface\">Watchface tab</button>.",
                 "showWhen": {
-                  "all": [
-                    {
-                      "env": "hr"
-                    },
-                    {
-                      "key": "healthMode",
-                      "ne": "all"
-                    }
-                  ]
+                  "key": "healthMode",
+                  "ne": "all"
                 }
               }
             ]
@@ -15172,10 +13851,7 @@
                       "desc": "Precise ML rain nowcast, worldwide · uses your key"
                     }
                   ]
-                ],
-                "showWhen": {
-                  "env": "radar"
-                }
+                ]
               },
               {
                 "type": "staticText",
@@ -15188,15 +13864,8 @@
                   }
                 },
                 "showWhen": {
-                  "all": [
-                    {
-                      "env": "radar"
-                    },
-                    {
-                      "key": "radarEnabled",
-                      "ne": false
-                    }
-                  ]
+                  "key": "radarEnabled",
+                  "ne": false
                 }
               },
               {
@@ -15222,15 +13891,8 @@
                   }
                 },
                 "showWhen": {
-                  "all": [
-                    {
-                      "env": "radar"
-                    },
-                    {
-                      "key": "radarEnabled",
-                      "ne": false
-                    }
-                  ]
+                  "key": "radarEnabled",
+                  "ne": false
                 }
               },
               {

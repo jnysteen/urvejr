@@ -13,7 +13,7 @@ global.localStorage = { getItem: function () { return null; }, setItem: function
 const { buildClayPayload, VIEW_RESET_DOUBLE_FLICK } = require('../../../src/pkjs/settings/domain/clay-payload.js');
 
 function views(settings) {
-  const p = buildClayPayload(settings, null, new Date(0));
+  const p = buildClayPayload(settings, new Date(0));
   return [p.CLAY_VIEW_0, p.CLAY_VIEW_1, p.CLAY_VIEW_2];
 }
 
@@ -43,7 +43,7 @@ test('compactDense off + radar graph → dense default AND dense radar flick', (
 });
 
 test('viewResetMin maps straight through', () => {
-  const p = buildClayPayload({ layoutPreset: 'compactCal', viewResetMin: '5' }, null, new Date(0));
+  const p = buildClayPayload({ layoutPreset: 'compactCal', viewResetMin: '5' }, new Date(0));
   assert.strictEqual(p.CLAY_VIEW_RESET_MIN, 5);
 });
 
@@ -51,7 +51,7 @@ test('viewResetMin maps straight through', () => {
 // no tuple of its own, so the Clay message keeps its size (test/repo/inbox-size.test.js).
 function payload(settings, platform) {
   const watchInfo = platform ? { platform: platform } : null;
-  return buildClayPayload(Object.assign({ layoutPreset: 'compactCal' }, settings), watchInfo, new Date(0));
+  return buildClayPayload(Object.assign({ layoutPreset: 'compactCal' }, settings), new Date(0));
 }
 function resetWord(settings, platform) {
   return payload(settings, platform).CLAY_VIEW_RESET_MIN;

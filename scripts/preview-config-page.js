@@ -11,7 +11,6 @@ var path = require('path');
 var build = require('../src/pkjs/config-ui/scripts/build-page.js');
 
 var ROOT = path.join(__dirname, '..');
-var platformLib = require(path.join(ROOT, 'src/pkjs/config-ui/lib/platform.js'));
 var schema = require(path.join(ROOT, 'src/pkjs/page/settings/schema.js'));
 var previewPalette = require(path.join(ROOT, 'src/pkjs/theme/domain/preview-palette.js'));
 var notices = require(path.join(ROOT, 'src/pkjs/notices/adapter/notices.js'));
@@ -43,19 +42,13 @@ function parseArgs(args) {
   return { out: out || DEFAULT_OUT, platform: platform || 'emery' };
 }
 
-// Delegate to the platform SoT (platform.js) so color/round/health env-gates
-// render exactly as they would on-watch — no duplicated platform table here.
-//
-// computeEnv() answers only what the PLATFORM determines. Phone-runtime
-// capabilities are overlaid by index.js at generateUrl() time (env:
-// {phoneBattery: ...}), which this script bypasses — so without this overlay the
+// The page's env holds the phone's facts only, which the app passes to generateUrl()
+// (env: {phoneBattery: ...}). This script bypasses that, so without this env the
 // preview silently omits every phone-gated item and cannot be used to review them.
 // Default on, because the preview exists to eyeball items that exist; set
 // PREVIEW_PHONE_BATTERY=0 to see what an iPhone user's slot dropdown looks like.
 function envFor(platform) {
-  var env = platformLib.computeEnv({ platform: platform });
-  env.phoneBattery = process.env.PREVIEW_PHONE_BATTERY !== '0';
-  return env;
+  return { phoneBattery: process.env.PREVIEW_PHONE_BATTERY !== '0' };
 }
 
 // PREVIEW_NOTICES=1: the fetch-error notice card (Watchface tab) and the Advanced

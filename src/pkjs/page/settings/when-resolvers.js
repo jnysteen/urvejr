@@ -36,22 +36,18 @@ var PConf = (typeof global !== 'undefined' && global.PConf && global.PConf.whenR
     /**
      * The picker a row that follows its metric sits under. With `from` (a Draw from key):
      * the first line that hangs from it (draw-from.js rowLine: drawn as a line or marks,
-     * not a stripe, on a watch with line styles). With `metrics`: the first line that
-     * draws one of them (line-style.js firstDrawnLine, by effectiveLineMetric: off, or a
-     * stored repeat of an earlier pick, draws nothing), the Third and Fourth metric lines
-     * only on a watch that carries them (env.lineStyles, the WW_LINE_STYLE mirror, read
-     * truthy like the schema's {env: 'lineStyles'} leaf that shows those pickers: an env
-     * without the fact has none, where line-alert.js and draw-from.js read it as capable).
-     * So the row moves with its metric from picker to picker and shows once.
+     * not a stripe). With `metrics`: the first line that draws one of them (line-style.js
+     * firstDrawnLine, by effectiveLineMetric: off, or a stored repeat of an earlier pick,
+     * draws nothing). So the row moves with its metric from picker to picker and shows once.
      * @param {Object} S Settings (the showWhen context).
      * @param {?Object} env Platform env.
      * @param {{from: (string|undefined), metrics: (string[]|undefined)}} args The row.
      * @returns {?string} secondaryLine|thirdLine|fourthLine|fifthLine, or null.
      */
     function hostLine(S, env, args) {
-        if (args.from) { return drawFrom.rowLine(S, args.from, env); }
+        if (args.from) { return drawFrom.rowLine(S, args.from); }
         var metrics = args.metrics || [];
-        return lineStyle.firstDrawnLine(S, Boolean(env && env.lineStyles), function (m) {
+        return lineStyle.firstDrawnLine(S, function (m) {
             return metrics.indexOf(m) >= 0;
         });
     }
@@ -77,7 +73,7 @@ var PConf = (typeof global !== 'undefined' && global.PConf && global.PConf.whenR
      * @returns {boolean}
      */
     function onDemandPlaced(S, env, args) {
-        return onDemand.placedAnywhere(S, args.code, env);
+        return onDemand.placedAnywhere(S, args.code);
     }
 
     /**
@@ -89,14 +85,14 @@ var PConf = (typeof global !== 'undefined' && global.PConf && global.PConf.whenR
      * @returns {boolean}
      */
     function defaultViewLacksOnDemand(S, env) {
-        var view = VC.resolveViewCycle(S, env)[0];
+        var view = VC.resolveViewCycle(S)[0];
         if (!view || !view.stripOff) { return false; }
         var rows = [view.statusUpper, view.statusLower];
         for (var r = 0; r < rows.length; r++) {
             var bar = VC.barOfSource(rows[r]);
             if (!bar) { continue; }
             for (var i = 0; i < onDemand.ITEMS.length; i++) {
-                if (onDemand.sideOf(S, bar, onDemand.ITEMS[i].code, env) !== null) { return false; }
+                if (onDemand.sideOf(S, bar, onDemand.ITEMS[i].code) !== null) { return false; }
             }
         }
         return true;

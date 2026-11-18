@@ -42,16 +42,11 @@
     // schema's) and when the feature reads its pair at all.
     var PAIRS = [
         {name: 'Dim backlight', start: 'backlightDimStartHour', end: 'backlightDimEndHour', from: '0', to: '7',
-            inUse: function (S, env) { return Boolean(env && env.colorBacklight) && S.backlightDim !== false; },
-            exists: function (env) { return Boolean(env && env.colorBacklight); }},
+            inUse: function (S) { return S.backlightDim !== false; }},
         {name: 'Night theme', start: 'themeAutoStartHour', end: 'themeAutoEndHour', from: '20', to: '7',
-            inUse: function (S, env) {
-                return (!env || env.themePolarity !== false) && S.themeAuto === true && S.themeAutoMode === 'manual';
-            },
-            exists: function (env) { return !env || env.themePolarity !== false; }},
+            inUse: function (S) { return S.themeAuto === true && S.themeAutoMode === 'manual'; }},
         {name: 'Battery saver', start: 'sleepStartHour', end: 'sleepEndHour', from: '0', to: '7',
-            inUse: function (S) { return S.sleepNightEnabled !== false; },
-            exists: function () { return true; }}
+            inUse: function (S) { return S.sleepNightEnabled !== false; }}
     ];
     // The page's own keys and the rows whose change counts as touching the night card.
     var TOUCH_KEYS = ['nightHoursFrom', 'nightHoursTo', 'nightHoursSeparate', 'backlightDim', 'themeAuto',
@@ -71,11 +66,10 @@
     /**
      * The pair the Night hours stand for: the first one in use, else the Battery saver's.
      * @param {Object} S Settings.
-     * @param {Object} env Platform env.
      * @returns {Object} A PAIRS entry.
      */
-    function leadPair(S, env) {
-        for (var i = 0; i < PAIRS.length; i++) { if (PAIRS[i].inUse(S, env)) { return PAIRS[i]; } }
+    function leadPair(S) {
+        for (var i = 0; i < PAIRS.length; i++) { if (PAIRS[i].inUse(S)) { return PAIRS[i]; } }
         return PAIRS[PAIRS.length - 1];
     }
 
@@ -87,20 +81,19 @@
      * @returns {string} The hour, e.g. '22'.
      */
     function nightHoursValue(S, env, args) {
-        var h = hoursOf(S || {}, leadPair(S || {}, env));
+        var h = hoursOf(S || {}, leadPair(S || {}));
         return args && args.end ? h.to : h.from;
     }
 
     /**
      * nightHoursSeparate (initFrom): whether the features in use keep different hours.
      * @param {Object} S Hydrated settings.
-     * @param {Object} env Platform env.
      * @returns {boolean} True when two in-use pairs differ.
      */
-    function nightHoursSeparate(S, env) {
+    function nightHoursSeparate(S) {
         var st = S || {}, seen = null, i, h;
         for (i = 0; i < PAIRS.length; i++) {
-            if (!PAIRS[i].inUse(st, env)) { continue; }
+            if (!PAIRS[i].inUse(st)) { continue; }
             h = hoursOf(st, PAIRS[i]);
             if (seen && (seen.from !== h.from || seen.to !== h.to)) { return true; }
             seen = h;
@@ -112,12 +105,11 @@
      * Write the Night hours into every pair in use. A feature that is off keeps the hours
      * it has stored.
      * @param {Object} S Settings (mutated).
-     * @param {Object} env Platform env.
      * @returns {void}
      */
-    function writeAll(S, env) {
+    function writeAll(S) {
         for (var i = 0; i < PAIRS.length; i++) {
-            if (!PAIRS[i].inUse(S, env)) { continue; }
+            if (!PAIRS[i].inUse(S)) { continue; }
             if (S.nightHoursFrom != null) { S[PAIRS[i].start] = String(S.nightHoursFrom); }
             if (S.nightHoursTo != null) { S[PAIRS[i].end] = String(S.nightHoursTo); }
         }
@@ -129,12 +121,11 @@
      * @param {Object} S Settings (mutated).
      * @param {*} oldV The previous hour.
      * @param {*} newV The picked hour.
-     * @param {Object} env Platform env.
      * @returns {void}
      */
-    function nightHoursSync(S, oldV, newV, env) {
+    function nightHoursSync(S, oldV, newV) {
         if (S.nightHoursSeparate === true) { return; }
-        writeAll(S, env);
+        writeAll(S);
     }
 
     // Every pair's hours as they were when Separate hours last went off, and the Night
@@ -149,10 +140,9 @@
      * @param {Object} S Settings (mutated).
      * @param {*} oldV The previous value.
      * @param {*} newV The new value.
-     * @param {Object} env Platform env.
      * @returns {void}
      */
-    function nightHoursMode(S, oldV, newV, env) {
+    function nightHoursMode(S, oldV, newV) {
         var i;
         if (newV) {
             if (beforeShared && String(S.nightHoursFrom) === beforeShared.from
@@ -165,13 +155,13 @@
             beforeShared = null;
             return;
         }
-        var h = hoursOf(S, leadPair(S, env));
+        var h = hoursOf(S, leadPair(S));
         beforeShared = {from: h.from, to: h.to, pairs: PAIRS.map(function (p) {
             return {from: S[p.start], to: S[p.end]};
         })};
         S.nightHoursFrom = h.from;
         S.nightHoursTo = h.to;
-        writeAll(S, env);
+        writeAll(S);
     }
 
     /**
@@ -195,15 +185,14 @@
      * @param {Object} S Settings (mutated).
      * @param {*} oldV The previous value.
      * @param {*} newV The new value.
-     * @param {Object} env Platform env.
      * @returns {void}
      */
-    function nightFeatureOn(S, oldV, newV, env) {
+    function nightFeatureOn(S, oldV, newV) {
         if (S.nightHoursSeparate === true) { return; }
         var from = String(S.nightHoursFrom), to = String(S.nightHoursTo), i, h;
         var own = [], others = 0;
         for (i = 0; i < PAIRS.length; i++) {
-            if (!PAIRS[i].inUse(S, env)) { continue; }
+            if (!PAIRS[i].inUse(S)) { continue; }
             h = hoursOf(S, PAIRS[i]);
             if ((h.from !== from || h.to !== to) && customised(S, PAIRS[i])) { own.push(h); } else { others++; }
         }
@@ -219,14 +208,11 @@
     }
 
     /**
-     * nightHoursHint (hintFrom): which features the Night hours drive on this watch.
-     * @param {Object} S Settings.
-     * @param {Object} env Platform env.
+     * nightHoursHint (hintFrom): which features the Night hours drive.
      * @returns {string} The hint.
      */
-    function nightHoursHint(S, env) {
-        var names = [], i;
-        for (i = 0; i < PAIRS.length; i++) { if (PAIRS[i].exists(env)) { names.push(PAIRS[i].name); } }
+    function nightHoursHint() {
+        var names = PAIRS.map(function (p) { return p.name; });
         return 'Used by ' + andList(names) + '.';
     }
 
@@ -261,7 +247,7 @@
         var st = {};
         for (i = 0; i < TOUCH_KEYS.length; i++) { st[TOUCH_KEYS[i]] = ctx.get(TOUCH_KEYS[i]); }
         for (i = 0; i < PAIRS.length; i++) {
-            if (!PAIRS[i].inUse(st, ctx.env)) { continue; }
+            if (!PAIRS[i].inUse(st)) { continue; }
             ctx.set(PAIRS[i].start, String(ctx.get('nightHoursFrom')));
             ctx.set(PAIRS[i].end, String(ctx.get('nightHoursTo')));
         }

@@ -19,10 +19,9 @@ const ui = require('../../../src/pkjs/config-ui/lib/ui.js');
 const { editorBody: body, editorRows, editorAddChips } = require('../../helpers/page-rows.js');
 const M = require('../../../src/pkjs/layout/domain/screens.js');
 const VC = require('../../../src/pkjs/layout/domain/view-cycle.js');
-const platform = require('../../../src/pkjs/config-ui/lib/platform.js');
 const { buildClayPayload } = require('../../../src/pkjs/settings/domain/clay-payload.js');
 
-const EMERY = platform.computeEnv();
+const EMERY = {};
 // An upgraded install's three screens: Default (Forecast bar), Flick 1 (Health bar), Flick 2
 // (Radar bar).
 const THREE = { provider: 'dwd', radarMode: 'graph', healthMode: 'all' };
@@ -47,9 +46,9 @@ test('a bar\'s name: its own, trimmed and at most 24 characters, else its kind\'
 test('the names are the page\'s own: the watch is sent the same message with or without them', () => {
   const S = Object.assign({ layoutPreset: 'custom', viewCount: '1', viewUpper0: 'weather' }, THREE);
   const named = Object.assign({ statusForecastName: 'Morning', statusRadarName: 'Wind', statusHealthName: 'Fit' }, S);
-  assert.deepEqual(buildClayPayload(named, { platform: 'emery' }, new Date(0)),
-    buildClayPayload(S, { platform: 'emery' }, new Date(0)));
-  assert.deepEqual(VC.resolveViewCycle(named, EMERY), VC.resolveViewCycle(S, EMERY));
+  assert.deepEqual(buildClayPayload(named, new Date(0)),
+    buildClayPayload(S, new Date(0)));
+  assert.deepEqual(VC.resolveViewCycle(named), VC.resolveViewCycle(S));
 });
 
 // --- the Status bars tab ------------------------------------------------------------

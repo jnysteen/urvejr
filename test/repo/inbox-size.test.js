@@ -18,7 +18,6 @@ const { toRenderPayload } = require('../../src/pkjs/weather/application/render-p
 const { buildClayPayload } = require('../../src/pkjs/settings/domain/clay-payload');
 const { WEATHER_CATEGORIES } = require('../../src/pkjs/wire/adapter/outbox');
 const forecastSpan = require('../../src/pkjs/weather/domain/forecast-span');
-const platformLib = require('../../src/pkjs/config-ui/lib/platform');
 const radarWire = require('../../src/pkjs/weather/domain/radar/radar-wire');
 
 // Regression guard for the AppMessage inbox size.
@@ -41,7 +40,7 @@ const radarWire = require('../../src/pkjs/weather/domain/radar/radar-wire');
  * @returns {number} 68, the long span's.
  */
 function forecastEntries() {
-  return forecastSpan.maxHours(platformLib.computeEnv({ platform: 'emery' }));
+  return forecastSpan.maxHours();
 }
 // The radar's slots: 24 five-minute frames, whatever the forecast span.
 const RADAR_SLOTS = radarWire.NUM_BARS;
@@ -200,8 +199,7 @@ function buildHeaviestBundle(over) {
     statusRadarLeft: 'city', statusRadarMid: 'city', statusRadarRight: 'city',
     statusTopLeft: 'city', statusTopMid: 'city', statusTopRight: 'city',
     statusHealthLeft: 'city', statusHealthMid: 'city', statusHealthRight: 'city'
-  }, alertSettings, HEAVIEST_GRAPHS, HEAVIEST_EXTRA_BARS, over || {}),
-  { platform: 'emery' }, NOW);
+  }, alertSettings, HEAVIEST_GRAPHS, HEAVIEST_EXTRA_BARS, over || {}), NOW);
 
   // The entry tuple. The
   // realistic heaviest bake — all five with values — stays under the cap; the
@@ -440,7 +438,7 @@ function buildHeaviestClayMessage(watchInfo, over) {
     // CLAY_LARGE_GRAPH_FONT int (forecast-axis.js), no byte of their own, so the recorded
     // sizes hold.
     forecastAxisNumbers: 'graph', forecastAxisScale: true, secondaryLine: 'dew',
-  }, over || {}), watchInfo === undefined ? { platform: 'emery' } : watchInfo, new Date('2026-06-26T00:00:00Z'));
+  }, over || {}), new Date('2026-06-26T00:00:00Z'));
 
   // The Dim backlight tuple (CLAY_NIGHT_LIGHT_UINT8 = [r, g, b, startHour, endHour])
   // is REAL now: buildClayPayload packs it for every platform (night-light.js), so it
@@ -512,7 +510,7 @@ test('a custom layout with a non-zero ext word costs no Clay bytes and keeps bit
     viewOrder1: 'TACB', viewClockOff1: false, viewStripOff1: true, viewAlign1: 'center',
     viewTop2: 'radar', viewBody2: 'none', viewUpper2: 'off', viewLower2: 'off',
     viewOrder2: 'CTAB', viewClockOff2: true, viewStripOff2: true, viewAlign2: 'top',
-  }, { platform: 'emery' }, new Date('2026-06-26T00:00:00Z'));
+  }, new Date('2026-06-26T00:00:00Z'));
   assert.equal(dictSize(payload), presetSize, 'the ext word is free');
   ['CLAY_VIEW_0', 'CLAY_VIEW_1', 'CLAY_VIEW_2'].forEach((k) => {
     const v = payload[k];

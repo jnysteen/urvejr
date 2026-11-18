@@ -59,7 +59,7 @@ test('deriveDefaults omits the 12 defaultFrom status-slot keys from the seed', (
   // A known static-default key IS present, proving the omission above is specific
   // to defaultFrom items rather than a broken/empty schema.
   assert.equal(seeded.weekStartDay, 'mon');
-  assert.equal(seeded.batteryLowOnly, true);
+  assert.equal(seeded.vibe, true);
 });
 
 test('all countdown dates hydrate to today and saved values win', () => {

@@ -135,26 +135,20 @@ function healthWire(kindIndex, v, settings) {
  * alerts are active never rides here — the phone
  * bakes only the active ones into their own weather tuple (bakedAlerts, packAlerts). Byte
  * BATTERY_OFFSET carries the
- * On demand Battery item: its warn level (on-demand.js batteryLevel, on the
- * watch's step — hence env.fineBattery) and its Look. Bytes WARN_LOOK_OFFSET..
- * carry each paired kind's warn look (warnLookFor), whose default depends on the
- * watch's display — hence env.color. Bytes ON_DEMAND_OFFSET.. carry the On
- * demand cells: which side of which bar shows each item.
+ * On demand Battery item: its warn level (on-demand.js batteryLevel) and its Look.
+ * Bytes WARN_LOOK_OFFSET.. carry each paired kind's warn look (warnLookFor). Bytes
+ * ON_DEMAND_OFFSET.. carry the On demand cells: which side of which bar shows each item.
  * @param {Object} settings Clay settings blob
- * @param {{color: boolean, fineBattery: boolean}} [env] platform env (config-ui
- *     platform.js computeEnv); absent = a colour watch with 10 % battery steps
- *     that draws On demand
  * @returns {number[]} SETTINGS_BYTES-long array (48 bytes)
  */
-function buildSettingsBlob(settings, env) {
+function buildSettingsBlob(settings) {
   var blob = [];
   var i;
   var master = settings && settings.statusBoldAll;
   var boldOver = (master === 'all') ? BOLD_MODES.always : (master === 'off') ? BOLD_MODES.off : null;
-  var isColor = !env || env.color !== false;
   for (i = 0; i < SETTINGS_BYTES; i++) { blob.push(0); }
   for (var k = 0; k < KINDS.length; k++) {
-    var cfg = kindConfig(settings, k, isColor);
+    var cfg = kindConfig(settings, k);
     var cell = boldCell(k);
     blob[cell.byte] |= (boldOver !== null ? boldOver : BOLD_MODES[cfg.boldMode]) << cell.shift;
     // Bold-only kinds pack ONLY their bold cell: blob[0]'s 8 enable bits and
@@ -178,13 +172,13 @@ function buildSettingsBlob(settings, env) {
   var rain = rainAlert(settings);
   // OR, not assign: the weather condition's bold cell already sits in this byte.
   blob[ALERTS_OFFSET] |= RAIN_DISPLAY[rain.look] | (rain.replacesSlot ? RAIN_REPLACE_BIT : 0);
-  blob[BATTERY_OFFSET] = onDemand.batteryLevel(settings, env)
+  blob[BATTERY_OFFSET] = onDemand.batteryLevel(settings)
     | (onDemand.batteryShowsValue(settings) ? BATTERY_VALUE_BIT : 0);
   // The On demand cells: one byte per item in ITEMS order, 2 bits per bar at bits
   // 2 * bar (BLOB_BARS order) — 0 none, 1 left, 2 right (the SIDES index + 1). Effective
   // values only (sideOf), so a bar the modes remove and a watch without On demand are
   // zeros. Bars 4 to 6 have their own cells (buildExtraCells).
-  var cells = cellBytes(settings, env, onDemand.BLOB_BARS);
+  var cells = cellBytes(settings, onDemand.BLOB_BARS);
   for (i = 0; i < cells.length; i++) { blob[ON_DEMAND_OFFSET + i] = cells[i]; }
   return blob;
 }
@@ -194,11 +188,10 @@ function buildSettingsBlob(settings, env) {
  * bits 2 * (its index in `bars`) — 0 none, 1 left, 2 right (the SIDES index + 1).
  * Effective values only (on-demand.js sideOf).
  * @param {Object} settings Clay settings blob
- * @param {?Object} env platform env
  * @param {Array<{bar: string}>} bars at most four on-demand.js BARS entries
  * @returns {number[]} ITEMS.length bytes
  */
-function cellBytes(settings, env, bars) {
+function cellBytes(settings, bars) {
   var out = [];
   // onDemand.sideOf, with whether each bar exists asked once, at its first ticked item:
   // barExists compiles the screens.
@@ -206,9 +199,9 @@ function cellBytes(settings, env, bars) {
   for (var i = 0; i < onDemand.ITEMS.length; i++) {
     var cell = 0;
     for (var b = 0; b < bars.length; b++) {
-      var side = onDemand.tickedSide(settings, bars[b].bar, onDemand.ITEMS[i].code, env);
+      var side = onDemand.tickedSide(settings, bars[b].bar, onDemand.ITEMS[i].code);
       if (side === null) { continue; }
-      if (exists[b] === undefined) { exists[b] = onDemand.barExists(settings, bars[b].bar, env); }
+      if (exists[b] === undefined) { exists[b] = onDemand.barExists(settings, bars[b].bar); }
       if (exists[b]) { cell |= (onDemand.SIDES.indexOf(side) + 1) << (2 * b); }
     }
     out.push(cell);
@@ -222,11 +215,10 @@ function cellBytes(settings, env, bars) {
  * one byte per item, bar 4 at bits 0-1, bar 5 at 2-3, bar 6 at 4-5 (bits 6-7 0). A bar
  * that is not made, or that no screen shows, is zeros (sideOf).
  * @param {Object} settings Clay settings blob
- * @param {?Object} env platform env (config-ui platform.js computeEnv)
  * @returns {number[]} ITEMS.length bytes
  */
-function buildExtraCells(settings, env) {
-  return cellBytes(settings, env, onDemand.EXTRA_BARS);
+function buildExtraCells(settings) {
+  return cellBytes(settings, onDemand.EXTRA_BARS);
 }
 
 // ── the weather levels (STATUS_LEVELS_UINT8) ─────────────────────────────────
@@ -496,16 +488,14 @@ function alertHeader(kind, level, mark) {
  * read the same list (status-lines.js): a slot merges only an entry that rides.
  * @param {Object} payload weather payload (pre-transform, trends present)
  * @param {Object} settings Clay settings blob
- * @param {?Object} [env] platform env: an alert placed on a bar 4 to 6 alone counts only on
- *     a watch that has them (on-demand.js barExists); omitted = capable
  * @returns {Array<{code: string, kindId: number, level: number, nextDay: boolean,
  *     mark: string, text: string}>} the entries in wire order, [] when nothing is
  *     alerting
  */
-function bakedAlerts(payload, settings, env) {
+function bakedAlerts(payload, settings) {
   var out = [];
   if (!payload || !settings) { return out; }
-  var alerts = thresholds.enabledAlerts(settings, env);
+  var alerts = thresholds.enabledAlerts(settings);
   var bytes = 0;
   for (var i = 0; i < alerts.length; i++) {
     var a = alerts[i];

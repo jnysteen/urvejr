@@ -10,7 +10,6 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const schema = require('../../../src/pkjs/page/settings/schema.js');
 const showWhen = require('../../../src/pkjs/config-ui/lib/show-when.js');
-const platform = require('../../../src/pkjs/config-ui/lib/platform.js');
 require('../../../src/pkjs/config-ui/lib/schema-walk.js');
 require('../../../src/pkjs/lib/color.js');
 const E = require('../../../src/pkjs/config-ui/lib/engine.js');
@@ -27,10 +26,8 @@ const METRICS = ['precip_prob', 'cloud', 'wind', 'gust', 'uv', 'pressure', 'feel
 const KEY_OF = { precip_prob: 'precipLineFrom', cloud: 'cloudLineFrom', wind: 'windLineFrom',
   gust: 'windLineFrom', uv: 'uvLineFrom' };
 // Envs of a watch without some of these features. The face is built for the Pebble Time 2
-// alone; these exercise the page's capability gates (config-ui/lib/platform.js).
-const BASALT = Object.assign(platform.computeEnv(), { platform: 'basalt', hr: false, colorBacklight: false, fineBattery: false, forecastSpan: false, graphStyles: false, extraBars: false });
-const DIORITE = Object.assign(platform.computeEnv(), { platform: 'diorite', color: false, colorBacklight: false, fineBattery: false, forecastSpan: false, graphStyles: false, extraBars: false });
-const APLITE = Object.assign(platform.computeEnv(), { platform: 'aplite', color: false, health: false, radar: false, themePolarity: false, hr: false, thresholds: false, colorBacklight: false, lineStyles: false, onDemand: false, fineBattery: false, forecastSpan: false, graphStyles: false, extraBars: false });
+// alone.
+const BASALT = {};
 const graphsTab = schema.tabs.find((t) => t.id === 'graphs');
 // Each forecast line's dialog (schema.js GRAPH_LINES), opened from the Lines card: its
 // picker first, then the rows the old Forecast tab stacked under that picker.
@@ -138,10 +135,8 @@ test('the row shows only under a picker that draws an amount metric as a line or
 test('every watch with line styles shows the rows; aplite never does', () => {
   const S = { secondaryLine: 'precip_prob', thirdLine: 'uv', fourthLine: 'wind', fifthLine: 'cloud' };
   ['basalt', 'diorite', 'emery', 'flint'].forEach((p) => assert.deepEqual(
-    visibleRows(S, platform.computeEnv({ platform: p })).map((r) => r.messageKey).sort(),
+    visibleRows(S, {}).map((r) => r.messageKey).sort(),
     ['cloudLineFrom', 'precipLineFrom', 'uvLineFrom', 'windLineFrom'], p));
-  assert.deepEqual(visibleRows(Object.assign({ precipLineFrom: 'top' }, S), APLITE), []);
-  assert.equal(count(body('forecast', Object.assign({ precipLineFrom: 'top' }, S), APLITE), '>Draw from<'), 0);
   assert.equal(count(body('forecast', S, BASALT), '>Draw from<'), 4);
 });
 
@@ -192,7 +187,6 @@ test('the row sits where draw-from.js rowLine puts it: a stored repeat hides it,
   assert.equal(drawFrom.rowLine(gust, 'windLineFrom', BASALT), 'fourthLine');
   assert.deepEqual(at(gust), ['windLineFrom@fourthLine']);
   // aplite never hangs a line: no row.
-  assert.deepEqual(at(gust, APLITE), []);
 });
 
 test('the real generated page draws each row family under its picker', () => {
@@ -258,18 +252,12 @@ test('Bars from: one row per chart, while its bars are drawn, never on aplite', 
   const shown = (it, S, env) => showWhen.isVisible(it, Object.assign({ env }, S));
   assert.equal(shown(rain, { barSource: 'rain' }, BASALT), true);
   assert.equal(shown(rain, { barSource: 'off' }, BASALT), false);
-  assert.equal(shown(rain, { barSource: 'rain' }, DIORITE), true, 'B&W too');
-  assert.equal(shown(rain, { barSource: 'rain' }, APLITE), false);
   ['off', 'countdown', 'status'].forEach((mode) => assert.equal(shown(radar, { radarMode: mode }, BASALT), false, mode));
   assert.equal(shown(radar, { radarMode: 'graph' }, BASALT), true);
-  assert.equal(shown(radar, { radarMode: 'graph' }, DIORITE), true, 'B&W too');
-  // Through the engine (every More options open), B&W included.
-  [BASALT, DIORITE].forEach((env) => {
-    assert.equal(count(body('forecast', { barSource: 'rain' }, env), '>Bars from<'), 1, env.platform);
-    assert.equal(count(body('radar', { radarMode: 'graph' }, env), '>Bars from<'), 1, env.platform);
-    assert.equal(count(body('forecast', { barSource: 'off' }, env), '>Bars from<'), 0, env.platform);
-  });
-  assert.equal(count(body('forecast', { barSource: 'rain', rainBarFrom: 'top' }, APLITE), '>Bars from<'), 0);
+  // Through the engine (every More options open).
+  assert.equal(count(body('forecast', { barSource: 'rain' }, BASALT), '>Bars from<'), 1);
+  assert.equal(count(body('radar', { radarMode: 'graph' }, BASALT), '>Bars from<'), 1);
+  assert.equal(count(body('forecast', { barSource: 'off' }, BASALT), '>Bars from<'), 0);
 });
 
 test('hints: none for Bottom, what hanging means for Top', () => {
@@ -311,8 +299,6 @@ test('a Visible values: Alert line that hangs names its start "Graph top"', () =
   // A stripe keeps its colour wording; aplite (no line styles) never hangs.
   assert.equal(FH.lineStyleHint('uv', 'stripeTop', { secondaryLine: 'uv', uvLineShow: 'alert', uvLineFrom: 'top' }, env),
     'The color starts faint at UV 6 and is full from UV 10.5. The stripe has one cell per hour.');
-  assert.equal(FH.forecastMetricHint('uv', { lineStyles: false }, { secondaryLine: 'uv', uvLineShow: 'alert',
-    uvLineFrom: 'top' }), 'The graph bottom is UV 6 and full height is UV 11.');
 });
 
 test('the copy a hanging line made wrong: Area fill, and the Wind graph scale\'s High', () => {
@@ -518,16 +504,12 @@ test('radar preview: Bars from: Top hangs the exact and the nearby bars under th
   });
 });
 
-test('aplite previews draw Bottom whatever is stored; Bottom stored is the default look', () => {
+test('Bottom stored is the default look', () => {
   const S = Object.assign({}, BASE, { secondaryLine: 'precip_prob', thirdLine: 'uv', barSource: 'rain',
     secondaryLineFill: true, dayNightShading: true });
-  assert.equal(FC.forecastPreview(Object.assign({}, S, ALL_TOP), APLITE), FC.forecastPreview(S, APLITE));
   const R = { radarProvider: 'dwd', radarColor: 'multicolor', radarMode: 'graph', theme: 'dark' };
-  assert.equal(RD.radarPreview(Object.assign({}, R, ALL_TOP), APLITE), RD.radarPreview(R, APLITE));
   const bottom = { precipLineFrom: 'bottom', cloudLineFrom: 'bottom', windLineFrom: 'bottom', uvLineFrom: 'bottom',
     rainBarFrom: 'bottom', radarBarFrom: 'bottom' };
-  [BASALT, DIORITE].forEach((env) => {
-    assert.equal(FC.forecastPreview(Object.assign({}, S, bottom), env), FC.forecastPreview(S, env), env.platform);
-    assert.equal(RD.radarPreview(Object.assign({}, R, bottom), env), RD.radarPreview(R, env), env.platform);
-  });
+  assert.equal(FC.forecastPreview(Object.assign({}, S, bottom), BASALT), FC.forecastPreview(S, BASALT));
+  assert.equal(RD.radarPreview(Object.assign({}, R, bottom), BASALT), RD.radarPreview(R, BASALT));
 });

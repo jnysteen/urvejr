@@ -49,9 +49,7 @@ const RULES = [
       'page/weather/weather-tab/weather-tab.js -> weather/adapter/weather-tab-data.js',
     ] },
   { name: 'the settings page engine requires only itself and the shared library',
-    from: ['page-engine'], to: ['page-engine', 'lib'], allowed: [
-      'config-ui/index.js -> config-ui/lib/platform.js',
-    ] },
+    from: ['page-engine'], to: ['page-engine', 'lib'], allowed: [] },
 ];
 
 // Require cycles today, each as its sorted member list.

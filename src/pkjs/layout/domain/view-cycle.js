@@ -26,7 +26,7 @@ var EXT_UPPER_BAR_HI = 1 << 11, EXT_LOWER_BAR_HI = 1 << 12;
 // Each of them: the value a screen's row names it by (viewUpper / viewLower), its source and
 // its settings keys' prefix (statusBar4Left, statusBar4Name, statusBar4Made, ...;
 // on-demand.js BARS and status-line-catalog.js EXTRA_LINES take them from here). A bar
-// exists once New status bar made it (<prefix>Made true), on a watch that has them (env.extraBars).
+// exists once New status bar made it (<prefix>Made true).
 var EXTRA_BARS = [
   { bar: 'bar4', src: STATUS_SRC_BAR4, prefix: 'statusBar4' },
   { bar: 'bar5', src: STATUS_SRC_BAR5, prefix: 'statusBar5' },
@@ -140,17 +140,13 @@ function barMade(S, bar) {
 }
 
 /**
- * Whether a bar 4 to 6 is on the watch: made, on a watch that has them (env.extraBars; an
- * unknown watch has three bars, platform.js). An omitted env is capable, as on-demand.js
- * facts reads one (the render signature's and the tests' reading); every wire path passes
- * the watch's.
+ * Whether a bar 4 to 6 is on the watch: made.
  * @param {?Object} S Settings.
  * @param {string} bar 'bar4' | 'bar5' | 'bar6'
- * @param {?Object} [env] Platform env (omitted = capable).
  * @returns {boolean}
  */
-function extraBarOn(S, bar, env) {
-  return (!env || env.extraBars === true) && barMade(S, bar);
+function extraBarOn(S, bar) {
+  return barMade(S, bar);
 }
 
 /**
@@ -713,8 +709,6 @@ function buildViewCycle(presetKey, healthMode, radarMode, swapClockStatus) {
   // DORMANT: the settings page hides the option and shows "Compact calendar" (and its
   // swap toggle) in its place. Its cycle is already compactCal's, so compile it AS
   // compactCal — swap included — or the watch would ignore the swap the page offers.
-  // Keep in step with schema.js's swapClockStatus gate (aplite's Layout card, the one
-  // place a preset is still picked).
   if (presetKey === 'compactDense' && mode === 'off' && !radarShowsView) {
     presetKey = 'compactCal';
   }
@@ -815,13 +809,12 @@ Object.keys(CUSTOM_SRC).forEach(function (value) { SRC_NAME[CUSTOM_SRC[value]] =
  * (extraBarOn), else the row is off, as is an unknown value.
  * @param {Object} S settings state
  * @param {*} value the row's viewUpper / viewLower value
- * @param {?Object} [env] platform env
  * @returns {number} STATUS_SRC_* value
  */
-function rowSource(S, value, env) {
+function rowSource(S, value) {
   var src = CUSTOM_SRC[value];
   if (src === undefined) { return STATUS_SRC_NONE; }
-  return (src > STATUS_SRC_HEALTH && !extraBarOn(S, value, env)) ? STATUS_SRC_NONE : src;
+  return (src > STATUS_SRC_HEALTH && !extraBarOn(S, value)) ? STATUS_SRC_NONE : src;
 }
 
 // Capability gates, single-sourced: which radarMode/healthMode values unlock each
@@ -872,10 +865,9 @@ var ALL_CAPABLE = { radarChart: true, healthBody: true };
  * @param {Object} S settings state
  * @param {Object} [cap] the seats to keep, in place of capabilities(S) (screensCycle's
  *   ALL_CAPABLE)
- * @param {?Object} [env] platform env (bars 4 to 6 need env.extraBars; omitted = capable)
  * @returns {Array<?Object>} specs for packWire (length == viewCount, 1-3; null = disabled)
  */
-function buildCustomCycle(S, cap, env) {
+function buildCustomCycle(S, cap) {
   var count = parseInt(S.viewCount, 10);
   if (!(count >= 1 && count <= 3)) { count = 1; }
   cap = cap || capabilities(S);
@@ -890,8 +882,8 @@ function buildCustomCycle(S, cap, env) {
       : (CUSTOM_TOP[topKey] || CUSTOM_TOP.cal2);
     var body = CUSTOM_BODY[S['viewBody' + i]];
     if (body === undefined) { body = BODY_FC; }
-    var su = rowSource(S, S['viewUpper' + i], env);
-    var sl = rowSource(S, S['viewLower' + i], env);
+    var su = rowSource(S, S['viewUpper' + i]);
+    var sl = rowSource(S, S['viewLower' + i]);
 
     // A radar top without the radar chart falls back to a calendar — the 2-row one for a
     // 2-row radar top (the same height, like the watch's no-data fold), else 3 rows.
@@ -993,17 +985,6 @@ var LEGACY_PRESET = {
  * @param {Object} state Clay settings (or config-UI state).
  * @returns {string} one of fullCal|compactCal|compactDense|noCal|weatherOnly
  */
-/**
- * The preset a watch actually runs: resolvePresetKey. The one reading the payload
- * (clay-payload.js) and the settings page's watch preview (preview-watch.js) share.
- * @param {Object} state settings state
- * @param {?{platform: string}} env platform facts; unused
- * @returns {string} preset key
- */
-function presetKeyFor(state, env) {
-  return resolvePresetKey(state);
-}
-
 function resolvePresetKey(state) {
   state = state || {};
   var p = state.layoutPreset;
@@ -1025,15 +1006,14 @@ function resolvePresetKey(state) {
  * About alerts Default-view note (page/settings/when-resolvers.js). layoutPreset 'custom' compiles the
  * per-view keys (buildCustomCycle).
  * @param {Object} settings settings state
- * @param {?{platform: string}} [env] platform facts (config-ui platform.js computeEnv)
  * @returns {Array<?Object>} the view cycle (slot 0 is the Default view)
  */
-function resolveViewCycle(settings, env) {
+function resolveViewCycle(settings) {
   var s = settings || {};
   if (s.layoutPreset === 'custom') {
-    return buildCustomCycle(s, null, env);
+    return buildCustomCycle(s, null);
   }
-  return buildViewCycle(presetKeyFor(s, env), s.healthMode || 'off', s.radarMode || 'graph',
+  return buildViewCycle(resolvePresetKey(s), s.healthMode || 'off', s.radarMode || 'graph',
     Boolean(s.swapClockStatus));
 }
 
@@ -1042,15 +1022,14 @@ function resolveViewCycle(settings, env) {
  * screens, layout/domain/screens.js deriveModes): a custom layout compiled with every seat kind on,
  * so its stored rows and graphs all count; a preset as its cycle.
  * @param {Object} settings settings state
- * @param {?{platform: string}} [env] platform facts
  * @returns {Array<?Object>} the views (null = a screen with nothing on it, which the watch skips)
  */
-function screensCycle(settings, env) {
+function screensCycle(settings) {
   var s = settings || {};
   if (s.layoutPreset === 'custom') {
-    return buildCustomCycle(s, ALL_CAPABLE, env);
+    return buildCustomCycle(s, ALL_CAPABLE);
   }
-  return resolveViewCycle(s, env);
+  return resolveViewCycle(s);
 }
 
 /**
@@ -1060,12 +1039,11 @@ function screensCycle(settings, env) {
  * the modes the screens need (screens.js deriveModes, which has the cycle compiled already:
  * barsIn).
  * @param {Object} settings settings state
- * @param {?{platform: string}} [env] platform facts
  * @returns {{top: boolean, forecast: boolean, radar: boolean, health: boolean, bar4: boolean,
  *     bar5: boolean, bar6: boolean}}
  */
-function barsShown(settings, env) {
-  return barsIn(screensCycle(settings, env));
+function barsShown(settings) {
+  return barsIn(screensCycle(settings));
 }
 
 /**
@@ -1137,7 +1115,7 @@ var VIEW_CYCLE = {
   HEALTH_ROW_MODES: HEALTH_ROW_MODES, HEALTH_BODY_MODES: HEALTH_BODY_MODES,
   capabilities: capabilities,
   buildCustomCycle: buildCustomCycle, specToKeys: specToKeys,
-  buildViewCycle: buildViewCycle, resolvePresetKey: resolvePresetKey, presetKeyFor: presetKeyFor,
+  buildViewCycle: buildViewCycle, resolvePresetKey: resolvePresetKey,
   resolveViewCycle: resolveViewCycle, screensCycle: screensCycle, barsShown: barsShown, barsIn: barsIn,
   graphsIn: graphsIn
 };

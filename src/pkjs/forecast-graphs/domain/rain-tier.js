@@ -80,12 +80,11 @@ function rainPermille(tenths) {
  * GColorDarkGray in light polarity (a pure white bar reads too flat against a
  * white background) — anything else (default) yields the five multicolor tier
  * stops, untouched by theme.
- * @param {string} platform Pebble platform id; unused (the Pebble Time 2's display is colour).
  * @param {string} [colorMode] 'multicolor' (default) or 'white'. Effectively-color displays only.
  * @param {string} [theme] 'dark'|'light'|'bw'|'bw-light'; defaults to 'dark'.
  * @returns {{from: number[], rgb: number[]}} Stops: permille thresholds + 0xRRGGBB colors.
  */
-function buildPalette(platform, colorMode, theme) {
+function buildPalette(colorMode, theme) {
     theme = theme || 'dark';
     if (isBwTheme(theme)) {
         return { from: [0], rgb: [isLightPolarity(theme) ? COLORS.GColorWhite : COLORS.GColorBlack] };
@@ -138,13 +137,12 @@ function packPalette(palette) {
 
 /**
  * Build and pack one channel's palette in a single call.
- * @param {string} platform Pebble platform id.
  * @param {string} colorMode 'multicolor' or 'white'.
  * @param {string} [theme] 'dark'|'light'|'bw'|'bw-light'.
  * @returns {number[]} Packed uint8 palette blob for the wire.
  */
-function buildPackedPalette(platform, colorMode, theme) {
-    return packPalette(buildPalette(platform, colorMode, theme));
+function buildPackedPalette(colorMode, theme) {
+    return packPalette(buildPalette(colorMode, theme));
 }
 
 module.exports = {

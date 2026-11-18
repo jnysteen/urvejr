@@ -28,21 +28,10 @@
 //
 //   wizard: true|false   the first-run wizard is finishing. `false` is a real
 //                        condition, not "don't care": omit the key for that.
-//   health: true|false   the watch HAS health (env.health) AND health shows on it
-//                        (choices.healthMode !== 'off': since 2.6 worked out from
-//                        the screens and the slots, so a Health screen added in
-//                        setup turns it on). Both halves matter — aplite cannot do
-//                        health at all, and on a watch that can, 'off' means the
+//   health: true|false   health shows on the watch (choices.healthMode !== 'off':
+//                        since 2.6 worked out from the screens and the slots, so a
+//                        Health screen added in setup turns it on); 'off' means the
 //                        slots would be dead.
-//   hr / radar /         plain env capability flags, as computeEnv reports them
-//   thresholds /         (config-ui/lib/platform.js). Missing env reads as
-//   color /              "not capable", which is the safe direction: it can only
-//   themePolarity /      withhold a default, never place a dead one. Keep this
-//   colorBacklight       set in step with computeEnv: a fact it reports and this
-//                        vocabulary omits is a condition that cannot be written,
-//                        and an omission is not visible until someone tries.
-//   platform: 'basalt' | ['emery', 'basalt']      one name or a list
-//   platformNot: 'aplite' | ['aplite']            the complement of the above
 //   choice: {key: 'value'} | {key: ['a', 'b']}    what the user picked/stored;
 //                        an unset choice matches nothing (except via `health`,
 //                        which knows healthMode's schema default).
@@ -94,17 +83,6 @@
     // --- the `when` vocabulary -------------------------------------------------
 
     /**
-     * Build the predicate for a plain env capability flag.
-     * @param {string} name Env field name, e.g. 'hr'.
-     * @returns {function(*, Object): boolean} Predicate (wanted, ctx).
-     */
-    function envFlag(name) {
-        return function (wanted, ctx) {
-            return Boolean(ctx && ctx.env && ctx.env[name]) === Boolean(wanted);
-        };
-    }
-
-    /**
      * @param {*} value Value to look for.
      * @param {*} wanted One acceptable value, or a list of them.
      * @returns {boolean} True when value is (or is among) wanted.
@@ -115,15 +93,13 @@
     }
 
     /**
-     * Whether health items may be placed at all: the watch can report health AND
-     * health shows on it. An unset healthMode is health OFF, matching the settings
-     * page's own default.
+     * Whether health items may be placed at all: health shows on the watch. An unset
+     * healthMode is health OFF, matching the settings page's own default.
      * @param {Object} ctx Resolver context.
      * @returns {boolean} True when a health slot would show a live reading.
      */
     function healthEnabled(ctx) {
-        if (!ctx || !ctx.env || !ctx.env.health) { return false; }
-        var mode = (ctx.choices && ctx.choices.healthMode) || HEALTH_MODE_DEFAULT;
+        var mode = (ctx && ctx.choices && ctx.choices.healthMode) || HEALTH_MODE_DEFAULT;
         return mode !== 'off';
     }
 
@@ -134,21 +110,6 @@
             return Boolean(ctx && ctx.wizard) === Boolean(wanted);
         },
         health: function (wanted, ctx) { return healthEnabled(ctx) === Boolean(wanted); },
-        hr: envFlag('hr'),
-        radar: envFlag('radar'),
-        thresholds: envFlag('thresholds'),
-        color: envFlag('color'),
-        themePolarity: envFlag('themePolarity'),
-        // emery's colour backlight LED (the Nighttime card's Dim backlight). No
-        // rule uses it yet; it is here because the vocabulary above promises to
-        // mirror computeEnv, and the alternative is a rule that throws.
-        colorBacklight: envFlag('colorBacklight'),
-        platform: function (wanted, ctx) {
-            return matchesOneOf(ctx && ctx.env ? ctx.env.platform : undefined, wanted);
-        },
-        platformNot: function (wanted, ctx) {
-            return !matchesOneOf(ctx && ctx.env ? ctx.env.platform : undefined, wanted);
-        },
         choice: function (wanted, ctx) {
             var keys = Object.keys(wanted || {});
             for (var i = 0; i < keys.length; i++) {

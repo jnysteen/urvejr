@@ -113,8 +113,7 @@ module.exports = {
     // above, because the watch keeps showing it.
     PHONE_BATTERY_SHOWN: 'phoneBatteryShown',
     // The re-bake snapshot: the handful of payload keys buildStatusLines reads,
-    // plus the watchInfo its platform env is derived from, version-stamped as
-    // one JSON blob. PKJS is torn down whenever the user leaves the watchface,
+    // version-stamped as one JSON blob. PKJS is torn down whenever the user leaves the watchface,
     // and without this a battery event after a restart had nothing to re-bake
     // and reached the watch not at all until the next completed fetch. Settings
     // are deliberately NOT in here -- the re-bake pairs this with the live blob

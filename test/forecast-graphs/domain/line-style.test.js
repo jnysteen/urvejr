@@ -6,7 +6,6 @@ const test = require('node:test');
 const assert = require('node:assert');
 const lineStyle = require('../../../src/pkjs/forecast-graphs/domain/line-style.js');
 const graphWire = require('../../../src/pkjs/forecast-graphs/domain/graph-wire.js');
-const platform = require('../../../src/pkjs/config-ui/lib/platform.js');
 const COLORS = require('../../../src/pkjs/theme/domain/pebble-colors.js');
 const { resolveInk } = require('../../../src/pkjs/theme/domain/resolve-ink.js');
 const rainTier = require('../../../src/pkjs/forecast-graphs/domain/rain-tier.js');
@@ -14,7 +13,7 @@ const rainTier = require('../../../src/pkjs/forecast-graphs/domain/rain-tier.js'
 const emery = { platform: 'emery' };
 // The graph colours one watch resolves to: resolveGraphColors over that watch's
 // config-ui env, the call forecast-graphs/domain/graph-wire.js packs the wire from.
-const resolve = (settings, watchInfo) => lineStyle.resolveGraphColors(settings, platform.computeEnv(watchInfo));
+const resolve = (settings, watchInfo) => lineStyle.resolveGraphColors(settings, {});
 
 test('the settings page names the same eight graph metrics the colour keys are scoped by', () => {
   const metrics = require('../../../src/pkjs/page/forecast-graphs/forecast-metrics.js');
@@ -38,7 +37,7 @@ test('a third colour is always resolved, even when the third line is off', () =>
 // fold but not the colour-platform check, so on a diorite install it read picks the wire
 // had already resolved away to white. Every consumer now opens with this call over the
 // watch's computeEnv, so the divergence cannot come back.
-const renderContext = (settings, watchInfo) => lineStyle.renderContextFor(settings, platform.computeEnv(watchInfo));
+const renderContext = (settings, watchInfo) => lineStyle.renderContextFor(settings, {});
 
 test('renderContextFor folds the theme, tests the display, and names the polarity', () => {
   assert.deepEqual(renderContext({ theme: 'dark' }, { platform: 'emery' }),
@@ -195,7 +194,7 @@ test('gust/Line/Dark counts as untouched on either built-in, so white bars never
       assert.equal(lineStyle.graphColorIsDefault(settings, 'gust', 'Line', 'Dark'), true,
         `${seeded} on ${rainBarColor} bars`);
       const bytes = graphWire.buildLineStyleBytes(Object.assign(
-        { secondaryLine: 'gust', thirdLine: 'off', theme: 'dark' }, settings), emery);
+        { secondaryLine: 'gust', thirdLine: 'off', theme: 'dark' }, settings));
       assert.equal(bytes[0], rainTier.rgbToGColor8(
         rainBarColor === 'white' ? COLORS.GColorLightGray : COLORS.GColorWhite),
         `${seeded} on ${rainBarColor} bars resolves through rainBarColor`);
@@ -296,7 +295,7 @@ test('the style-byte encoding matches the C headers, decoded with their own cons
   assert.equal(byteFor('stripeBottom'), 0x03);
   assert.equal(byteFor('stripeTop'), 0x07);
   // The wire's style block is exactly the persist blob the watch stores.
-  const bytes = graphWire.buildLineStyleBytes({ secondaryLine: 'wind', thirdLine: 'gust', fifthLine: 'cloud', theme: 'dark' }, { platform: 'emery' });
+  const bytes = graphWire.buildLineStyleBytes({ secondaryLine: 'wind', thirdLine: 'gust', fifthLine: 'cloud', theme: 'dark' });
   assert.equal(bytes.length - 9 - 2, STYLE_BYTES, 'bytes [9..11] are LINE_STYLE_STYLE_BYTES');
   // The fourth metric's style byte ([13]) rides its own persist slot, same layout —
   // x marks by default, the kind persist.c's unset-slot default returns too.
@@ -307,15 +306,13 @@ test('the style-byte encoding matches the C headers, decoded with their own cons
   assert.equal(byteFor('x'), KIND.x, "and 'x' packs to exactly that byte");
 });
 
-test('a stripe-styled main line never fills, unless the styles are ignored', () => {
+test('a stripe-styled main line never fills', () => {
   const base = { secondaryLine: 'cloud', secondaryLineFill: true, thirdLine: 'off', theme: 'dark' };
   ['stripeTop', 'stripeBottom'].forEach((st) => {
     const s = Object.assign({ secondaryLineStyle: st }, base);
     assert.equal(resolve(s, { platform: 'emery' }).fillOn, false, st + ' on emery');
-    assert.equal(graphWire.buildLineStyleBytes(s, { platform: 'emery' })[3] & 0x01, 0,
+    assert.equal(graphWire.buildLineStyleBytes(s)[3] & 0x01, 0,
       st + ': the wire fill flag is clear');
-    assert.equal(lineStyle.resolveGraphColors(s, { color: true, themePolarity: true, lineStyles: false }).fillOn,
-      true, st + ' with lineStyles: false');
   });
   // A stripe on another line leaves the main line's fill alone.
   assert.equal(resolve(Object.assign({ thirdLineStyle: 'stripeTop' }, base),
@@ -387,7 +384,7 @@ test('a stored stripe on a metric that cannot be one resolves to the line\'s non
   // no stripe at all, so the watch can never draw one.
   const bytes = graphWire.buildLineStyleBytes({ secondaryLine: 'pressure', thirdLine: 'feels', fourthLine: 'dew',
     fifthLine: 'off', secondaryLineStyle: 'stripeTop', thirdLineStyle: 'stripeBottom',
-    fourthLineStyle: 'stripeTop', fifthLineStyle: 'stripeBottom', theme: 'dark' }, emery);
+    fourthLineStyle: 'stripeTop', fifthLineStyle: 'stripeBottom', theme: 'dark' });
   [9, 10, 11, 13].forEach((i) => assert.notEqual(bytes[i] & 0x03, 3, 'byte ' + i + ' is no stripe'));
   // Drawn as lines then, all three float (bit 6: no zero to stand on, graph-wire.js FLOAT_BIT).
   assert.deepEqual([bytes[9], bytes[10], bytes[11]], [
@@ -426,39 +423,32 @@ test('effectiveLineMetric: every forecast line may carry a temperature-axis metr
 
 // THE one walk for "which forecast line draws metric X": forecast-axis.js' feels-like /
 // dew point gate, forecast-series.js' bake gate and the settings page's hostLine ask it.
-test('firstDrawnLine: the first line drawing a metric that passes, lines 3-4 only with allLines', () => {
+test('firstDrawnLine: the first line drawing a metric that passes', () => {
   const temp = lineStyle.isTempAxisMetric;
   const is = (metric) => (m) => m === metric;
-  // [settings, allLines, test, the line it names]
+  // [settings, test, the line it names]
   const cases = [
-    [{}, true, () => true, null],
-    [{ secondaryLine: 'off', thirdLine: 'off', fourthLine: 'off', fifthLine: 'off' }, true, () => true, null],
-    [{ secondaryLine: 'wind', thirdLine: 'feels', fourthLine: 'dew' }, true, temp, 'thirdLine'],
-    [{ secondaryLine: 'wind', thirdLine: 'uv', fourthLine: 'dew' }, true, temp, 'fourthLine'],
-    [{ secondaryLine: 'wind', thirdLine: 'uv', fourthLine: 'dew' }, false, temp, null],
-    [{ secondaryLine: 'dew', thirdLine: 'dew' }, true, is('dew'), 'secondaryLine'],
-    [{ secondaryLine: 'off', fourthLine: 'uv', fifthLine: 'uv' }, true, is('uv'), 'fourthLine'],
-    [{ secondaryLine: 'off', fifthLine: 'gust' }, true, is('gust'), 'fifthLine'],
-    [{ secondaryLine: 'off', fifthLine: 'gust' }, false, is('gust'), null],
-    [{ secondaryLine: 'cloud', thirdLine: 'wind' }, true, (m) => ['wind', 'gust'].indexOf(m) >= 0, 'thirdLine']
+    [{}, () => true, null],
+    [{ secondaryLine: 'off', thirdLine: 'off', fourthLine: 'off', fifthLine: 'off' }, () => true, null],
+    [{ secondaryLine: 'wind', thirdLine: 'feels', fourthLine: 'dew' }, temp, 'thirdLine'],
+    [{ secondaryLine: 'wind', thirdLine: 'uv', fourthLine: 'dew' }, temp, 'fourthLine'],
+    [{ secondaryLine: 'dew', thirdLine: 'dew' }, is('dew'), 'secondaryLine'],
+    [{ secondaryLine: 'off', fourthLine: 'uv', fifthLine: 'uv' }, is('uv'), 'fourthLine'],
+    [{ secondaryLine: 'off', fifthLine: 'gust' }, is('gust'), 'fifthLine'],
+    [{ secondaryLine: 'cloud', thirdLine: 'wind' }, (m) => ['wind', 'gust'].indexOf(m) >= 0, 'thirdLine']
   ];
-  cases.forEach(([s, allLines, t, want]) => {
-    assert.equal(lineStyle.firstDrawnLine(s, allLines, t), want, JSON.stringify([s, allLines]));
+  cases.forEach(([s, t, want]) => {
+    assert.equal(lineStyle.firstDrawnLine(s, t), want, JSON.stringify(s));
   });
-  lineStyle.FORECAST_LINES.forEach((line, i) => {
+  lineStyle.FORECAST_LINES.forEach((line) => {
     const s = {};
     s[line.key] = 'cloud';
-    assert.equal(lineStyle.firstDrawnLine(s, true, is('cloud')), line.key, line.key);
-    assert.equal(lineStyle.firstDrawnLine(s, false, is('cloud')), i < 2 ? line.key : null, line.key + ' frozen');
+    assert.equal(lineStyle.firstDrawnLine(s, is('cloud')), line.key, line.key);
   });
   // The test sees only what a line draws: never off, an unset line or a repeat of an
-  // earlier pick, and nothing of lines 3-4 without allLines.
-  const seen = (allLines) => {
-    const asked = [];
-    lineStyle.firstDrawnLine({ secondaryLine: 'off', thirdLine: 'cloud', fourthLine: 'cloud', fifthLine: 'uv' },
-      allLines, (m) => { asked.push(m); return false; });
-    return asked;
-  };
-  assert.deepEqual(seen(true), ['cloud', 'uv']);
-  assert.deepEqual(seen(false), ['cloud']);
+  // earlier pick.
+  const asked = [];
+  lineStyle.firstDrawnLine({ secondaryLine: 'off', thirdLine: 'cloud', fourthLine: 'cloud', fifthLine: 'uv' },
+    (m) => { asked.push(m); return false; });
+  assert.deepEqual(asked, ['cloud', 'uv']);
 });

@@ -239,13 +239,13 @@ test('the watch draws the stripe: a stripe line takes levels', () => {
     { secondaryLineStyle: 'line', thirdLineStyle: 'dots', fourthLineStyle: 'x' });
   ['emery', null].forEach((platform) => {
     const info = platform ? { platform } : null;
-    const out = applyForecastSeries(payload(), striped, info);
+    const out = applyForecastSeries(payload(), striped);
     assert.deepEqual(out.SECONDARY_LINE_TREND_UINT8, [NONE, L1, L3], String(platform));
     assert.deepEqual(out.THIRD_LINE_TREND_UINT8, [NONE, L1, L2], String(platform));
     assert.deepEqual(out.FOURTH_LINE_TREND_UINT8, [NONE, L1, FULL], String(platform));
   });
   // Drawn as a line, the exact bytes.
-  const line = applyForecastSeries(payload(), plain, { platform: 'emery' });
+  const line = applyForecastSeries(payload(), plain);
   assert.deepEqual(line.SECONDARY_LINE_TREND_UINT8, [0, 13, 113]);
   assert.deepEqual(line.THIRD_LINE_TREND_UINT8, [0, 2, 75]);
 });
@@ -278,15 +278,15 @@ function previewSample(state) {
 }
 
 /**
- * The levels a B&W forecast preview draws on its main line's top stripe, one per hour
+ * The levels a B&W-theme forecast preview draws on its main line's top stripe, one per hour
  * column: the dither pattern a cell is filled with is its level (`sd1`..`sd4`), and an
  * hour without a cell is level 0.
  * @param {Object} state Live settings.
  * @returns {number[]} Eleven levels.
  */
 function previewLevels(state) {
-  const svg = FC.forecastPreview(Object.assign({ theme: 'dark', dayNightShading: false }, state),
-    { color: false, platform: 'diorite', lineStyles: true });
+  const svg = FC.forecastPreview(Object.assign({ theme: 'bw', dayNightShading: false }, state), {}, undefined,
+    { sample: FC.noonSample() });
   const out = Array(11).fill(0);
   [...svg.matchAll(/<rect x="([-0-9.e]+)" y="4" width="[-0-9.e]+" height="5" fill="url\(#sd(\d)\)"><\/rect>/g)]
     .forEach((m) => { out[Math.round((Number(m[1]) - 20) / PREVIEW_PITCH)] = Number(m[2]); });

@@ -36,7 +36,7 @@ function bands(spec, S, env) {
  * @returns {string[][]}
  */
 function cycleBands(S, env) {
-  return vc.resolveViewCycle(S, env || BASALT).map((spec) => bands(spec, S, env));
+  return vc.resolveViewCycle(S).map((spec) => bands(spec, S, env));
 }
 
 test('each preset\'s Default view, in the watch\'s order', () => {
@@ -52,7 +52,7 @@ test('each preset\'s Default view, in the watch\'s order', () => {
 });
 
 test('radar and health grow the cycle by a view each', () => {
-  const n = (S) => vc.resolveViewCycle(Object.assign({ layoutPreset: 'compactCal' }, S), BASALT).length;
+  const n = (S) => vc.resolveViewCycle(Object.assign({ layoutPreset: 'compactCal' }, S)).length;
   assert.equal(n({ healthMode: 'off', radarMode: 'off' }), 1);
   assert.equal(n({ healthMode: 'off', radarMode: 'graph' }), 2, 'radar adds a view');
   assert.equal(n({ healthMode: 'status', radarMode: 'off' }), 2, 'the health bar adds a view');

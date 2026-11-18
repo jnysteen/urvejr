@@ -340,7 +340,7 @@ test('missing weather values bake as --', () => {
 
 test('buildStatusLines packs four lines with defaults', () => {
   const p = basePayload();
-  statusLines.buildStatusLines(p, baseSettings(), WATCH_BASALT, NOW);
+  statusLines.buildStatusLines(p, baseSettings(), NOW);
 
   const forecast = decodeLine(p.STATUS_LINE_1_UINT8);
   assert.equal(forecast[0].kind, K.TEXT);
@@ -373,7 +373,7 @@ test('user selections and availability resolution', () => {
     statusForecastLeft: 'uv', statusForecastRight: 'wind',
     statusHealthRight: 'hr'
   });
-  statusLines.buildStatusLines(p, s, WATCH_EMERY, NOW);
+  statusLines.buildStatusLines(p, s, NOW);
   const forecast = decodeLine(p.STATUS_LINE_1_UINT8);
   assert.equal(forecast[0].icon, I.UV);
   assert.equal(forecast[0].text, '6');
@@ -434,7 +434,7 @@ test('city cap: 19 bytes in mid, 8 in edge, code-point safe', () => {
   const p = basePayload();
   p.CITY = 'Mönchengladbach-Ost'; // 20 UTF-8 bytes (o-umlaut = 2)
   const s = baseSettings({ statusRadarLeft: 'city' });
-  statusLines.buildStatusLines(p, s, WATCH_BASALT, NOW);
+  statusLines.buildStatusLines(p, s, NOW);
   const forecast = decodeLine(p.STATUS_LINE_1_UINT8);
   assert.ok(forecast[1].len <= 19);
   assert.ok(forecast[1].text.length > 0);
@@ -494,7 +494,7 @@ test('sun slot keeps a real pair\'s time, even one nearly a day apart', () => {
 test('aqi slot renders the bare index from AQI_TREND head (leaf icon carries context)', () => {
   const payload = Object.assign(basePayload(), { AQI_TREND: [42, 50] });
   const settings = baseSettings({ statusForecastLeft: 'aqi' });
-  statusLines.buildStatusLines(payload, settings, WATCH_BASALT, NOW);
+  statusLines.buildStatusLines(payload, settings, NOW);
   const slots = decodeLine(payload.STATUS_LINE_1_UINT8);
   assert.equal(slots[0].kind, K.TEXT);
   assert.equal(slots[0].icon, I.AQI);
@@ -503,18 +503,18 @@ test('aqi slot renders the bare index from AQI_TREND head (leaf icon carries con
 
 test('aqi slot shows -- when AQI_TREND head is null or absent', () => {
   const nulls = Object.assign(basePayload(), { AQI_TREND: [null] });
-  statusLines.buildStatusLines(nulls, baseSettings({ statusForecastLeft: 'aqi' }), WATCH_BASALT, NOW);
+  statusLines.buildStatusLines(nulls, baseSettings({ statusForecastLeft: 'aqi' }), NOW);
   assert.equal(decodeLine(nulls.STATUS_LINE_1_UINT8)[0].text, '--');
 
   const absent = basePayload(); // no AQI_TREND at all
-  statusLines.buildStatusLines(absent, baseSettings({ statusForecastLeft: 'aqi' }), WATCH_BASALT, NOW);
+  statusLines.buildStatusLines(absent, baseSettings({ statusForecastLeft: 'aqi' }), NOW);
   assert.equal(decodeLine(absent.STATUS_LINE_1_UINT8)[0].text, '--');
 });
 
 test('pollen slot emits POLLEN_TODAY verbatim with the pollen icon', () => {
   const payload = Object.assign(basePayload(), { POLLEN_TODAY: '2-3' });
   const settings = baseSettings({ provider: 'dwd', statusForecastLeft: 'pollen' });
-  statusLines.buildStatusLines(payload, settings, WATCH_BASALT, NOW);
+  statusLines.buildStatusLines(payload, settings, NOW);
   const slot = decodeLine(payload.STATUS_LINE_1_UINT8)[0];
   assert.equal(statusLines.formatValue('pollen', payload, settings), '2-3');
   assert.equal(slot.kind, K.TEXT);
@@ -525,17 +525,17 @@ test('pollen slot emits POLLEN_TODAY verbatim with the pollen icon', () => {
 test('pollen slot shows -- when POLLEN_TODAY is null or absent', () => {
   const settings = baseSettings({ provider: 'dwd', statusForecastLeft: 'pollen' });
   const missing = basePayload();
-  statusLines.buildStatusLines(missing, settings, WATCH_BASALT, NOW);
+  statusLines.buildStatusLines(missing, settings, NOW);
   assert.equal(decodeLine(missing.STATUS_LINE_1_UINT8)[0].text, '--');
 
   const nullValue = Object.assign(basePayload(), { POLLEN_TODAY: null });
-  statusLines.buildStatusLines(nullValue, settings, WATCH_BASALT, NOW);
+  statusLines.buildStatusLines(nullValue, settings, NOW);
   assert.equal(decodeLine(nullValue.STATUS_LINE_1_UINT8)[0].text, '--');
 });
 
 test('every baked line validates against the caps', () => {
   const p = basePayload();
-  statusLines.buildStatusLines(p, baseSettings(), WATCH_EMERY, NOW);
+  statusLines.buildStatusLines(p, baseSettings(), NOW);
   ['STATUS_LINE_1_UINT8', 'STATUS_LINE_2_UINT8',
    'STATUS_LINE_3_UINT8', 'STATUS_LINE_4_UINT8'].forEach(k => {
     assert.ok(Array.isArray(p[k]), k + ' present');
@@ -545,7 +545,7 @@ test('every baked line validates against the caps', () => {
 
 test('week slot bakes as a LIVE_WEEK kind (watch renders it live, no baked text)', () => {
   const payload = basePayload();
-  statusLines.buildStatusLines(payload, baseSettings({ statusForecastLeft: 'week' }), WATCH_BASALT, NOW);
+  statusLines.buildStatusLines(payload, baseSettings({ statusForecastLeft: 'week' }), NOW);
   const slots = decodeLine(payload.STATUS_LINE_1_UINT8);
   assert.equal(slots[0].kind, K.LIVE_WEEK);
   assert.equal(slots[0].icon, I.NONE);
@@ -1270,7 +1270,7 @@ test('buildStatusLines derives env.phoneBattery from the phone\'s detector verdi
 
   setPhoneBattery(47, false);
   let p = basePayload();
-  statusLines.buildStatusLines(p, settings, WATCH_BASALT, NOW, phone);
+  statusLines.buildStatusLines(p, settings, NOW, phone);
   let slot = decodeLine(p.STATUS_LINE_1_UINT8)[0];
   assert.equal(slot.icon, catalog.ICONS.PHONE_BATTERY);
   assert.equal(slot.text, '47%');
@@ -1279,7 +1279,7 @@ test('buildStatusLines derives env.phoneBattery from the phone\'s detector verdi
   // resolves to 'empty' rather than baking a made-up value.
   clearPhoneBattery();
   p = basePayload();
-  statusLines.buildStatusLines(p, settings, WATCH_BASALT, NOW, phone);
+  statusLines.buildStatusLines(p, settings, NOW, phone);
   slot = decodeLine(p.STATUS_LINE_1_UINT8)[0];
   assert.equal(slot.kind, catalog.KINDS.EMPTY);
   assert.equal(slot.text, '');
@@ -1360,7 +1360,7 @@ const ALL_FIVE_VALUES = placedOnly(['gust', 'uv', 'aqi', 'pollen', 'wind'], {
 test('buildStatusLines bakes ALERT_ENTRIES_UINT8: the active alerts, with their values by default', () => {
   const p = alertPayload();
   const s = baseSettings(placedOnly(['uv', 'wind'], { alertUvDisplay: 'icon', alertWindDisplay: 'icon' }));
-  statusLines.buildStatusLines(p, s, WATCH_BASALT, NOW);
+  statusLines.buildStatusLines(p, s, NOW);
   // UV danger (header bit 7 | kind 7 | danger bit 3), wind warn (kind 2), both
   // today's; the Icon Look: no value bytes.
   assert.deepEqual(p.ALERT_ENTRIES_UINT8, [0x80 | 7 | 0x08, 0x80 | 2]);
@@ -1368,14 +1368,14 @@ test('buildStatusLines bakes ALERT_ENTRIES_UINT8: the active alerts, with their 
   // The Looks absent: Icon + value, the default — UV's "8" and wind's "45" follow.
   const dflt = alertPayload();
   const d = baseSettings(placedOnly(['uv', 'wind']));
-  statusLines.buildStatusLines(dflt, d, WATCH_BASALT, NOW);
+  statusLines.buildStatusLines(dflt, d, NOW);
   assert.deepEqual(dflt.ALERT_ENTRIES_UINT8, [0x80 | 7 | 0x08, 0x38, 0x80 | 2, 0x34, 0x35]);
   assert.deepEqual(dflt.ALERT_ENTRIES_UINT8, packedAlerts(alertPayload(), d));
 });
 
 test('buildStatusLines: all four with values fit the tuple, in the On demand order', () => {
   const p = alertPayload();
-  statusLines.buildStatusLines(p, baseSettings(ALERTS_ALL_VALUES), WATCH_EMERY, NOW);
+  statusLines.buildStatusLines(p, baseSettings(ALERTS_ALL_VALUES), NOW);
   const ch = (t) => t.split('').map((c) => c.charCodeAt(0));
   assert.deepEqual(p.ALERT_ENTRIES_UINT8, [].concat(
     [0x80 | 3 | 0x08], ch('90'),
@@ -1393,10 +1393,10 @@ test('buildStatusLines: nothing alerting sends an empty ALERT_ENTRIES_UINT8', ()
     GUST_TREND_UINT8: [15], GUST_DAY_PEAKS: [15, 15, 0],
     AQI_TREND: [20]
   });
-  statusLines.buildStatusLines(quiet, baseSettings(ALERTS_ALL_VALUES), WATCH_BASALT, NOW);
+  statusLines.buildStatusLines(quiet, baseSettings(ALERTS_ALL_VALUES), NOW);
   assert.deepEqual(quiet.ALERT_ENTRIES_UINT8, [], 'present, so the watch clears its entries');
   const off = alertPayload();
-  statusLines.buildStatusLines(off, baseSettings(NOTHING_PLACED), WATCH_BASALT, NOW);
+  statusLines.buildStatusLines(off, baseSettings(NOTHING_PLACED), NOW);
   assert.deepEqual(off.ALERT_ENTRIES_UINT8, []);
 });
 
@@ -1404,7 +1404,7 @@ test('the weather alerts are no slot item: no catalog kind, and the lines carry 
   assert.equal(catalog.byCode('alerts'), undefined);
   assert.equal(Object.prototype.hasOwnProperty.call(catalog.KINDS, 'ALERTS'), false);
   const p = alertPayload();
-  statusLines.buildStatusLines(p, baseSettings(ALERTS_ALL_VALUES), WATCH_BASALT, NOW);
+  statusLines.buildStatusLines(p, baseSettings(ALERTS_ALL_VALUES), NOW);
   const top = decodeLine(p.STATUS_LINE_3_UINT8);
   assert.deepEqual(top.map((slot) => slot.kind), [K.LIVE_WEEK, K.LIVE_DATE, K.TEXT],
     'the strip keeps its shipped slots; the watch overlays the row itself');
@@ -1419,7 +1419,7 @@ test('the entry cap holds all five alerts with their widest values', () => {
     AQI_TREND: [500], POLLEN_TODAY: '2-3'
   });
   const s = baseSettings(Object.assign({ provider: 'dwd' }, ALL_FIVE_VALUES));
-  statusLines.buildStatusLines(p, s, WATCH_BASALT, NOW);
+  statusLines.buildStatusLines(p, s, NOW);
   const bytes = p.ALERT_ENTRIES_UINT8;
   // Five headers, nothing tail-dropped.
   assert.deepEqual(decodeAlerts(bytes).map((e) => e.value), ['130', '11', '500', '2-3', '120']);
@@ -1437,7 +1437,7 @@ test('the entry cap holds all five alerts with their widest values for tomorrow 
   });
   const s = baseSettings(Object.assign({ provider: 'dwd', aqiSource: 'openmeteo', aqiScale: 'us' },
     ALL_FIVE_VALUES));
-  statusLines.buildStatusLines(p, s, WATCH_BASALT, NOW);
+  statusLines.buildStatusLines(p, s, NOW);
   const entries = decodeAlerts(p.ALERT_ENTRIES_UINT8);
   assert.deepEqual(entries.map((e) => e.value), ['255', '11', '500', '2-3', '255']);
   assert.deepEqual(entries.map((e) => e.mark), ['raquo', 'raquo', 'raquo', 'raquo', 'raquo']);
@@ -1449,12 +1449,12 @@ test('the bake reads the phone battery only when a slot shows it, and once per b
   const lazyPhone = { supported: true,
     reading: () => { reads++; return { available: true, level: 52, charging: false }; } };
   // No phone-battery slot anywhere: nothing reads the battery.
-  statusLines.buildStatusLines(basePayload(), baseSettings({}), WATCH_BASALT, NOW, lazyPhone);
+  statusLines.buildStatusLines(basePayload(), baseSettings({}), NOW, lazyPhone);
   assert.equal(reads, 0, 'a bake without a battery slot must not read the battery');
   // Two battery slots (text and icon): one read serves both.
   const p = basePayload();
   statusLines.buildStatusLines(p, baseSettings({ statusForecastLeft: 'phoneBattery',
-    statusForecastMid: 'phoneBatteryPlain', statusForecastRight: 'empty' }), WATCH_BASALT, NOW,
+    statusForecastMid: 'phoneBatteryPlain', statusForecastRight: 'empty' }), NOW,
     lazyPhone);
   assert.equal(reads, 1);
   assert.equal(decodeLine(p.STATUS_LINE_1_UINT8)[0].text, '52%');
@@ -1464,6 +1464,6 @@ test('a phone-battery reader that answers null (storage blocked) bakes its slots
   const p = basePayload();
   const blocked = { supported: true, reading: () => null };
   statusLines.buildStatusLines(p, baseSettings({ statusForecastLeft: 'phoneBattery',
-    statusForecastMid: 'empty', statusForecastRight: 'empty' }), WATCH_BASALT, NOW, blocked);
+    statusForecastMid: 'empty', statusForecastRight: 'empty' }), NOW, blocked);
   assert.equal(decodeLine(p.STATUS_LINE_1_UINT8)[0].text, '--');
 });

@@ -18,7 +18,6 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('fs');
 const path = require('path');
-const platform = require('../../../src/pkjs/config-ui/lib/platform.js');
 require('../../../src/pkjs/config-ui/lib/schema-walk.js');
 require('../../../src/pkjs/lib/color.js');
 require('../../../src/pkjs/config-ui/lib/engine.js');
@@ -28,10 +27,7 @@ const { cDefine } = require('../../helpers/c-source.js');
 
 const ROOT = path.join(__dirname, '..', '..', '..');
 const read = (p) => fs.readFileSync(path.join(ROOT, p), 'utf8');
-// An env with one forecast length (no span option), and one without line styles either.
-const BASALT = Object.assign(platform.computeEnv(), { platform: 'basalt', forecastSpan: false });
-const APLITE = Object.assign({}, BASALT, { platform: 'aplite', lineStyles: false });
-const COLOR = { color: true };
+const COLOR = {};
 
 // The preview's plot (preview-forecast.js): PT 4, PB 94 without a bottom stripe, MT = PT + 3
 // (where a full-height metric lands) or the foot of a top stripe band (11 under one stripe:
@@ -316,22 +312,14 @@ test('a feels-like line rides the temperature curve\'s scale, its margins and al
   TEMPS.forEach((t, i) => assert.ok(near(temp[i], PB - 12 - (t - 13) * k), 'hour ' + i));
 });
 
-test('aplite previews keep the frozen margins and labels, whatever is drawn', () => {
-  const S = { secondaryLine: 'precip_prob', secondaryLineFill: true, barSource: 'rain' };
-  const rows = curveRows(preview(S, APLITE));
-  assert.ok(near(rows.top, 19) && near(rows.bottom, PB - 12));
-  const labels = labelBases(preview(S, APLITE));
-  assert.ok(near(labels.hi, 4 + 11) && near(labels.lo, PB - 1));
-});
-
 test('nothing anchored, or nothing moved: the labels keep today\'s corners, as the watch\'s do', () => {
   [{}, { rainBarFrom: 'top' }, { barSource: 'rain' }, { barSource: 'rain', rainBarFrom: 'top' },
     { secondaryLine: 'uv', uvLineFrom: 'top', barSource: 'rain' }].forEach((over) => {
-    const labels = labelBases(preview(over, BASALT));
+    const labels = labelBases(preview(over, COLOR));
     assert.ok(near(labels.hi, 4 + 11) && near(labels.lo, PB - 1), JSON.stringify(over));
   });
   // A bottom stripe band: the lo label stays on the lifted plot's floor.
-  const lifted = labelBases(preview({ thirdLine: 'uv', thirdLineStyle: 'stripeBottom' }, BASALT));
+  const lifted = labelBases(preview({ thirdLine: 'uv', thirdLineStyle: 'stripeBottom' }, COLOR));
   assert.ok(near(lifted.hi, 4 + 11) && near(lifted.lo, PB - 6 - 1));
 });
 
@@ -348,7 +336,7 @@ test('under a top stripe band the hi label follows the curve\'s top with nothing
       fifthLineStyle: 'stripeTop' }, band: 4 + 3 * 5 + 2 * 1 + 2 }
   ];
   cases.forEach((c) => {
-    const svg = preview(top(c.over), BASALT);
+    const svg = preview(top(c.over), COLOR);
     const rows = curveRows(svg);
     const labels = labelBases(svg);
     assert.ok(near(rows.top, c.band + 12), 'premise: nothing anchored, the inset under the band');
@@ -358,21 +346,21 @@ test('under a top stripe band the hi label follows the curve\'s top with nothing
   });
   // 25.8, 31.8 and 37.8: 12 units below where the curve's top and the label stood before the
   // inset came back (one stripe's label kept its corner then, at 15).
-  assert.ok(near(labelBases(preview(top(cases[0].over), BASALT)).hi, 25.8));
-  assert.ok(near(labelBases(preview(top(cases[1].over), BASALT)).hi, 31.8));
-  assert.ok(near(labelBases(preview(top(cases[2].over), BASALT)).hi, 37.8));
+  assert.ok(near(labelBases(preview(top(cases[0].over), COLOR)).hi, 25.8));
+  assert.ok(near(labelBases(preview(top(cases[1].over), COLOR)).hi, 31.8));
+  assert.ok(near(labelBases(preview(top(cases[2].over), COLOR)).hi, 37.8));
 });
 
 test('under a top stripe band a hanging element moves neither the curve\'s top nor the hi label', () => {
   // The share of the plot under the band (10) stays under the 12-unit inset, so the curve's
   // top and the hi label level with it are where they are with nothing hanging.
   const S = { thirdLine: 'cloud', thirdLineStyle: 'stripeTop' };
-  const svg = preview(Object.assign({ secondaryLine: 'precip_prob', precipLineFrom: 'top' }, S), BASALT);
+  const svg = preview(Object.assign({ secondaryLine: 'precip_prob', precipLineFrom: 'top' }, S), COLOR);
   const rows = curveRows(svg);
   const labels = labelBases(svg);
   assert.ok(near(rows.top, BAND + 12), 'premise: the inset under the band');
-  assert.deepEqual(rows, curveRows(preview(S, BASALT)));
-  assert.deepEqual(labels, labelBases(preview(S, BASALT)));
+  assert.deepEqual(rows, curveRows(preview(S, COLOR)));
+  assert.deepEqual(labels, labelBases(preview(S, COLOR)));
   // The ink (the cap above the baseline) is centred on the row; the lo label stays.
   assert.ok(near(labels.hi - PA.LABEL_CAP / 2, rows.top));
   assert.ok(near(labels.lo, PB - 1));
@@ -391,7 +379,7 @@ test('with a feels-like or dew line under the air\'s low, that low lifts off the
   [{ over: { thirdLine: 'feels', barSource: 'rain' }, low: 13 },
     { over: { thirdLine: 'dew', thirdLineStyle: 'line' }, low: 12 },
     { over: { secondaryLine: 'feels', fourthLine: 'dew' }, low: 12 }].forEach((c) => {
-    const svg = preview(c.over, BASALT);
+    const svg = preview(c.over, COLOR);
     const label = JSON.stringify(c.over);
     const top = 4 + 3 + 12, k = (PB - 12 - top) / (24 - c.low);
     const bottom = PB - 12 - (14 - c.low) * k;
@@ -419,21 +407,8 @@ test('the scale\'s range is the temperature\'s and every drawn line\'s, the C ho
   assert.deepEqual(PA.tempAxisRange([17, 17], []), { min: 17, max: 17 });
   // Both ways at once.
   assert.deepEqual(PA.tempAxisRange(T, [[20, 30, 26, 22], [9, 12, 16, 14]]), { min: 9, max: 30 });
-  // (5) end to end: a line the watch does not draw widens nothing. Previewing aplite (no
-  // WW_LINE_STYLE) the fourth and fifth lines are off, so a dew line stored there leaves
-  // the temperature on its own range, today's 12-unit margins at both edges.
-  const aplite = curveRows(preview({ fourthLine: 'dew', fourthLineStyle: 'line', fifthLine: 'feels' }, APLITE));
-  assert.ok(near(aplite.top, 4 + 3 + 12) && near(aplite.bottom, PB - 12));
-  // Nor a feels or dew pick stored on the Main or Second metric line (picked on a colour
-  // watch paired to the same phone): the aplite bake drops it (forecast-series.js
-  // tempAxisLineDrawn) and the frozen fork has no fit, so the air's low keeps the floor row.
-  [{ secondaryLine: 'feels' }, { thirdLine: 'dew', thirdLineStyle: 'line' },
-    { secondaryLine: 'feels', thirdLine: 'dew' }].forEach((over) => {
-    const rows = curveRows(preview(over, APLITE));
-    assert.ok(near(rows.top, 4 + 3 + 12) && near(rows.bottom, PB - 12), 'aplite ' + JSON.stringify(over));
-  });
-  // And the one drawn: the same line on a basalt preview lifts the air's low (2).
-  assert.ok(curveRows(preview({ fourthLine: 'dew', fourthLineStyle: 'line' }, BASALT)).bottom < PB - 12);
+  // (5) end to end: a dew line drawn on the Fourth metric lifts the air's low (2).
+  assert.ok(curveRows(preview({ fourthLine: 'dew', fourthLineStyle: 'line' })).bottom < PB - 12);
 });
 
 test('alignLabels: off today\'s reach only, inward only, the minimum gap, else today\'s place for both', () => {
@@ -464,7 +439,7 @@ test('alignLabels: off today\'s reach only, inward only, the minimum gap, else t
 // on the axis (today), on the graph (the hi number under the point it names, the lo over its own), or off; On graph
 // and Off draw no left axis, so the graph starts at the frame's left edge. temp_axis_pad.h pins
 // the watch's half on the host.
-const EMERY = platform.computeEnv({ platform: 'emery' });
+const EMERY = {};
 const NUMBER_TEXT = /<text x="([\d.-]+)" y="([\d.-]+)" font-size="8" fill="#AEB4BD"[^>]*>(-?\d+)°<\/text>/g;
 const UNDERLAY = /<text x="([\d.-]+)" y="([\d.-]+)" font-size="8" fill="([^"]+)" stroke="([^"]+)" stroke-width="2"[^>]*>(-?\d+)°<\/text>/g;
 const numbersIn = (svg) => [...svg.matchAll(NUMBER_TEXT)].map((m) => ({ x: Number(m[1]), base: Number(m[2]), t: m[3] }));
@@ -643,8 +618,6 @@ test('hour axis: the marks are forecast_span.h\'s, the long span\'s clock marks 
     < cDefine(SPAN_HEADER, 'FORECAST_SPAN_LABEL_MIN_PX'));
   assert.deepEqual(span('48'), { labelEvery: cDefine(SPAN_HEADER, 'FORECAST_SPAN_CLOCK_LABEL_H'),
     tickEvery: cDefine(SPAN_HEADER, 'FORECAST_SPAN_CLOCK_TICK_H'), byClock: true });
-  // Without the span option, 24 h whatever is stored.
-  assert.deepEqual(span('48', BASALT), span('24'));
   // The clock's marks: 12 / 18 / 0 labelled, 15 / 21 / 3 ticked, the rest bare; a repeated
   // (fall-back) hour marked once.
   const long = span('48');
@@ -665,12 +638,10 @@ test('hour axis: every stored span value gives the cadence of the option the wat
   const TWELVE = { labelEvery: 2, tickEvery: 1, byClock: false };
   const DAY = { labelEvery: 3, tickEvery: 1, byClock: false };
   const LONG = { labelEvery: 6, tickEvery: 3, byClock: true };
-  // [stored value, its cadence]; without the span option 24 h whatever is stored.
+  // [stored value, its cadence].
   [['12', TWELVE], [12, TWELVE], ['24', DAY], [24, DAY], ['48', LONG], [48, LONG], ['36', DAY], ['junk', DAY],
     [undefined, DAY]].forEach(([stored, onEmery]) => {
     assert.deepEqual(PA.axisCadence({ forecastHours: stored }, EMERY), onEmery, 'emery ' + stored);
-    [BASALT, null].forEach((env) =>
-      assert.deepEqual(PA.axisCadence({ forecastHours: stored }, env), DAY, 'no span option ' + stored));
   });
   assert.deepEqual(PA.axisCadence(null, EMERY), DAY, 'no settings');
 });

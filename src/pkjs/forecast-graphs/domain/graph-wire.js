@@ -7,9 +7,7 @@
 //
 // The readings live elsewhere and are shared with the settings page: line-style.js
 // resolves the graph colours and the style bytes, draw-from.js reads Draw from / Bars
-// from, rain-tier.js builds the palettes. This file asks them about one watch, whose
-// capabilities come from config-ui's computeEnv (the platform table the page's env is
-// built from too), and encodes the answers.
+// from, rain-tier.js builds the palettes. This file asks them and encodes the answers.
 //
 // THE DRAW FROM BITS (Clay message only; no new tuple, no new length). A line's Draw
 // from: Top is bit 5 of its own style byte (CLAY_LINE_STYLE_UINT8 [9], [10], [11], [13];
@@ -26,7 +24,6 @@ var rainTier = require('./rain-tier.js');
 var resolveInk = require('../../theme/domain/resolve-ink.js');
 var lineStyle = require('./line-style.js');
 var drawFrom = require('./draw-from.js');
-var platforms = require('../../config-ui/lib/platform.js');
 
 // Line-style flag byte (wire byte [3]), bit 0: the secondary line's area fill is on.
 var FLAG_SECONDARY_FILL = 0x01;
@@ -85,21 +82,18 @@ function markPalette(blob, on) {
  *
  * @param {Object} settings Clay settings (rainBarColor/radarColor/theme, rainBarFrom/
  *   radarBarFrom).
- * @param {Object|null} watchInfo Active watch info.
  * @returns {{BAR_PALETTE_UINT8: number[], RADAR_PALETTE_UINT8: number[]}} Packed tuples.
  */
-function buildPaletteTuples(settings, watchInfo) {
-    var platform = 'emery';
+function buildPaletteTuples(settings) {
     var resolved = settings || {};
     var theme = resolved.theme || 'dark';
-    var env = platforms.computeEnv(watchInfo);
     return {
         BAR_PALETTE_UINT8: markPalette(
-            rainTier.buildPackedPalette(platform, resolveInk.barColorMode(resolved.rainBarColor, theme), theme),
-            drawFrom.barsFromTop(resolved, 'rain', env)),
+            rainTier.buildPackedPalette(resolveInk.barColorMode(resolved.rainBarColor, theme), theme),
+            drawFrom.barsFromTop(resolved, 'rain')),
         RADAR_PALETTE_UINT8: markPalette(
-            rainTier.buildPackedPalette(platform, resolveInk.barColorMode(resolved.radarColor, theme), theme),
-            drawFrom.barsFromTop(resolved, 'radar', env))
+            rainTier.buildPackedPalette(resolveInk.barColorMode(resolved.radarColor, theme), theme),
+            drawFrom.barsFromTop(resolved, 'radar'))
     };
 }
 
@@ -136,12 +130,10 @@ function buildPaletteTuples(settings, watchInfo) {
  * never widen the minimum. ADR-0003 §7.
  *
  * @param {Object} settings Clay settings blob.
- * @param {Object|null} watchInfo Pebble.getActiveWatchInfo() result, or null.
  * @returns {number[]} The fourteen bytes above.
  */
-function buildLineStyleBytes(settings, watchInfo) {
-    var env = platforms.computeEnv(watchInfo);
-    var s = lineStyle.resolveGraphColors(settings, env);
+function buildLineStyleBytes(settings) {
+    var s = lineStyle.resolveGraphColors(settings);
     /**
      * One line's style byte with its Draw from flag and its float bit.
      * @param {string} lineKey secondaryLine|thirdLine|fourthLine|fifthLine.
@@ -150,7 +142,7 @@ function buildLineStyleBytes(settings, watchInfo) {
      */
     function styleWithFrom(lineKey) {
         return styleByte(lineStyle.lineStyleByte(settings, lineKey + 'Style'),
-            drawFrom.lineEdge(settings, lineKey, env));
+            drawFrom.lineEdge(settings, lineKey));
     }
     return [
         rainTier.rgbToGColor8(s.secondary),
@@ -206,20 +198,19 @@ function buildCurveInsetBytes(settings) {
 }
 
 /**
- * The graph's three Clay tuples for one watch, keyed by their AppMessage names. Derived
- * from the settings blob plus the watch's capabilities alone, never from weather data, so
+ * The graph's three Clay tuples, keyed by their AppMessage names. Derived
+ * from the settings blob alone, never from weather data, so
  * they ride the Clay message (test/repo/inbox-size.test.js budgets them).
  * @param {Object} settings Clay settings blob.
- * @param {Object|null} watchInfo Pebble.getActiveWatchInfo() result, or null.
  * @returns {{BAR_PALETTE_UINT8: number[], RADAR_PALETTE_UINT8: number[],
  *   CLAY_LINE_STYLE_UINT8: number[]}} The tuples, in that (send) order.
  */
-function buildGraphTuples(settings, watchInfo) {
-    var palette = buildPaletteTuples(settings, watchInfo);
+function buildGraphTuples(settings) {
+    var palette = buildPaletteTuples(settings);
     return {
         BAR_PALETTE_UINT8: palette.BAR_PALETTE_UINT8,
         RADAR_PALETTE_UINT8: palette.RADAR_PALETTE_UINT8,
-        CLAY_LINE_STYLE_UINT8: buildLineStyleBytes(settings, watchInfo)
+        CLAY_LINE_STYLE_UINT8: buildLineStyleBytes(settings)
     };
 }
 
