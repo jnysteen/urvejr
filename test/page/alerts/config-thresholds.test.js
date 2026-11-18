@@ -178,7 +178,7 @@ test('threshold color pickers are COLOR + bw-theme gated (goal kinds: + toggle),
 });
 
 // Health thresholds are inert wherever a health item can't reach a status slot:
-// no health sensors (aplite) or healthMode 'off'. 'slot' mode DOES put health in the
+// no health sensors or healthMode 'off'. 'slot' mode DOES put health in the
 // ordinary bars, so it must keep them — the same rule statusLineCatalog.itemAvailable
 // applies to the items themselves. Asserted behaviorally through the real evaluator.
 test('health-kind threshold rows are hidden on health-less platforms and with health off', () => {
@@ -408,7 +408,7 @@ test('onLoad leaves the stored toggle alone and still heals colours', () => {
     location: ''
   };
   onbuild.onLoad({
-    env: { platform: 'basalt' },
+    env: { platform: 'emery' },
     get: k => S[k],
     set: (k, v) => { S[k] = v; },
     getInitial: k => S[k]
@@ -435,7 +435,7 @@ test('onLoad derives auto colors from the theme; user picks survive', () => {
    */
   function loaded(S) {
     onbuild.onLoad({
-      env: { platform: 'basalt' },
+      env: { platform: 'emery' },
       get: k => S[k],
       set: (k, v) => { S[k] = v; },
       getInitial: k => S[k]
@@ -495,7 +495,7 @@ test('the on-open heal, the page\'s colours and the packer follow ONE colour rul
       const S = { theme };
       if (v !== undefined) { S[key] = v; }
       const before = wire.buildSettingsBlob(Object.assign({}, S), { color: true });
-      onbuild.onLoad({ env: { platform: 'basalt' }, get: k => S[k], set: (k, x) => { S[k] = x; },
+      onbuild.onLoad({ env: { platform: 'emery' }, get: k => S[k], set: (k, x) => { S[k] = x; },
         getInitial: k => S[k] });
       const label = theme + ' ' + key + '=' + JSON.stringify(v);
       assert.deepEqual(wire.buildSettingsBlob(S, { color: true }), before, label + ': same bytes');
@@ -685,7 +685,7 @@ test('the page renders an alert sheet: its Shows on grid, the levels, then the L
 });
 
 // The warn look row: 'Warn look' / 'Close look', a hint for the SELECTED look only,
-// and — on a B&W watch or B&W day theme — the text-colour wording, whose Fill line
+// and — on a B&W day theme — the text-colour wording, whose Fill line
 // says it matches danger there; a B&W NIGHT theme only appends that note to Fill.
 test('the warn look row: label, the selected look\'s hint, and the B&W wording', () => {
   const lookFor = stem => sheetFor(stem).items.concat(levelsSheetFor(stem).items)
@@ -753,13 +753,6 @@ test('the warn look row: label, the selected look\'s hint, and the B&W wording',
   assert.ok(colour.modal.innerHTML.indexOf('data-hint-for="threshUvWarnLook">' + wind.hintByValue.fill + '<') !== -1,
     'with the Fill hint');
   assert.ok(colour.modal.innerHTML.indexOf('>Warn color<') !== -1, 'and the Warn color picker');
-  const bw = bootGeneratedPage({ provider: 'dwd' }, 'diorite');
-  openAlertSheet(bw, 'Uv');
-  assert.ok(bw.modal.innerHTML.indexOf('<button class="on" data-k="threshUvWarnLook" data-v="outline">') !== -1,
-    'B&W watch: Outline selected by default');
-  assert.ok(bw.modal.innerHTML.indexOf('data-hint-for="threshUvWarnLook">' + wind.hintFrom.args.copy.bw.outline + '<') !== -1,
-    'with the text-colour wording');
-  assert.equal(bw.modal.innerHTML.indexOf('data-k="threshUvWarnColor"'), -1, 'no colour picker on B&W');
 });
 
 test('the reset button blanks the pair, restores default colors, clears the scale max', () => {
@@ -1237,33 +1230,6 @@ test('closing the scale-max field rebuilds only its slider, so the tap that clos
   assert.equal(page.modal.writes, modalWrites + 2, 'the release renders, folding the field back');
 });
 
-// The section-level platform gate has to survive into the FLAT generated page (the
-// concatenated <script> the webview really runs), not just the module-level engine:
-// aplite compiles the highlight out (no WW_THRESHOLD_HIGHLIGHT), so a threshold card
-// there would be a settings card that silently does nothing.
-test('the real generated page: threshold pencils + sheet on basalt, nothing on aplite', () => {
-  const aplite = bootGeneratedPage({ provider: 'dwd' }, 'aplite');
-  aplite.clickTab('watch');
-  aplite.openAllMore('scroll');   // the master Bold row rides More options: look behind them too
-  // The tab and the Watch and Forecast bars' dialogs (Your status bars opens them).
-  const dialog = (bar) => {
-    aplite.openEditSheet('bar-' + bar);
-    const h = aplite.modal.innerHTML;
-    aplite.doneDialog();
-    return h;
-  };
-  const apliteWatch = aplite.scroll.innerHTML + dialog('top') + dialog('forecast');
-  assert.equal(apliteWatch.indexOf('data-edit-sheet="thresh'), -1,
-    'no threshold pencil on aplite (env.thresholds is false)');
-  ['threshAqiOn', 'threshAqiWarn', 'threshWindOn', 'threshStepsOn',
-    'threshAqiWarnColor', 'statusBoldAll'].forEach((k) =>
-    assert.equal(apliteWatch.indexOf('data-k="' + k + '"'), -1, k + ' absent on aplite'));
-  // Time/Calendar live in the Watchface tab, so probe an always-shown
-  // Watch-Status-Bar toggle instead.
-  assert.ok(apliteWatch.indexOf('data-k="showQt"') !== -1,
-    'the rest of the Status bars tab still renders on aplite');
-});
-
 // --- the slot sheet's shape: Bold row above its own thresholds/goals group ----
 
 /** @returns {Object[]} Every threshold sheet section, in schema order. */
@@ -1539,7 +1505,7 @@ test('onLoad keeps an auto warn color tracking the theme fg and never touches th
   ['', null, '#FFFFFF', '#000000'].forEach((rawColor) => {
     ['none', 'outline', 'fill', undefined].forEach((look) => {
       const S = { theme: 'dark', threshWindWarnColor: rawColor, threshWindWarnLook: look };
-      const ctx = { env: { platform: 'basalt' },
+      const ctx = { env: { platform: 'emery' },
         get: (k) => S[k], set: (k, v) => { S[k] = v; }, getInitial: (k) => S[k] };
       onbuild.onLoad(ctx);
       assert.equal(S.threshWindWarnColor, '#FFFFFF', JSON.stringify(rawColor) + ' ' + look);
@@ -2247,13 +2213,9 @@ function scrambledSlotState() {
   return S;
 }
 
-test('resetStatusSlots restores every slot default (hr and non-hr) and the bold defaults', () => {
-  const hrEnv = Object.assign({}, ENV, { hr: true });
-  // Sanity: the two envs really differ (the health bar's hrDefaults flavor).
-  assert.notEqual(catalog.slotDefault('statusHealthRight', ENV),
-    catalog.slotDefault('statusHealthRight', hrEnv));
+test('resetStatusSlots restores every slot default and the bold defaults', () => {
   const map = itemsByKey();
-  [{ env: ENV, name: 'non-hr' }, { env: hrEnv, name: 'hr' }].forEach(({ env, name }) => {
+  [{ env: ENV, name: 'emery' }].forEach(({ env, name }) => {
     const S = scrambledSlotState();
     // The same stored-shape resolver the engine hands actions (defaultAsStored),
     // rebuilt from the real schema so the assertions stay end-to-end honest.
@@ -2375,8 +2337,7 @@ test('the All status bars reset link resets a live page (slots + bold) on click'
   page.scroll.dispatch('click', { target: t });
   assert.equal(page.S.statusForecastLeft, 'temp', 'forecast left back to its default');
   assert.equal(page.S.statusTopMid, 'date', 'top mid back to its default');
-  // The harness boots basalt (no HR sensor) → the non-hr health flavor.
-  assert.equal(page.S.statusHealthRight, 'sleep', 'health right back to the non-hr default');
+  assert.equal(page.S.statusHealthRight, 'hr', 'health right back to its default');
   assert.equal(page.S.statusBoldAll, 'perSlot', 'master Bold row back to perSlot');
   assert.equal(page.S.threshCityBoldMode, 'off', 'bold-only kind back to off');
   assert.equal(page.S.threshWindBoldMode, 'warn', 'threshold kind back to warn');
@@ -2398,7 +2359,7 @@ test("a goal kind's legacy null warn color heals to the auto green on page open"
   ['', null, undefined].forEach((raw) => {
     const S = { theme: 'dark', threshSleepWarn: '360', threshSleepDanger: '480',
       threshSleepWarnColor: raw, threshSleepWarnLook: 'none' };
-    onbuild.onLoad({ env: { platform: 'basalt' },
+    onbuild.onLoad({ env: { platform: 'emery' },
       get: (k) => S[k], set: (k, v) => { S[k] = v; }, getInitial: (k) => S[k] });
     assert.equal(S.threshSleepWarnColor, '#55FF00', JSON.stringify(raw) + ': the auto green');
     assert.equal(S.threshSleepWarnLook, 'none', 'the none look survives the open');

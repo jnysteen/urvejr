@@ -72,7 +72,7 @@ test('a Fahrenheit sample converts the three temperature-axis series, nothing el
   assert.equal(f.temps[0], 75);
 });
 
-test('without a sample a span watch draws the hours its graph shows, any other watch the noon scenario', () => {
+test('without a sample the watch draws the hours its graph shows', () => {
   // Owner, 2026-11-09: the graph cards showed 66 h, the pinned preview did not follow. Emery's
   // pinned preview draws its span's hours of the cards' sample (wizard-forecast.js previewSvg).
   const drawn = {};
@@ -92,11 +92,6 @@ test('without a sample a span watch draws the hours its graph shows, any other w
   const full = Object.assign({}, S0, { forecastHours: '48', provider: 'openmeteo', forecastAxisNumbers: 'graph' });
   assert.equal(spanHours.shownHours(full, EMERY), 66);
   assert.equal(nightBands(FC.forecastPreview(full, EMERY, {})), 3);
-  // Every other watch has one span: the 12-point noon scenario, as before.
-  const BASALT = platform.computeEnv({ platform: 'basalt' });
-  const basalt = FC.forecastPreview(Object.assign(E.hydrate(schema, {}, BASALT), { forecastHours: '48' }), BASALT, {});
-  assert.deepEqual(hourLabels(basalt), [12, 15, 18, 21]);
-  assert.equal(nightBands(basalt), 1);
 });
 
 test('with a sample the preview draws its hours from its first hour, a night band per night', () => {

@@ -1,6 +1,6 @@
 // test/page/layout/layout-flick-preview.test.js
 // The Watchface tab pins the watch preview at its top: one card per screen of the resolved
-// view cycle (Default, Flick 1, Flick 2), each a button that opens its editor off aplite.
+// view cycle (Default, Flick 1, Flick 2), each a button that opens its editor.
 // Drive the real engine over the Watchface tab and assert the cards track the cycle — a
 // screen a preset's modes leave out simply isn't in the cycle, so there's no card to dim.
 // Also covers the engine capability that a staticText item may host a blockBefore.
@@ -20,13 +20,13 @@ const onbuild = require('../../../src/pkjs/page/settings/onbuild.js');
 /**
  * The Watchface tab rendered through the real engine, every card's More options open.
  * @param {Object} overrides Stored values over the hydrated defaults.
- * @param {string} [platformName] Platform (basalt by default).
+ * @param {string} [platformName] Platform (emery by default).
  * @returns {{body: string, pin: string}} The whole tab body and its pinned header (the
  *   watch preview, which sits above every card).
  */
 function watchfaceTab(overrides, platformName) {
   const S = Object.assign(eng.hydrate(schema, {}), overrides);
-  const ENV = plat.computeEnv({ platform: platformName || 'basalt' });
+  const ENV = plat.computeEnv({ platform: platformName || 'emery' });
   onbuild.onLoad({
     env: ENV,
     get: function (k) { return S[k]; },
@@ -48,7 +48,7 @@ function watchfaceTab(overrides, platformName) {
 /**
  * The watch preview the Watchface tab pins above its cards.
  * @param {Object} overrides Stored values over the hydrated defaults.
- * @param {string} [platformName] Platform (basalt by default).
+ * @param {string} [platformName] Platform (emery by default).
  * @returns {string} The pinned header's HTML.
  */
 function layoutBody(overrides, platformName) {
@@ -84,17 +84,6 @@ test('compactDense all + radar shows three cards incl. Health graph', () => {
   const v = views(layoutBody({ layoutPreset: 'compactDense', radarMode: 'graph', healthMode: 'all' }));
   assert.deepEqual(v.map((d) => d.split(':')[0]), ['Default', 'Flick 1', 'Flick 2'], 'three cards');
   assert.ok(v.some((d) => /Health graph$/.test(d)), 'graph flick present');
-});
-
-test('aplite normalizes stale enabled settings to a single Default view', () => {
-  const stale = { layoutPreset: 'compactDense', radarMode: 'graph', healthMode: 'all' };
-  const tab = watchfaceTab(stale, 'aplite');
-  const body = tab.pin;
-  assert.deepEqual(views(body).map((d) => d.split(':')[0]), ['Default'], 'the Default card alone');
-  // The Screen switching card (Back to Default after) is hidden on aplite; on basalt the
-  // same state, three screens, shows it.
-  assert.equal(tab.body.indexOf('Back to Default after'), -1, 'reset control is hidden');
-  assert.ok(watchfaceTab(stale).body.indexOf('>Back to Default after<') >= 0, 'premise: basalt shows the reset control');
 });
 
 test('engine renders a blockBefore hosted on a staticText item', () => {

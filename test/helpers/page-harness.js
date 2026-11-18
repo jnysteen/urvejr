@@ -240,7 +240,7 @@ function bootGeneratedPage(cfg, platformName, opts) {
   opts = opts || {};
   const html = require('../../src/pkjs/config-ui/scripts/build-page.js').previewPage({
     appFiles: require('../../scripts/build-config-page.js').APP_FILES,
-    schema, env: platformLib.computeEnv({ platform: platformName || 'basalt' }),
+    schema, env: platformLib.computeEnv({ platform: platformName || 'emery' }),
     // An installed, already-onboarded config: the real boot injects a seeded blob,
     // and without onboardingDone the first-run wizard would auto-open over the page
     // (wizard.js shouldShow). A caller can still pass onboardingDone: false.

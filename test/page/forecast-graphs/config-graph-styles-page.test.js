@@ -24,7 +24,8 @@ const { editorRows, editorRow, editorAddChips } = require('../../helpers/page-ro
 
 const PC = global.PConf;
 const EMERY = platform.computeEnv({ platform: 'emery' });
-const BASALT = platform.computeEnv({ platform: 'basalt' });
+// An env whose watch draws one graph look (no graph styles, no span option).
+const BASALT = Object.assign(platform.computeEnv(), { platform: 'one look', graphStyles: false, forecastSpan: false });
 
 /**
  * Graph k's row on the Your graphs card (listRows).
@@ -369,12 +370,6 @@ test('the page: Your graphs lists each graph with its picture, where it shows, i
   assert.ok(html.indexOf('<button type="button" class="ui-row ui-new" data-action="newGraph">') !== -1,
     'New graph while a slot is free');
   assert.ok(html.indexOf('<span class="ui-n">New graph</span><span class="ui-d">2 of 6 graphs</span>') !== -1, 'its count');
-  // A watch without graphs of its own: its one graph, untitled, named Forecast graph.
-  const b = bootGeneratedPage(TWO, 'basalt');
-  b.clickTab('graphs');
-  const bh = b.scroll.innerHTML;
-  assert.deepEqual(rows(bh), [['1', 'Forecast graph', '', 'Precipitation %', 'Room for 3 more metrics']]);
-  ['Your graphs', 'hdr-note', 'newGraph', 'gl-lead'].forEach((gone) => assert.equal(bh.indexOf(gone), -1, gone));
   // One graph: the lead says what New graph is for.
   const one = bootGeneratedPage(layout(['1', '1'], { provider: 'dwd' }), 'emery');
   one.clickTab('graphs');
@@ -394,11 +389,11 @@ test('a row\'s room: the graph\'s free lines, and on a graph the screens show no
   assert.equal(GS.linesDrawn(EMERY), 4);
   assert.equal(GS.linesDrawn(BASALT), 4);
   assert.equal(GS.linesDrawn(null), 4, 'an unknown watch reads as one that draws them all');
-  const APLITE = platform.computeEnv({ platform: 'aplite' });
-  assert.equal(GS.linesDrawn(APLITE), 2, 'aplite draws two lines');
+  const APLITE = Object.assign(platform.computeEnv(), { lineStyles: false });
+  assert.equal(GS.linesDrawn(APLITE), 2, 'without line styles two lines draw');
   const room = (S, env, k) => row(S, env, k).room;
   assert.equal(room(layout(['1'], { secondaryLine: 'precip_prob', thirdLine: 'off', fourthLine: 'uv' }), APLITE, 0),
-    'Room for 1 more metric', 'a third line aplite does not draw leaves room in its two');
+    'Room for 1 more metric', 'a third line not drawn leaves room in the two');
   // Graph 1 draws four metrics on the Default, Long the fifth on Flick 1.
   const four = layout(['1', '2'], { secondaryLine: 'precip_prob', thirdLine: 'uv', fourthLine: 'wind', fifthLine: 'gust',
     graphStyles: stylesItem({ secondaryLine: 'cloud', thirdLine: 'off', fourthLine: 'off', fifthLine: 'off' }) });
@@ -455,17 +450,6 @@ test('the page: a row opens its graph\'s dialog; its edits are that graph\'s, Do
   assert.equal(two.forecastHours, '12', 'Long\'s edit in graphStyles');
   assert.equal(two.thirdLine, 'cloud');
   assert.equal(blob.graphStylePick, undefined, 'the pick is the page\'s own');
-});
-
-test('the page: the one graph\'s dialog on a watch without graphs of its own', () => {
-  const b = bootGeneratedPage(TWO, 'basalt');
-  b.clickTab('graphs');
-  b.tapAction('openGraph', 1);
-  const dlg = b.modal.innerHTML;
-  assert.ok(dlg.indexOf('<span class="dlg-kick">Graphs</span>') !== -1, 'the tab over the title');
-  assert.ok(dlg.indexOf('id="esheet-ttl-graph">Forecast graph</span>') !== -1);
-  assert.deepEqual(cardTitles(dlg), ['Lines', 'Rain bars', 'Other']);
-  ['data-dlg-rename', 'deleteGraphStyle', 'graphOnScreen'].forEach((gone) => assert.equal(dlg.indexOf(gone), -1, gone));
 });
 
 test('the page: Revert puts every graph back, the pick too', () => {
@@ -692,12 +676,6 @@ test('the screen editor: with several graphs a chip per graph adds the forecast 
   one.tapEditor({ se: 'rm', j: M.idxOf(M.screensOf(one.S, EMERY)[1], 'fc') });
   const oneChips = editorAddChips(oneBody());
   assert.ok(oneChips.indexOf('Forecast graph') !== -1 && oneChips.indexOf('Graph 1') === -1, oneChips.join(' | '));
-  // basalt: no graph chips, the row says Forecast graph.
-  const b = bootGeneratedPage(TWO, 'basalt');
-  b.tapAction('openScreen', 0);
-  const bBody = b.editor().querySelector('[data-se-body]').innerHTML;
-  assert.match(editorRows(bBody)[M.idxOf(M.screensOf(b.S, BASALT)[0], 'fc')], /^Forecast graph · (?:Fill|\d rows)$/);
-  assert.equal(bBody.indexOf('data-g='), -1);
 });
 
 test('the screen editor: a graph that would make the screens show a sixth metric is a greyed-out chip; a tap on it says why', () => {
@@ -777,13 +755,10 @@ test('the screen editor: with its forecast graph on, Switch graph offers the oth
   p.tapEditor({ se: 'rm', j: M.idxOf(screen(), 'fc') });
   assert.deepEqual(switchChips(body()), []);
   assert.ok(editorAddChips(body()).indexOf('Short') !== -1);
-  // One graph, or a watch with one: nothing to switch to.
+  // One graph: nothing to switch to.
   const one = bootGeneratedPage(layout(['1', '1'], { provider: 'dwd' }), 'emery');
   one.tapAction('openScreen', 1);
   assert.equal(one.editor().querySelector('[data-se-body]').innerHTML.indexOf('data-se="switch"'), -1);
-  const b = bootGeneratedPage(TWO, 'basalt');
-  b.tapAction('openScreen', 1);
-  assert.equal(b.editor().querySelector('[data-se-body]').innerHTML.indexOf('data-se="switch"'), -1);
 });
 
 test('the screen editor: a graph that would make the screens show a sixth metric is a greyed-out Switch graph chip', () => {
@@ -929,10 +904,6 @@ test('the page: Your graphs\' header counts the metrics the screens use, "2/5 me
   hidden.clickTab('graphs');
   assert.deepEqual(headerNote(hidden.scroll.innerHTML), { text: '2/5 metrics active', label: '2 of 5 metrics active',
     open: false });
-  // A watch without graphs of its own has no card, so no count.
-  const b = bootGeneratedPage(TWO, 'basalt');
-  b.clickTab('graphs');
-  assert.equal(b.scroll.innerHTML.indexOf('hdr-note'), -1);
 });
 
 test('the metrics count: a line and a stripe of one metric count twice; all five active says how to make room', () => {
@@ -976,10 +947,6 @@ test('a screen picture draws its forecast graph with the screen\'s style', () =>
   delete plain.graphStyle;
   assert.equal(svg(cycle[1], S), svg(plain, two), 'the style\'s settings');
   assert.notEqual(svg(cycle[1], S), svg(plain, S), 'not the first style\'s');
-  // basalt draws one look on every screen.
-  const B = VC.resolveViewCycle(S, BASALT);
-  assert.equal(PW.screenSvg(B[1], 0, S, BASALT, {}, 0, new Date(2026, 10, 8, 12, 0), 'x').svg,
-    PW.screenSvg(Object.assign({}, B[1], { graphStyle: undefined }), 0, S, BASALT, {}, 0, new Date(2026, 10, 8, 12, 0), 'x').svg);
 });
 
 test('a shared row says every graph shares it, while more than one graph exists', () => {

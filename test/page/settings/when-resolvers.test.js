@@ -15,7 +15,8 @@ const OD = require('../../../src/pkjs/status-bars/domain/on-demand.js');
 const platform = require('../../../src/pkjs/config-ui/lib/platform.js');
 
 const BASALT = platform.computeEnv({ platform: 'basalt' });
-const APLITE = platform.computeEnv({ platform: 'aplite' });
+// An env whose watch draws no line styles.
+const APLITE = Object.assign(platform.computeEnv(), { lineStyles: false });
 const PICKERS = ['secondaryLine', 'thirdLine', 'fourthLine', 'fifthLine'];
 
 test('lineRow is registered, and a leaf asks it with the settings, their env and its args', () => {
@@ -125,9 +126,6 @@ test('defaultViewLacksOnDemand: the Default view the watch runs has no strip and
   assert.equal(lacks(Object.assign({ radarMode: 'status' }, radar)), false, 'a radar seat carrying items');
   assert.equal(lacks(Object.assign({ radarMode: 'off' }, radar)), false,
     'the Radar bar stays with the radar off, its items with it');
-  // aplite runs Weather only and a custom layout as Compact calendar, strip and all.
-  assert.equal(lacks({ layoutPreset: 'weatherOnly', radarMode: 'graph' }, APLITE), false);
-  assert.equal(lacks(custom, APLITE), false);
   // The leaf asks it.
   assert.equal(showWhen.evaluate({ when: 'defaultViewLacksOnDemand' },
     Object.assign({ env: BASALT }, OD.DEFAULTS, custom)), true);
@@ -152,5 +150,5 @@ test('tempAxisLineDrawn is forecast-axis.js\' own reading, and a leaf asks it', 
     });
   });
   assert.ok(shown > 0, 'premise: some state draws one');
-  assert.equal(leaf({ fifthLine: 'dew' }, APLITE), false, 'aplite draws no Fourth metric line');
+  assert.equal(leaf({ fifthLine: 'dew' }, APLITE), false, 'no line styles: no Fourth metric line');
 });

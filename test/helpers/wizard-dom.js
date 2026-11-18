@@ -316,7 +316,7 @@ function openSetup(over) {
   const platform = require('../../src/pkjs/config-ui/lib/platform.js');
   const finish = require('../../src/pkjs/page/settings/wizard/wizard-finish.js');
   const dom = fakeWizardDom();
-  const ENV = platform.computeEnv({ platform: o.platform || 'basalt' });
+  const ENV = platform.computeEnv({ platform: o.platform || 'emery' });
   const calls = { save: 0, render: 0 };
   const cfg = o.fresh ? {} : { onboardingDone: true };
   const ctx = {

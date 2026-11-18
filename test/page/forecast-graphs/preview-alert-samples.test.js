@@ -17,10 +17,12 @@ const FC = require('../../../src/pkjs/page/forecast-graphs/preview-forecast.js')
 const lineAlert = require('../../../src/pkjs/alerts/domain/line-alert.js');
 const lineStyle = require('../../../src/pkjs/forecast-graphs/domain/line-style.js');
 
-const BASALT = platform.computeEnv({ platform: 'basalt' });
+// Envs of a watch without some of these features. The face is built for the Pebble Time 2
+// alone; these exercise the page's capability gates (config-ui/lib/platform.js).
+const BASALT = Object.assign(platform.computeEnv(), { platform: 'basalt', hr: false, colorBacklight: false, fineBattery: false, forecastSpan: false, graphStyles: false, extraBars: false });
 const EMERY = platform.computeEnv({ platform: 'emery' });
-const DIORITE = platform.computeEnv({ platform: 'diorite' });
-const APLITE = platform.computeEnv({ platform: 'aplite' });
+const DIORITE = Object.assign(platform.computeEnv(), { platform: 'diorite', color: false, colorBacklight: false, fineBattery: false, forecastSpan: false, graphStyles: false, extraBars: false });
+const APLITE = Object.assign(platform.computeEnv(), { platform: 'aplite', color: false, health: false, radar: false, themePolarity: false, hr: false, thresholds: false, colorBacklight: false, lineStyles: false, onDemand: false, fineBattery: false, forecastSpan: false, graphStyles: false, extraBars: false });
 
 // The preview's plain samples (its forecastPreview locals): wind and gusts in km/h, UV as
 // the index. A change there breaks this pin on purpose.

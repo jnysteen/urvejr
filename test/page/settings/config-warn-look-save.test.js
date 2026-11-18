@@ -131,13 +131,3 @@ test('a look picked off the default is saved; picking the default back drops it'
   assert.equal(bw.Wind, 'outline');
 });
 
-test('on a B&W watch Fill is the pick and is saved; its default Outline is not', async () => {
-  const page = bootGeneratedPage({ provider: 'dwd' }, 'diorite');
-  openAlertSheet(page, 'Uv');
-  assert.equal(page.S.threshUvWarnLook, 'outline', 'the B&W default');
-  const plain = await page.save();
-  assert.ok(!has(plain, 'threshUvWarnLook'), 'the B&W default is not saved either');
-  pickLook(page, 'Uv', 'fill');
-  const saved = await page.save();
-  assert.equal(saved.threshUvWarnLook, 'fill', 'fill is a pick on a B&W watch');
-});

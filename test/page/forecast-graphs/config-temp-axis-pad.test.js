@@ -28,8 +28,9 @@ const { cDefine } = require('../../helpers/c-source.js');
 
 const ROOT = path.join(__dirname, '..', '..', '..');
 const read = (p) => fs.readFileSync(path.join(ROOT, p), 'utf8');
-const BASALT = platform.computeEnv({ platform: 'basalt' });
-const APLITE = platform.computeEnv({ platform: 'aplite' });
+// An env with one forecast length (no span option), and one without line styles either.
+const BASALT = Object.assign(platform.computeEnv(), { platform: 'basalt', forecastSpan: false });
+const APLITE = Object.assign({}, BASALT, { platform: 'aplite', lineStyles: false });
 const COLOR = { color: true };
 
 // The preview's plot (preview-forecast.js): PT 4, PB 94 without a bottom stripe, MT = PT + 3
@@ -478,24 +479,6 @@ test('the numbers\' gaps: one number each, the watch\'s', () => {
   assert.equal(FC.PX0_NO_AXIS, 0, 'no left axis: the frame\'s left edge');
 });
 
-test('the left axis options change no preview off a known emery, nor emery\'s at the defaults', () => {
-  ['aplite', 'basalt', 'diorite', 'flint', null].forEach((p) => {
-    const env = platform.computeEnv(p ? { platform: p } : null);
-    [{}, { secondaryLine: 'dew' }, { thirdLine: 'feels', barSource: 'rain' }].forEach((over) => {
-      assert.equal(preview(Object.assign({}, over, ALL_AXIS), env), preview(over, env),
-        p + ' ' + JSON.stringify(over));
-    });
-  });
-  const defaults = { forecastAxisNumbers: 'axis', forecastAxisScale: false };
-  [{}, { secondaryLine: 'dew' }].forEach((over) => {
-    assert.equal(preview(Object.assign({}, over, defaults), EMERY), preview(over, EMERY), JSON.stringify(over));
-    // Nor do a beta's stored 'beside' and its retired Axis line / Number outline keys.
-    assert.equal(preview(Object.assign({}, over, { forecastAxisNumbers: 'beside', forecastAxisLine: false,
-      forecastAxisOutline: false }), EMERY), preview(over, EMERY));
-  });
-  assert.equal(preview({ forecastAxisScale: true }, EMERY), preview({}, EMERY), 'no feels-like / dew point line');
-});
-
 test('On graph: no left axis, the graph from the left edge; the hi number under its point, the lo over its own', () => {
   const svg = preview({ forecastAxisNumbers: 'graph' }, EMERY);
   assert.ok(svg.indexOf('<text x="3"') === -1, 'no number in the strip');
@@ -556,9 +539,6 @@ test('High/low includes feels-like & dew point: the numbers name the scale\'s en
   const U = PA.CURVE_INSET_PREV / PA.WATCH_INSET_PX;
   assert.ok(near(lo.x + 3 * PA.NUMBER_CHAR_W / 2, tempVertices(graph)[7][0]), 'centred on the trough');
   assert.ok(lo.base <= PB - 12 - PA.TEMP_LABEL_POINT_GAP * U, 'over the trough, clear of it');
-  // Off a known emery the option changes nothing: the strip names the air.
-  const basalt = preview({ secondaryLine: 'dew', forecastAxisScale: true }, BASALT);
-  assert.equal(basalt, preview({ secondaryLine: 'dew' }, BASALT));
   // A feels-like low under the air's names that low (the feels-like sample dips to 13).
   assert.deepEqual(numbersIn(preview({ secondaryLine: 'feels', forecastAxisScale: true,
     forecastAxisNumbers: 'graph' }, EMERY)).map((n) => n.t), ['24', '13']);
@@ -663,9 +643,8 @@ test('hour axis: the marks are forecast_span.h\'s, the long span\'s clock marks 
     < cDefine(SPAN_HEADER, 'FORECAST_SPAN_LABEL_MIN_PX'));
   assert.deepEqual(span('48'), { labelEvery: cDefine(SPAN_HEADER, 'FORECAST_SPAN_CLOCK_LABEL_H'),
     tickEvery: cDefine(SPAN_HEADER, 'FORECAST_SPAN_CLOCK_TICK_H'), byClock: true });
-  // Every watch but emery draws 24 h, whatever is stored.
+  // Without the span option, 24 h whatever is stored.
   assert.deepEqual(span('48', BASALT), span('24'));
-  assert.deepEqual(span('12', platform.computeEnv(null)), span('24'));
   // The clock's marks: 12 / 18 / 0 labelled, 15 / 21 / 3 ticked, the rest bare; a repeated
   // (fall-back) hour marked once.
   const long = span('48');
@@ -686,12 +665,12 @@ test('hour axis: every stored span value gives the cadence of the option the wat
   const TWELVE = { labelEvery: 2, tickEvery: 1, byClock: false };
   const DAY = { labelEvery: 3, tickEvery: 1, byClock: false };
   const LONG = { labelEvery: 6, tickEvery: 3, byClock: true };
-  // [stored value, its cadence on emery]; every other watch draws 24 h whatever is stored.
+  // [stored value, its cadence]; without the span option 24 h whatever is stored.
   [['12', TWELVE], [12, TWELVE], ['24', DAY], [24, DAY], ['48', LONG], [48, LONG], ['36', DAY], ['junk', DAY],
     [undefined, DAY]].forEach(([stored, onEmery]) => {
     assert.deepEqual(PA.axisCadence({ forecastHours: stored }, EMERY), onEmery, 'emery ' + stored);
-    [BASALT, platform.computeEnv(null), null].forEach((env) =>
-      assert.deepEqual(PA.axisCadence({ forecastHours: stored }, env), DAY, 'off emery ' + stored));
+    [BASALT, null].forEach((env) =>
+      assert.deepEqual(PA.axisCadence({ forecastHours: stored }, env), DAY, 'no span option ' + stored));
   });
   assert.deepEqual(PA.axisCadence(null, EMERY), DAY, 'no settings');
 });
@@ -704,8 +683,6 @@ test('hour axis: On axis keeps today\'s labels; On graph and Off drop slot 0\'s 
     assert.equal(ticks(svg)[0], 'big', nums + ': slot 0 keeps its big tick');
     assert.equal(ticks(svg).length, 12, nums + ': a tick per hour');
   });
-  // Off a known emery the option changes nothing.
-  assert.deepEqual(hourLabels(preview({ forecastAxisNumbers: 'off' }, BASALT)), ['12', '15', '18', '21']);
 });
 
 test('hour axis: the long span marks the clock (12 / 15 / 18 / 21), the 12 h span every 2nd hour', () => {
