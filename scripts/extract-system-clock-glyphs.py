@@ -1,9 +1,8 @@
 #!/usr/bin/env python3
 """Extract the watch's 1-bit clock digits from the Pebble SDK's emulator firmware.
 
-The clock draws from system fonts wherever it has no anti-aliased glyph images
-(scripts/gen-clock-glyphs.py): LECO everywhere, and all three faces on the 144 px
-black-and-white watches (src/c/layers/clock_ink.h has the table). Those fonts ship
+The clock draws from a system font wherever it has no anti-aliased glyph images
+(scripts/gen-clock-glyphs.py): LECO (src/c/layers/clock_ink.h has the table). It ships
 only inside the firmware, so this script reads them out of the SDK's QEMU flash
 image, where the firmware keeps them in its system resource pack, and writes their
 digits and colon to scripts/clock-glyphs-system.json (committed). The settings
@@ -36,10 +35,7 @@ GLYPHS = '0123456789:'
 # The fonts the clock uses (clock_ink.h), how to tell each from its neighbours in the
 # pack, and the digit ink height clock_ink.c measured on the watch (the check).
 FONTS = {
-    'LECO_42_NUMBERS': {'platform': 'basalt', 'height': 42, 'ink_h': 29},
     'LECO_60_NUMBERS_AM_PM': {'platform': 'emery', 'height': 60, 'ink_h': 42},
-    'ROBOTO_BOLD_SUBSET_49': {'platform': 'basalt', 'height': 49, 'ink_h': 35},
-    'BITHAM_42_MEDIUM_NUMBERS': {'platform': 'basalt', 'height': 42, 'ink_h': 31},
 }
 
 
@@ -48,17 +44,8 @@ def pick(fonts, name):
     spec = FONTS[name]
     digits = [ord(c) for c in GLYPHS]
     have = [f for f in fonts if f[1] == spec['height'] and all(d in f[3] for d in digits)]
-    roboto = [i for i, f in enumerate(fonts) if f[1] == 49 and len(f[3]) <= 16]
-    if name == 'ROBOTO_BOLD_SUBSET_49':
-        found = [f for f in have if len(f[3]) <= 16]
-    elif name == 'BITHAM_42_MEDIUM_NUMBERS':
-        # The numbers-only 42 before Roboto 49 (Bitham's fonts lead the pack's clock faces).
-        found = [f for f in have if len(f[3]) <= 16 and fonts.index(f) < roboto[0]]
-    elif name == 'LECO_42_NUMBERS':
-        found = [f for f in have if fonts.index(f) > roboto[0] and ord('A') not in f[3]]
-    else:
-        # The two LECO 60 AM/PM fonts: the regular one inks less than the bold.
-        found = sorted([f for f in have if ord('A') in f[3]], key=lambda f: ink(f[3][ord('8')]))[:1]
+    # The two LECO 60 AM/PM fonts: the regular one inks less than the bold.
+    found = sorted([f for f in have if ord('A') in f[3]], key=lambda f: ink(f[3][ord('8')]))[:1]
     if len(found) != 1:
         raise SystemExit('extract-system-clock-glyphs: %s: %d candidates' % (name, len(found)))
     return found[0]

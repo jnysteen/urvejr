@@ -8,7 +8,10 @@
 // pairs and the temperature separator became steps of it and the rain window's Off
 // stopped writing a rain switch (it unticks Rain instead); and the window's Off untick
 // moved from the Watch Status Bar's right list to its left when the default Rain tick
-// did (the owner's defaults of 2026-09-30), nothing else in any scenario changing.
+// did (the owner's defaults of 2026-09-30), nothing else in any scenario changing; and once
+// more when the face became Pebble Time 2 only: every scenario boots an emery, so the ones
+// that booted a basalt take the HR health slots as an emery always did, and the basalt
+// fresh install (the emery one's twin) went.
 //
 // The golden must NOT be regenerated from the current runner to make a failure go
 // away: a diff there is a behaviour change on real installs. Change a scenario only
@@ -70,23 +73,22 @@ const LEGACY = Object.assign({}, BLOB_1_23_1, {
 delete LEGACY.radarMode;
 
 const SCENARIOS = [
-  { name: 'fresh install, basalt', platform: 'basalt', hadExistingInstall: false, blob: null, marked: [] },
   { name: 'fresh install, emery', platform: 'emery', hadExistingInstall: false, blob: null, marked: [] },
-  { name: '1.23.1 upgrade, Rain alert only, window Off', platform: 'basalt', hadExistingInstall: true,
+  { name: '1.23.1 upgrade, Rain alert only, window Off', platform: 'emery', hadExistingInstall: true,
     blob: BLOB_1_23_1, marked: THROUGH_1_23_1 },
-  { name: '1.23.1 upgrade, graph, window Off', platform: 'basalt', hadExistingInstall: true,
+  { name: '1.23.1 upgrade, graph, window Off', platform: 'emery', hadExistingInstall: true,
     blob: Object.assign({}, BLOB_1_23_1, { radarMode: 'graph' }), marked: THROUGH_1_23_1 },
-  { name: '1.23.1 upgrade, graph, window 30', platform: 'basalt', hadExistingInstall: true,
+  { name: '1.23.1 upgrade, graph, window 30', platform: 'emery', hadExistingInstall: true,
     blob: Object.assign({}, BLOB_1_23_1, { radarMode: 'graph', rainCountdownHorizon: '30' }),
     marked: THROUGH_1_23_1 },
   { name: 'legacy install, emery', platform: 'emery', hadExistingInstall: true, blob: LEGACY, marked: [] },
-  { name: 'legacy install, basalt, no blob before this boot', platform: 'basalt',
+  { name: 'legacy install, no blob before this boot', platform: 'emery',
     hadExistingInstall: false, blob: LEGACY, marked: [] },
-  { name: 'legacy install on the new weekend colours', platform: 'basalt', hadExistingInstall: true,
+  { name: 'legacy install on the new weekend colours', platform: 'emery', hadExistingInstall: true,
     blob: Object.assign({}, LEGACY, {
       colorSunday: COLORS.folly, colorSaturday: COLORS.folly, colorUSFederal: COLORS.holiday }),
     marked: [] },
-  { name: 'legacy install with only the holiday white', platform: 'basalt', hadExistingInstall: true,
+  { name: 'legacy install with only the holiday white', platform: 'emery', hadExistingInstall: true,
     blob: Object.assign({}, LEGACY, {
       colorSunday: 0x00FF00, colorSaturday: COLORS.folly, colorUSFederal: COLORS.white }),
     marked: [] }

@@ -128,7 +128,7 @@ var PConf = (typeof global !== 'undefined' && global.PConf) ? global.PConf
      * @returns {boolean}
      */
     function hasScreens(env) {
-        return !(env && env.platform === 'aplite');
+        return true;
     }
 
     /**
@@ -713,7 +713,7 @@ var PConf = (typeof global !== 'undefined' && global.PConf) ? global.PConf
     function screenPicture(S, i, env, userData, prefix, cycle) {
         var spec = (cycle || VC.screensCycle(S, env))[i] || null;
         if (!spec) { return PW.viewScreen(S, env, i, userData); }
-        return PW.screenSvg(drawnView(spec, S), i, S, env, userData || {}, env && env.platform === 'emery' ? 1 : 0,
+        return PW.screenSvg(drawnView(spec, S), i, S, env, userData || {}, 1,
             new Date(), prefix);
     }
 

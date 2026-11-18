@@ -545,20 +545,19 @@ function resolveForFit(s, hasRadar, hasHealth) {
 }
 
 /**
- * Does this compiled view fit the watch it is edited for? `family` is the watch's
- * platform name ('emery' → the 200×228 screen, any other named platform → 144×168); an
- * unknown platform ('') must fit both. `over` is how many pixels the tallest miss needs.
+ * Does this compiled view fit the Pebble Time 2's 200×228 screen? `over` is how many pixels
+ * the tallest miss needs.
  * The budget covers the watch's no-data fallbacks too (every data state, resolveForFit), so
  * a view that fits keeps fitting before the first radar frame or without health data.
  * @param {?Object} s compiled view spec (null = a disabled slot: fits)
- * @param {string} family platform name or ''
+ * @param {string} [family] platform name; unused
  * @returns {{fits: boolean, over: number}}
  */
 function stackFits(s, family) {
   // A disabled slot, or a preset-shaped view (legacy order, full chrome, a filling graph:
   // the presets' own seats, the graph takes what is left, nothing is ever cut), always fits.
   if (!s || !isStacked(s)) { return { fits: true, over: 0 }; }
-  var fams = family === 'emery' ? [1] : family ? [0] : [0, 1];
+  var fams = [1];
   // Every data state the watch can meet — radar and health present or missing — laid out
   // the way it folds them (resolveForFit: only the graphs fold, the status bars stay): the
   // view must fit in the worst one.
@@ -995,26 +994,21 @@ var LEGACY_PRESET = {
  * @returns {string} one of fullCal|compactCal|compactDense|noCal|weatherOnly
  */
 /**
- * The preset a watch actually runs: resolvePresetKey, with the presets a platform can't
- * draw folded to the one its settings radio shows instead (the dormant value's
- * fallback, compactCal). aplite has no radar and no view without top bar, so a stored
- * Weather only runs — and previews — as Compact calendar there. The one fold the
- * payload (clay-payload.js) and the settings page's watch preview (preview-watch.js) share.
+ * The preset a watch actually runs: resolvePresetKey. The one reading the payload
+ * (clay-payload.js) and the settings page's watch preview (preview-watch.js) share.
  * @param {Object} state settings state
- * @param {?{platform: string}} env platform facts ('' / missing = capable)
+ * @param {?{platform: string}} env platform facts; unused
  * @returns {string} preset key
  */
 function presetKeyFor(state, env) {
-  var key = resolvePresetKey(state);
-  if (key === 'weatherOnly' && env && env.platform === 'aplite') { return 'compactCal'; }
-  return key;
+  return resolvePresetKey(state);
 }
 
 function resolvePresetKey(state) {
   state = state || {};
   var p = state.layoutPreset;
-  // 'custom' folds to an EXPLICIT preset for the preset-path consumers (an aplite
-  // watch's payload, the wizard's nearest-highlight, preview fallbacks). Never let
+  // 'custom' folds to an EXPLICIT preset for the preset-path consumers (the wizard's
+  // nearest-highlight, preview fallbacks). Never let
   // it reach the topViewMode fall-through below — a legacy value there could
   // redirect a custom user to fullCal/noCal and break display == wire.
   if (p === 'custom') { return 'compactCal'; }
@@ -1029,18 +1023,14 @@ function resolvePresetKey(state) {
  * The view cycle a watch runs for a settings state: THE one reading, for the Clay payload
  * (clay-payload.js), the settings page's watch preview (page/layout/preview-watch.js) and the Alerts tab's
  * About alerts Default-view note (page/settings/when-resolvers.js). layoutPreset 'custom' compiles the
- * per-view keys (buildCustomCycle), except on an APLITE watch, which folds custom to the
- * explicit compactCal preset: aplite is frozen-lean, its settings screen never offers
- * Custom, and resolvePresetKey pins the fold so a legacy topViewMode value can't redirect
- * it. A preset the watch can't draw runs as the one the settings radio shows
- * (presetKeyFor). An unknown platform ('' or no env) is custom-capable.
+ * per-view keys (buildCustomCycle).
  * @param {Object} settings settings state
  * @param {?{platform: string}} [env] platform facts (config-ui platform.js computeEnv)
  * @returns {Array<?Object>} the view cycle (slot 0 is the Default view)
  */
 function resolveViewCycle(settings, env) {
   var s = settings || {};
-  if (s.layoutPreset === 'custom' && !(env && env.platform === 'aplite')) {
+  if (s.layoutPreset === 'custom') {
     return buildCustomCycle(s, null, env);
   }
   return buildViewCycle(presetKeyFor(s, env), s.healthMode || 'off', s.radarMode || 'graph',
@@ -1050,15 +1040,14 @@ function resolveViewCycle(settings, env) {
 /**
  * The views the screens show, before the watch's data folds (2.6: the modes follow the
  * screens, layout/domain/screens.js deriveModes): a custom layout compiled with every seat kind on,
- * so its stored rows and graphs all count; a preset as its cycle; and on aplite, which folds
- * a custom layout to a preset, what aplite runs (resolveViewCycle).
+ * so its stored rows and graphs all count; a preset as its cycle.
  * @param {Object} settings settings state
  * @param {?{platform: string}} [env] platform facts
  * @returns {Array<?Object>} the views (null = a screen with nothing on it, which the watch skips)
  */
 function screensCycle(settings, env) {
   var s = settings || {};
-  if (s.layoutPreset === 'custom' && !(env && env.platform === 'aplite')) {
+  if (s.layoutPreset === 'custom') {
     return buildCustomCycle(s, ALL_CAPABLE, env);
   }
   return resolveViewCycle(s, env);

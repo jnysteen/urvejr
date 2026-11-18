@@ -24,7 +24,7 @@ var hex = require('../../lib/color.js').intToHex;
  *   (#RRGGBB strings; rainTiers.from are permille thresholds).
  */
 function buildPreviewPalette() {
-    var tierPal = rainTier.buildPalette('basalt', 'multicolor');
+    var tierPal = rainTier.buildPalette('emery', 'multicolor');
     var tiers = [];
     for (var i = 0; i < tierPal.from.length; i += 1) {
         tiers.push({ from: tierPal.from[i], color: hex(tierPal.rgb[i]) });

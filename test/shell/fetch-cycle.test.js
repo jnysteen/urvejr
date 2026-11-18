@@ -15,9 +15,9 @@
 // Radar observation seam: with radarProvider 'tomorrowio' and a key, the radar
 // leg asks WeatherProvider.request (looked up at call time) for a URL carrying
 // `location=lat,lon`; the stub below records those coordinates and holds the
-// callbacks. Cases that do not care about radar run on an aplite watch, whose
-// build has no radar — then no radar request is made and no radar keys ride
-// along.
+// callbacks. Cases that do not care about radar run on RADAR_BLIND: no radar source answers
+// there (radarProvider unset), and the harness drops the radar keys that ride along (the
+// cleared radar) from what it records.
 //
 // The shared Rainbow radar throttle (the "radar throttle:" cases at the end)
 // runs with a proxy endpoint set (RB_ENV) and counts the requests to it.
@@ -75,8 +75,21 @@ const HOUR = 60 * MIN;
 // the test machine's time zone (slots are UTC-aligned epoch chunks).
 const T0 = Date.UTC(2026, 6, 7, 10, 0, 0);
 const WATCHDOG_MS = createFetchCycle.FETCH_WATCHDOG_MS;
-const APLITE = { platform: 'aplite' };   // radar compiled out
-const BASALT = { platform: 'basalt' };   // radar-capable
+const EMERY = { platform: 'emery' };
+// The harness's default watch: the radar keys are dropped from what it records.
+const RADAR_BLIND = { platform: 'emery', radarBlind: true };
+const RADAR_KEYS = ['RADAR_SKY_UINT8', 'RAIN_RADAR_START', 'RAIN_RADAR_TREND_AREA_UINT8', 'RAIN_RADAR_TREND_UINT8'];
+
+/**
+ * A payload without the radar's keys.
+ * @param {Object} payload The payload.
+ * @returns {Object} A copy without them.
+ */
+function withoutRadar(payload) {
+    var out = {};
+    Object.keys(payload).forEach(function (k) { if (RADAR_KEYS.indexOf(k) === -1) { out[k] = payload[k]; } });
+    return out;
+}
 const CLEAR = { RAIN_RADAR_TREND_UINT8: [], RAIN_RADAR_TREND_AREA_UINT8: [], RAIN_RADAR_START: 0 };
 // The radar's sky rows (radar-sky.js) ride the same merged answer. None of these settings
 // turn the sky on, so the 'disabled' sky source answers its CLEAR synchronously and it
@@ -177,7 +190,7 @@ function makeHarness(opts) {
     var timers = [];
     var live = {
         settings: opts.settings || { fetchIntervalMin: '60' },
-        watchInfo: Object.prototype.hasOwnProperty.call(opts, 'watchInfo') ? opts.watchInfo : APLITE,
+        watchInfo: Object.prototype.hasOwnProperty.call(opts, 'watchInfo') ? opts.watchInfo : RADAR_BLIND,
         provider: opts.provider || makeProvider(),
         connected: true
     };
@@ -200,7 +213,10 @@ function makeHarness(opts) {
         getProvider: function () { return live.provider; },
         isWatchConnected: function () { return live.connected; },
         outbox: {
-            sendWeather: function (payload) { calls.sendWeather.push(payload); },
+            sendWeather: function (payload) {
+                var p = live.watchInfo && live.watchInfo.radarBlind ? withoutRadar(payload) : payload;
+                if (Object.keys(p).length) { calls.sendWeather.push(p); }
+            },
             clearWeatherCaches: function () { calls.clearWeatherCaches += 1; },
             clearNoticeCache: function () { calls.clearNoticeCache += 1; }
         },
@@ -497,7 +513,7 @@ test('start: a clean start counts the attempt, records it, builds the options, a
     assert.equal(h.pendingWatchdogs().length, 1, 'a watchdog is armed');
 
     // This fetch's knobs, derived from the live settings + watch + the WAQI token.
-    assert.deepEqual(p.options, fetchOptions.build(settings, APLITE, { waqiToken: ENV.waqiToken }));
+    assert.deepEqual(p.options, fetchOptions.build(settings, RADAR_BLIND, { waqiToken: ENV.waqiToken }));
     assert.equal(p.options.fetchFeels, true, 'tempSlotDisplay both needs feels');
     assert.equal(p.options.windUnits, 'mph');
     assert.equal(p.options.feelsFormula, 'steadman');
@@ -512,13 +528,14 @@ test('start: a clean start counts the attempt, records it, builds the options, a
     assert.equal(call.lat, 52.5);
     assert.equal(call.lon, 13.4);
     assert.equal(call.force, false);
-    assert.deepEqual(call.extras, { IS_SLEEPING: false }, 'aplite: no radar keys, just the sleep flag');
+    assert.deepEqual(withoutRadar(call.extras), { IS_SLEEPING: false }, 'the sleep flag'
+        + ' beside the radar');
     // The render transform is the cycle's own closure (the real bake): only its
     // presence is checkable without running the bake.
     assert.equal(typeof call.payloadTransform, 'function');
     assert.equal(typeof call.isCurrent, 'function');
     assert.equal(call.isCurrent(), true, 'the fetch is live until it settles');
-    assert.equal(radarRequests.length, 0, 'aplite asks no radar');
+    assert.equal(radarRequests.length, 0, 'no radar source set: no radar request');
     assert.equal(h.calls.sendWeather.length, 0);
     assert.equal(h.calls.telemetry.length, 0, 'nothing tracked before the fetch completes');
 });
@@ -530,7 +547,7 @@ test('start: IS_SLEEPING reflects the sleep window when the extras are built', (
     assert.equal(h.cycle.start(false), true, 'started awake');
     h.advance(2 * HOUR);
     h.provider.fix(52.5, 13.4);
-    assert.deepEqual(h.provider.lastForecast().extras, { IS_SLEEPING: true }, 'the fix landed inside the window');
+    assert.deepEqual(withoutRadar(h.provider.lastForecast().extras), { IS_SLEEPING: true }, 'the fix landed inside the window');
 });
 
 test('success: records the START time, resets the counter, commits the carried sleep state, clears errors, tracks telemetry', () => {
@@ -567,7 +584,7 @@ test('success: records the START time, resets the counter, commits the carried s
         locationMode: 'gps',
         countryCode: 'DE',
         settings: settings,
-        watchInfo: APLITE,
+        watchInfo: RADAR_BLIND,
         durationMs: 2 * HOUR + 4 * SEC,
         success: true
     }]);
@@ -622,7 +639,7 @@ test('success: a delivered sleep onset pauses the gate; a failed one does not', 
 test('radar: one fix feeds both legs — the radar request and the forecast get the same coordinates', () => {
     resetStore();
     const settings = { fetchIntervalMin: '60', radarMode: 'graph', radarSky: false, radarProvider: 'tomorrowio', tomorrowioApiKey: 'TIO-KEY' };
-    const h = makeHarness({ settings: settings, watchInfo: BASALT });
+    const h = makeHarness({ settings: settings, watchInfo: EMERY });
     const p = h.provider;
     assert.equal(h.cycle.start(true), true);
     assert.equal(p.calls.withCoordinates.length, 1);
@@ -661,7 +678,7 @@ test('radar: "Rainbow (own key)" sends the user\'s key in the request header', (
     resetStore();
     const settings = { fetchIntervalMin: '60', radarMode: 'graph', radarSky: false, radarProvider: 'rainbowkey',
         rainbowApiKey: 'K' };
-    const h = makeHarness({ settings: settings, watchInfo: BASALT });
+    const h = makeHarness({ settings: settings, watchInfo: EMERY });
     h.cycle.start(true);
     h.provider.fix(52.5, 13.4);
     assert.equal(radarRequests.length, 1, 'one radar request, in an endpoint-less build');
@@ -675,7 +692,7 @@ test('radar: Rainbow on your own key with no key clears, and no sky request goes
     // The sky rows are on (radarSky unset), but a radar that can never answer draws no graph.
     const settings = { fetchIntervalMin: '60', radarMode: 'graph', radarProvider: 'rainbowkey',
         rainbowApiKey: '' };
-    const h = makeHarness({ settings: settings, watchInfo: BASALT });
+    const h = makeHarness({ settings: settings, watchInfo: EMERY });
     h.cycle.start(true);
     h.provider.fix(52.5, 13.4);
     assert.deepEqual(radarRequests.map(function (r) { return r.url; }).filter(function (u) { return u.indexOf('minutely_15') !== -1; }), [],
@@ -833,7 +850,7 @@ test('Tomorrow.io as forecast and radar: the newest answer the key got, weather 
         resetStore();
         const p = makeProvider('tomorrowio');
         p.apiKey = KEY;
-        const h = makeHarness({ settings: settings, watchInfo: BASALT, provider: p });
+        const h = makeHarness({ settings: settings, watchInfo: EMERY, provider: p });
         h.cycle.start(false);
         p.fix(52.5, 13.4);
         assert.equal(radarRequests.length, 1, 'the radar asks with the same key');
@@ -857,7 +874,7 @@ test('Tomorrow.io as forecast and radar: the newest answer the key got, weather 
 
 test('failure: on a radar-capable watch the 401 notice and this cycle\'s radar CLEAR share one send', () => {
     resetStore();
-    const h = makeHarness({ settings: { fetchIntervalMin: '60', radarMode: 'off' }, watchInfo: BASALT });
+    const h = makeHarness({ settings: { fetchIntervalMin: '60', radarMode: 'off' }, watchInfo: EMERY });
     h.cycle.start(false);
     h.provider.fix(52.5, 13.4);
     assert.deepEqual(h.provider.lastForecast().extras, Object.assign({ IS_SLEEPING: false }, CLEAR, SKY_CLEAR),
@@ -871,7 +888,7 @@ test('failure: a forecast failure hands this cycle\'s radar CLEAR to the failure
     resetStore();
     // tomorrow.io radar with no key can never answer: it clears, without a request.
     const settings = { fetchIntervalMin: '60', radarMode: 'graph', radarSky: false, radarProvider: 'tomorrowio', tomorrowioApiKey: '' };
-    const h = makeHarness({ settings: settings, watchInfo: BASALT });
+    const h = makeHarness({ settings: settings, watchInfo: EMERY });
     h.cycle.start(false);
     h.provider.fix(52.5, 13.4);
     assert.equal(radarRequests.length, 0);
@@ -885,7 +902,7 @@ test('failure: a forecast failure hands this cycle\'s radar CLEAR to the failure
 
 test('failure: an AppMessage NACK does not pass the radar CLEAR through again', () => {
     resetStore();
-    const h = makeHarness({ settings: { fetchIntervalMin: '60', radarMode: 'off' }, watchInfo: BASALT });
+    const h = makeHarness({ settings: { fetchIntervalMin: '60', radarMode: 'off' }, watchInfo: EMERY });
     h.cycle.start(false);
     h.provider.fix(52.5, 13.4);
     const nack = { stage: 'app_message', code: 'nack' };
@@ -898,7 +915,7 @@ test('failure: an AppMessage NACK does not pass the radar CLEAR through again', 
 test('failure: a transient radar miss (null) adds no radar keys to the failure send (the sky CLEAR still rides)', () => {
     resetStore();
     const settings = { fetchIntervalMin: '60', radarMode: 'graph', radarSky: false, radarProvider: 'tomorrowio', tomorrowioApiKey: 'TIO-KEY' };
-    const h = makeHarness({ settings: settings, watchInfo: BASALT });
+    const h = makeHarness({ settings: settings, watchInfo: EMERY });
     h.cycle.start(false);
     h.provider.fix(52.5, 13.4);
     radarRequests[0].onError({ code: 'status_503', detail: 'http_status' });
@@ -1129,7 +1146,7 @@ test('start: an auth backoff an older build left for a provider whose key is scr
 test('radar: a place outside DWD\'s composite asks nothing, sends the clear with DWD\'s line, and keeps the verdict', () => {
     resetStore();
     const settings = { fetchIntervalMin: '60', radarMode: 'graph', radarSky: false, radarProvider: 'dwd' };
-    const h = makeHarness({ settings: settings, watchInfo: BASALT });
+    const h = makeHarness({ settings: settings, watchInfo: EMERY });
     const OUTSIDE = Object.assign({ RAIN_RADAR_LIMITED: 'DWD radar: Germany only' }, CLEAR);
     h.cycle.start(false);
     h.provider.fix(25.76, -80.19);   // Miami
@@ -1153,7 +1170,7 @@ test('radar: a place outside DWD\'s composite asks nothing, sends the clear with
 test('radar: inside DWD\'s box the second 404 in a row says "DWD: no radar data"; leaving and entering the box start afresh', () => {
     resetStore();
     const settings = { fetchIntervalMin: '60', radarMode: 'graph', radarSky: false, radarProvider: 'dwd' };
-    const h = makeHarness({ settings: settings, watchInfo: BASALT });
+    const h = makeHarness({ settings: settings, watchInfo: EMERY });
     const NO_DATA = Object.assign({ RAIN_RADAR_LIMITED: 'DWD: no radar data' }, CLEAR);
     const OUTSIDE = Object.assign({ RAIN_RADAR_LIMITED: 'DWD radar: Germany only' }, CLEAR);
     const PARIS = [48.85, 2.35];
@@ -1213,7 +1230,7 @@ test('radar: inside DWD\'s box the second 404 in a row says "DWD: no radar data"
 test('radar: switching from DWD to another radar source ends DWD\'s run of 404s', () => {
     resetStore();
     const settings = { fetchIntervalMin: '60', radarMode: 'graph', radarSky: false, radarProvider: 'dwd' };
-    const h = makeHarness({ settings: settings, watchInfo: BASALT });
+    const h = makeHarness({ settings: settings, watchInfo: EMERY });
     [0, 1].forEach(function (i) {
         h.advance(HOUR);
         h.cycle.start(false);
@@ -1236,7 +1253,7 @@ test('coordinates: a failed fix is recorded and tracked, and starts no radar, fo
     const settings = Object.assign(
         { fetchIntervalMin: '60', radarMode: 'graph', radarSky: false, radarProvider: 'tomorrowio', tomorrowioApiKey: 'TIO-KEY' },
         sleepWindowCovering(new Date(T0)));
-    const h = makeHarness({ settings: settings, watchInfo: BASALT });
+    const h = makeHarness({ settings: settings, watchInfo: EMERY });
     const p = h.provider;
     assert.equal(h.cycle.start(false), true);
     const gps = gpsFailure({ code: 1, message: '' });
@@ -1400,7 +1417,7 @@ test('watchdog: a fetch completes exactly once — a late failure or watchdog af
 test('watchdog: a fix arriving after the fetch was abandoned starts no radar, geocode or provider request', () => {
     resetStore();
     const settings = { fetchIntervalMin: '60', radarMode: 'graph', radarSky: false, radarProvider: 'tomorrowio', tomorrowioApiKey: 'TIO-KEY' };
-    const h = makeHarness({ settings: settings, watchInfo: BASALT });
+    const h = makeHarness({ settings: settings, watchInfo: EMERY });
     const p = h.provider;
     h.cycle.start(false);
     h.runWatchdogs();
@@ -1506,7 +1523,7 @@ function radarKeysOf(extras) {
 
 /** The harness on a radar-capable watch, a build with the proxy endpoint and shared Rainbow. */
 function rbHarness(opts) {
-    return makeHarness(Object.assign({ env: RB_ENV, watchInfo: BASALT, now: RB_T0, settings: RB_SETTINGS }, opts || {}));
+    return makeHarness(Object.assign({ env: RB_ENV, watchInfo: EMERY, now: RB_T0, settings: RB_SETTINGS }, opts || {}));
 }
 
 /**

@@ -92,11 +92,8 @@ test('buildSettingsBlob: bytes 38-47 carry the On demand cells, effective values
   assert.equal(cells[OD.itemIndex('uv')], (1 << 2) | (2 << 4), 'forecast left, radar right');
   assert.equal(cells[OD.itemIndex('bt')], 1 << 2);
   assert.equal(cells[OD.itemIndex('battery')], 0);
-  // A watch without On demand gets zeros (it never gets the blob, but the packer agrees).
+  // A watch without On demand gets zeros.
   assert.deepEqual(wire.buildSettingsBlob(S, { onDemand: false }).slice(O), [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
-  const platform = require('../../../src/pkjs/config-ui/lib/platform.js');
-  assert.deepEqual(wire.buildSettingsBlob({}, platform.computeEnv({ platform: 'aplite' })).slice(O),
-    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0], 'aplite');
   // A side that ticks nothing is zeros, on a bar that exists (health) as on one already
   // placed.
   const health = placeOn(Object.assign({ healthMode: 'all' }, S), 'health', 'left', '');

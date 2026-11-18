@@ -15,9 +15,9 @@ const pw = require('../../../src/pkjs/page/layout/preview-watch.js');
 const platformLib = require('../../../src/pkjs/config-ui/lib/platform.js');
 
 const NOW = new Date(2026, 8, 7, 15, 0);
-const BASALT = platformLib.computeEnv({ platform: 'basalt' });
 const EMERY = platformLib.computeEnv({ platform: 'emery' });
-const APLITE = platformLib.computeEnv({ platform: 'aplite' });
+// An env whose watch draws neither the radar nor health.
+const APLITE = Object.assign(platformLib.computeEnv(), { platform: 'bare', radar: false, health: false });
 
 const b = (k, opt) => Object.assign({ k }, opt || {});
 // The mockup's three screens: today's default cycle (compactCal, health all, radar graph, swap).
@@ -71,7 +71,7 @@ test('barOfBlock: the bar a row shows, the Watch bar\'s too; none for any other 
 test('the default screens compile to exactly today\'s default cycle, picture for picture', () => {
   const today = vc.buildViewCycle('compactCal', 'all', 'graph', true);
   const mine = compiled([DEFAULT, HEALTH, RADAR]);
-  [BASALT, EMERY].forEach((env) => today.forEach((spec, i) =>
+  [EMERY].forEach((env) => today.forEach((spec, i) =>
     assert.equal(picture(mine[i], i, env), picture(spec, i, env), env.platform + ' view ' + i)));
 });
 
@@ -82,13 +82,13 @@ test('every preset view reads back as a list that compiles to the same picture',
       ['off', 'countdown', 'status', 'graph'].forEach((radar) => [false, true].forEach((swap) => {
         const cycle = vc.buildViewCycle(preset, health, radar, swap);
         const back = compiled(cycle.map((spec) => M.listFromSpec(spec, true)));
-        [BASALT, EMERY].forEach((env) => cycle.forEach((spec, i) => {
+        [EMERY].forEach((env) => cycle.forEach((spec, i) => {
           n++;
           assert.equal(picture(back[i], i, env), picture(spec, i, env),
             [preset, health, radar, swap, i, env.platform].join(' '));
         }));
       }))));
-  assert.ok(n > 500, n + ' views');
+  assert.ok(n > 250, n + ' views');
 });
 
 /**
@@ -124,7 +124,7 @@ test('custom views read back as lists that compile to the same picture', () => {
         assert.notEqual(back.body, vc.BODY_NONE, JSON.stringify(S));
         return;
       }
-      assert.equal(picture(back, 1, BASALT), picture(spec, 1, BASALT), JSON.stringify(S));
+      assert.equal(picture(back, 1, EMERY), picture(spec, 1, EMERY), JSON.stringify(S));
     })))));
   assert.ok(n > 2000, n + ' views');
 });
@@ -156,14 +156,14 @@ test('problem: the snap-back rules a move can break', () => {
 });
 
 test('addable: what is missing and has a place, on a watch that draws it', () => {
-  assert.deepEqual(M.addable(DEFAULT, BASALT), ['radarbar', 'healthbar'],
+  assert.deepEqual(M.addable(DEFAULT, EMERY), ['radarbar', 'healthbar'],
     'the calendar holds the top seat and the forecast the bottom: no place for a graph');
-  assert.deepEqual(M.addable([b('strip'), b('clock')], BASALT),
+  assert.deepEqual(M.addable([b('strip'), b('clock')], EMERY),
     ['cal', 'fcbar', 'radarbar', 'healthbar', 'fc', 'radar', 'health']);
   // Two bars at most; two graphs at most.
   const full = [b('strip'), b('health', { size: '3' }), b('clock'), b('fcbar'), b('healthbar'), b('fc', { size: 'fill' })];
-  assert.deepEqual(M.addable(full, BASALT), []);
-  // aplite draws neither the radar nor health.
+  assert.deepEqual(M.addable(full, EMERY), []);
+  // A watch that draws neither the radar nor health.
   assert.deepEqual(M.addable([b('strip'), b('clock')], APLITE), ['cal', 'fcbar', 'fc']);
   // An unknown watch is capable.
   assert.ok(M.addable([b('strip'), b('clock')], null).indexOf('radar') >= 0);
@@ -230,29 +230,27 @@ test('compileKeys: the per-view keys, the bars in list order, the first order th
 test('screensOf: a custom layout as its stored lists, a preset as its cycle', () => {
   const S = Object.assign(compileAll([DEFAULT, HEALTH, RADAR]), { radarMode: 'off', healthMode: 'off' });
   // The modes do not fold the lists: they follow the screens.
-  assert.deepEqual(M.screensOf(S, BASALT), [DEFAULT, HEALTH, RADAR]);
-  assert.deepEqual(M.screensOf({ layoutPreset: 'fullCal', healthMode: 'all', radarMode: 'off' }, BASALT).map(kinds),
+  assert.deepEqual(M.screensOf(S, EMERY), [DEFAULT, HEALTH, RADAR]);
+  assert.deepEqual(M.screensOf({ layoutPreset: 'fullCal', healthMode: 'all', radarMode: 'off' }, EMERY).map(kinds),
     [['strip', 'cal', 'clock', 'fcbar', 'fc'], ['strip', 'clock', 'healthbar', 'health']]);
   // A flick screen with nothing on it keeps its Watch bar as stored.
   const empty = Object.assign(compileAll([DEFAULT, [b('strip')]]), {});
-  assert.deepEqual(M.screensOf(empty, BASALT)[1], [b('strip')]);
-  // aplite runs a custom layout as Compact calendar.
-  assert.deepEqual(M.screensOf(S, APLITE).map(kinds), [['strip', 'cal', 'fcbar', 'clock', 'fc']]);
+  assert.deepEqual(M.screensOf(empty, EMERY)[1], [b('strip')]);
 });
 
 test('fits: a screen too tall for the watch in some data state is refused', () => {
-  assert.equal(M.fits(DEFAULT, 0, 'basalt'), true);
+  assert.equal(M.fits(DEFAULT, 0, 'emery'), true);
   const tall = [b('strip'), b('radar', { size: '4' }), b('clock'), b('fcbar'), b('healthbar'), b('fc', { size: '4' })];
-  assert.equal(M.fits(tall, 1, 'basalt'), false);
+  assert.equal(M.fits(tall, 1, 'emery'), false);
   // The Radar bar stays without radar data, so it is budgeted in the radar's calendar fold.
   const bar = [b('strip'), b('radar', { size: 'fill' }), b('clock'), b('radarbar'), b('fc', { size: '4' })];
-  assert.equal(M.fits(bar, 1, 'basalt'), false);
-  assert.equal(M.fits([b('strip'), b('radar', { size: 'fill' }), b('clock'), b('fc', { size: '4' })], 1, 'basalt'), true);
+  assert.equal(M.fits(bar, 1, 'emery'), false);
+  assert.equal(M.fits([b('strip'), b('radar', { size: 'fill' }), b('clock'), b('fc', { size: '4' })], 1, 'emery'), true);
 });
 
 test('deriveModes: the radar and health modes the screens need', () => {
   const S = (screens, over) => Object.assign({}, compileAll(screens), over || {});
-  const modes = (s, env) => M.deriveModes(s, env || BASALT);
+  const modes = (s, env) => M.deriveModes(s, env || EMERY);
   assert.deepEqual(modes(S([DEFAULT, HEALTH, RADAR])), { radarMode: 'graph', healthMode: 'all' });
   // The Radar bar alone; the Health bar alone: on a custom layout a bar is what it holds
   // (3.0.0's named bars), so they need the radar or health only for an item that does.
@@ -265,7 +263,7 @@ test('deriveModes: the radar and health modes the screens need', () => {
   assert.equal(modes(S(bars, { statusTopOnDemandLeftItems: '', statusRadarOnDemandLeftItems: 'rain' })).radarMode,
     'countdown', 'the rain alert on the shown Radar bar fetches the radar');
   // A preset's cycle is built from the modes, so its bars keep 'status'.
-  assert.deepEqual(M.deriveModes({ layoutPreset: 'compactDense', radarMode: 'status', healthMode: 'status' }, BASALT),
+  assert.deepEqual(M.deriveModes({ layoutPreset: 'compactDense', radarMode: 'status', healthMode: 'status' }, EMERY),
     { radarMode: 'status', healthMode: 'status' });
   // Nothing radar on the screens: the rain alert on a shown bar (the Watch bar's left by
   // default) still needs the radar.
@@ -282,7 +280,7 @@ test('deriveModes: the radar and health modes the screens need', () => {
   // A health item in a slot of a shown bar: 'slot'; on a bar no screen shows: 'off'.
   assert.equal(modes(S([DEFAULT], { statusTopLeft: 'steps' })).healthMode, 'slot');
   assert.equal(modes(S([DEFAULT], { statusRadarLeft: 'steps' })).healthMode, 'off');
-  // A watch without the radar or health (aplite) needs neither.
+  // A watch without the radar or health needs neither.
   assert.deepEqual(modes({ layoutPreset: 'compactCal', radarMode: 'graph', healthMode: 'all',
     statusTopOnDemandLeftItems: 'rain' }, APLITE), { radarMode: 'off', healthMode: 'off' });
 });

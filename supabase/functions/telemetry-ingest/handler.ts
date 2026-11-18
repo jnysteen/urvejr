@@ -135,16 +135,11 @@ const settingsSchema = z
     timeShowAmPm: z.boolean().optional(),
     weekStartDay: z.string().optional(),
     firstWeek: z.string().optional(),
-    // aplite only (the watch-side snapshot sends them nowhere else): its quiet-time icon and
-    // low-battery-only toggles, which every other watch replaced with On demand below.
-    showQt: z.boolean().optional(),
-    batteryLowOnly: z.boolean().optional(),
     // On demand (src/pkjs/status-bars/domain/on-demand.js telemetryCode): 40 letters, the ten items of
     // each bar (top, forecast, radar, health) in the On demand order (battery, bt, qt,
     // snooze, rain, gust, uv, aqi, pollen, wind) — L/R ticked on a side of a bar that
     // shows, l/r ticked on a hidden bar, '-' not ticked
-    // (e.g. 'RLLLLRRR-R' + 30 '-', an untouched install). Absent on aplite, whose
-    // showQt/batteryLowOnly above say what it draws. z.string() with no length bound, like
+    // (e.g. 'RLLLLRRR-R' + 30 '-', an untouched install). z.string() with no length bound, like
     // alerts and warnLooks: a future item lengthens the code and must not 400 the batch.
     // DEPLOY-ORDERING: ship this function before the app release that sends these, or
     // the strip step drops them silently.
@@ -168,13 +163,8 @@ const settingsSchema = z
     // 'value'); z.string() per threshPhoneBatteryBoldMode's rule above.
     batteryLowLevel: z.number().int().min(0).max(100).optional(),
     batteryLowDisplay: z.string().optional(),
-    // aplite only: the preset its Layout radio stores (every other watch keeps its screens
-    // as a custom layout, the customView fields below). DEPLOY ORDERING: a value missing
-    // from this enum fails the WHOLE batch (400), so a new preset (1.23.0: 'weatherOnly')
-    // must be deployed here BEFORE the watch build that can send it ships.
-    layoutPreset: z.enum(['classic', 'radarLast', 'forecast', 'fullCal', 'healthFirst', 'compactCal', 'compactDense', 'noCal', 'weatherOnly', 'custom']).optional(),
     // Custom-layout usage: the three packed per-view wire values (uint16; elements,
-    // seats, order, clock/top-bar omissions). Present only while layoutPreset is
+    // seats, order, clock/top-bar omissions). Present only while the stored layoutPreset is
     // 'custom'. DEPLOY-ORDERING: this function must ship BEFORE the app release
     // that sends them, or the schema's strip step silently drops the fields.
     customView0: z.number().int().min(0).max(0xFFFF).optional(),

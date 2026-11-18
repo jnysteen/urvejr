@@ -19,7 +19,7 @@
 // of its palette blob: stop 0's threshold, which rain-tier.js always starts at 0, so the
 // watch reads the flag as a negative stop-0 threshold (palette.h palette_from_top) and its
 // renderer clamps that stop to the zero row as it always has. With every key on Bottom
-// (or on aplite, which never gets a bit) both tuples are byte-identical to the build
+// both tuples are byte-identical to the build
 // before the setting, save the float bit on a drawn pressure, feels-like or dew point line.
 
 var rainTier = require('./rain-tier.js');
@@ -80,16 +80,16 @@ function markPalette(blob, on) {
  * multicolor if the seeding ever changes.
  *
  * Each blob also carries its chart's Bars from: Top (rainBarFrom, radarBarFrom) in bit 7
- * of its byte [1] (markPalette; see the header). Never on aplite, and with Bottom the
+ * of its byte [1] (markPalette; see the header). With Bottom the
  * blobs are byte-identical to the ones sent before the setting existed.
  *
  * @param {Object} settings Clay settings (rainBarColor/radarColor/theme, rainBarFrom/
  *   radarBarFrom).
- * @param {Object|null} watchInfo Active watch info (platform read for packing).
+ * @param {Object|null} watchInfo Active watch info.
  * @returns {{BAR_PALETTE_UINT8: number[], RADAR_PALETTE_UINT8: number[]}} Packed tuples.
  */
 function buildPaletteTuples(settings, watchInfo) {
-    var platform = watchInfo ? watchInfo.platform : 'basalt';
+    var platform = 'emery';
     var resolved = settings || {};
     var theme = resolved.theme || 'dark';
     var env = platforms.computeEnv(watchInfo);
@@ -124,7 +124,7 @@ function buildPaletteTuples(settings, watchInfo) {
  * Each style byte [9], [10], [11], [13] also carries its line's Draw from: Top in
  * bit 5 (LINE_BIT) and in bit 6 whether the drawn line floats, anchoring no edge of the
  * graph (FLOAT_BIT: pressure, feels-like, dew point); bit 7 stays 0. Neither is ever set
- * on a stripe or on aplite, so with every Draw from on Bottom and no floating line drawn
+ * on a stripe, so with every Draw from on Bottom and no floating line drawn
  * the bytes are the ones this function always sent.
  *
  * The colours are line-style.js resolveGraphColors' answer for this watch, the one
@@ -133,13 +133,10 @@ function buildPaletteTuples(settings, watchInfo) {
  * watch treats everything past byte [3] as OPTIONAL tail blocks (its length checks are
  * minimums, one per block), so a shorter tuple still applies in full — which is the
  * rule for growing this: append a block plus its own length check,
- * never widen the minimum. ADR-0003 §7. Bytes [8..13] ship to every watch — aplite has
- * no parse arm for them and simply ignores the tail, exactly as pre-feature watches
- * ignore bytes they postdate.
+ * never widen the minimum. ADR-0003 §7.
  *
  * @param {Object} settings Clay settings blob.
- * @param {Object|null} watchInfo Pebble.getActiveWatchInfo() result, or null (an unknown
- *   watch reads capable, as computeEnv does).
+ * @param {Object|null} watchInfo Pebble.getActiveWatchInfo() result, or null.
  * @returns {number[]} The fourteen bytes above.
  */
 function buildLineStyleBytes(settings, watchInfo) {
@@ -211,9 +208,7 @@ function buildCurveInsetBytes(settings) {
 /**
  * The graph's three Clay tuples for one watch, keyed by their AppMessage names. Derived
  * from the settings blob plus the watch's capabilities alone, never from weather data, so
- * they ride the Clay message (test/repo/inbox-size.test.js budgets them). Deliberately NOT
- * platform-gated, unlike the threshold blob or the curve insets: aplite renders the same
- * two metric lines, so it needs their colours too.
+ * they ride the Clay message (test/repo/inbox-size.test.js budgets them).
  * @param {Object} settings Clay settings blob.
  * @param {Object|null} watchInfo Pebble.getActiveWatchInfo() result, or null.
  * @returns {{BAR_PALETTE_UINT8: number[], RADAR_PALETTE_UINT8: number[],

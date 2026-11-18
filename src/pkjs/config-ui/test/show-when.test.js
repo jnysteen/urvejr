@@ -32,16 +32,14 @@ test('itemPredicate AND-merges COLOR capability; isVisible hides COLOR on b&w', 
   assert.equal(W.isVisible({ messageKey: 'x' }, ctx), true);
 });
 
-test('{ env: colorBacklight } gates an item to the one watch with an RGB backlight LED', () => {
-  const item = { messageKey: 'dimBacklight', showWhen: { env: 'colorBacklight' } };
-  const on = (plat) => W.isVisible(item, { env: platform.computeEnv({ platform: plat }) });
-  assert.equal(on('emery'), true, 'emery is the only board with the LED driver');
-  // basalt is the one that matters: a COLOUR watch whose backlight is white-only,
-  // so the gate must not ride on env.color.
-  ['basalt', 'aplite', 'diorite', 'flint'].forEach((p) =>
-    assert.equal(on(p), false, p + ' has no colour backlight'));
-  assert.equal(W.isVisible(item, { env: platform.computeEnv(null) }), false, 'unknown watch');
-  assert.equal(W.isVisible(item, {}), false, 'no env at all: fail closed');
+test('{ env: <fact> } reads the env: the watch\'s facts show an item, no env hides it', () => {
+  ['colorBacklight', 'onDemand'].forEach((fact) => {
+    const item = { messageKey: 'x', showWhen: { env: fact } };
+    assert.equal(W.isVisible(item, { env: platform.computeEnv() }), true, fact);
+    assert.equal(W.isVisible(item, { env: { [fact]: false } }), false, fact + ' off');
+  });
+  assert.equal(W.isVisible({ messageKey: 'x', showWhen: { env: 'colorBacklight' } }, {}), false,
+    'no env at all: fail closed');
 });
 
 test('when: a leaf asks the named resolver; an unregistered name reads false', () => {
@@ -64,13 +62,4 @@ test('when: a leaf asks the named resolver; an unregistered name reads false', (
   assert.equal(W.evaluate({ not: { when: 'nobodyRegisteredThis' } }, c), true);
   delete global.PConf.whenResolvers;
   assert.equal(W.evaluate({ when: 'drawsUv', args: { picker: 'thirdLine' } }, c), false, 'no registry: fail closed');
-});
-
-test('{ env: onDemand } hides On demand on aplite only', () => {
-  const item = { messageKey: 'x', showWhen: { env: 'onDemand' } };
-  const on = (plat) => W.isVisible(item, { env: platform.computeEnv({ platform: plat }) });
-  assert.equal(on('aplite'), false);
-  ['basalt', 'diorite', 'emery', 'flint'].forEach((p) => assert.equal(on(p), true, p));
-  assert.equal(W.isVisible(item, { env: platform.computeEnv(null) }), true,
-    'an unknown watch counts as capable');
 });

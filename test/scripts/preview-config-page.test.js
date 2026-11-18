@@ -5,7 +5,7 @@ const preview = require('../../scripts/preview-config-page.js');
 const build = require('../../scripts/build-config-page.js');
 
 test('dev preview page injects the preview palette into userData', () => {
-  const html = preview.run({ platform: 'basalt' });
+  const html = preview.run({ platform: 'emery' });
   // Assert the JSON-stringified userData (only present when the palette is injected),
   // NOT a bare substring that also matches the CSS class or the blocks.js fallback source.
   assert.ok(html.indexOf('INJECTED_USERDATA={"palette":{') >= 0,
@@ -18,30 +18,29 @@ test('dev preview page injects the preview palette into userData', () => {
 });
 
 test('parseArgs treats a lone platform name as the platform, not the output path', () => {
-  // The foot-gun: `mise preview-config aplite` used to write a file named "aplite"
-  // rendered as basalt. A bare platform name should select the platform and keep the
-  // default output path.
-  const r = preview.parseArgs(['aplite']);
-  assert.equal(r.platform, 'aplite');
+  // The foot-gun: `mise preview-config emery` used to write a file named "emery". A bare
+  // platform name should select the platform and keep the default output path.
+  const r = preview.parseArgs(['emery']);
+  assert.equal(r.platform, 'emery');
   assert.equal(r.out, preview.DEFAULT_OUT);
 });
 
-test('parseArgs treats a lone non-platform arg as the output path (basalt default)', () => {
+test('parseArgs treats a lone non-platform arg as the output path (emery default)', () => {
   const r = preview.parseArgs(['preview.html']);
   assert.equal(r.out, 'preview.html');
-  assert.equal(r.platform, 'basalt');
+  assert.equal(r.platform, 'emery');
 });
 
 test('parseArgs accepts the documented [out] [platform] order', () => {
-  const r = preview.parseArgs(['preview.html', 'aplite']);
+  const r = preview.parseArgs(['preview.html', 'emery']);
   assert.equal(r.out, 'preview.html');
-  assert.equal(r.platform, 'aplite');
+  assert.equal(r.platform, 'emery');
 });
 
 test('parseArgs is order-independent for [platform] [out]', () => {
-  const r = preview.parseArgs(['aplite', 'preview.html']);
+  const r = preview.parseArgs(['emery', 'preview.html']);
   assert.equal(r.out, 'preview.html');
-  assert.equal(r.platform, 'aplite');
+  assert.equal(r.platform, 'emery');
 });
 
 test('parseArgs knows every platform the app builds for', () => {
@@ -52,7 +51,7 @@ test('parseArgs knows every platform the app builds for', () => {
 test('parseArgs with no args uses defaults', () => {
   const r = preview.parseArgs([]);
   assert.equal(r.out, preview.DEFAULT_OUT);
-  assert.equal(r.platform, 'basalt');
+  assert.equal(r.platform, 'emery');
 });
 
 // Regression: these two entrypoints build the SAME page (dev preview vs. the

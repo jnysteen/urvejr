@@ -4,7 +4,7 @@
 // tabs, toggles, selects, and the color picker all work. Reads shell.html + lib + app files fresh
 // each run, so it always reflects the current source (no need to regenerate page.generated.js).
 // Usage: node scripts/preview-config-page.js [out] [platform]
-//   platform: any of package.template.json's targetPlatforms   (default basalt)
+//   platform: any of package.template.json's targetPlatforms   (default emery, the only one)
 'use strict';
 var fs = require('fs');
 var path = require('path');
@@ -25,9 +25,9 @@ var DEFAULT_OUT = path.join(ROOT, 'build/config-ui-preview.html');
 var PLATFORMS = require(path.join(ROOT, 'package.template.json')).pebble.targetPlatforms;
 
 // Parse CLI positionals into { out, platform } order-independently. A bare platform
-// name (e.g. `mise preview-config aplite`) selects the platform and keeps the default
+// name (e.g. `mise preview-config emery`) selects the platform and keeps the default
 // output path — otherwise the arg would be taken as a filename and written as a stray
-// extensionless "aplite" file rendered in the default (basalt) colors.
+// extensionless "emery" file.
 function parseArgs(args) {
   args = args || [];
   var out = null;
@@ -40,7 +40,7 @@ function parseArgs(args) {
       out = a;
     }
   }
-  return { out: out || DEFAULT_OUT, platform: platform || 'basalt' };
+  return { out: out || DEFAULT_OUT, platform: platform || 'emery' };
 }
 
 // Delegate to the platform SoT (platform.js) so color/round/health env-gates
@@ -85,7 +85,7 @@ function run(opts) {
   return build.previewPage({
     appFiles: APP_FILES,
     schema: schema,
-    env: envFor(opts.platform || 'basalt'),
+    env: envFor(opts.platform || 'emery'),
     cfg: {},
     userData: Object.assign({
       palette: previewPalette.buildPreviewPalette(),

@@ -6,8 +6,7 @@
 // mergedAlert) and the watch draws the slot at the alert's level, its item only where
 // the slot hides (src/c/appendix/alert_set.c alert_set_merge, test/c/alert_set_test.c
 // and test/c/on_demand_merge_test.c). The middle slot and the far side never merge,
-// Wind speed never takes a gust alert, and a watch the entries do not ride to (aplite)
-// bakes exactly as before.
+// Wind speed never takes a gust alert.
 const test = require('node:test');
 const { bakeEnv } = require('../../../src/pkjs/status-bars/domain/status-lines.js');
 const assert = require('node:assert/strict');
@@ -88,7 +87,6 @@ test('with no reading of its own, or no room for the pair, the slot shows the al
 // --- the bake: status-lines.js -------------------------------------------------------
 
 const BASALT = { platform: 'basalt' };
-const APLITE = { platform: 'aplite' };
 
 // Decode one packed line into its three slots' texts (the wind arrow's trailing
 // control byte kept as a code point).
@@ -209,17 +207,9 @@ test('a slot with no reading of its own draws no wind arrow beside a merged valu
     topSettings('empty', 'empty', 'gust', S)).slots, ['', '', '40/90\x05']);
 });
 
-test('a watch the entries do not ride to bakes its slots exactly as before', () => {
-  const right = placeOn(Object.assign({ alertUvDisplay: 'value' }, NOTHING_PLACED),
-    'top', 'right', 'uv');
-  const out = topTexts(UV, topSettings('empty', 'empty', 'uv', right), APLITE);
-  assert.deepEqual(out.slots, ['', '', '3']);
-  assert.equal(out.entries, undefined);
-});
-
 // Random sweep: on a watch the entries ride to, every slot that is not an edge slot
 // showing the metric of an alert on its side bakes byte for byte what it bakes with no
-// alert at all; on aplite every slot does.
+// alert at all.
 test('slots without such a pair bake byte for byte as with no alert at all', () => {
   const OD = require('../../../src/pkjs/status-bars/domain/on-demand.js');
   const platform = require('../../../src/pkjs/config-ui/lib/platform.js');
@@ -257,7 +247,7 @@ test('slots without such a pair bake byte for byte as with no alert at all', () 
       AQI_TREND: [rnd(150)], AQI_DAY_PEAKS: [rnd(160), rnd(160), 0],
       POLLEN_TODAY: ['0', '1', '1-2', '2-3', '3'][rnd(5)], POLLEN_TOMORROW: ['1', '2', '3'][rnd(3)]
     };
-    [BASALT, APLITE].forEach((watch) => {
+    [BASALT].forEach((watch) => {
       const env = platform.computeEnv(watch);
       env.phoneBattery = false;
       const baked = env.thresholds ? wire.bakedAlerts(payload, S) : null;

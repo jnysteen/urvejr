@@ -59,7 +59,6 @@ function batteryText(code) {
 const K = catalog.KINDS, I = catalog.ICONS;
 const WATCH_BASALT = { platform: 'basalt' };
 const WATCH_EMERY = { platform: 'emery' };
-const WATCH_APLITE = { platform: 'aplite' };
 
 function sunEvents(startType, epochs) {
   const bytes = [startType];
@@ -355,17 +354,16 @@ test('buildStatusLines packs four lines with defaults', () => {
   assert.equal(radar[1].icon, I.WIND);
   assert.equal(radar[2].icon, I.GUST);
 
-  // basalt is not emery, so the top strip is the narrow one: air quality on the left,
-  // the date in the middle, the battery in the corner.
+  // The top strip: the week, the date in the middle, air quality in the corner.
   const top = decodeLine(p.STATUS_LINE_3_UINT8);
-  assert.equal(top[0].kind, K.TEXT);
-  assert.equal(top[0].icon, I.AQI);
+  assert.equal(top[0].kind, K.LIVE_WEEK);
   assert.equal(top[1].kind, K.LIVE_DATE); // mid slot is selectable; defaults to date
-  assert.equal(top[2].kind, K.LIVE_BATTERY);
+  assert.equal(top[2].kind, K.TEXT);
+  assert.equal(top[2].icon, I.AQI);
 
   const health = decodeLine(p.STATUS_LINE_4_UINT8);
-  // non-HR default (basalt): steps / empty / sleep
-  assert.deepEqual(health.map(s => s.kind), [K.LIVE_STEPS, K.EMPTY, K.LIVE_SLEEP]);
+  // steps / sleep / heart rate
+  assert.deepEqual(health.map(s => s.kind), [K.LIVE_STEPS, K.LIVE_SLEEP, K.LIVE_HR]);
   assert.deepEqual(health.map(s => s.len), [0, 0, 0]); // LIVE/empty = no value bytes
 });
 
@@ -373,19 +371,15 @@ test('user selections and availability resolution', () => {
   const p = basePayload();
   const s = baseSettings({
     statusForecastLeft: 'uv', statusForecastRight: 'wind',
-    statusHealthRight: 'hr' // hr on basalt -> resolves to empty
+    statusHealthRight: 'hr'
   });
-  statusLines.buildStatusLines(p, s, WATCH_BASALT, NOW);
+  statusLines.buildStatusLines(p, s, WATCH_EMERY, NOW);
   const forecast = decodeLine(p.STATUS_LINE_1_UINT8);
   assert.equal(forecast[0].icon, I.UV);
   assert.equal(forecast[0].text, '6');
   assert.equal(forecast[2].icon, I.WIND);
   const health = decodeLine(p.STATUS_LINE_4_UINT8);
-  assert.equal(health[2].kind, K.EMPTY);
-
-  statusLines.buildStatusLines(p, s, WATCH_EMERY, NOW);
-  const healthEmery = decodeLine(p.STATUS_LINE_4_UINT8);
-  assert.equal(healthEmery[2].kind, K.LIVE_HR); // same stored choice, capable watch
+  assert.equal(health[2].kind, K.LIVE_HR);
 });
 
 test('forecast line sources its middle from statusForecastMid', () => {
@@ -419,15 +413,9 @@ test('top line: mid defaults to live date; stored mid packs; date packs at edges
   const topLine = catalog.LINES.filter(l => l.id === 'top')[0];
   const env = basaltEnv();
   const p = basePayload();
-  // default (narrow): air quality / date / battery
+  // default: week / date / air quality — an install that never opened the settings page
+  // has nothing stored here, so this fallback IS what such a watch renders.
   let slots = decodeLine(statusLines.packLine(topLine, p, baseSettings(), env, null, bakeEnv(NOW)));
-  assert.deepEqual(slots.map(s => s.kind), [K.TEXT, K.LIVE_DATE, K.LIVE_BATTERY]);
-  assert.equal(slots[0].icon, I.AQI);
-  // and the emery flavor, which packLine has to take from the env rather than from
-  // the flat table — an install that never opened the settings page has nothing
-  // stored here, so this fallback IS what such a watch renders.
-  const emeryEnv = Object.assign({}, env, { platform: 'emery', hr: true });
-  slots = decodeLine(statusLines.packLine(topLine, p, baseSettings(), emeryEnv, null, bakeEnv(NOW)));
   assert.deepEqual(slots.map(s => s.kind), [K.LIVE_WEEK, K.LIVE_DATE, K.TEXT]);
   assert.equal(slots[2].icon, I.AQI);
   // stored mid selection packs as TEXT
@@ -564,16 +552,6 @@ test('week slot bakes as a LIVE_WEEK kind (watch renders it live, no baked text)
   assert.equal(slots[0].len, 0);
 });
 
-test('week slot bakes as phone-baked TEXT on aplite', () => {
-  const payload = basePayload();
-  statusLines.buildStatusLines(payload, baseSettings({ statusForecastLeft: 'week' }), WATCH_APLITE, NOW);
-  const slots = decodeLine(payload.STATUS_LINE_1_UINT8);
-  assert.equal(slots[0].kind, K.TEXT);
-  assert.equal(slots[0].icon, I.NONE);
-  // value is "W" + 1..53
-  assert.match(slots[0].text, /^W([1-9]|[1-4][0-9]|5[0-3])$/);
-});
-
 test('isoWeek matches known ISO-8601 week numbers', () => {
   assert.equal(statusLines.isoWeek(new Date(2021, 0, 4)), 1);
   assert.equal(statusLines.isoWeek(new Date(2021, 0, 1)), 53); // belongs to 2020 (leap, Jan1=Wed)
@@ -659,13 +637,12 @@ test('dew point text fits the 8-byte edge cap at every plausible value', () => {
   }
 });
 
-test('dew point packs as TEXT under its own icon id, on aplite too', () => {
+test('dew point packs as TEXT under its own icon id', () => {
   const settings = {
     statusRadarLeft: 'dew', statusRadarMid: 'empty', statusRadarRight: 'empty',
     temperatureUnits: 'c'
   };
-  for (const env of [{ platform: 'basalt', color: true, health: true },
-                     { platform: 'aplite', color: false, health: false }]) {
+  for (const env of [{ platform: 'emery', color: true, health: true }]) {
     const bytes = statusLines.packLine(catalog.LINES[1], { DEW_TREND: [53.6] }, settings, env, null, bakeEnv(NOW));
     assert.equal(bytes[0], K.TEXT, env.platform + ' kind');
     // Its own icon id even though the glyph is optional: a TEXT slot with
@@ -781,12 +758,6 @@ test('no sentinel when the slot text is --', () => {
     { windSlotDirection: true }), '--', 'speed missing, bearing present');
   assertPlainText(slotBytesFor('gust', { WIND_DIR_TREND: [270] },
     { gustSlotDirection: true }), '--', 'gust speed missing');
-});
-
-test('never sent to aplite (its lean status-row twin would draw a glyph box)', () => {
-  assertPlainText(slotBytesFor('wind',
-    { WIND_TREND_UINT8: [17], WIND_DIR_TREND: [270] }, { windSlotDirection: true },
-    { platform: 'aplite', color: false, health: false }), '17kph');
 });
 
 test('the gust slot obeys gustSlotDirection, not windSlotDirection', () => {
@@ -1184,15 +1155,12 @@ test('the direction arrow still rides along when the wind unit is off', () => {
 
 test('the wind unit gives way only to an arrow the slot actually draws', () => {
   // '12/30kph' is exactly an edge slot's 8 bytes: the unit leaves the arrow its
-  // byte where the arrow is drawn, and keeps it where none is (aplite has no
-  // arrow; no bearing, no arrow).
+  // byte where the arrow is drawn, and keeps it where none is (no bearing, no arrow).
   const both = { windSlotDisplay: 'both', windSlotUnit: true, windSlotDirection: true };
   const payload = { WIND_TREND_UINT8: [12], WIND_DAY_PEAKS: [30, 20, 0], WIND_DIR_TREND: [270] };
   const drawn = slotBytesFor('wind', payload, both);
   assert.equal(Buffer.from(drawn.slice(0, drawn.length - 1)).toString('utf8'), '12/30');
   assert.equal(tailByte(drawn), SENTINEL_BASE + 4, 'the arrow takes the freed byte');
-  assertPlainText(slotBytesFor('wind', payload, both,
-    { platform: 'aplite', color: false, health: false }), '12/30kph', 'aplite draws no arrow');
   assertPlainText(slotBytesFor('wind', { WIND_TREND_UINT8: [12], WIND_DAY_PEAKS: [30, 20, 0] },
     both), '12/30kph', 'no bearing, no arrow');
 });
@@ -1432,25 +1400,15 @@ test('buildStatusLines: nothing alerting sends an empty ALERT_ENTRIES_UINT8', ()
   assert.deepEqual(off.ALERT_ENTRIES_UINT8, []);
 });
 
-test('buildStatusLines never sends ALERT_ENTRIES_UINT8 to aplite (no On demand there)', () => {
-  const p = alertPayload();
-  statusLines.buildStatusLines(p, baseSettings(ALERTS_ALL_VALUES), WATCH_APLITE, NOW);
-  assert.equal(Object.prototype.hasOwnProperty.call(p, 'ALERT_ENTRIES_UINT8'), false);
-  // An unknown watch still gets it, like the levels (never hide a real feature).
-  const unknown = alertPayload();
-  statusLines.buildStatusLines(unknown, baseSettings(placedOnly(['uv'], { alertUvDisplay: 'icon' })), null, NOW);
-  assert.deepEqual(unknown.ALERT_ENTRIES_UINT8, [0x80 | 7 | 0x08]);
-});
-
 test('the weather alerts are no slot item: no catalog kind, and the lines carry no entries', () => {
   assert.equal(catalog.byCode('alerts'), undefined);
   assert.equal(Object.prototype.hasOwnProperty.call(catalog.KINDS, 'ALERTS'), false);
   const p = alertPayload();
   statusLines.buildStatusLines(p, baseSettings(ALERTS_ALL_VALUES), WATCH_BASALT, NOW);
   const top = decodeLine(p.STATUS_LINE_3_UINT8);
-  assert.deepEqual(top.map((slot) => slot.kind), [K.TEXT, K.LIVE_DATE, K.LIVE_BATTERY],
+  assert.deepEqual(top.map((slot) => slot.kind), [K.LIVE_WEEK, K.LIVE_DATE, K.TEXT],
     'the strip keeps its shipped slots; the watch overlays the row itself');
-  assert.equal(top[0].icon, I.AQI, 'its left: air quality, a slot like any other');
+  assert.equal(top[2].icon, I.AQI, 'its right: air quality, a slot like any other');
 });
 
 test('the entry cap holds all five alerts with their widest values', () => {

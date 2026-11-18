@@ -99,7 +99,6 @@
      */
     function arrowDue(code, S, env) {
         if (code !== 'wind' && code !== 'gust') { return false; }
-        if (env && env.platform === 'aplite') { return false; }
         return Boolean(S[code + 'SlotDirection']) && dayMaxShown(code, S).now !== null;
     }
 
@@ -159,9 +158,8 @@
      * @returns {string} e.g. 'Oct 2026', '03.10.26'
      */
     function dateText(S, env, now, fullDate) {
-        var aplite = Boolean(env && env.platform === 'aplite');
-        if (!fullDate) { return dateFormat.formatMonthYear(now, aplite ? 'auto' : S.dateSlotMonthFormat); }
-        return dateFormat.formatFullDate(now, aplite ? 'auto' : S.dateSlotFullFormat,
+        if (!fullDate) { return dateFormat.formatMonthYear(now, S.dateSlotMonthFormat); }
+        return dateFormat.formatFullDate(now, S.dateSlotFullFormat,
             dateFormat.dateMonthFirst(S));
     }
 
@@ -214,18 +212,11 @@
         case 'batteryPct': return '80%';
         case 'phoneBattery': return '72%';
         case 'phoneBatteryPlain': return '72%';
-        // The battery item is its glyph alone, except on aplite, whose lean twin prints
-        // the charge (status_row_aplite.c format_live_value).
-        case 'battery': return c.env && c.env.platform === 'aplite' ? '80%' : '';
+        // The battery item is its glyph alone.
+        case 'battery': return '';
         default: return '';
         }
     }
-
-    // The items aplite's lean status row draws a glyph for: its bitmap masks
-    // (status_row_aplite.c status_mask_for) and the drawn sun arrow. No dew drops,
-    // and its battery slot prints the charge as text.
-    var APLITE_GLYPHS = {temp: true, wind: true, gust: true, uv: true, aqi: true, pollen: true,
-        countdown: true, sun: true};
 
     /**
      * The glyph a slot's text follows on this watch: the page's copy of the watch's icon
@@ -237,7 +228,6 @@
      * @returns {?string} The glyph's <svg>, or null for none.
      */
     function slotIcon(code, env, S) {
-        if (env && env.platform === 'aplite' && !APLITE_GLYPHS[code]) { return null; }
         if (code === 'condition' && slotText.conditionLook(S, env) === 'text') { return null; }
         // The city draws the current weather's icon before its name (citySlotIcon); the
         // sample's weather is the condition slot's, partly cloudy.
@@ -321,7 +311,7 @@
         // still fits, decided as the bake decides it (catalog.widenEdges).
         var bytes = codes.map(function (c, p) { return wireBytes(c.code, texts[p], st, env, SLOT_CAPS[p]); });
         var wide = codes.map(function (c, p) {
-            return p !== 1 && c.code === 'condition' && !(env && env.platform === 'aplite')
+            return p !== 1 && c.code === 'condition'
                 ? slotSample(c, catalog.CAPS.EDGE_COND_TEXT_MAX) : null;
         });
         var take = catalog.widenEdges(bytes, wide.map(function (w, p) {

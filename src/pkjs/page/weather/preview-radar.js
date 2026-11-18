@@ -188,7 +188,7 @@ var PConf = (typeof global !== 'undefined' && global.PConf && global.PConf.block
      * @returns {boolean}
      */
     function skyOn(state, env) {
-        return Boolean(state.radarSky) && (state.radarMode || 'graph') === 'graph' && !(env && env.platform === 'aplite');
+        return Boolean(state.radarSky) && (state.radarMode || 'graph') === 'graph' && true;
     }
 
     /**
@@ -242,7 +242,7 @@ var PConf = (typeof global !== 'undefined' && global.PConf && global.PConf.block
         }
         var local = [0, 0, 0, 0.2, 0.6, 1.5, 3, 7, 14, 10, 5, 2, 0.8, 0.3, 0.1, 0, 0.3, 1, 3, 8, 12, 6, 2, 0.5];
         var add = [0.4, 0.5, 0.7, 1, 1.5, 2, 3, 4, 3, 2, 1.5, 1, 0.8, 0.5, 0.4, 0.3, 0.5, 1.5, 3, 4, 3, 2, 1, 0.5];
-        var isAplite = Boolean(env && env.platform === 'aplite');
+        var isAplite = false;
         // The sky rows (Radar tab -> Clouds, sun & lightning) take a band under the
         // axis ticks, and the bars keep the rest — rain_radar_layer.c's sky band. The
         // sample is a received radar window with a received sky over it, so the
@@ -258,7 +258,7 @@ var PConf = (typeof global !== 'undefined' && global.PConf && global.PConf.block
         // The watch's pixel grid, for the sky rows: its 24 slots of RADAR_DEF's pitch
         // (6 px, 8 on emery's 200 px bucket) span PX0..PX1, watch x 0 (the stripe
         // lines' anchor) at PX0 — so one watch pixel is `unit` preview units.
-        var WATCH_PITCH = (env && env.platform === 'emery') ? 8 : 6, SKY_H = 4;
+        var WATCH_PITCH = 8, SKY_H = 4;
         var unit = step / WATCH_PITCH, topY = AXIS_Y;
         var skyBand = sky ? (2 * SKY_H + 2) * unit : 0;
         // The plot keeps its height with the sky rows on: they and their legend row grow

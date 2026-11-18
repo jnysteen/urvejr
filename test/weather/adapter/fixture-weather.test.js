@@ -60,8 +60,8 @@ test('the fixture send bundles the line styling, threaded with watchInfo', () =>
   global.Pebble = { sendAppMessage: function(payload) { sent.push(payload); } };
   try {
     sendFixtureWeather(makeFixture({ windKmh: [0, 25, 50] }), {
-      settings: { secondaryLine: 'wind', windScale: 'mid', secondaryLineFill: true, barSource: 'off' },
-      watchInfo: { platform: 'diorite' }, now: FIXTURE_NOW
+      settings: { secondaryLine: 'wind', windScale: 'mid', secondaryLineFill: true, barSource: 'off', theme: 'bw' },
+      watchInfo: { platform: 'emery' }, now: FIXTURE_NOW
     });
   } finally {
     global.Pebble = origPebble;
@@ -69,8 +69,8 @@ test('the fixture send bundles the line styling, threaded with watchInfo', () =>
   assert.equal(sent.length, 1);
   const style = sent[0].CLAY_LINE_STYLE_UINT8;
   assert.equal(style.length, 14);
-  assert.equal(style[0], 0xFF);   // GColorWhite line on B&W — proves watchInfo reached the resolver
-  assert.equal(style[1], 0xEA);   // GColorLightGray fill on B&W
+  assert.equal(style[0], 0xFF);   // GColorWhite line on the B&W theme — the settings reached the resolver
+  assert.equal(style[1], 0xEA);   // GColorLightGray fill on the B&W theme
   assert.equal(style[3] & 0x01, 1, 'secondaryLineFill rides the line flag byte');
 });
 
@@ -280,7 +280,7 @@ test('fixtures/rain-countdown.json bakes UV danger 8 + wind warn 66 into ALERT_E
   const { decodeAlerts } = require('../../helpers/alert-entries.js');
   assert.equal(fx.claySettings.statusTopOnDemandRightItems, 'battery,uv,wind',
     'the fixture ticks only what it bakes');
-  ['basalt', 'emery'].forEach((platform) => {
+  ['emery'].forEach((platform) => {
     const out = getFixtureWeatherPayload(fx, Object.assign({}, fx.claySettings), { platform });
     const bytes = out.ALERT_ENTRIES_UINT8;
     assert.equal(bytes.length, 5, platform + ': UV (1 + 1 value byte) + wind (1 + 2 value bytes)');
@@ -296,8 +296,7 @@ test('fixtures/rain-countdown.json bakes UV danger 8 + wind warn 66 into ALERT_E
     // The status lines carry no entries: the top-left slot keeps its shipped default.
     const topLeft = decodeLine(out.STATUS_LINE_3_UINT8)[0];
     assert.notEqual(topLeft.kind, 11, platform + ': no alerts slot kind any more');
-    assert.equal(topLeft.kind, platform === 'emery' ? catalog.KINDS.LIVE_WEEK : catalog.KINDS.TEXT,
-      platform + ': the shipped top-left default (air quality, text, off emery)');
+    assert.equal(topLeft.kind, catalog.KINDS.LIVE_WEEK, platform + ': the shipped top-left default');
   });
 });
 
@@ -325,7 +324,7 @@ test('fixtures/uv-alert-tomorrow.json bakes a tomorrow UV entry (» 8, danger) +
     'the fixture ticks only what it bakes');
   const gustKind = thresholds.KINDS.findIndex((k) => k.code === 'gust');
   const aqiKind = thresholds.KINDS.findIndex((k) => k.code === 'aqi');
-  ['basalt', 'emery'].forEach((platform) => {
+  ['emery'].forEach((platform) => {
     const out = bake(platform, {});
     assert.equal(out.ALERT_ENTRIES_UINT8.length, 5, platform + ': UV (1 + 1) + wind (1 + 2)');
     assert.ok(!decodeAlerts(out.ALERT_ENTRIES_UINT8).some((e) => e.kind === gustKind || e.kind === aqiKind),
@@ -444,7 +443,7 @@ test('a raw fixtures/berlin.json (no startEpoch) still yields a payload', () => 
   const fx = JSON.parse(fs.readFileSync(
     path.join(__dirname, '..', '..', '..', 'fixtures', 'berlin.json'), 'utf8'));
   assert.equal('startEpoch' in fx.weather, false, 'premise: the committed fixture has no startEpoch');
-  const out = getFixtureWeatherPayload(fx, Object.assign({}, fx.claySettings), { platform: 'basalt' });
+  const out = getFixtureWeatherPayload(fx, Object.assign({}, fx.claySettings), { platform: 'emery' });
   assert.ok(out, 'payload built despite the undefined startTime');
   assert.equal(out.TEMP_TREND_UINT8.length, fx.weather.temps.length);
 });
@@ -526,7 +525,7 @@ const TRENDS = ['TEMP_TREND_UINT8', 'SECONDARY_LINE_TREND_UINT8', 'THIRD_LINE_TR
 const { MAX_FORECAST_HOURS } = require('../../../src/pkjs/weather/domain/hourly-window.js');
 const loadFixture = (name) => JSON.parse(fs.readFileSync(path.join(__dirname, '..', '..', '..', 'fixtures', name), 'utf8'));
 
-test('forecast-long.json: 68 hours on an emery set to the long span, 24 on 24 and on every other watch', () => {
+test('forecast-long.json: 68 hours on the long span, 14 on 12, 24 or 26 on 24', () => {
   const fx = loadFixture('forecast-long.json');
   assert.equal(fx.weather.temps.length, 68, 'premise: 68 hourly entries');
   assert.equal(fx.weather.temps.length, MAX_FORECAST_HOURS, 'premise: a full long-span feed');
@@ -541,15 +540,11 @@ test('forecast-long.json: 68 hours on an emery set to the long span, 24 on 24 an
   const at24 = (nums) => getFixtureWeatherPayload(fx, Object.assign({}, fx.claySettings,
     { forecastHours: '24', forecastAxisNumbers: nums }), { platform: 'emery' }).NUM_ENTRIES;
   assert.deepEqual(['axis', 'graph', 'off'].map(at24), [24, 26, 26]);
-  ['basalt', 'diorite', 'aplite'].forEach((platform) => {
-    const out = getFixtureWeatherPayload(fx, Object.assign({}, fx.claySettings), { platform });
-    assert.equal(out.NUM_ENTRIES, 24, platform);
-  });
-  assert.equal(getFixtureWeatherPayload(fx, Object.assign({}, fx.claySettings), null).NUM_ENTRIES, 24,
-    'an unknown watch');
+  assert.equal(getFixtureWeatherPayload(fx, Object.assign({}, fx.claySettings), null).NUM_ENTRIES, 68,
+    'an unknown watch is the Pebble Time 2');
 });
 
-test('forecast-48h.json: a 48-hour feed (OWM, WU) sends its 48 on the long span, 24 on 24 and on every other watch', () => {
+test('forecast-48h.json: a 48-hour feed (OWM, WU) sends its 48 on the long span, 24 on 24', () => {
   const fx = loadFixture('forecast-48h.json');
   assert.equal(fx.weather.temps.length, 48, 'premise: 48 hourly entries');
   assert.equal(fx.claySettings.forecastHours, '48');
@@ -560,13 +555,6 @@ test('forecast-48h.json: a 48-hour feed (OWM, WU) sends its 48 on the long span,
     { platform: 'emery' });
   assert.equal(at24.NUM_ENTRIES, 24);
   TRENDS.forEach((k) => assert.equal(at24[k].length, 24, 'emery 24 ' + k));
-  ['basalt', 'diorite', 'aplite'].forEach((platform) => {
-    const out = getFixtureWeatherPayload(fx, Object.assign({}, fx.claySettings), { platform });
-    assert.equal(out.NUM_ENTRIES, 24, platform);
-    assert.equal(out.TEMP_TREND_UINT8.length, 24, platform);
-  });
-  assert.equal(getFixtureWeatherPayload(fx, Object.assign({}, fx.claySettings), null).NUM_ENTRIES, 24,
-    'an unknown watch');
 });
 
 test('berlin.json on an emery set to 12 sends 14 hours; the 39-hour time-lapse sends 24 by default', () => {
@@ -602,7 +590,7 @@ test('fixtures/condition.json bakes the condition into the forecast bar and the 
   const catalog = require('../../../src/pkjs/status-bars/domain/status-line-catalog.js');
   const fx = JSON.parse(fs.readFileSync(path.join(__dirname, '..', '..', '..', 'fixtures', 'condition.json'), 'utf8'));
   normalizeWeather(fx);
-  ['basalt', 'emery'].forEach((platform) => {
+  ['emery'].forEach((platform) => {
     const out = getFixtureWeatherPayload(fx, Object.assign({}, fx.claySettings), { platform });
     const mid = decodeLine(out.STATUS_LINE_1_UINT8)[1];
     assert.equal(mid.icon, catalog.ICONS.COND_SUN_CLOUD, platform + ': the day glyph');
@@ -611,8 +599,4 @@ test('fixtures/condition.json bakes the condition into the forecast bar and the 
     assert.deepEqual([topLeft.kind, topLeft.icon, topLeft.text],
       [catalog.KINDS.TEXT, catalog.ICONS.COND_SUN_CLOUD, 'Partly cloudy\u001fPCLDY'], platform + ': the edge slot');
   });
-  const aplite = getFixtureWeatherPayload(fx, Object.assign({}, fx.claySettings), { platform: 'aplite' });
-  const apliteMid = decodeLine(aplite.STATUS_LINE_1_UINT8)[1];
-  assert.deepEqual([apliteMid.icon, apliteMid.text], [catalog.ICONS.COND_TEXT, 'PCLDY'],
-    'aplite: the text-only look, one form');
 });

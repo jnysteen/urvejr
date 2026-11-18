@@ -167,13 +167,3 @@ test('a middle city too long for its cap is cut as before, never laddered', () =
   });
 });
 
-test('a known aplite bakes its edge cities byte for byte as before', () => {
-  const plain = (city) => Buffer.from(statusLines.utf8Truncate(
-    statusLines.utf8Encode(city), catalog.CAPS.EDGE_TEXT_MAX)).toString('utf8');
-  ['Bad Soden', 'Bad Berleburg', 'New York', 'Frankfurt am Main', 'Bad Tölz'].forEach((city) => {
-    const slots = bakeTop(city, 'aplite');
-    assert.equal(slots[0].text, plain(city), city);
-    assert.equal(slots[2].text, plain(city), city);
-  });
-  assert.equal(bakeTop('Bad Soden', 'aplite')[0].text, 'Bad Sode');
-});

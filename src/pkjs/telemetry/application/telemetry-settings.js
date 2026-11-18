@@ -33,11 +33,11 @@ var statusThresholds = require('../../alerts/domain/status-thresholds.js');
 var onDemand = require('../../status-bars/domain/on-demand.js');
 // showOf — a graph line's Show choice, read like the bake reads it.
 var lineAlert = require('../../alerts/domain/line-alert.js');
-// The forecast's time span option this watch draws (12/24/48 on emery, 24 elsewhere).
+// The forecast's time span option (12/24/48).
 var forecastSpan = require('../../weather/domain/forecast-span.js');
-// The forecast's left axis options (emery only), read as the wire reads them.
+// The forecast's left axis options, read as the wire reads them.
 var forecastAxis = require('../../forecast-graphs/domain/forecast-axis.js');
-// Graph styles (emery): how many exist, and the length of each one a screen shows.
+// Graph styles: how many exist, and the length of each one a screen shows.
 var graphStyles = require('../../forecast-graphs/domain/graph-styles.js');
 // SLOT_KEYS / parseSlot — the Weather tab's saved places, read like the tab reads them.
 var weatherTabModel = require('../../weather/domain/weather-tab-model.js');
@@ -127,8 +127,7 @@ function graphColorReport(settings, scope, role, suffix) {
  * rule). So 'VrVrVro-Vr' is an untouched install (gust, UV, AQI and wind placed on the
  * Watch Status Bar, looking ahead with the »; pollen off), and 'o-Vro-o-i-' UV
  * printing its value and looking ahead, wind as an icon on today only. Placement is
- * read for THIS watch (env): a known aplite has no On demand, so nothing is placed
- * there. Everything is read off the alert bake's own list (enabledAlerts), so the
+ * read for THIS watch (env). Everything is read off the alert bake's own list (enabledAlerts), so the
  * report and the watch cannot disagree. Ten characters, never lists: the ingest
  * copies the settings header into every row a batch writes, and this one code
  * replaced two comma lists (alertKinds, alertValueKinds) that cost about 60 B more
@@ -213,27 +212,18 @@ function weatherTabPlaces(safe) {
  * Build a compact, allowlisted settings snapshot for telemetry.
  *
  * @param {Object} settings Clay settings object.
- * @param {Object} [watchInfo] Pebble.getActiveWatchInfo() result — only its platform is
- *   read: what the watch can show, and the graph colours resolved the way the renderer
- *   does (line-style.renderContextFor: the theme fold and the colour-display check).
- *   Absent = an unknown watch, which answers like basalt: colour, no LED.
+ * @param {Object} [watchInfo] Pebble.getActiveWatchInfo() result; unused (the face runs on
+ *   the Pebble Time 2 alone, config-ui/lib/platform.js).
  * @param {number} nowMs Reference time for the Weather tab's seen age (the caller's clock).
  * @returns {Object} Telemetry-safe settings snapshot.
  */
 function buildSettingsSnapshot(settings, watchInfo, nowMs) {
     var safe = settings || {};
     var now = nowMs;
-    // What this watch can show (the config page's own facts): no On demand on aplite.
-    // An unknown watch (watchInfo absent) answers like basalt: colour, no LED.
+    // What the watch can show (the config page's own facts).
     var env = platforms.computeEnv(watchInfo);
     var cx = lineStyle.renderContextFor(safe, env);
-    // What only a known aplite reads: its fixed quiet-time and low-battery indicators
-    // (every other watch has On demand, the onDemand code below) and its one-screen Layout
-    // radio (every other watch keeps its screens as a custom layout, the customView fields
-    // below). Elsewhere these three are leftovers, or a constant 'custom'.
-    var isAplite = env.platform === 'aplite';
-    // The On demand items' code (undefined on a watch without On demand), which the
-    // settings that only On demand reads follow.
+    // The On demand items' code, which the settings that only On demand reads follow.
     var onDemandCode = onDemand.telemetryCode(safe, env);
     // Custom-layout usage: the three packed CLAY_VIEW values fully describe what a
     // custom user built (elements, seats, order, clock/strip omissions) in 3 ints.
@@ -247,21 +237,10 @@ function buildSettingsSnapshot(settings, watchInfo, nowMs) {
     var customExt = customCycle
         ? graphStyles.wireCycle(safe, env, customCycle).map(function (v) { return viewCycle.packExt(v); })
         : null;
-    // --- the Nighttime card's gates, resolved once for the fields below ---------
-    // Dim backlight is HARDWARE-gated, not only setting-gated: the red tint is
-    // light_set_color_rgb888() and emery is the only watch with the LED
-    // (config-ui/lib/platform.js, the platform->capability SoT). The toggle ships ON,
-    // so an ungated Boolean() would report a fleet of basalt watches "using" a
-    // feature their hardware cannot perform. Same convention as the graph colours on
-    // a B&W watch: no capability, no fields. An unknown watch answers false, the safe
-    // direction.
-    var hasColorBacklight = env.colorBacklight;
-    var dimOn = Boolean(hasColorBacklight && boolDefaultOn(safe.backlightDim));
-    // The left axis options' watch (forecast-axis.js isEmery: a KNOWN emery), which is
-    // also the one watch with Larger graph fonts.
-    var isEmery = forecastAxis.isEmery(env);
+    // --- the Nighttime card's gate, resolved once for the fields below ---------
+    var dimOn = boolDefaultOn(safe.backlightDim);
     // The graph styles the screens show past the first (graph-styles.js stylesSent; none
-    // while only the first shows, and on every watch without styles).
+    // while only the first shows).
     var stylesSent = graphStyles.stylesSent(safe, env);
     /**
      * The length option of graph style k (forecastHours' reading) while a screen shows it.
@@ -314,8 +293,7 @@ function buildSettingsSnapshot(settings, watchInfo, nowMs) {
         // a new alert kind or look cannot 400 an old ingest's batch.
         alerts: alertsReport(safe, env),
         rainAlertDisplay: statusThresholds.rainAlert(safe).look,
-        // The warn box per paired kind (see warnLooksReport). The platform decides the
-        // default, and an unknown watch reads as colour, as for the colours.
+        // The warn box per paired kind (see warnLooksReport).
         warnLooks: warnLooksReport(safe, env.color),
         // The battery saver's window — the saver's OWN pair, as it has always been;
         // the Nighttime card groups it with two other features but shares no hours
@@ -323,11 +301,11 @@ function buildSettingsSnapshot(settings, watchInfo, nowMs) {
         // row's `settings_json ? 'sleepStartHour'` reads "battery saver on".
         sleepStartHour: safe.sleepNightEnabled ? toIntOrUndefined(safe.sleepStartHour) : undefined,
         sleepEndHour: safe.sleepNightEnabled ? toIntOrUndefined(safe.sleepEndHour) : undefined,
-        // Dim backlight (emery only — see hasColorBacklight above). Sub-settings only
+        // Dim backlight. Sub-settings only
         // while it is on: the same "value in effect" rule, and the themeAuto block
         // below one card apart. Its hours are unconditional under the switch — there
         // is no mode to be in, so an "on" row always has a window to report.
-        backlightDim: hasColorBacklight ? boolDefaultOn(safe.backlightDim) : undefined,
+        backlightDim: boolDefaultOn(safe.backlightDim),
         backlightDimStartHour: dimOn ? toIntOrUndefined(safe.backlightDimStartHour) : undefined,
         backlightDimEndHour: dimOn ? toIntOrUndefined(safe.backlightDimEndHour) : undefined,
         // The LED colour, in its stored 'r,g,b' form rather than the '#RRGGBB' the
@@ -353,33 +331,24 @@ function buildSettingsSnapshot(settings, watchInfo, nowMs) {
         timeShowAmPm: !!safe.timeShowAmPm,
         weekStartDay: safe.weekStartDay,
         firstWeek: safe.firstWeek,
-        // aplite only (isAplite above): its quiet-time icon and low-battery-only toggles.
-        showQt: isAplite ? Boolean(safe.showQt) : undefined,
-        batteryLowOnly: isAplite ? Boolean(safe.batteryLowOnly) : undefined,
         // On demand: 40 letters, the ten items of each bar (top, forecast, radar, health)
         // in the On demand order — L/R ticked on a side of a bar that shows, l/r
         // ticked on a bar the layout leaves out, '-' not ticked.
-        // Absent on a known aplite, which has no On demand: showQt and batteryLowOnly
-        // above are what aplite reads, and only aplite reports them.
         onDemand: onDemandCode,
         // The Rain alert dialog's "Replaces the slot" (true, the default, takes the place of
         // the slot on its side; false sits beside it), read like the thresholds blob packs it
-        // (status-thresholds.js rainAlert). Absent where onDemand is: aplite has no On
-        // demand. Lockstep with handler.ts -- deploy it first.
+        // (status-thresholds.js rainAlert). Lockstep with handler.ts -- deploy it first.
         rainReplacesSlot: onDemandCode === undefined ? undefined
             : statusThresholds.rainAlert(safe).replacesSlot,
         // The weather condition slot's Look ('both' icon and text, 'text', 'icon'; absent or
-        // junk reads 'both'), on the watches that draw its glyph: aplite prints text whatever
-        // is stored. Lockstep with handler.ts -- deploy it first.
-        conditionSlotLook: isAplite ? undefined : slotText.conditionLook(safe),
-        conditionSlotName: isAplite ? undefined : slotText.conditionName(safe),
-        citySlotIcon: isAplite ? undefined : slotText.cityIcon(safe),
-        // The Battery item's warn level as STORED (5-30 in 5s from an emery page,
-        // 10/20/30 elsewhere), not the level the watch rounds it to; and its look.
+        // junk reads 'both'). Lockstep with handler.ts -- deploy it first.
+        conditionSlotLook: slotText.conditionLook(safe),
+        conditionSlotName: slotText.conditionName(safe),
+        citySlotIcon: slotText.cityIcon(safe),
+        // The Battery item's warn level as STORED (5-30 in 5s), not the level the watch rounds
+        // it to; and its look.
         batteryLowLevel: toIntOrUndefined(safe.batteryLowLevel),
         batteryLowDisplay: safe.batteryLowDisplay,
-        // aplite only: the preset its Layout radio stores, raw.
-        layoutPreset: isAplite ? safe.layoutPreset : undefined,
         // Lockstep with the Deno telemetry-ingest .strip() schema — deploy the
         // function BEFORE the app ships, or these fields are silently dropped.
         customView0: customPacked ? customPacked[0] : undefined,
@@ -390,27 +359,24 @@ function buildSettingsSnapshot(settings, watchInfo, nowMs) {
         customViewExt2: customExt ? (customExt[2] || 0) : undefined,
         viewResetMin: toIntOrUndefined(safe.viewResetMin),
         // The Screen switching card's Double flick switch. Lockstep with the Deno telemetry-ingest
-        // .strip() schema (handler.ts); ships OFF, so aplite's constant false is the default.
+        // .strip() schema (handler.ts); ships OFF.
         doubleFlick: Boolean(safe.doubleFlick),
-        // emery only: the one watch with the toggle (schema.js shows the row there alone).
-        largeGraphFont: isEmery ? Boolean(safe.largeGraphFont) : undefined,
+        largeGraphFont: Boolean(safe.largeGraphFont),
         // The forecast's time span, the option: 12 / 24 / 48 (48 = the long span, whatever
-        // its label), on the one watch that offers a span (env.forecastSpan: emery); every
-        // other watch is sent 24 whatever is stored, so it reports nothing. Categorical, not
-        // the hours sent (forecast-span.js option()). Lockstep with handler.ts.
-        forecastHours: env.forecastSpan ? forecastSpan.option(safe, env) : undefined,
-        // Graph styles (3.0.0, emery only): how many exist (1-6), and the length option of
-        // styles 2 and 3 while a screen shows them (the first style's is forecastHours).
-        // Lockstep with handler.ts -- deploy it first.
-        graphStyleCount: env.graphStyles ? graphStyles.count(safe) : undefined,
+        // its label). Categorical, not the hours sent (forecast-span.js option()). Lockstep
+        // with handler.ts.
+        forecastHours: forecastSpan.option(safe, env),
+        // Graph styles (3.0.0): how many exist (1-6), and the length option of styles 2 and 3
+        // while a screen shows them (the first style's is forecastHours). Lockstep with
+        // handler.ts -- deploy it first.
+        graphStyleCount: graphStyles.count(safe),
         graphStyle2Hours: shownStyleHours(1),
         graphStyle3Hours: shownStyleHours(2),
-        // The forecast's left axis options, emery only (the one watch that offers
-        // them), as chosen (forecast-axis.js readers: absent or junk reads the default, a
+        // The forecast's left axis options, as chosen (forecast-axis.js readers: absent or junk reads the default, a
         // beta's 'beside' included), the Draw from precedent below: whether the scale applies
         // at all is the numbers and line fields. Lockstep with handler.ts -- deploy it first.
-        forecastAxisNumbers: isEmery ? forecastAxis.numbers(safe) : undefined,
-        forecastAxisScale: isEmery ? forecastAxis.scale(safe) : undefined,
+        forecastAxisNumbers: forecastAxis.numbers(safe),
+        forecastAxisScale: forecastAxis.scale(safe),
         vibe: !!safe.vibe,
         btIcons: safe.btIcons,
         secondaryLine: safe.secondaryLine,
@@ -484,15 +450,10 @@ function buildSettingsSnapshot(settings, watchInfo, nowMs) {
     // this watch ACTUALLY RENDERS. Every platform/theme judgement comes from line-style's
     // renderContextFor (cx above) — the same call resolveGraphColors opens with — rather than
     // being re-derived here, which is how the two drifted before: this file had copied the
-    // theme fold but not the colour-display check, and reported picks on a B&W watch that
+    // theme fold but not the colour-display check, and reported picks on a B&W theme that
     // the wire was already resolving away to the theme foreground.
-    // cx.isColor is that missing half: a watch painting no colour reports nothing,
-    // whether the reason is a Black & White theme or B&W hardware (aplite/diorite/flint).
-    // cx.suffix is the polarity to read. It is folded (aplite has the light polarity
-    // compiled out) but that fold changes nothing HERE, since aplite is also the one
-    // no-polarity platform and cx.isColor has already excluded it — it is load-bearing on
-    // the wire, not in this snapshot; taking it from the same place is what keeps the two
-    // from disagreeing if that ever stops being true.
+    // cx.isColor is that missing half: a watch painting no colour (a Black & White theme)
+    // reports nothing. cx.suffix is the polarity to read.
     // Precedent for reporting only the value in effect: sleepStartHour above.
     //
     // The colours are stored PER METRIC now (gcWindLineDark, …), but these six field names
@@ -516,7 +477,7 @@ function buildSettingsSnapshot(settings, watchInfo, nowMs) {
     snapshot.graphSecondColor = (cx.isColor && safe.thirdLine !== 'off')
         ? graphColorReport(safe, safe.thirdLine, 'Line', cx.suffix) : undefined;
     // Same rule for the third-metric line (settings.fourthLine), which is 'off'
-    // by default and absent on aplite installs.
+    // by default.
     snapshot.graphThirdColor = (cx.isColor && Boolean(safe.fourthLine) && safe.fourthLine !== 'off')
         ? graphColorReport(safe, safe.fourthLine, 'Line', cx.suffix) : undefined;
     // And the fourth-metric line (settings.fifthLine), likewise 'off' by default.

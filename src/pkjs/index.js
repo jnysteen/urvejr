@@ -398,19 +398,10 @@ Pebble.addEventListener('ready',
             app.devConfig.forceShowReleaseNotificationOnBoot
         );
         claySettings.seedDefaults(DEFAULT_HOLIDAY_COLORS);
-        var statusMigrationPlatform = 'basalt';
-        var knownPlatform = '';
-        try {
-            var wi = Pebble.getActiveWatchInfo();
-            if (wi && wi.platform) { statusMigrationPlatform = knownPlatform = wi.platform; }
-        }
-        catch (ex) { /* keep the safe default */ }
         // Every marker-gated migration runs inside clay-migrations.runMigrations
         // (the ledger is settings/domain/migrations/registry.js); the ones marked 'ack' commit
         // their markers only on the Clay ACK below.
         var migrations = clayMigrations.runMigrations({
-            platform: statusMigrationPlatform,
-            knownPlatform: knownPlatform,
             colors: DEFAULT_HOLIDAY_COLORS,
             defaultRadarProvider: 'rainbow',
             // Read BEFORE seedDefaults above: the onboarding migration's only way

@@ -10,7 +10,6 @@ const { readC, cDefine } = require('../../helpers/c-source.js');
 const platform = require('../../../src/pkjs/config-ui/lib/platform.js');
 
 const env = (p) => platform.computeEnv(p === null ? null : { platform: p });
-const NON_EMERY = ['aplite', 'basalt', 'diorite', 'flint'];
 const LINE_KEYS = ['secondaryLine', 'thirdLine', 'fourthLine', 'fifthLine'];
 const DEFAULTS = { numbers: 'axis', scale: false };
 
@@ -37,21 +36,8 @@ test('readers: absent or junk read the shipped defaults', () => {
   assert.equal(forecastAxis.wireBits(retired, env('emery')), 0);
 });
 
-test('platform predicates: a known emery; the Clay word also carries for an unknown platform', () => {
-  assert.equal(forecastAxis.isEmery(env('emery')), true);
-  assert.equal(forecastAxis.carried(env('emery')), true);
-  NON_EMERY.forEach((p) => {
-    assert.equal(forecastAxis.isEmery(env(p)), false, p);
-    assert.equal(forecastAxis.carried(env(p)), false, p);
-  });
-  assert.equal(forecastAxis.isEmery(env(null)), false, 'unknown is not a known emery');
-  assert.equal(forecastAxis.carried(env(null)), true, 'unknown is capable on the Clay message');
-  assert.equal(forecastAxis.isEmery(null), false);
-  assert.equal(forecastAxis.carried(null), true);
-});
-
 test('tempAxisLineDrawn: a drawn feels-like or dew point line, lines 3-4 only with line styles', () => {
-  const styles = env('emery'), frozen = env('aplite');
+  const styles = env('emery');
   assert.equal(forecastAxis.tempAxisLineDrawn({}, styles), false);
   assert.equal(forecastAxis.tempAxisLineDrawn({ secondaryLine: 'wind', thirdLine: 'uv' }, styles), false);
   LINE_KEYS.forEach((key, i) => {
@@ -59,7 +45,6 @@ test('tempAxisLineDrawn: a drawn feels-like or dew point line, lines 3-4 only wi
       const s = {};
       s[key] = metric;
       assert.equal(forecastAxis.tempAxisLineDrawn(s, styles), true, key + ' ' + metric);
-      assert.equal(forecastAxis.tempAxisLineDrawn(s, frozen), i < 2, key + ' ' + metric + ' frozen');
       assert.equal(forecastAxis.tempAxisLineDrawn(s, {}), i < 2, key + ' ' + metric + ' no fact');
     });
   });
@@ -68,11 +53,8 @@ test('tempAxisLineDrawn: a drawn feels-like or dew point line, lines 3-4 only wi
   assert.equal(forecastAxis.tempAxisLineDrawn({ secondaryLine: 'off', fifthLine: 'feels' }, styles), true);
 });
 
-test('resolved: the stored options on a known emery, the defaults everywhere else', () => {
+test('resolved: the stored options, dormant ones read as their defaults', () => {
   const all = { forecastAxisNumbers: 'graph', forecastAxisScale: true, secondaryLine: 'dew' };
-  NON_EMERY.concat([null]).forEach((p) => {
-    assert.deepEqual(forecastAxis.resolved(all, env(p)), DEFAULTS, String(p));
-  });
   assert.deepEqual(forecastAxis.resolved({}, env('emery')), DEFAULTS);
   assert.deepEqual(forecastAxis.resolved(all, env('emery')), { numbers: 'graph', scale: true });
   // The scale is dormant with the numbers off or no feels-like / dew point line.
@@ -99,12 +81,10 @@ test('wireBits: the exhaustive table, canonical (a dormant value packs no bit)',
             | (scale && nums !== 'off' && metric ? B.SCALE : 0);
           const bits = forecastAxis.wireBits(s, env('emery'));
           assert.equal(bits, want, JSON.stringify(s));
-          assert.equal(forecastAxis.wireBits(s, env(null)), want, 'unknown packs like emery');
           assert.equal(bits & 1, 0, 'never bit 0 (Larger graph fonts)');
           assert.equal(bits & forecastAxis.RETIRED_BITS, 0, 'never a retired bit');
           assert.ok(bits <= 0x2C, 'within 0x2C');
           assert.equal(bits & ~forecastAxis.AXIS_MASK, 0, 'inside AXIS_MASK');
-          NON_EMERY.forEach((p) => assert.equal(forecastAxis.wireBits(s, env(p)), 0, p));
           rows += 1;
         });
       });
@@ -114,13 +94,11 @@ test('wireBits: the exhaustive table, canonical (a dormant value packs no bit)',
   assert.equal(forecastAxis.wireBits({}, env('emery')), 0, 'all zero exactly at the defaults');
 });
 
-test('bakesScale: a known emery with the option stored on, blind to numbers and lines', () => {
+test('bakesScale: the option stored on, blind to numbers and lines', () => {
   assert.equal(forecastAxis.bakesScale({ forecastAxisScale: true }, env('emery')), true);
   assert.equal(forecastAxis.bakesScale({ forecastAxisScale: true, forecastAxisNumbers: 'off' }, env('emery')),
     true, 'a numbers flip never re-bakes the scale');
   assert.equal(forecastAxis.bakesScale({}, env('emery')), false);
-  NON_EMERY.concat([null]).forEach((p) =>
-    assert.equal(forecastAxis.bakesScale({ forecastAxisScale: true }, env(p)), false, String(p)));
 });
 
 test('signature: \'scale\' only while the option and a temperature-axis line are on', () => {

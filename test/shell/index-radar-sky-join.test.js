@@ -22,14 +22,9 @@ function probe(platform, opts) {
 }
 
 test('the sky request goes out while the radar request is still in flight', () => {
-  const out = probe('basalt', { settings: { radarProvider: 'rainbow', radarSky: true }, holdRadar: true });
+  const out = probe('emery', { settings: { radarProvider: 'rainbow', radarSky: true }, holdRadar: true });
   assert.ok(out.radarRequests >= 1, 'the radar half did run');
   assert.ok(out.skyRequests >= 1, 'the sky half did run');
   assert.equal(out.skyBeforeRadarAnswer, true, 'the sky did not wait for the radar to answer');
 });
 
-test('aplite makes no sky request either: the radar gate comes before both', () => {
-  const out = probe('aplite', { settings: { radarSky: true } });
-  assert.equal(out.radarRequests, 0);
-  assert.equal(out.skyRequests, 0);
-});

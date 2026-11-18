@@ -17,7 +17,6 @@ const schema = require('../../../src/pkjs/page/settings/schema.js');
 const forecastSpanHours = require('../../../src/pkjs/weather/domain/forecast-span-hours.js');
 
 const env = (p) => platform.computeEnv(p ? { platform: p } : null);
-const OTHERS = ['basalt', 'diorite', 'flint', 'aplite'];
 
 test('storedHours: 12, 24 or 48 as stored; 24 for absent or junk', () => {
   assert.equal(forecastSpan.storedHours({ forecastHours: '12' }), 12);
@@ -33,21 +32,17 @@ test('storedHours: 12, 24 or 48 as stored; 24 for absent or junk', () => {
   assert.equal(forecastSpan.storedHours(undefined), 24);
 });
 
-test('hours: the hours sent for the stored span on emery (14 / 24 / 68), 24 on every other watch and an unknown one', () => {
+test('hours: the hours sent for the stored span (14 / 24 / 68)', () => {
   assert.deepEqual(['12', '24', '48', '36', undefined].map((v) =>
     forecastSpan.hours({ forecastHours: v }, env('emery'))), [14, 24, 68, 24, 24]);
   assert.equal(forecastSpan.hours({ forecastHours: '12' }, env('emery')), forecastSpan.HALF_SENT_HOURS);
   assert.equal(forecastSpan.hours({ forecastHours: '48' }, env('emery')), hourlyWindow.MAX_FORECAST_HOURS);
-  OTHERS.concat([null]).forEach((p) => {
-    ['12', '24', '48'].forEach((v) => {
-      assert.equal(forecastSpan.hours({ forecastHours: v }, env(p)), 24, p + ' ' + v);
-    });
-  });
+  assert.equal(forecastSpan.hours({ forecastHours: '48' }, env(null)), 68, 'an unknown watch is the Pebble Time 2');
   assert.equal(forecastSpan.hours({ forecastHours: '48' }, null), 24, 'no env at all');
   assert.equal(forecastSpan.hours(null, env('emery')), 24, 'no settings');
 });
 
-test('hours: 24 h sends 26 on a known emery with no left axis (the numbers On graph or Off)', () => {
+test('hours: 24 h sends 26 with no left axis (the numbers On graph or Off)', () => {
   const NO_AXIS = [{ forecastAxisNumbers: 'graph' }, { forecastAxisNumbers: 'off' }];
   const AXIS = [{}, { forecastAxisNumbers: 'axis' }, { forecastAxisNumbers: 'beside' },
     { forecastAxisNumbers: 'junk' }];
@@ -55,8 +50,6 @@ test('hours: 24 h sends 26 on a known emery with no left axis (the numbers On gr
     NO_AXIS.forEach((a) => {
       const s = Object.assign({ forecastHours: v }, a);
       assert.equal(forecastSpan.hours(s, env('emery')), forecastSpan.DAY_WIDE_HOURS, JSON.stringify(s));
-      // Every other watch and an unknown one: 24, whatever is stored.
-      OTHERS.concat([null]).forEach((p) => assert.equal(forecastSpan.hours(s, env(p)), 24, String(p)));
     });
     AXIS.forEach((a) => {
       const s = Object.assign({ forecastHours: v }, a);
@@ -74,20 +67,14 @@ test('hours: 24 h sends 26 on a known emery with no left axis (the numbers On gr
   assert.equal(forecastSpan.DAY_WIDE_HOURS, Math.ceil(200 / 8) + 1);
 });
 
-test('option: the stored option on emery (12 / 24 / 48, categorical), 24 on every other watch and an unknown one', () => {
+test('option: the stored option (12 / 24 / 48, categorical)', () => {
   assert.deepEqual(['12', '24', '48', '36', undefined].map((v) =>
     forecastSpan.option({ forecastHours: v }, env('emery'))), [12, 24, 48, 24, 24]);
-  OTHERS.concat([null]).forEach((p) => {
-    ['12', '24', '48'].forEach((v) => {
-      assert.equal(forecastSpan.option({ forecastHours: v }, env(p)), 24, p + ' ' + v);
-    });
-  });
   assert.equal(forecastSpan.option({ forecastHours: '48' }, null), 24, 'no env at all');
 });
 
-test('maxHours: 68 on emery, 24 elsewhere', () => {
+test('maxHours: 68, 24 without env', () => {
   assert.equal(forecastSpan.maxHours(env('emery')), 68);
-  OTHERS.concat([null]).forEach((p) => assert.equal(forecastSpan.maxHours(env(p)), 24, String(p)));
   assert.equal(forecastSpan.maxHours(null), 24);
 });
 

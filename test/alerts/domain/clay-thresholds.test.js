@@ -40,21 +40,17 @@ test('Clay payload carries the 48-byte threshold settings blob', () => {
 // The warn look's default is per PLATFORM, so the payload hands the packer the
 // watch's env: a B&W watch outlines where a colour one fills (a B&W warn fill would
 // look exactly like danger). A stored look is sent as picked on either.
-test('the warn looks ride bytes 36-37 with the watch platform\'s default', () => {
+test('the warn looks ride bytes 36-37 with the colour default', () => {
   const at = new Date('2026-07-22T00:00:00Z');
-  ['diorite', 'flint'].forEach((platform) => {
-    const payload = buildClayPayload(BASE, { platform }, at);
-    assert.deepEqual(payload.CLAY_THRESHOLDS_UINT8.slice(36, 38), [0x55, 0x55], platform);
-    assert.deepEqual(payload.CLAY_THRESHOLDS_UINT8,
-      wire.buildSettingsBlob(BASE, { color: false }), platform + ': the packer, with env');
-  });
-  ['basalt', 'emery'].forEach((platform) => {
+  // The packer without a colour display: every look outlined.
+  assert.deepEqual(wire.buildSettingsBlob(BASE, { color: false }).slice(36, 38), [0x55, 0x55]);
+  ['emery'].forEach((platform) => {
     assert.deepEqual(buildClayPayload(BASE, { platform }, at).CLAY_THRESHOLDS_UINT8.slice(36, 38),
       [0xAA, 0x95], platform);
   });
   const picked = Object.assign({}, BASE, { threshUvWarnLook: 'fill', threshAqiWarnLook: 'none' });
-  assert.deepEqual(buildClayPayload(picked, { platform: 'diorite' }, at)
-    .CLAY_THRESHOLDS_UINT8.slice(36, 38), [0x54, 0x95], 'picks win on B&W too');
+  assert.deepEqual(wire.buildSettingsBlob(picked, { color: false }).slice(36, 38), [0x54, 0x95],
+    'picks win without colour too');
 });
 
 // The On demand cells and the Battery item ride the blob, so a change reaches the watch
@@ -64,13 +60,11 @@ test('the On demand cells and the Battery item ride bytes 35 and 38-47 of the Cl
   const at = new Date('2026-07-22T00:00:00Z');
   const s = Object.assign({}, BASE, { radarMode: 'status', batteryLowLevel: '15',
     statusRadarOnDemandRightItems: 'uv,bt' });
-  const basalt = buildClayPayload(s, { platform: 'basalt' }, at).CLAY_THRESHOLDS_UINT8;
-  assert.equal(basalt[35], 20, 'a stored 15 rides as 20 to a 10 % watch');
-  assert.equal(basalt[38 + 6], 2 | (2 << 4), 'UV on the top bar\'s right and the radar bar\'s right');
-  assert.equal(basalt[38 + 1], 1 | (2 << 4), 'Bluetooth on the top bar\'s left and the radar bar\'s right');
-  assert.deepEqual(basalt, wire.buildSettingsBlob(s, platform.computeEnv({ platform: 'basalt' })));
   const emery = buildClayPayload(s, { platform: 'emery' }, at).CLAY_THRESHOLDS_UINT8;
-  assert.equal(emery[35], 15, 'emery reports 5 % steps: 15 rides as 15');
+  assert.equal(emery[35], 15, '5 % steps: 15 rides as 15');
+  assert.equal(emery[38 + 6], 2 | (2 << 4), 'UV on the top bar\'s right and the radar bar\'s right');
+  assert.equal(emery[38 + 1], 1 | (2 << 4), 'Bluetooth on the top bar\'s left and the radar bar\'s right');
+  assert.deepEqual(emery, wire.buildSettingsBlob(s, platform.computeEnv({ platform: 'emery' })));
 });
 
 // The rain alert's look rides byte 34 of the blob, so a change reaches the watch
@@ -95,17 +89,6 @@ test('the blob matches buildSettingsBlob for configured settings', () => {
   assert.deepEqual(payload.CLAY_THRESHOLDS_UINT8, wire.buildSettingsBlob(s));
   assert.equal(payload.CLAY_THRESHOLDS_UINT8[0] & 1, 1);          // AQI enabled
   assert.equal(payload.CLAY_THRESHOLDS_UINT8[0] & (1 << 4), 16);  // Steps enabled
-});
-
-test('aplite gets no threshold blob at all (it compiles the highlight out)', () => {
-  // aplite has no WW_THRESHOLD_HIGHLIGHT: its status-row twin cannot draw the
-  // highlight and its inbox handler for this tuple is gone, so the 55 B
-  // (48-byte blob + 7 B tuple header) must not ride its Clay bundle.
-  const payload = buildClayPayload(BASE, { platform: 'aplite' },
-    new Date('2026-07-22T00:00:00Z'));
-  assert.equal(Object.prototype.hasOwnProperty.call(payload, 'CLAY_THRESHOLDS_UINT8'), false);
-  // The rest of the Clay payload is unchanged.
-  assert.equal(payload.CLAY_THEME, 0);
 });
 
 test('the dew bold cell fits byte 33 without widening the blob', () => {

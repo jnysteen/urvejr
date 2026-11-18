@@ -74,16 +74,6 @@ test('doubleFlick rides bit 8 of CLAY_VIEW_RESET_MIN; the minutes keep the low b
   assert.notStrictEqual(json({ doubleFlick: true }), json({ doubleFlick: false }), 'a toggle changes the payload');
 });
 
-test('the double-flick bit is masked for a known aplite, kept for an unknown platform', () => {
-  const s = { viewResetMin: '5', doubleFlick: true };
-  assert.strictEqual(resetWord(s, 'aplite'), 5, 'aplite has no flick: bare minutes');
-  assert.strictEqual(resetWord(s, null), 0x105, 'an unknown platform is treated as capable');
-  const aplite = function (flag) {
-    return JSON.stringify(payload({ viewResetMin: '5', doubleFlick: flag }, 'aplite'));
-  };
-  assert.strictEqual(aplite(true), aplite(false), 'aplite\'s payload never changes with the switch');
-});
-
 test('a junk viewResetMin can never set the double-flick bit', () => {
   [['-1', 255], ['300', 44], ['abc', 0]].forEach(function (c) {
     const w = resetWord({ viewResetMin: c[0], doubleFlick: false }, 'basalt');

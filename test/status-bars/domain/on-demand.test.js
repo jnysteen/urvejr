@@ -79,13 +79,13 @@ test('sideOf: empty sides, missing bars and a non-On-demand watch show nothing',
   assert.equal(OD.sideOf(Object.assign({}, radar, {radarMode: 'off'}), 'radar', 'uv'), null,
     'the radar bar does not exist in radar mode Off');
   assert.equal(OD.sideOf(Object.assign({}, radar, {radarMode: 'countdown'}), 'radar', 'uv'), null);
-  assert.equal(OD.sideOf(radar, 'radar', 'uv', platform.computeEnv({platform: 'basalt'})), 'left');
+  assert.equal(OD.sideOf(radar, 'radar', 'uv', platform.computeEnv()), 'left');
   const health = {statusHealthOnDemandRightItems: 'aqi', healthMode: 'status'};
   assert.equal(OD.sideOf(health, 'health', 'aqi'), 'right');
   assert.equal(OD.sideOf(Object.assign({}, health, {healthMode: 'slot'}), 'health', 'aqi'), null);
-  assert.equal(OD.sideOf({}, 'top', 'bt', platform.computeEnv({platform: 'aplite'})), null,
-    'aplite has no On demand');
-  assert.equal(OD.placedAnywhere({}, 'bt', platform.computeEnv({platform: 'aplite'})), false);
+  const none = Object.assign(platform.computeEnv(), {onDemand: false});
+  assert.equal(OD.sideOf({}, 'top', 'bt', none), null, 'a watch without On demand');
+  assert.equal(OD.placedAnywhere({}, 'bt', none), false);
   assert.equal(OD.sideOf({}, 'top', 'bt', platform.computeEnv(null)), 'left', 'an unknown watch is capable');
   // Left wins an overlap only a hand-edited blob can hold.
   assert.equal(OD.sideOf({statusTopOnDemandRightItems: 'bt'}, 'top', 'bt'), 'left');
@@ -180,32 +180,21 @@ test('placeRainForCountdown: Rain alert only ticks Rain top left unless a bar of
   assert.equal(OD.placeRainForCountdown(null), false);
 });
 
-test('batteryLevel: 5 % steps on emery, the next 10 % step up everywhere else', () => {
+test('batteryLevel: 5 % steps with fineBattery, the next 10 % step up without it', () => {
   const emery = platform.computeEnv({platform: 'emery'});
   for (let v = 5; v <= 30; v += 5) {
     assert.equal(OD.batteryLevel({batteryLowLevel: String(v)}, emery), v, 'emery keeps ' + v);
   }
-  ['basalt', 'diorite', 'flint', 'aplite'].forEach((p) => {
-    const env = platform.computeEnv({platform: p});
-    [[5, 10], [10, 10], [15, 20], [20, 20], [25, 30], [30, 30]].forEach(([v, want]) => {
-      assert.equal(OD.batteryLevel({batteryLowLevel: String(v)}, env), want, p + ' ' + v);
-    });
+  const coarse = Object.assign(platform.computeEnv(), {fineBattery: false});
+  [[5, 10], [10, 10], [15, 20], [20, 20], [25, 30], [30, 30]].forEach(([v, want]) => {
+    assert.equal(OD.batteryLevel({batteryLowLevel: String(v)}, coarse), want, 'coarse ' + v);
   });
-  assert.equal(OD.batteryLevel({batteryLowLevel: '15'}, platform.computeEnv(null)), 20, 'unknown watch: 10 % steps');
   assert.equal(OD.batteryLevel({batteryLowLevel: '15'}), 20, 'env omitted rounds too');
   ['0', '31', 'abc', '', '-5'].forEach((v) => {
     assert.equal(OD.batteryLevel({batteryLowLevel: v}, emery), 10, JSON.stringify(v));
   });
   assert.equal(OD.batteryLevel({}), 10, 'absent');
   assert.equal(OD.batteryLevel({batteryLowLevel: 25}, emery), 25, 'a number reads too');
-});
-
-test('computeEnv: fineBattery on emery only, false for an unknown watch', () => {
-  assert.equal(platform.computeEnv({platform: 'emery'}).fineBattery, true);
-  ['aplite', 'basalt', 'diorite', 'flint', 'x'].forEach((p) => {
-    assert.equal(platform.computeEnv({platform: p}).fineBattery, false, p);
-  });
-  assert.equal(platform.computeEnv(null).fineBattery, false);
 });
 
 test('telemetryCode: 40 letters, upper case only while the item shows', () => {
@@ -220,5 +209,5 @@ test('telemetryCode: 40 letters, upper case only while the item shows', () => {
   assert.equal(code.slice(0, 10), 'R----RRR-R', 'nothing ticked on the left');
   assert.equal(code.slice(10, 20), '----R-----', 'forecast: rain right');
   assert.equal(code.slice(20, 30), '------l---', 'a bar the mode removes reads lower case');
-  assert.equal(OD.telemetryCode({}, platform.computeEnv({platform: 'aplite'})), undefined);
+  assert.equal(OD.telemetryCode({}, Object.assign(platform.computeEnv(), {onDemand: false})), undefined);
 });

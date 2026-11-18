@@ -181,16 +181,3 @@ test('the 12 h span on an emery: today\'s 3-day main and 2-day aux calls, 14 hou
   assert.equal(sent.TEMP_TREND_UINT8.length, 14);
 });
 
-test('a stored 48 h span on a basalt changes nothing: 3-day main call, 24 hours sent', (t) => {
-  const h = bootIndex(t, { settings: noUvNoAqi({ forecastHours: '48' }), store: staleSuccess() });
-  h.ready();
-  h.advance(5 * 1000);
-  assert.equal(h.count(/Successfully fetched weather/), 1);
-  const main = h.xhrs.filter((u) => MAIN_REQUEST.test(u));
-  assert.match(main[0], /&forecast_days=3(&|$)/);
-  const aux = h.xhrs.filter((u) => AUX_REQUEST.test(u));
-  assert.match(aux[0], /&forecast_days=2(&|$)/);
-  const sent = weatherSend(h);
-  assert.equal(sent.NUM_ENTRIES, 24);
-  assert.equal(sent.TEMP_TREND_UINT8.length, 24);
-});

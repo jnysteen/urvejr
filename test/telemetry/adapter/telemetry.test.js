@@ -71,30 +71,6 @@ test('snapshot includes rainCountdownHorizon as an int', () => {
   assert.strictEqual(buildSettingsSnapshot({}).rainCountdownHorizon, undefined);
 });
 
-// What only aplite reads: its quiet-time and low-battery-only toggles (every other watch
-// has On demand) and its Layout radio (every other watch keeps its screens as a custom
-// layout). Elsewhere they are leftovers or a constant, so they report nothing there; an
-// unknown watch answers like basalt, as it does for onDemand.
-test('showQt, batteryLowOnly and layoutPreset are reported on aplite only', () => {
-  const set = { showQt: true, batteryLowOnly: true, layoutPreset: 'fullCal' };
-  const aplite = buildSettingsSnapshot(set, { platform: 'aplite' });
-  assert.strictEqual(aplite.showQt, true);
-  assert.strictEqual(aplite.batteryLowOnly, true);
-  assert.strictEqual(aplite.layoutPreset, 'fullCal', 'the preset as stored');
-  const off = buildSettingsSnapshot({ showQt: false }, { platform: 'aplite' });
-  assert.strictEqual(off.showQt, false);
-  assert.strictEqual(off.batteryLowOnly, false, 'an absent toggle reads off, its default');
-  assert.strictEqual(off.layoutPreset, undefined, 'unseeded: absent');
-  [{ platform: 'basalt' }, { platform: 'diorite' }, { platform: 'emery' }, undefined].forEach((watchInfo) => {
-    const snap = buildSettingsSnapshot(set, watchInfo);
-    ['showQt', 'batteryLowOnly', 'layoutPreset'].forEach((k) => {
-      assert.strictEqual(snap[k], undefined, k + ' on ' + JSON.stringify(watchInfo));
-      assert.ok(Object.prototype.hasOwnProperty.call(snap, k), k + ' must still be emitted as a key');
-    });
-    assert.strictEqual(typeof snap.onDemand, 'string', 'On demand says what this watch draws instead');
-  });
-});
-
 test('snapshot includes viewResetMin as an int', () => {
   assert.strictEqual(buildSettingsSnapshot({ viewResetMin: '5' }).viewResetMin, 5);
   assert.strictEqual(buildSettingsSnapshot({}).viewResetMin, undefined);
@@ -232,27 +208,21 @@ test('snapshot reports onDemand, batteryLowLevel and batteryLowDisplay', () => {
       statusRadarOnDemandRightItems: 'aqi', radarMode: 'off' }, require('../../../src/pkjs/config-ui/index').computeEnv()),
   'the shared reading, nothing of its own');
 
-  assert.equal(buildSettingsSnapshot({}, { platform: 'aplite' }).onDemand, undefined,
-    'a known aplite has no On demand: absent');
-
-  // The level as STORED, not the 10 % step a non-emery watch rounds it to.
+  // The level as STORED.
   const battery = buildSettingsSnapshot({ batteryLowLevel: '15', batteryLowDisplay: 'value' },
-    { platform: 'basalt' });
+    { platform: 'emery' });
   assert.strictEqual(battery.batteryLowLevel, 15);
   assert.equal(battery.batteryLowDisplay, 'value');
 });
 
 // The Rain alert dialog's "Replaces the slot": read like the thresholds blob packs it
-// (status-thresholds.js rainAlert), absent where onDemand is. 3.2.0's alertsReplaceSlot
+// (status-thresholds.js rainAlert). 3.2.0's alertsReplaceSlot
 // is no longer sent.
-test('snapshot reports rainReplacesSlot where On demand exists', () => {
+test('snapshot reports rainReplacesSlot', () => {
   assert.strictEqual(buildSettingsSnapshot({}).rainReplacesSlot, true, 'absent: on');
   assert.strictEqual(buildSettingsSnapshot({ rainAlertReplacesSlot: false }).rainReplacesSlot, false);
   assert.strictEqual(buildSettingsSnapshot({ rainAlertReplacesSlot: 'soon' }).rainReplacesSlot, true,
     'only a stored false is off, as the blob packs it');
-  const aplite = buildSettingsSnapshot({ rainAlertReplacesSlot: false }, { platform: 'aplite' });
-  assert.strictEqual(aplite.rainReplacesSlot, undefined, 'a known aplite has no On demand');
-  assert.ok(Object.prototype.hasOwnProperty.call(aplite, 'rainReplacesSlot'), 'still emitted as a key');
   assert.ok(!Object.prototype.hasOwnProperty.call(buildSettingsSnapshot({ alertsReplaceSlot: 'now' }),
     'alertsReplaceSlot'), 'the 3.2.0 field is gone');
 });
@@ -292,7 +262,7 @@ test('radarProvider reports the stored radar source', () => {
 // two back into one field, with the Off the apps before 1.10 stored: 'disabled'.
 test('radarProvider reports disabled while the rain radar is off, and radarEnabled is no field', () => {
   ['dwd', 'rainbowkey', undefined].forEach((p) => {
-    const snap = buildSettingsSnapshot({ radarProvider: p, radarEnabled: false }, { platform: 'basalt' });
+    const snap = buildSettingsSnapshot({ radarProvider: p, radarEnabled: false }, { platform: 'emery' });
     assert.strictEqual(snap.radarProvider, 'disabled', String(p));
     assert.ok(!Object.prototype.hasOwnProperty.call(snap, 'radarEnabled'));
   });
@@ -357,11 +327,7 @@ test("the battery saver reports its own window, gated on its own switch", () => 
   });
 });
 
-// Dim backlight is emery's alone — light_set_color_rgb888() drives an LED no other
-// watch has — and the toggle ships ON, so an ungated Boolean() would report every
-// basalt install as using it. The whole group is therefore absent without the
-// hardware, the same convention the six graph colours use on a B&W watch.
-test('Dim backlight is reported only on a watch that has the LED', () => {
+test('Dim backlight is reported with its window and colour', () => {
   const settings = { backlightDim: true, backlightDimColor: '96,0,0',
     backlightDimStartHour: '1', backlightDimEndHour: '6' };
   const emery = buildSettingsSnapshot(settings, EMERY);
@@ -369,15 +335,6 @@ test('Dim backlight is reported only on a watch that has the LED', () => {
   assert.equal(emery.backlightDimStartHour, 1);
   assert.equal(emery.backlightDimEndHour, 6);
   assert.equal(emery.backlightDimColor, '96,0,0', 'the stored r,g,b triple, not a hex colour');
-
-  const basalt = buildSettingsSnapshot(settings, { platform: 'basalt' });
-  assert.equal(basalt.backlightDim, undefined);
-  assert.equal(basalt.backlightDimStartHour, undefined);
-  assert.equal(basalt.backlightDimEndHour, undefined);
-  assert.equal(basalt.backlightDimColor, undefined);
-  // The key must still EXIST for the set-equality lockstep below — assigned
-  // undefined, never deleted (the graph colours' rule).
-  assert.ok(Object.prototype.hasOwnProperty.call(basalt, 'backlightDim'));
 });
 
 test('Dim backlight sub-settings follow the switch, with no mode to gate them', () => {
@@ -406,11 +363,8 @@ test('Dim backlight sub-settings follow the switch, with no mode to gate them', 
 // option, on a light-polarity colour theme so all the graph colours report (bw would
 // report none of them), on emery so the Dim backlight group, the forecast span, the
 // left axis options and Larger graph fonts report. The lockstep test below reads its
-// VALUES (one per field) and the header test further down its BYTES. Three fields are
-// aplite's alone (showQt, batteryLowOnly, layoutPreset): the same settings on an
-// aplite give those their values.
+// VALUES (one per field) and the header test further down its BYTES.
 const HEAVIEST_WATCH = { platform: 'emery' };
-const APLITE_WATCH = { platform: 'aplite' };
 // The reference time the fixtures are read at (buildSettingsSnapshot's nowMs), late enough
 // for a three-digit Weather tab age off a stamp the page could have made.
 const HEAVIEST_NOW = Date.UTC(2030, 0, 1);
@@ -497,7 +451,7 @@ const HEAVIEST_SETTINGS = {
 };
 // The same watch on a custom layout: the six custom fields report too, each on its
 // widest realistic number (three views, every one with a stacked order and a non-zero
-// ext). This is the snapshot with a value in every field but aplite's three.
+// ext). This is the snapshot with a value in every field.
 const HEAVIEST_CUSTOM = Object.assign({}, HEAVIEST_SETTINGS, {
   layoutPreset: 'custom', healthMode: 'all', radarMode: 'graph', viewCount: '3',
   viewTop0: 'cal3', viewBody0: 'none', viewUpper0: 'weather', viewLower0: 'radar',
@@ -541,9 +495,6 @@ function ingestSettingsSchema() {
 // for it. A constructor missing here fails the test below until it is taught one.
 const ZOD_TYPEOF = { 'z.string': 'string', 'z.number': 'number', 'z.boolean': 'boolean', 'z.enum': 'string' };
 
-// The fields only a known aplite reports (telemetry-settings.js isAplite).
-const APLITE_ONLY_FIELDS = ['batteryLowOnly', 'layoutPreset', 'showQt'];
-
 // The two-place rule, checked in one table: every key buildSettingsSnapshot emits is a
 // field of the ingest's .strip() schema and vice versa (a key missing there is stripped
 // and silently lost; a field only there is a column nothing fills), and each field's
@@ -556,20 +507,18 @@ test('settings snapshot and the Deno telemetry schema agree on keys and types (l
   const denoKeys = Object.keys(schema.fields);
   assert.ok(denoKeys.length >= 20, 'expected to parse the schema fields, got ' + denoKeys.length);
 
-  // The heaviest emery snapshot, and the same settings on an aplite for the fields only it
-  // reports: between them every field has a value whose type is checked.
+  // The heaviest snapshot: every field has a value whose type is checked.
   const snaps = [buildSettingsSnapshot(HEAVIEST_CUSTOM, HEAVIEST_WATCH, HEAVIEST_NOW),
-    buildSettingsSnapshot(HEAVIEST_SETTINGS, APLITE_WATCH, HEAVIEST_NOW)];
+    buildSettingsSnapshot(HEAVIEST_SETTINGS, HEAVIEST_WATCH, HEAVIEST_NOW)];
   const keys = Object.keys(snaps[0]).sort();
   assert.deepEqual(keys, denoKeys.slice().sort(),
     'buildSettingsSnapshot (telemetry-settings.js) and the Deno settingsSchema must declare the same fields');
   // A field with no value in effect is assigned undefined, never deleted, so the key
-  // set cannot depend on the settings or the watch: the emptiest snapshots (nothing set,
-  // on a B&W watch and on an unknown one) declare exactly the same keys.
-  [snaps[1], buildSettingsSnapshot({}, APLITE_WATCH), buildSettingsSnapshot({})].forEach((snap) => {
+  // set cannot depend on the settings: the emptiest snapshot declares exactly the same keys.
+  [snaps[1], buildSettingsSnapshot({}, HEAVIEST_WATCH), buildSettingsSnapshot({})].forEach((snap) => {
     assert.deepEqual(Object.keys(snap).sort(), keys, 'the snapshot key set must not depend on the settings');
   });
-  assert.deepEqual(denoKeys.filter((key) => snaps[0][key] === undefined).sort(), APLITE_ONLY_FIELDS,
+  assert.deepEqual(denoKeys.filter((key) => snaps[0][key] === undefined).sort(), [],
     'the heaviest fixture must give every other field a value, or its type goes unchecked');
 
   const members = (list) => list.split(',').map((s) => s.trim().replace(/^['"]|['"]$/g, ''))
@@ -629,23 +578,17 @@ test('custom layouts report customViewExt0-2 = packExt per view; presets report 
   assert.equal(preset.customViewExt2, undefined);
 });
 
-test('snapshot reports the forecast span option on emery only, as an int: 12 / 24 / 48, not the hours sent', () => {
+test('snapshot reports the forecast span option as an int: 12 / 24 / 48, not the hours sent', () => {
   // Categorical (forecast-span.js option()): 48 is the long span, whatever its label, which is
   // sent 68 hours; 12 is sent 14. Same values as before 2.2.0's long span, so handler.ts holds.
   assert.strictEqual(buildSettingsSnapshot({ forecastHours: '48' }, { platform: 'emery' }).forecastHours, 48);
   assert.strictEqual(buildSettingsSnapshot({ forecastHours: '12' }, { platform: 'emery' }).forecastHours, 12);
   assert.strictEqual(buildSettingsSnapshot({}, { platform: 'emery' }).forecastHours, 24);
-  // Every other watch is sent 24 whatever is stored, so it reports no span at all.
-  [{ platform: 'basalt' }, { platform: 'aplite' }, undefined].forEach((watchInfo) => {
-    assert.strictEqual(buildSettingsSnapshot({ forecastHours: '48' }, watchInfo).forecastHours, undefined,
-      JSON.stringify(watchInfo));
-  });
 });
 
-// The left axis options: emery only, as chosen (forecast-axis.js readers: absent or
-// junk reads the default), the Draw from precedent; every other watch, and an unknown one,
-// reports nothing.
-test('snapshot reports the left axis options on emery only, as chosen', () => {
+// The left axis options, as chosen (forecast-axis.js readers: absent or junk reads the
+// default), the Draw from precedent.
+test('snapshot reports the left axis options as chosen', () => {
   const set = { forecastAxisNumbers: 'graph', forecastAxisScale: true };
   const emery = buildSettingsSnapshot(set, { platform: 'emery' });
   assert.strictEqual(emery.forecastAxisNumbers, 'graph');
@@ -662,26 +605,14 @@ test('snapshot reports the left axis options on emery only, as chosen', () => {
     .forecastAxisScale, true);
   // The betas' Axis line / Number outline are retired: never reported, on any watch.
   const betas = Object.assign({ forecastAxisLine: false, forecastAxisOutline: false }, set);
-  [{ platform: 'emery' }, { platform: 'basalt' }, undefined].forEach((watchInfo) => {
-    const snap = buildSettingsSnapshot(betas, watchInfo);
-    ['forecastAxisLine', 'forecastAxisOutline'].forEach((k) =>
-      assert.strictEqual(Object.prototype.hasOwnProperty.call(snap, k), false, k + ' on ' + JSON.stringify(watchInfo)));
-  });
-  [{ platform: 'basalt' }, { platform: 'aplite' }, undefined].forEach((watchInfo) => {
-    const snap = buildSettingsSnapshot(set, watchInfo);
-    ['forecastAxisNumbers', 'forecastAxisScale'].forEach((k) =>
-      assert.strictEqual(snap[k], undefined, k + ' on ' + JSON.stringify(watchInfo)));
-  });
+  const snap = buildSettingsSnapshot(betas, { platform: 'emery' });
+  ['forecastAxisLine', 'forecastAxisOutline'].forEach((k) =>
+    assert.strictEqual(Object.prototype.hasOwnProperty.call(snap, k), false, k));
 });
 
-test('snapshot reports largeGraphFont as a real boolean, on emery only', () => {
+test('snapshot reports largeGraphFont as a real boolean', () => {
   assert.strictEqual(buildSettingsSnapshot({ largeGraphFont: true }, EMERY).largeGraphFont, true);
   assert.strictEqual(buildSettingsSnapshot({}, EMERY).largeGraphFont, false);
-  // Only emery offers the toggle, so a leftover anywhere else says nothing.
-  [{ platform: 'basalt' }, { platform: 'aplite' }, undefined].forEach((watchInfo) => {
-    assert.strictEqual(buildSettingsSnapshot({ largeGraphFont: true }, watchInfo).largeGraphFont, undefined,
-      JSON.stringify(watchInfo));
-  });
 });
 
 test('snapshot includes doubleFlick as a real boolean', () => {
@@ -854,45 +785,15 @@ test('the reported graph colour is the pick for the polarity the watch renders',
     gcWindLineDark: 0x0000AA, gcWindLineLight: 0xFF0000,
     gcWindNightDark: 0x555555, gcWindNightLight: 0xAA5500
   };
-  const dark = buildSettingsSnapshot(Object.assign({ theme: 'dark' }, picks), { platform: 'basalt' });
+  const dark = buildSettingsSnapshot(Object.assign({ theme: 'dark' }, picks), { platform: 'emery' });
   assert.strictEqual(dark.graphMainColor, '#0000AA');
   assert.strictEqual(dark.nightFillColor, '#555555');
 
-  const light = buildSettingsSnapshot(Object.assign({ theme: 'light' }, picks), { platform: 'basalt' });
+  const light = buildSettingsSnapshot(Object.assign({ theme: 'light' }, picks), { platform: 'emery' });
   assert.strictEqual(light.graphMainColor, '#FF0000');
   // The night tint is selectable in BOTH polarities — a Light pick moved off the built-in
   // opts the watch into the night re-shade it otherwise skips — so it reports on light too.
   assert.strictEqual(light.nightFillColor, '#AA5500');
-
-  // emery is the other colour platform, and it ships the light polarity, so a light
-  // install there reports its Light picks like basalt does.
-  const emery = buildSettingsSnapshot(Object.assign({ theme: 'light' }, picks), { platform: 'emery' });
-  assert.strictEqual(emery.graphMainColor, '#FF0000');
-});
-
-// CHANGED, deliberately, from "aplite reports its Dark picks on a light theme". That
-// pinned a divergence: this file had copied line-style's effectiveTheme fold but not its
-// colour-display check, so a B&W watch reported picks the wire was already resolving away
-// to GColorWhite — the dashboards would have counted a pick nobody could see. Both halves
-// now come from line-style.renderContextFor (over config-ui computeEnv), so a B&W watch
-// reports nothing, exactly like a B&W theme below. The aplite polarity fold still matters
-// and is still tested — on the wire (test/forecast-graphs/domain/graph-wire.test.js), where it changes a colour
-// that is actually painted.
-test('a watch with no colour display reports no graph colours at all', () => {
-  const picks = {
-    theme: 'light', secondaryLine: 'wind', thirdLine: 'uv',
-    gcWindLineDark: 0x0000AA, gcWindLineLight: 0xFF0000,
-    gcWindNightDark: 0x555555, gcWindNightLight: 0xAA5500
-  };
-  ['aplite', 'diorite'].forEach((platform) => {
-    const snap = buildSettingsSnapshot(picks, { platform });
-    GRAPH_COLOR_FIELDS.forEach((field) => {
-      assert.strictEqual(snap[field], undefined,
-        platform + ' paints no colour, so ' + field + ' must report nothing');
-      assert.ok(Object.prototype.hasOwnProperty.call(snap, field),
-        field + ' must still be emitted as a key on ' + platform);
-    });
-  });
 });
 
 test('a Black & White theme reports no graph colours at all', () => {
@@ -917,12 +818,12 @@ test('a Black & White theme reports no graph colours at all', () => {
 // The failure the split authority produced, pinned so it cannot come back: the value
 // telemetry reports for an element and the colour the wire resolves for it have to agree
 // about whether the pick survived at all.
-test('the reported pick agrees with the wire on every platform', () => {
+test('the reported pick agrees with the wire', () => {
   const lineStyle = require('../../../src/pkjs/forecast-graphs/domain/line-style.js');
   const computeEnv = require('../../../src/pkjs/config-ui/lib/platform.js').computeEnv;
   const settings = { theme: 'dark', secondaryLine: 'wind', thirdLine: 'off',
                      gcWindLineDark: 0xFF0000 };
-  ['basalt', 'emery', 'diorite', 'aplite'].forEach((platform) => {
+  ['emery'].forEach((platform) => {
     const watchInfo = { platform };
     const reported = buildSettingsSnapshot(settings, watchInfo).graphMainColor;
     const painted = lineStyle.resolveGraphColors(settings, computeEnv(watchInfo)).secondary === 0xFF0000;
@@ -941,9 +842,9 @@ test('reporting default agrees with the wire painting the built-in', () => {
    { rainBarColor: 'multicolor', stored: 0xAAAAAA, builtIn: 0xFFFFFF }].forEach((c) => {
     const settings = { theme: 'dark', secondaryLine: 'gust', thirdLine: 'off',
                        rainBarColor: c.rainBarColor, gcGustLineDark: c.stored };
-    assert.strictEqual(buildSettingsSnapshot(settings, { platform: 'basalt' }).graphMainColor,
+    assert.strictEqual(buildSettingsSnapshot(settings, { platform: 'emery' }).graphMainColor,
       'default', 'a gust line on either built-in reads as untouched');
-    assert.strictEqual(lineStyle.resolveGraphColors(settings, computeEnv({ platform: 'basalt' })).secondary,
+    assert.strictEqual(lineStyle.resolveGraphColors(settings, computeEnv({ platform: 'emery' })).secondary,
       c.builtIn, 'and the wire paints the rainBarColor-correct built-in, not the stored byte');
   });
 });
@@ -973,10 +874,8 @@ test('the heaviest realistic telemetry batch header stays under MAX_SETTINGS_BYT
     assert.ok(settings['customViewExt' + i] > 0, 'customViewExt' + i + ' reports');
   });
   // "Every reported setting" is checked, not claimed: a field left out of the fixture
-  // serialises as undefined and drops out of the count. Aplite's three are the only
-  // fields an emery never reports, and an aplite reports far less than they add.
-  assert.deepEqual(Object.keys(settings).filter((key) => settings[key] === undefined),
-    ['showQt', 'batteryLowOnly', 'layoutPreset'],
+  // serialises as undefined and drops out of the count.
+  assert.deepEqual(Object.keys(settings).filter((key) => settings[key] === undefined), [],
     'a snapshot field the fixture never sets understates the ledger — set it on its longest option');
   assert.deepEqual([settings.graphStyleCount, settings.graphStyle2Hours, settings.graphStyle3Hours],
     [3, 48, 48], 'the graph styles report');
@@ -986,8 +885,6 @@ test('the heaviest realistic telemetry batch header stays under MAX_SETTINGS_BYT
   console.log('heaviest batch settings header: ' + header + ' of ' + cap
     + ' (headroom ' + (cap - header) + ')');
   assert.ok(header <= cap, 'settings header ' + header + ' must not exceed ' + cap);
-  const aplite = JSON.stringify(buildSettingsSnapshot(HEAVIEST_SETTINGS, APLITE_WATCH, HEAVIEST_NOW)).length;
-  assert.ok(aplite < header, 'the aplite header (' + aplite + ') is the lighter one');
 });
 
 // --- batching ----------------------------------------------------------------
@@ -1028,7 +925,7 @@ function batchHarness() {
   });
   const queue = () => JSON.parse(store[TELEMETRY_QUEUE_KEY] || '[]');
   const track = (over) => client.trackWeatherFetch(Object.assign({
-    provider: 'dwd', success: true, settings: {}, watchInfo: { platform: 'basalt' },
+    provider: 'dwd', success: true, settings: {}, watchInfo: { platform: 'emery' },
   }, over || {}));
   return { store, requests, client, queue, track };
 }
@@ -1056,7 +953,7 @@ test('the count trigger drains the queue as one batch envelope', () => {
   assert.equal(body.events.length, TELEMETRY_BATCH.FLUSH_AT_EVENTS);
   assert.equal(body.accountToken, 'a'.repeat(32));
   assert.ok(body.settings && typeof body.settings === 'object', 'settings header once');
-  assert.equal(body.watchInfo.platform, 'basalt');
+  assert.equal(body.watchInfo.platform, 'emery');
   h.requests[0].respond(202);
   assert.equal(h.queue().length, 0, 'the ACK clears the sent head');
 });
@@ -1177,7 +1074,7 @@ test('the heaviest batch envelope stays under the ingest batch body cap', () => 
     eventType: 'weather_fetch_batch',
     accountToken: 'a'.repeat(64), watchToken: 'b'.repeat(64),
     appVersion: '10.10.10', buildProfile: 'release',
-    watchInfo: { platform: 'basalt', model: 'qemu_platform_basalt', language: 'en_US',
+    watchInfo: { platform: 'emery', model: 'qemu_platform_emery', language: 'en_US',
       firmware: { major: 4, minor: 4, patch: 4, suffix: 'beta10' } },
     // The largest header the ingest takes (MAX_SETTINGS_BYTES, the header test
     // above), whatever the heaviest snapshot measures today.
@@ -1491,8 +1388,6 @@ test('the weather alerts report alerts and rainAlertDisplay', () => {
     alertUvNextDayMark: 'gt', alertWindNextDayMark: 'plus', alertGustNextDayMark: 'star',
     alertAqiNextDayMark: 'none', alertPollenDays: 'bogus', alertPollenNextDayMark: 'bogus' })).alerts,
   'VsVgVnVrVp', 'no Look stored: Icon + value, the default');
-  // A known aplite has no On demand: nothing is placed there.
-  assert.equal(buildSettingsSnapshot({}, { platform: 'aplite' }).alerts, 'o-o-o-o-o-');
 });
 
 // The alerts code against the contract: each letter pair is the alert bake's own
@@ -1552,12 +1447,9 @@ test('the one-letter codes are unambiguous: first letters are unique per vocabul
 });
 
 // The warn box per paired kind: one letter per kind in wire order, RESOLVED with the
-// platform default — fill on a colour watch, outline on B&W and for the goal kinds.
+// default — fill, outline for the goal kinds.
 test('warnLooks reports the resolved warn look per paired kind', () => {
-  assert.equal(buildSettingsSnapshot({}).warnLooks, 'ffffooof',
-    'untouched colour watch (watchInfo absent reads as basalt)');
-  assert.equal(buildSettingsSnapshot({}, { platform: 'diorite' }).warnLooks, 'oooooooo',
-    'untouched B&W watch: outline everywhere');
+  assert.equal(buildSettingsSnapshot({}).warnLooks, 'ffffooof', 'untouched');
   assert.equal(buildSettingsSnapshot({ threshAqiWarnLook: 'none', threshStepsWarnLook: 'fill',
     threshUvWarnLook: 'outline' }, { platform: 'emery' }).warnLooks, 'nffffooo');
   assert.equal(buildSettingsSnapshot({ threshWindWarnLook: 'bogus' }).warnLooks, 'ffffooof',

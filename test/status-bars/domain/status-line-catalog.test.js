@@ -12,7 +12,6 @@ const ENV_APLITE = { color: false, platform: 'aplite', health: false, radar: fal
 // must not exist at all.
 const ENV_BASALT_PHONE = Object.assign({}, ENV_BASALT, { phoneBattery: true });
 const ENV_EMERY_PHONE = Object.assign({}, ENV_EMERY, { phoneBattery: true });
-const ENV_APLITE_PHONE = Object.assign({}, ENV_APLITE, { phoneBattery: true });
 // All 12 configurable slots, with the position each dropdown passes.
 const ALL_SLOT_CTXS = [
   { slotKey: 'statusForecastLeft', position: 'left' },
@@ -41,41 +40,29 @@ test('LINES describes 4 lines in wire order with three real slots each', () => {
   assert.equal(catalog.LINES[2].slots[1], 'statusTopMid');
 });
 
-test('defaults + the two flavors are the shipped status-bar set', () => {
+test('the defaults are the shipped status-bar set', () => {
   assert.deepEqual(catalog.LINES[0].defaults,
     { statusForecastLeft: 'temp', statusForecastMid: 'city', statusForecastRight: 'sun' });
   assert.deepEqual(catalog.LINES[1].defaults,
     { statusRadarLeft: 'uv', statusRadarMid: 'wind', statusRadarRight: 'gust' });
   assert.deepEqual(catalog.LINES[2].defaults,
-    { statusTopLeft: 'aqi', statusTopMid: 'date', statusTopRight: 'battery' });
-  assert.deepEqual(catalog.LINES[2].emeryDefaults,
     { statusTopLeft: 'week', statusTopMid: 'date', statusTopRight: 'aqi' });
   assert.deepEqual(catalog.LINES[3].defaults,
-    { statusHealthLeft: 'steps', statusHealthMid: 'empty', statusHealthRight: 'sleep' });
-  assert.deepEqual(catalog.LINES[3].hrDefaults,
     { statusHealthLeft: 'steps', statusHealthMid: 'sleep', statusHealthRight: 'hr' });
+  catalog.LINES.forEach((l) => assert.deepEqual(Object.keys(l).filter((k) => /Defaults$/.test(k)), [],
+    l.id + ': one set of defaults'));
 });
 
-test('slotDefault takes the emery and HR flavors; the other rows are flat', () => {
+test('slotDefault reads the line\'s defaults, whatever the env', () => {
   assert.equal(catalog.slotDefault('statusHealthRight', ENV_EMERY), 'hr');
-  assert.equal(catalog.slotDefault('statusHealthRight', ENV_DIORITE), 'hr');
-  assert.equal(catalog.slotDefault('statusHealthRight', ENV_BASALT), 'sleep');
-  assert.equal(catalog.slotDefault('statusHealthRight', undefined), 'sleep');
+  assert.equal(catalog.slotDefault('statusHealthRight', undefined), 'hr');
   assert.equal(catalog.slotDefault('statusForecastRight', ENV_EMERY), 'sun');
-  assert.equal(catalog.slotDefault('statusForecastRight', ENV_BASALT), 'sun');
-  // The top strip: three readings on emery, air quality in its corner; air quality, the
-  // date and the battery corner everywhere else.
+  // The top strip: three readings, air quality in its corner.
   assert.equal(catalog.slotDefault('statusTopLeft', ENV_EMERY), 'week');
-  assert.equal(catalog.slotDefault('statusTopRight', ENV_EMERY), 'aqi');
-  assert.equal(catalog.slotDefault('statusTopLeft', ENV_BASALT), 'aqi');
-  assert.equal(catalog.slotDefault('statusTopRight', ENV_BASALT), 'battery');
-  assert.equal(catalog.slotDefault('statusTopRight', ENV_DIORITE), 'battery',
-    'the split is display width, not colour or heart rate');
   assert.equal(catalog.slotDefault('statusTopMid', ENV_EMERY), 'date');
-  assert.equal(catalog.slotDefault('statusTopMid', ENV_BASALT), 'date');
-  assert.equal(catalog.slotDefault('statusTopRight', undefined), 'battery',
-    'no env is not emery');
-  assert.equal(catalog.slotDefault('nope', ENV_BASALT), undefined);
+  assert.equal(catalog.slotDefault('statusTopRight', ENV_EMERY), 'aqi');
+  assert.equal(catalog.slotDefault('statusTopRight', undefined), 'aqi');
+  assert.equal(catalog.slotDefault('nope', ENV_EMERY), undefined);
 });
 
 test('the top strip default is placeable in the slot it names', () => {
@@ -168,7 +155,7 @@ test('selectedCodes falls back to line defaults for missing keys, over the bars 
   assert.equal(codes.length, 9, 'the default screens show the Forecast, Radar and Watch bars');
   assert.ok(codes.includes('wind'));  // stored value wins
   assert.ok(codes.includes('temp'));  // forecast-left default
-  assert.ok(codes.includes('battery'), 'no env: the base flavor\'s battery corner');
+  assert.ok(codes.includes('aqi'), 'the Watch bar\'s air quality corner');
   assert.ok(codes.includes('sun'), 'the Forecast bar\'s sunrise/sunset');
   assert.ok(!codes.includes('steps'), 'the Health bar\'s defaults count only while a screen shows it');
   const all = catalog.selectedCodes({ statusRadarMid: 'wind', healthMode: 'status' });
@@ -177,20 +164,18 @@ test('selectedCodes falls back to line defaults for missing keys, over the bars 
   assert.equal(catalog.selectedCodes({ radarMode: 'off', statusRadarMid: 'pollen' }).indexOf('pollen'), -1,
     'the radar off: no screen shows the Radar bar, so its slots fetch nothing');
   // The codes answer the defaults the bake packs for this watch (status-lines.js packLine):
-  // its callers are fetch gates, and air quality sits in the top row's corner on emery and
-  // in its left slot elsewhere. The env also decides which bars the watch draws
+  // its callers are fetch gates. The env also decides which bars the watch draws
   // (test/status-bars/domain/extra-bars.test.js).
   const emery = catalog.selectedCodes({ statusRadarMid: 'wind' }, ENV_EMERY);
-  assert.deepEqual(emery.slice(6), ['week', 'date', 'aqi'], 'emery: its own top row');
-  assert.deepEqual(codes.slice(6), ['aqi', 'date', 'battery'], 'elsewhere: the base flavor');
+  assert.deepEqual(emery.slice(6), ['week', 'date', 'aqi'], 'the top row');
+  assert.deepEqual(codes, emery, 'no env reads the same');
   assert.equal(catalog.selectedCodes({ statusRadarMid: 'wind', statusTopLeft: 'empty' }, ENV_EMERY)
-    .indexOf('aqi'), 8, 'emery\'s corner fetches air quality whatever the left slot holds');
+    .indexOf('aqi'), 8, 'the corner fetches air quality whatever the left slot holds');
   assert.equal(catalog.selectedCodes({ statusRadarMid: 'wind', statusTopRight: 'sun' }, ENV_EMERY)
     .indexOf('aqi'), -1, 'and a corner the user changed does not');
-  // aplite draws neither the Radar bar nor the Health bar, whatever a settings blob from
-  // another watch puts on its screens.
+  // A watch without the radar or health draws neither bar, whatever its screens say.
   assert.equal(catalog.selectedCodes({ statusRadarMid: 'wind', healthMode: 'status' }, ENV_APLITE).length, 6,
-    'aplite: the Forecast and Watch bars');
+    'no radar, no health: the Forecast and Watch bars');
 });
 
 test('resolveSelection maps invalid/unavailable to empty without touching storage', () => {
@@ -427,13 +412,12 @@ test('battery is a LIVE_BATTERY item offered only in the top-right slot', () => 
   assert.ok(!leftOpts.some(o => o[1] === 'batteryPct'), 'no battery % elsewhere either');
 });
 
-test('batteryPct is a LIVE_BATTERY_PCT text item, top-right only, gated off aplite', () => {
+test('batteryPct is a LIVE_BATTERY_PCT text item, top-right only', () => {
   const item = catalog.byCode('batteryPct');
   assert.ok(item, 'batteryPct item exists');
   assert.equal(item.kind, catalog.KINDS.LIVE_BATTERY_PCT);
   assert.equal(item.icon, catalog.ICONS.NONE);
   assert.equal(item.category, 'battery');
-  assert.equal(item.notAplite, true);
   // Both battery items live in the top-right slot — the corner the watch already
   // reads as the battery's — so the glyph and the "NN%" text are two renderings of
   // the same thing in the same place rather than one of them roaming the other rows.
@@ -444,18 +428,13 @@ test('batteryPct is a LIVE_BATTERY_PCT text item, top-right only, gated off apli
   assert.ok(catalog.itemAvailable(item, {}, ENV_EMERY, topRight), 'available on emery');
   assert.ok(catalog.itemAvailable(item, {}, ENV_DIORITE, topRight), 'available on diorite');
   assert.ok(!catalog.itemAvailable(item, {}, ENV_BASALT, ctx), 'not in a non-top-right slot');
-  assert.ok(!catalog.itemAvailable(item, {}, ENV_APLITE, topRight),
-    'absent on aplite — its glyph battery slot already renders "NN%" text');
   const basalt = catalog.slotOptions({}, ENV_BASALT, topRight).map(o => o[1]);
   assert.ok(basalt.indexOf('batteryPct') !== -1, 'offered on a basalt top-right dropdown');
   const basaltLeft = catalog.slotOptions({}, ENV_BASALT, ctx).map(o => o[1]);
   assert.equal(basaltLeft.indexOf('batteryPct'), -1, 'not offered on a non-top-right dropdown');
-  const aplite = catalog.slotOptions({}, ENV_APLITE, topRight).map(o => o[1]);
-  assert.equal(aplite.indexOf('batteryPct'), -1, 'not offered on an aplite dropdown');
-  // Defensive resolve mirrors the gate (a synced non-aplite top-right selection).
+  // Defensive resolve mirrors the gate.
   assert.equal(catalog.resolveSelection('batteryPct', {}, ENV_BASALT, topRight), 'batteryPct');
   assert.equal(catalog.resolveSelection('batteryPct', {}, ENV_BASALT, ctx), 'empty');
-  assert.equal(catalog.resolveSelection('batteryPct', {}, ENV_APLITE, topRight), 'empty');
 });
 
 test('the WATCH battery items are top-right only — there, and nowhere else', () => {
@@ -521,7 +500,6 @@ test('the phone-battery items are TEXT with their own icon ids and no position p
     assert.equal(item.kind, catalog.KINDS.TEXT, item.code + ' kind');
     assert.equal(item.category, 'battery', item.code + ' category');
     assert.equal(item.needsPhoneBattery, true, item.code + ' gate');
-    assert.equal(item.notAplite, true, item.code + ' aplite gate');
     // NOT corner-pinned like the watch items: these carry their own icon (or
     // deliberately none) and belong in any slot.
     assert.equal(item.topRightOnly, undefined, item.code + ' must not be top-right only');
@@ -584,23 +562,6 @@ test('both phone-battery items are selectable in all 12 slots when the phone sup
   });
 });
 
-test('the phone battery is absent on aplite even where the phone reports a charge', () => {
-  // aplite is a frozen lean image: no glyph ships, and its status-row twin never
-  // learns the ids. The gate is the platform, not the phone.
-  const s = { healthMode: 'all' };
-  ALL_SLOT_CTXS.forEach((ctx) => {
-    const codes = catalog.slotOptions(s, ENV_APLITE_PHONE, ctx).map(o => o[1]);
-    ['phoneBattery', 'phoneBatteryPlain'].forEach((code) => {
-      assert.ok(!catalog.itemAvailable(catalog.byCode(code), s, ENV_APLITE_PHONE, ctx),
-        code + ' must be unavailable on aplite (' + ctx.slotKey + ')');
-      assert.equal(codes.indexOf(code), -1,
-        code + ' must not reach an aplite dropdown (' + ctx.slotKey + ')');
-    });
-  });
-  assert.equal(catalog.resolveSelection('phoneBattery', s, ENV_APLITE_PHONE, ALL_SLOT_CTXS[0]),
-    'empty');
-});
-
 test('with env.phoneBattery the Battery category populates non-top-right slots too', () => {
   const s = { healthMode: 'all', radarProvider: 'rainbow', radarMode: 'graph' };
   // Top-right sees all four items and a header.
@@ -641,12 +602,11 @@ test('the four Battery rows are labelled Watch/Phone so none of them just reads 
   assert.equal(new Set(labels).size, labels.length, 'Battery labels must be unique');
 });
 
-test('the slot lists name the city with its weather icon while it is on, never on aplite', () => {
+test('the slot lists name the city with its weather icon while it is on', () => {
   const label = (env, settings) => catalog.slotOptions(settings || {}, env, { slotKey: 'statusTopLeft', position: 'left' })
     .filter((o) => o[1] === 'city').map((o) => o[0])[0];
   assert.equal(label(ENV_BASALT), 'City', 'the icon is off by default');
   assert.equal(label(ENV_BASALT, { citySlotIcon: true }), 'City with weather icon');
-  assert.equal(label({ platform: 'aplite' }, { citySlotIcon: true }), 'City');
 });
 
 // An edge slot's weather condition takes the middle's room while the whole line fits its 48

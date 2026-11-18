@@ -206,7 +206,6 @@ test('longHours and spanOptions: the label for each provider and layout', () => 
 
 test('shownHours: the hours each span draws, as the watch fits its grid to the plot', () => {
   const emery = platform.computeEnv({ platform: 'emery' });
-  const basalt = platform.computeEnv({ platform: 'basalt' });
   // emery's 24 h grid keeps its 8 px pitch: 22 hours beside the left axis (its 176 px plot),
   // 25 of the 26 sent without one; 12 h fits 12 whole columns; the long span is longHours'.
   const defaults = { largeGraphFont: true, healthMode: 'all' };   // a 176 px plot beside the strip
@@ -217,9 +216,6 @@ test('shownHours: the hours each span draws, as the watch fits its grid to the p
   assert.equal(spanHours.shownHours({ forecastAxisNumbers: 'off' }, emery), 25);
   assert.equal(spanHours.shownHours({ forecastHours: '12' }, emery), 12);
   assert.equal(spanHours.shownHours({ forecastHours: '48' }, emery), spanHours.longHours({ forecastHours: '48' }, emery));
-  // The 144 px watches: 24 h at 7 px over the plot right of the label strip, whatever is stored.
-  assert.equal(spanHours.shownHours({}, basalt), 18);
-  assert.equal(spanHours.shownHours({ forecastHours: '12' }, basalt), 18);
   // The grids, lockstep with the watch's headers and the hours the phone sends.
   const span = read('src/c/appendix/forecast_span.h');
   assert.equal(1 + 2 * cDefine(span, 'FORECAST_SPAN_DAY_PAD') + cDefine(span, 'FORECAST_SPAN_DAY_BAR_W'), 8);
