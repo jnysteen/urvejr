@@ -473,20 +473,21 @@ test('Clay settings message (with palette) fits the watch inbox', function() {
 // and at their heaviest three records of 7 B header + 41 B (HEAVIEST_STYLES). Beside them bars 4
 // to 6's On demand cells (CLAY_OD_EXTRA_UINT8: 7 B header + 10 B, one per item). Recorded
 // exactly, so the next task that adds a key sees the running total move.
-test('the Clay message keeps its recorded sizes, at most 681 B of its 1280 B', () => {
+test('the Clay message keeps its recorded sizes, at most 670 B of its 1280 B', () => {
   const inbox = readInboxSize();
   const plain = buildHeaviestClayMessage({ platform: 'emery' });
   assert.deepEqual([plain.CLAY_GRAPH_STYLE_1_UINT8, plain.CLAY_GRAPH_STYLE_2_UINT8,
     plain.CLAY_GRAPH_STYLE_3_UINT8], [[], [], []], 'the first style alone: three empty tuples');
   assert.equal(plain.CLAY_OD_EXTRA_UINT8.length, 10, 'bars 4 to 6\'s cells, one byte per item');
-  assert.equal(dictSize(plain), 558, 'update the recorded Clay message size when its wire contract changes');
+  assert.equal(dictSize(plain), 547, 'update the recorded Clay message size when its wire contract changes');
   assert.equal(Object.prototype.hasOwnProperty.call(plain, 'CLAY_BATTERY_LOW_ONLY'), false);
+  assert.equal(Object.prototype.hasOwnProperty.call(plain, 'CLAY_SHOW_QT'), false, 'nothing reads it since aplite went');
   const styled = buildHeaviestClayMessage({ platform: 'emery' }, HEAVIEST_STYLES);
   ['CLAY_GRAPH_STYLE_1_UINT8', 'CLAY_GRAPH_STYLE_2_UINT8', 'CLAY_GRAPH_STYLE_3_UINT8'].forEach((k) =>
     assert.equal(styled[k].length, 41, k + ': a whole record with a 5-stop palette'));
   const size = dictSize(styled);
   console.log(`heaviest Clay message: ${size} B of ${inbox} B (headroom ${inbox - size})`);
-  assert.equal(size, 681, 'update the recorded size when the records change');
+  assert.equal(size, 670, 'update the recorded size when the records change');
   assert.ok(inbox - size >= 10, 'the 10 B floor');
 });
 

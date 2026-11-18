@@ -54,7 +54,6 @@ enum {
     X(MESSAGE_KEY_CLAY_START_MON,              start_mon,                  CORE_FLAG)  \
     X(MESSAGE_KEY_CLAY_PREV_WEEK,              prev_week,                  CORE_FLAG)  \
     X(MESSAGE_KEY_CLAY_VIBE,                   vibe,                       CORE_FLAG)  \
-    X(MESSAGE_KEY_CLAY_SHOW_QT,                show_qt,                    CORE_FLAG)  \
     X(MESSAGE_KEY_CLAY_SHOW_BT,                show_bt,                    CORE_FLAG)  \
     X(MESSAGE_KEY_CLAY_SHOW_BT_DISCONNECT,     show_bt_disconnect,         CORE_FLAG)  \
     X(MESSAGE_KEY_CLAY_SHOW_AM_PM,             show_am_pm,                 CORE_FLAG)  \
@@ -122,10 +121,6 @@ bool config_parse_wire(DictionaryIterator *iterator, Config *out) {
     // Without it, config.theme stays 0 = dark.
     const Tuple *clay_theme_tuple = dict_find(iterator, MESSAGE_KEY_CLAY_THEME);
     if (clay_theme_tuple) { out->theme = (uint8_t) clay_theme_tuple->value->int16; }
-    const Tuple *clay_battery_low_only_tuple = dict_find(iterator, MESSAGE_KEY_CLAY_BATTERY_LOW_ONLY);
-    if (clay_battery_low_only_tuple) {
-        out->battery_low_only = (bool) (clay_battery_low_only_tuple->value->int16);
-    }
     // Without it, date_month_first stays false = day-first.
     const Tuple *clay_date_month_first_tuple = dict_find(iterator, MESSAGE_KEY_CLAY_DATE_MONTH_FIRST);
     if (clay_date_month_first_tuple) {

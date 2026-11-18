@@ -1,8 +1,7 @@
 // test/pixel-icons.test.js — the pixel icons' watch build step (scripts/pixel-icons/
 // gen_watch_icons.js; scripts/pixel-icons/README.md): every drawing in
-// resources/pixel-icons.json becomes a PDC of 1 px lines through pixel centres, a resource on the
-// watches that draw that size, an entry in the lookup table of each watch family that draws it,
-// and on Pebble Classic and Steel the icon's bit mask in status_row_aplite.c.
+// resources/pixel-icons.json becomes a PDC of 1 px lines through pixel centres, a resource, and an
+// entry in the watch's lookup table.
 'use strict';
 const test = require('node:test');
 const assert = require('node:assert/strict');

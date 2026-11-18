@@ -43,7 +43,7 @@ typedef struct {
     bool axis_12h;
     bool start_mon;
     bool prev_week;
-    bool show_qt;
+    bool show_qt;   // retired with aplite's strip: never read, kept for the persisted layout
     bool show_bt;
     bool show_bt_disconnect;
     bool vibe;
@@ -75,9 +75,8 @@ typedef struct {
     // stray 2 or 3 reaching a B&W watch from a phone previously paired with a
     // color watch is harmless (2 renders dark, 3 renders light).
     uint8_t theme;
-    // --- top-strip battery (v1.8): show the battery only below 10%, taking over
-    // the top-right slot. Append-only; optional wire tuple (older phones omit it,
-    // leaving the memset-zeroed default false). ---
+    // --- top-strip battery (v1.8), retired with aplite's strip: never read, kept for the
+    // persisted layout. ---
     bool battery_low_only;
     // --- date order (v1.8): the no-calendar date slot renders numeric
     // dd.mm.yy by default, or mm.dd.yy when true. The phone derives it from the

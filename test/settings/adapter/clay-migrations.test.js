@@ -656,7 +656,7 @@ test('the dependency stays one-way: clay-settings never requires the ledger back
   // require back would form a cycle AND let the owner module start growing with the
   // ledger again — which is what put it near 1000 lines in the first place. Source
   // inspection, in the spirit of the repo's other structural guards
-  // (check-aplite-twins.js, test/page/settings/config-page-bundle.test.js).
+  // (test/page/settings/config-page-bundle.test.js).
   const fs = require('node:fs');
   const src = fs.readFileSync(require.resolve('../../../src/pkjs/settings/adapter/clay-settings.js'), 'utf8');
   assert.equal(/require\(['"]\.\/(clay-migrations|migrations\/)/.test(src), false,
