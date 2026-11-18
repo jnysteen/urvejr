@@ -217,7 +217,7 @@ test('the bake is deterministic for a given now: the time it is handed picks day
   const settings = { statusForecastLeft: 'empty', statusForecastMid: 'condition', statusForecastRight: 'empty' };
   const mid = (now) => {
     const payload = { CURRENT_CONDITION: 'clear', SUN_EVENTS };
-    lines.buildStatusLines(payload, settings, { platform: 'basalt' }, now);
+    lines.buildStatusLines(payload, settings, now);
     return decodeLine(payload[LINE.wireKey])[1];
   };
   const day = mid(new Date(2026, 5, 15, 12, 0, 0));

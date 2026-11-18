@@ -10,7 +10,6 @@ const SCHEMA = { appName: 'X', versionLabel: 'v0', tabs: [ { id: 't', label: 'T'
 const PAGE = '<html><script>var INJECTED_SCHEMA=null,INJECTED_CFG=null,INJECTED_ENV=null,INJECTED_USERDATA=null,INJECTED_RETURN=null;/*__PCONF_INJECT__*/\n/*__PCONF_CONCAT__*/</script></html>';
 
 test('re-exports pure helpers', () => {
-  assert.equal(configUi.computeEnv().platform, 'emery');
   assert.equal(configUi.intToHex(0), '#000000');
 });
 
@@ -46,15 +45,15 @@ test('parseResponse: a response the host already decoded is not decoded again', 
   assert.deepEqual(encoded, decoded);
 });
 
-test('generateUrl: data URL, colors int->hex, env from watchInfo, markers handled', () => {
+test('generateUrl: data URL, colors int->hex, the app\'s env, markers handled', () => {
   const inst = configUi.createConfig({ schema: SCHEMA, page: PAGE });
-  const url = inst.generateUrl({ values: inst.getDefaults(), watchInfo: { platform: 'basalt' }, userData: {} });
+  const url = inst.generateUrl({ values: inst.getDefaults(), env: { phoneBattery: true }, userData: {} });
   assert.equal(url.indexOf('data:text/html;charset=utf-8,'), 0);
   const decoded = decodeURIComponent(url);
   assert.equal(decoded.indexOf('/*__PCONF_INJECT__*/'), -1, 'inject marker consumed');
   assert.ok(decoded.indexOf('/*__PCONF_CONCAT__*/') !== -1, 'concat marker preserved');
   assert.ok(decoded.indexOf('"tint":"#FF0055"') !== -1, 'color injected as hex');
-  assert.ok(decoded.indexOf('"color":true') !== -1, 'env: basalt = color');
+  assert.ok(decoded.indexOf('INJECTED_ENV={"phoneBattery":true}') !== -1, 'env: the app\'s, as given');
   assert.ok(decoded.indexOf('"messageKey":"provider"') !== -1, 'schema injected');
 });
 

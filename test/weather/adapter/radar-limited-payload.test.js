@@ -40,7 +40,7 @@ const N = 24;
 
 /** The fetch cycle's transform (fetch-cycle.js hands the provider this one). */
 function transform(payload) {
-  return forecastSeries.applyForecastSeries(payload, SETTINGS, WATCH);
+  return forecastSeries.applyForecastSeries(payload, SETTINGS);
 }
 
 /** A provider whose data stages answer at once with a valid 24-hour forecast. */

@@ -155,10 +155,8 @@ if (typeof require !== 'undefined') {
     // for the slot's CURRENT value, when that value is a threshold kind. The catalog's
     // slot codes and the threshold contract's KINDS codes are the same vocabulary
     // ('wind', 'aqi', 'steps', ...), so the contract IS the mapping — no hand-copied
-    // list to drift. env gate mirrors the sheets' own showWhen (aplite compiles the
-    // highlight out).
+    // list to drift.
     PConf.sheetResolvers.register('statusSlotEditSheet', function (S, env, args) {
-        if (!env || !env.thresholds) { return null; }
         var code = S[args.messageKey];
         for (var i = 0; i < thresholds.KINDS.length; i++) {
             if (thresholds.KINDS[i].code === code) { return 'thresh' + thresholds.KINDS[i].key; }
@@ -364,7 +362,7 @@ if (typeof require !== 'undefined') {
     // to. The key stays unset in the phone store: defaultFrom items are never
     // seeded, and the item's sticky: false keeps a save from writing this value.
     PConf.defaultsResolvers.register('warnLookDefault', function (env, args) {
-        return thresholds.warnLookDefault(args && args.keyStem, env ? env.color : undefined);
+        return thresholds.warnLookDefault(args && args.keyStem);
     });
 
     // The warn look's hint (thresh<K>WarnLook's hintFrom), for the SELECTED look,
@@ -388,7 +386,7 @@ if (typeof require !== 'undefined') {
         var st = S || {};
         // By DAY: the case the colour pickers are hidden for (schema-gates.js
         // COLOR_THEME_WHEN) and every highlight is drawn in the text colour.
-        if (!resolveInk.drawsColor(env, st.theme)) {
+        if (!resolveInk.drawsColor(st.theme)) {
             var bwText = copy.bw && copy.bw[value];
             return typeof bwText === 'string' ? bwText : null;
         }
@@ -420,7 +418,7 @@ if (typeof require !== 'undefined') {
      * @param {Object} S Live settings state.
      * @param {string} stem Kind key stem, e.g. 'Steps'.
      * @param {string} which 'Warn' | 'Danger'.
-     * @param {Object} [env] Platform env (env.color false on a B&W watch).
+     * @param {Object} [env] Platform env; unused.
      * @returns {?string} '#RRGGBB', or null for a warn look of 'none'.
      */
     function thresholdDisplayColor(S, stem, which, env) {
@@ -429,7 +427,7 @@ if (typeof require !== 'undefined') {
         if (which === 'Warn' && S['thresh' + stem + 'WarnLook'] === 'none') {
             return null;
         }
-        return intToHex(resolveInk.drawsColor(env, S.theme)
+        return intToHex(resolveInk.drawsColor(S.theme)
             ? thresholds.thresholdColor(S, stem, which) : thresholds.textColor(S));
     }
     // The warn and danger pickers paint the same resolution (engine.js' displayFrom
@@ -552,21 +550,19 @@ if (typeof require !== 'undefined') {
     // watch's own outline (a warn look) against its fill — it carries no meaning of
     // its own.
     //
-    // Polarity: the sheet's pickers gate on the RAW `theme` value, so the badge must
-    // fold nothing either — hence themePolarity true even when a B&W-polarity watch is
-    // being previewed (the same choice, for the same reason, as the forecast preview's
-    // caps). The env.color guard is belt-and-braces behind the row's COLOR capability.
+    // Polarity: the sheet's pickers gate on the RAW `theme` value, so the badge folds
+    // nothing either.
     /**
      * @param {Object} S Live settings state (colors as '#RRGGBB').
-     * @param {Object} env Platform env; env.color gates the whole card.
+     * @param {Object} env Platform env; unused.
      * @param {Object} args editBadgeFrom.args — {scope}, the row's identity (a `sheet`
      *     row has no messageKey for the engine to merge in).
      * @returns {?{label: string, dots: Object[]}} The badge, or null to render none.
      */
     PConf.badgeResolvers.register('graphColorSwatch', function (S, env, args) {
-        if (!lineStyle || !env || !env.color || !args || !args.scope) { return null; }
+        if (!lineStyle || !args || !args.scope) { return null; }
         var scope = args.scope;
-        var sfx = lineStyle.renderContextFor(S, {color: true, themePolarity: true}).suffix;
+        var sfx = lineStyle.renderContextFor(S).suffix;
         var roles = lineStyle.graphColorRoles(scope);
         var dots = [], i;
         for (i = 0; i < roles.length; i++) {
@@ -637,10 +633,7 @@ if (typeof require !== 'undefined') {
     // each weather kind's slot Highlight switch (a slot-sheet row, like Bold — a
     // goal kind's rides its Goals header and that group's reset), each bar's two Alerts
     // sides (on-demand.js DEFAULTS' eight side lists — each bar's Alerts nav row on
-    // that tab shows them; the Alerts tab's reset restores them too), and, on aplite
-    // only (a watch without On demand), the Watch Status Bar's other rows: 'Show battery
-    // below 10%' (batteryLowOnly), the quiet-time icon (showQt), the bluetooth vibration
-    // (vibe) and icon (btIcons) — elsewhere those keys belong to the Alerts tab.
+    // that tab shows them; the Alerts tab's reset restores them too).
     // Deliberately untouched: thresholds, colors, warn looks and scale maxes (every sheet
     // has its own reset button), the On demand items' own settings (the About alerts
     // card's reset, resetOnDemand below), and the countdown companion dates (inert once a
@@ -649,7 +642,7 @@ if (typeof require !== 'undefined') {
     /**
      * @param {*} arg Unused (the engine passes the button's data-action-arg).
      * @param {Object} S Live settings state (mutated in place).
-     * @param {Object} env Platform env (env.hr picks the health-bar flavor).
+     * @param {Object} env Platform env; unused.
      * @param {function(string): *} defaultOf The engine's stored-shape schema
      *     default resolver (defaultAsStored).
      * @returns {boolean} true so the engine re-renders with the restored state.
@@ -658,7 +651,7 @@ if (typeof require !== 'undefined') {
         if (!S || !defaultOf) { return false; }
         var slotKeys = statusLineCatalog.allSlotKeys();
         for (var i = 0; i < slotKeys.length; i++) {
-            S[slotKeys[i]] = statusLineCatalog.slotDefault(slotKeys[i], env);
+            S[slotKeys[i]] = statusLineCatalog.slotDefault(slotKeys[i]);
         }
         var schemaKeys = ['statusBoldAll', 'conditionSlotLook', 'conditionSlotName', 'citySlotIcon',
             'tempSlotDisplay',
@@ -671,10 +664,6 @@ if (typeof require !== 'undefined') {
             // ...and every day-max kind's mode, pair and tomorrow-mark rows (UV,
             // wind, gusts, AQI), from the catalog's one table.
             .concat(statusLineCatalog.dayMaxSettingKeys());
-        // The Watch Status Bar's own toggles exist only where On demand does not.
-        if (env && env.onDemand === false) {
-            schemaKeys.push('batteryLowOnly', 'showQt', 'vibe', 'btIcons');
-        }
         // Every bar's On demand sides: the items placed there.
         schemaKeys = schemaKeys.concat(onDemandListKeys());
         // dateSlotFullFormat is the one key here whose fresh-install value is
@@ -757,12 +746,12 @@ if (typeof require !== 'undefined') {
      * colour (the theme text colour while it is auto). The look is the contract's
      * resolution (warnLookFor), so an unset key previews the platform default.
      * @param {Object} S Live settings state.
-     * @param {Object} env Platform env (env.color picks the default look).
+     * @param {Object} env Platform env; unused.
      * @param {string} stem Kind key stem, e.g. 'Uv'.
      * @returns {?{color: string, ring: (boolean|undefined)}} The pip, or null for none.
      */
     function warnPip(S, env, stem) {
-        var look = thresholds.warnLookFor(S, stem, env ? env.color : undefined);
+        var look = thresholds.warnLookFor(S, stem);
         if (look === 'none') { return null; }
         var color = thresholdDisplayColor(S, stem, 'Warn', env);
         if (color === null) { return null; }
@@ -790,8 +779,7 @@ if (typeof require !== 'undefined') {
      * (The Alerts tab's rows badge the alert instead — alerts-page.js
      * alertLevelBadge, with the same levelDots.)
      * @param {Object} S Live settings state.
-     * @param {Object} env Platform env (callers gate on env.thresholds; env.color
-     *     picks the default warn look).
+     * @param {Object} env Platform env; unused.
      * @param {number} kindIndex Index into the contract's KINDS.
      * @returns {Object} Badge state for the engine's editBadgeFrom.
      */
@@ -825,10 +813,9 @@ if (typeof require !== 'undefined') {
 
     // Edit-button badge (engine item.editBadgeFrom): when the slot's current value is an
     // ENABLED threshold kind, the row shows a warn-color ring + danger-color dot before
-    // its Edit button, and a 'B' when the slot prints always-bold. Same env gate +
-    // code→kind mapping as the sheet resolver above.
+    // its Edit button, and a 'B' when the slot prints always-bold. Same code→kind mapping
+    // as the sheet resolver above.
     PConf.badgeResolvers.register('thresholdPenState', function (S, env, args) {
-        if (!env || !env.thresholds) { return null; }
         var code = S[args.messageKey];
         for (var i = 0; i < thresholds.KINDS.length; i++) {
             if (thresholds.KINDS[i].code === code) { return penStateForKind(S, env, i); }
@@ -840,7 +827,7 @@ if (typeof require !== 'undefined') {
     // default comes from the catalog, HR-aware. Consumed by engine.hydrate / resolveRowItem
     // via item.defaultFrom. Mirrors the statusSlot options resolver above.
     PConf.defaultsResolvers.register('statusSlotDefault', function (env, args) {
-        return statusLineCatalog.slotDefault(args.slotKey, env);
+        return statusLineCatalog.slotDefault(args.slotKey);
     });
 
     PConf.defaultsResolvers.register('todayDate', function () {
@@ -1151,8 +1138,7 @@ if (typeof require !== 'undefined') {
      * A forecast line's nav-row summary: its metric and style by the labels their pickers
      * show, ", filled" for the Main metric's area fill — "Precipitation % · Thin line,
      * filled" — or "Off". The style is the one the watch draws (line-style.js
-     * lineStyleValue: a stored stripe on a metric that cannot be one draws as a line), and
-     * a watch without style pickers (env.lineStyles false) names the metric alone.
+     * lineStyleValue: a stored stripe on a metric that cannot be one draws as a line).
      * @param {Object} S Live settings state.
      * @param {Object} env Platform env.
      * @param {{lineKey: string, main: boolean}} args The line's picker key; whether it is
@@ -1164,7 +1150,6 @@ if (typeof require !== 'undefined') {
         var metric = st[a.lineKey];
         if (!metric || metric === 'off') { return 'Off'; }
         var name = forecastMetrics.label(metric);
-        if (env && env.lineStyles === false) { return name; }
         var style = lineStyle.lineStyleValue(st, a.lineKey + 'Style');
         var text = name + ' · ' + (optionLabel(LINE_STYLE_OPTIONS, style) || style);
         var fills = a.main && st.secondaryLineFill !== false && !lineStyle.isTempAxisMetric(metric)
@@ -1188,10 +1173,10 @@ if (typeof require !== 'undefined') {
     function lineSwatch(S, env, args) {
         var st = S || {};
         var metric = st[(args || {}).lineKey];
-        if (!lineStyle || !env || !env.color || !metric || metric === 'off') { return null; }
+        if (!lineStyle || !metric || metric === 'off') { return null; }
         if (st.theme === 'bw' || st.theme === 'bw-light') { return null; }
         if (args.all) { return PConf.badgeResolvers.get('graphColorSwatch')(st, env, {scope: metric}); }
-        var sfx = lineStyle.renderContextFor(st, {color: true, themePolarity: true}).suffix;
+        var sfx = lineStyle.renderContextFor(st).suffix;
         var color = colorHexOf(st[lineStyle.graphColorKey(metric, 'Line', sfx)],
             lineStyle.graphColorDefault(metric, 'Line', sfx, st));
         return {label: 'Edit', dots: [{color: color}]};
@@ -1229,14 +1214,14 @@ if (typeof require !== 'undefined') {
     PConf.hintResolvers.register('lineColorLabel', lineColorLabel);
 
     /**
-     * Whether the page draws in colour: a colour watch under a colour theme.
+     * Whether the page draws in colour: a colour theme.
      * @param {Object} S Live settings state.
      * @param {Object} env Platform env.
      * @returns {boolean}
      */
     function colorThemeOn(S, env) {
         var theme = (S || {}).theme;
-        return Boolean(env && env.color !== false) && theme !== 'bw' && theme !== 'bw-light';
+        return theme !== 'bw' && theme !== 'bw-light';
     }
 
     /**

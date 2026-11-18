@@ -411,18 +411,16 @@
 
     /**
      * A view cycle with each view's graph style as the watch draws it, still by style index:
-     * dropped on a watch without styles (only emery has them: env.graphStyles) and where the
-     * style does not exist. A view that changes is a copy; the rest are the cycle's own.
+     * dropped where the style does not exist. A view that changes is a copy; the rest are
+     * the cycle's own.
      * @param {?Object} S Settings.
-     * @param {?Object} env Platform env.
      * @param {Array<?Object>} cycle view-cycle.js resolveViewCycle (or screensCycle) result.
      * @returns {Array<?Object>}
      */
-    function drawnCycle(S, env, cycle) {
-        var on = Boolean(env && env.graphStyles);
+    function drawnCycle(S, cycle) {
         var styles = parse(S).styles;
         return cycle.map(function (v) {
-            if (!v || !v.graphStyle || (on && styles[v.graphStyle])) { return v; }
+            if (!v || !v.graphStyle || styles[v.graphStyle]) { return v; }
             var c = VC.cloneSpec(v);
             delete c.graphStyle;
             return c;
@@ -469,12 +467,11 @@
      * (drawnCycle) in its watch slot (slotsFor), the first slot by no field at all. A view that
      * changes is a copy; the rest are the cycle's own.
      * @param {?Object} S Settings.
-     * @param {?Object} env Platform env.
      * @param {Array<?Object>} cycle view-cycle.js resolveViewCycle (or screensCycle) result.
      * @returns {Array<?Object>}
      */
-    function wireCycle(S, env, cycle) {
-        var drawn = drawnCycle(S, env, cycle);
+    function wireCycle(S, cycle) {
+        var drawn = drawnCycle(S, cycle);
         var slots = slotsFor(shownIn(drawn));
         return drawn.map(function (v) {
             if (!v || !v.graphStyle || slots[v.graphStyle] === v.graphStyle) { return v; }
@@ -489,11 +486,10 @@
      * (resolveViewCycle, through drawnCycle), ascending. [0] on a watch without styles while a
      * screen shows the forecast; [] while none does.
      * @param {?Object} S Settings.
-     * @param {?Object} env Platform env.
      * @returns {number[]}
      */
-    function stylesShown(S, env) {
-        return shownIn(drawnCycle(S, env, VC.resolveViewCycle(S || {}, env)));
+    function stylesShown(S) {
+        return shownIn(drawnCycle(S, VC.resolveViewCycle(S || {})));
     }
 
     /**
@@ -501,11 +497,10 @@
      * the first, else none (the watch then draws the first style's look, the flat tuples, on
      * every screen, as before graph styles).
      * @param {?Object} S Settings.
-     * @param {?Object} env Platform env.
      * @returns {number[]} ascending
      */
-    function stylesSent(S, env) {
-        var shown = stylesShown(S, env);
+    function stylesSent(S) {
+        var shown = stylesShown(S);
         for (var i = 0; i < shown.length; i++) {
             if (shown[i] > 0) { return shown; }
         }
@@ -513,33 +508,19 @@
     }
 
     /**
-     * How many of a graph's lines the watch draws: all TRENDS where it draws the line styles (an
-     * unknown watch too), else the first two (line-style.js firstDrawnLine's allLines).
-     * @param {?Object} env Platform env.
-     * @returns {number}
-     */
-    function linesDrawn(env) {
-        return drawFrom.capable(env) ? TRENDS : 2;
-    }
-
-    /**
      * The series each line of a style draws on this watch: its effective metric (line-style.js
-     * effectiveLineMetric: an off line or a repeat of an earlier line's pick draws nothing; so
-     * does a line past the ones the watch draws, linesDrawn), whether it draws it as a stripe,
-     * which needs a watch that draws the line styles, and whether it shows it Show: Alert, which
-     * needs a watch with Alert settings (line-alert.js capable 'onDemand').
+     * effectiveLineMetric: an off line or a repeat of an earlier line's pick draws nothing),
+     * whether it draws it as a stripe, and whether it shows it Show: Alert.
      * @param {Object} Sk A style's settings (settingsFor).
-     * @param {?Object} env Platform env.
      * @returns {Array<?{metric: string, stripe: boolean, alert: boolean}>} one per line
      *   SECOND..FIFTH
      */
-    function seriesOf(Sk, env) {
-        var drawn = linesDrawn(env), styled = drawn === TRENDS, alerts = lineAlert.capable(env, 'onDemand');
-        return lineStyle.FORECAST_LINES.map(function (line, i) {
-            var metric = i < drawn ? lineStyle.effectiveLineMetric(Sk, line.key) : null;
+    function seriesOf(Sk) {
+        return lineStyle.FORECAST_LINES.map(function (line) {
+            var metric = lineStyle.effectiveLineMetric(Sk, line.key);
             if (!metric) { return null; }
-            return { metric: metric, stripe: styled && lineStyle.isStripeStyle(Sk, line.styleKey),
-                alert: alerts && lineAlert.showsAlert(Sk, metric) };
+            return { metric: metric, stripe: lineStyle.isStripeStyle(Sk, line.styleKey),
+                alert: lineAlert.showsAlert(Sk, metric) };
         });
     }
 
@@ -569,13 +550,12 @@
      * How many of the weather message's rows the styles' series take between them (THE
      * UNION): the distinct series their lines draw. More than ROWS do not fit.
      * @param {Object[]} list The styles' settings (settingsFor), one per style.
-     * @param {?Object} env Platform env.
      * @returns {number}
      */
-    function rowsNeeded(list, env) {
+    function rowsNeeded(list) {
         var rows = [];
         list.forEach(function (Sk) {
-            seriesOf(Sk, env).forEach(function (s) {
+            seriesOf(Sk).forEach(function (s) {
                 if (s && rowOf(rows, s) === -1) { rows.push(s); }
             });
         });
@@ -586,19 +566,18 @@
      * Lay the styles' series into the weather message's five rows (see THE UNION above), in
      * the order given: the first style keeps its own rows when it is in the list.
      * @param {Object} S Settings.
-     * @param {?Object} env Platform env.
      * @param {number[]} styles Style indices, ascending.
      * @returns {{rows: Array<?{metric: string, stripe: boolean, alert: boolean}>, maps: Object<string, number[]>}}
      *   rows: the series each row carries (null: none), ROWS of them, the spare last; maps: by
      *   style index, the row + 1 each of its lines SECOND..FIFTH reads, 0 for a line that is
      *   off or dropped.
      */
-    function assign(S, env, styles) {
+    function assign(S, styles) {
         var rows = [];
         var maps = {};
         for (var t = 0; t < ROWS; t++) { rows.push(null); }
         styles.forEach(function (k) {
-            var series = seriesOf(settingsFor(S, k), env);
+            var series = seriesOf(settingsFor(S, k));
             maps[k] = series.map(function (s, j) {
                 if (!s) { return 0; }
                 // The row that carries the series already, else its own line's row while that
@@ -646,7 +625,6 @@
         wireCycle: wireCycle,
         stylesShown: stylesShown,
         stylesSent: stylesSent,
-        linesDrawn: linesDrawn,
         seriesOf: seriesOf,
         sameSeries: sameSeries,
         rowsNeeded: rowsNeeded,

@@ -13,7 +13,6 @@ const assert = require('node:assert/strict');
 const { bootGeneratedPage } = require('../../helpers/page-harness.js');
 const { rowOf, hintOf } = require('../../helpers/page-rows.js');
 const OD = require('../../../src/pkjs/status-bars/domain/on-demand.js');
-const platform = require('../../../src/pkjs/config-ui/lib/platform.js');
 const SCHEMA = require('../../../src/pkjs/page/settings/schema.js');
 const showWhen = require('../../../src/pkjs/config-ui/lib/show-when.js');
 require('../../../src/pkjs/config-ui/lib/schema-walk.js');
@@ -501,7 +500,7 @@ test('the grid lists every bar the watch draws, live exactly where a screen show
   // Why a bar the watch can draw is not drawn (alerts-page.js barOffReason), by its name.
   const reason = (bar) => 'No screen shows ' + BAR_NAMES[bar];
   ['emery'].forEach((p) => {
-    const env = platform.computeEnv({ platform: p });
+    const env = {};
     // The hardware's own gate: a watch without the radar view or Health never draws that bar.
     const canDraw = { top: true, forecast: true, radar: env.radar !== false, health: env.health !== false };
     ['off', 'countdown', 'status', 'graph'].forEach((radarMode) => ['off', 'slot', 'status', 'all'].forEach((healthMode) => {
@@ -512,7 +511,7 @@ test('the grid lists every bar the watch draws, live exactly where a screen show
       // or not (its Name row says where it shows).
       const listed = PAGE_BARS.filter((bar, i) => showWhen.isVisible(sections[i], ctx) && showWhen.isVisible(rows[i], ctx));
       assert.deepEqual(listed, PAGE_BARS.filter((bar) => canDraw[bar]), label + ': the tab lists every bar it can draw');
-      const shown = PAGE_BARS.filter((bar) => canDraw[bar] && OD.barExists(S, bar, env));
+      const shown = PAGE_BARS.filter((bar) => canDraw[bar] && OD.barExists(S, bar));
       const got = bars(S, env, args);
       assert.deepEqual(got.map((o) => o[1]), PAGE_BARS.filter((bar) => canDraw[bar]), label + ': every bar it can draw');
       assert.deepEqual(got.filter((o) => !o[2].disabled).map((o) => o[0]), shown.map((bar) => BAR_NAMES[bar]),
@@ -526,7 +525,7 @@ test('the grid lists every bar the watch draws, live exactly where a screen show
   });
   // Like those rows, the grid follows the screens: 'Weather only' with the radar on Graph
   // draws its radar graph on top and no Radar bar, so neither offers it.
-  const env = platform.computeEnv();
+  const env = {};
   const S = { layoutPreset: 'weatherOnly', radarMode: 'graph', healthMode: 'off', provider: 'dwd' };
   assert.deepEqual(bars(S, env, args).find((o) => o[1] === 'radar')[2], { keys: [OD.itemsKey('radar', 'left'),
     OD.itemsKey('radar', 'right')], disabled: true, desc: 'No screen shows Radar bar' }, 'the Radar row goes inert');
@@ -668,7 +667,7 @@ test('the Quiet time and Sleep dialogs: their intro, then the Shows on card alon
 
 // --- the live texts, resolver by resolver -------------------------------------------
 const hint = (id) => PC.hintResolvers.get(id);
-const ENV = { emery: platform.computeEnv() };
+const ENV = { emery: {} };
 // A state as the page holds it: every On demand key hydrated with its default.
 const state = (S) => Object.assign({}, OD.DEFAULTS, S);
 

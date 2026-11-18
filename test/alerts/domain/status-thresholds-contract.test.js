@@ -285,26 +285,21 @@ test('the warn-look bytes are in lockstep with ThreshWarnLook', () => {
   assert.match(header, /_Static_assert\(THRESH_ON_DEMAND_OFFSET\s*== THRESH_WARN_LOOK_OFFSET \+ \(THRESH_PAIRED_KIND_COUNT \+ 3\) \/ 4/);
 });
 
-// The default look: goal kinds outline; weather kinds fill on a colour watch and
-// outline on a B&W one (a B&W warn fill would be the danger fill). An unknown
-// platform counts as colour, like every other capability.
-test('warnLookDefault / warnLookFor resolve the per-platform default', () => {
+// The default look: goal kinds outline, weather kinds fill.
+test('warnLookDefault / warnLookFor resolve the default', () => {
   th.KINDS.filter(k => !k.boldOnly).forEach((k) => {
     const want = k.goal ? 'outline' : 'fill';
-    assert.equal(th.warnLookDefault(k.key, true), want, k.key + ' colour');
-    assert.equal(th.warnLookDefault(k.key), want, k.key + ' unknown platform');
-    assert.equal(th.warnLookDefault(k.key, false), 'outline', k.key + ' B&W');
-    assert.equal(th.warnLookFor({}, k.key, true), want);
-    assert.equal(th.warnLookFor(null, k.key, false), 'outline');
+    assert.equal(th.warnLookDefault(k.key), want, k.key);
+    assert.equal(th.warnLookFor({}, k.key), want);
+    assert.equal(th.warnLookFor(null, k.key), want);
     ['none', 'outline', 'fill'].forEach((look) => {
       const s = {};
       s['thresh' + k.key + 'WarnLook'] = look;
-      assert.equal(th.warnLookFor(s, k.key, true), look, k.key + ' stored ' + look);
-      assert.equal(th.warnLookFor(s, k.key, false), look, k.key + ' stored ' + look + ' on B&W');
+      assert.equal(th.warnLookFor(s, k.key), look, k.key + ' stored ' + look);
     });
     const junk = {};
     junk['thresh' + k.key + 'WarnLook'] = 'bogus';
-    assert.equal(th.warnLookFor(junk, k.key, true), want, k.key + ' unknown value = default');
+    assert.equal(th.warnLookFor(junk, k.key), want, k.key + ' unknown value = default');
   });
 });
 

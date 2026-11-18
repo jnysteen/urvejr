@@ -13,7 +13,6 @@ require('../../../src/pkjs/lib/color.js');
 require('../../../src/pkjs/config-ui/lib/show-when.js');
 const eng = require('../../../src/pkjs/config-ui/lib/engine.js');
 require('../../../src/pkjs/page/settings/blocks.js'); // registers watchPreview
-const plat = require('../../../src/pkjs/config-ui/lib/platform.js');
 const schema = require('../../../src/pkjs/page/settings/schema.js');
 const onbuild = require('../../../src/pkjs/page/settings/onbuild.js');
 
@@ -26,7 +25,7 @@ const onbuild = require('../../../src/pkjs/page/settings/onbuild.js');
  */
 function watchfaceTab(overrides, platformName) {
   const S = Object.assign(eng.hydrate(schema, {}), overrides);
-  const ENV = plat.computeEnv({ platform: platformName || 'emery' });
+  const ENV = {};
   onbuild.onLoad({
     env: ENV,
     get: function (k) { return S[k]; },

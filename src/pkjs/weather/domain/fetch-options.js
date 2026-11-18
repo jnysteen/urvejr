@@ -22,7 +22,6 @@ var feelsLike = require('./feels-like.js');
 // forecast-series.js already does) and forecast-span-hours.js (that and view-cycle.js, a
 // leaf), so the invariant above holds.
 var forecastSpan = require('./forecast-span.js');
-var platform = require('../../config-ui/lib/platform.js');
 // The graph styles' bake settings (emery): graph-wire.js, forecast-span.js and the dual-context
 // graph-styles.js leaves, none of which touches Pebble or a provider, so the invariant holds.
 var graphStyleWire = require('../../forecast-graphs/domain/graph-style-wire.js');
@@ -112,31 +111,30 @@ function defaults(overrides) {
  * span is too (forecastSpan.signature).
  *
  * @param {?Object} settings Clay settings, or null when none are stored.
- * @param {?Object} [watchInfo] getActiveWatchInfo() result, or null/undefined.
  * @param {?{waqiToken: string}} [env] Build environment: the WAQI token from
  *   package.json's waqi.token.
  * @returns {Object} The options object for this fetch.
  */
-function build(settings, watchInfo, env) {
-    // The graph's series and length: with screens showing several graph styles (emery), the
+function build(settings, env) {
+    // The graph's series and length: with screens showing several graph styles, the
     // shown styles' union and the longest one's hours (graph-style-wire.js weatherSettings).
-    var graph = graphStyleWire.weatherSettings(settings, watchInfo);
+    var graph = graphStyleWire.weatherSettings(settings);
     return defaults({
         // Whether UV is wanted: DWD/Open-Meteo spend a request on it; every
         // adapter adopts it only when this is on (adoptMapped).
         // A placed alert asks for its metric too.
-        fetchUv: forecastSeries.needsUv(graph, watchInfo),
-        fetchAqi: forecastSeries.needsAqi(settings, watchInfo),
-        fetchPollen: forecastSeries.needsPollen(settings, watchInfo),
+        fetchUv: forecastSeries.needsUv(graph),
+        fetchAqi: forecastSeries.needsAqi(settings),
+        fetchPollen: forecastSeries.needsPollen(settings),
         // Apparent temperature: no provider spends an extra REQUEST on it (it always
         // rides a response already being fetched). This is adoptMapped's semantic
         // gate on every adapter; DWD's per-hour Steadman and Open-Meteo's
         // adoptFeels also skip the arithmetic when it is off.
-        fetchFeels: forecastSeries.needsFeels(graph, watchInfo),
+        fetchFeels: forecastSeries.needsFeels(graph),
         // The day-max kinds whose peaks are wanted (a slot shows one, or the kind's
         // alert is placed): only they keep a day record (a flash write per fetch) and
         // widen their provider requests to the end of tomorrow.
-        dayPeakCodes: forecastSeries.dayPeakCodes(settings, watchInfo),
+        dayPeakCodes: forecastSeries.dayPeakCodes(settings),
         // The Units tab's feels-like formula: it changes the baked FEELS_* values,
         // so it is in renderSignature too.
         feelsFormula: (settings && settings.feelsFormula) || DEFAULTS.feelsFormula,
@@ -147,7 +145,7 @@ function build(settings, watchInfo, env) {
         // The forecast's time span: the stored option's 14 | 24 | 68 hours on an emery (26 for
         // 24 h with no left axis), 24 on every other watch and an unknown one (their inboxes
         // cannot take a 68-hour bundle).
-        forecastHours: forecastSpan.hours(graph, platform.computeEnv(watchInfo))
+        forecastHours: forecastSpan.hours(graph)
     });
 }
 

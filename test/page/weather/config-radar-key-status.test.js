@@ -179,8 +179,7 @@ test('the Radar provider row and its key row read ONE table', () => {
     assert.deepEqual(from.args, { picker: 'radarProvider' }, from.resolver + ': the picker\'s table'));
   assert.deepEqual([radarKeyRow.editSheetFrom.resolver, radarKeyRow.labelFrom.resolver, radarKeyRow.hintFrom.resolver],
     ['keySheet', 'keyRowLabel', 'keyRowSummary']);
-  assert.deepEqual(radarKeyRow.showWhen, { all: [{ env: 'radar' }, { key: 'radarEnabled', ne: false }] },
-    'gone while the radar is off, and on a watch without it');
+  assert.deepEqual(radarKeyRow.showWhen, { key: 'radarEnabled', ne: false }, 'gone while the radar is off');
   ['editSheetFrom', 'editBadgeFrom', 'hintFrom'].forEach((k) =>
     assert.equal(radarRow[k], undefined, 'the picker has no ' + k + ' any more: the key row carries the key'));
 });

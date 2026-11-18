@@ -175,7 +175,7 @@ test('the Radar and Health bars show while a screen shows them', () => {
       ['off', 'countdown', 'status', 'graph'].forEach((radarMode) => {
         const S = { layoutPreset, healthMode, radarMode };
         const html = preview.statusBarsPreview(S, env);
-        const shown = VC.barsShown(S, env);
+        const shown = VC.barsShown(S);
         const label = layoutPreset + '/' + healthMode + '/' + radarMode;
         assert.equal(html.indexOf('>Radar<') !== -1, shown.radar, label + ': ' + html);
         assert.equal(html.indexOf('>Health<') !== -1, shown.health, label + ': ' + html);
@@ -237,7 +237,7 @@ test('the bars are pictures alone, on the tab and above a slot\'s dialog: nothin
 });
 
 test('barCodes reads each bar\'s slots as barSlots does, without the sample text', () => {
-  const emery = require('../../../src/pkjs/config-ui/lib/platform.js').computeEnv();
+  const emery = {};
   const S = { statusHealthLeft: 'empty', statusHealthRight: 'hr', statusForecastMid: 'city' };
   catalog.LINES.forEach((line) => {
     const codes = preview.barCodes(S, emery, line.id);

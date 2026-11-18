@@ -29,7 +29,6 @@ const VC = require('../../../../src/pkjs/layout/domain/view-cycle.js');
 const PW = require('../../../../src/pkjs/page/layout/preview-watch.js');
 const spanHours = require('../../../../src/pkjs/weather/domain/forecast-span-hours.js');
 const GS = require('../../../../src/pkjs/forecast-graphs/domain/graph-styles.js');
-const platform = require('../../../../src/pkjs/config-ui/lib/platform.js');
 const { openSetup } = require('../../../helpers/wizard-dom.js');
 const { blankBar, slotsOf } = require('../../../helpers/status-slots.js');
 const PConf = global.PConf;
@@ -39,13 +38,13 @@ const PConf = global.PConf;
  * @param {Object} ctx The wizard's ctx.
  * @returns {string}
  */
-const defaultLayout = (ctx) => SCREENS.layoutOf(M.screensOf(ctx.S, ctx.ENV)[0]);
+const defaultLayout = (ctx) => SCREENS.layoutOf(M.screensOf(ctx.S)[0]);
 /**
  * The screens' names, as the Screens step calls them.
  * @param {Object} ctx The wizard's ctx.
  * @returns {string[]}
  */
-const screenNames = (ctx) => M.screensOf(ctx.S, ctx.ENV).map((l, i) => SCREENS.nameOf(l, i, ctx.S));
+const screenNames = (ctx) => M.screensOf(ctx.S).map((l, i) => SCREENS.nameOf(l, i, ctx.S));
 /**
  * Walk forward to the step titled `title`.
  * @param {Object} dom Fake DOM.
@@ -416,7 +415,7 @@ test('the Screens step on a new install: the Default alone, Try a flick off, Hea
   assert.match(body, /aria-label="Add the Health screen"/);
   assert.match(body, /<p class="wiz-fine">Rain alerts stay on the Watch bar whichever screens you add\. You can change the screens later on the Watchface tab\.<\/p>/);
   // The big screen is the watch's own Default, drawn as the Watchface tab draws it.
-  const pic = PW.screenSvg(VC.screensCycle(ctx.S, ctx.ENV)[0], 0, ctx.S, ctx.ENV, {}, 1, new Date(), 'wz0-');
+  const pic = PW.screenSvg(VC.screensCycle(ctx.S)[0], 0, ctx.S, ctx.ENV, {}, 1, new Date(), 'wz0-');
   assert.equal(dom.find('[data-wiz-screen]').getAttribute('aria-label'), 'Default: ' + pic.label);
   assert.deepEqual(screenNames(ctx), ['Default']);
 });
@@ -440,7 +439,7 @@ test('+ puts a screen in where it goes and shows it big; ✕ takes it out again'
   assert.deepEqual(dom.findAll('[data-wiz-scr-rm]').map((b) => b.getAttribute('data-wiz-scr-rm')), ['1', '2']);
   // Each on the Default screen's calendar (the Layout's, Compact on a new install: the owner's ask,
   // 2026-11-09), Add a screen's screens.
-  assert.deepEqual(M.screensOf(ctx.S, ctx.ENV).slice(1), [SCREENS.listOf(SCREENS.byId('health'), '2'),
+  assert.deepEqual(M.screensOf(ctx.S).slice(1), [SCREENS.listOf(SCREENS.byId('health'), '2'),
     SCREENS.listOf(SCREENS.byId('radar'), '2')]);
   removeScreen(dom, 1);
   assert.deepEqual(screenNames(ctx), ['Default', 'Rain radar']);
@@ -461,19 +460,19 @@ test('the screens setup offers show the Layout\'s calendar; a layout picked late
   const offeredPic = dom.find('[data-wiz-scr-add="health"]').getAttribute('aria-label');
   assert.equal(offeredPic, 'Add the Health screen');
   addScreen(dom, 'health');
-  assert.deepEqual(M.screensOf(ctx.S, ctx.ENV)[1], SCREENS.listOf(SCREENS.byId('health'), ''), 'no calendar, as the Default');
+  assert.deepEqual(M.screensOf(ctx.S)[1], SCREENS.listOf(SCREENS.byId('health'), ''), 'no calendar, as the Default');
   dom.nav('back');
   dom.pick('layoutPreset', 'fullCal');
-  assert.deepEqual(M.screensOf(ctx.S, ctx.ENV)[1], SCREENS.listOf(SCREENS.byId('health'), '3'), 'the full calendar now');
+  assert.deepEqual(M.screensOf(ctx.S)[1], SCREENS.listOf(SCREENS.byId('health'), '3'), 'the full calendar now');
   assert.equal(ctx.S.viewName1, 'Health', 'still named');
   dom.pick('layoutPreset', 'compactCal');
-  assert.deepEqual(M.screensOf(ctx.S, ctx.ENV)[1], SCREENS.listOf(SCREENS.byId('health'), '2'));
+  assert.deepEqual(M.screensOf(ctx.S)[1], SCREENS.listOf(SCREENS.byId('health'), '2'));
   // A screen of the user's own is left as it is.
   const own = openSetup({ saved: Object.assign({ layoutPreset: 'custom', customLayoutSeeded: true, viewCount: '2' },
-    M.compileKeys(M.screensOf(ctx.S, ctx.ENV)[0], 0), M.compileKeys(SCREENS.listOf(SCREENS.byId('health'), ''), 1)) });
+    M.compileKeys(M.screensOf(ctx.S)[0], 0), M.compileKeys(SCREENS.listOf(SCREENS.byId('health'), ''), 1)) });
   walkTo(own.dom, 'layoutPreset');
   own.dom.pick('layoutPreset', 'fullCal');
-  assert.deepEqual(M.screensOf(own.ctx.S, own.ctx.ENV)[1], SCREENS.listOf(SCREENS.byId('health'), ''),
+  assert.deepEqual(M.screensOf(own.ctx.S)[1], SCREENS.listOf(SCREENS.byId('health'), ''),
     'a Health screen setup did not add keeps its calendar');
 });
 
@@ -492,7 +491,7 @@ test('on emery the second forecast takes the other length: beside a Default of t
   assert.equal(GS.name(ctx.S, 1), '24 h forecast', 'named as the screen');
   assert.equal(GS.settingsFor(ctx.S, 1).forecastHours, '24', 'over the next day');
   assert.equal(ctx.S.forecastHours, '48', 'the Default keeps the length picked for it');
-  assert.deepEqual(GS.stylesShown(ctx.S, ctx.ENV), [0, 1]);
+  assert.deepEqual(GS.stylesShown(ctx.S), [0, 1]);
   // Health goes in after it.
   addScreen(dom, 'health');
   assert.deepEqual(screenNames(ctx), ['Default', '24 h forecast', 'Health']);
@@ -552,14 +551,14 @@ test('a layout that puts the Forecast bar back gives it its readings when it has
     saved: blankBar('forecast'),
     // A Default screen without the Forecast bar.
     prepare: (c) => {
-      const list = M.screensOf(c.S, c.ENV)[0];
+      const list = M.screensOf(c.S)[0];
       SPAGE.writeScreen(c.S, 0, M.remove(list, M.idxOf(list, 'fcbar')), c.ENV);
     }
   });
-  assert.equal(M.idxOf(M.screensOf(ctx.S, ctx.ENV)[0], 'fcbar'), -1, 'premise: no Forecast bar');
+  assert.equal(M.idxOf(M.screensOf(ctx.S)[0], 'fcbar'), -1, 'premise: no Forecast bar');
   walkTo(dom, 'layoutPreset');
   dom.pick('layoutPreset', 'fullCal');
-  assert.ok(M.idxOf(M.screensOf(ctx.S, ctx.ENV)[0], 'fcbar') >= 0, 'the layout\'s Default screen has it');
+  assert.ok(M.idxOf(M.screensOf(ctx.S)[0], 'fcbar') >= 0, 'the layout\'s Default screen has it');
   assert.deepEqual(slotsOf(ctx.S, 'forecast'), ['temp', 'city', 'sun']);
 });
 
@@ -620,7 +619,7 @@ test('with the rain radar off, a Rain radar screen is drawn as the watch draws i
   const SP = require('../../../../src/pkjs/page/layout/screens-page.js');
   const base = openSetup().ctx;
   const saved = Object.assign({ layoutPreset: 'custom', viewCount: '2', radarEnabled: false, radarProvider: 'dwd' },
-    M.compileKeys(M.screensOf(base.S, base.ENV)[0], 0), M.compileKeys(SCREENS.listOf(SCREENS.byId('radar'), ''), 1));
+    M.compileKeys(M.screensOf(base.S)[0], 0), M.compileKeys(SCREENS.listOf(SCREENS.byId('radar'), ''), 1));
   const { ctx, dom } = openSetup({ saved });
   walkToTitle(dom, 'Flick to switch screens');
   assert.deepEqual(screenNames(ctx), ['Default', 'Rain radar']);
@@ -663,7 +662,7 @@ test('the Health screen added in setup keeps steps in the Health bar: the Watch 
 // --- the forecast step: the graph's look, previewed live on the Default screen ---
 
 // The graph settings a look governs on a basalt (wizard-forecast.js governed: no Left axis values).
-const LOOK_KEYS = FORECAST.governed(platform.computeEnv({ platform: 'basalt' }));
+const LOOK_KEYS = FORECAST.KEYS;
 /**
  * The graph settings of a state, by LOOK_KEYS.
  * @param {Object} S Settings.
@@ -763,7 +762,7 @@ test('the looks as the owner set them, pinned as written: each one\'s values, le
   assert.equal(FORECAST.valuesAt('meteogram', {}, null, {}, '24').fourthLine, 'wind', 'a look without short values');
   assert.equal(FORECAST.valuesAt('nothing', {}, null, {}, '24'), null);
   // The short lines New graph's sheet shows under them.
-  const EMERY = platform.computeEnv({ platform: 'emery' });
+  const EMERY = {};
   assert.deepEqual(LOOK_IDS.map((id) => FORECAST.summary(id, EMERY)), [
     'Rain chance as a shaded area, rain bars',
     'Rain chance as a shaded area, solid rain bars',
@@ -788,7 +787,7 @@ test('only the rain chance fills its area in a look: the watch paints an area so
   // The colour watches; a black-and-white one dithers its area at half strength (chart.c).
   const lineStyle = require('../../../../src/pkjs/forecast-graphs/domain/line-style.js');
   ['emery', 'basalt'].forEach((p) => {
-    const env = platform.computeEnv({ platform: p });
+    const env = {};
     FORECAST.LOOKS.forEach((look) => {
       [look.over, Object.assign({}, look.over, look.short)].forEach((over) => {
         if (lineStyle.mainLineFills(over, env)) {
@@ -797,7 +796,7 @@ test('only the rain chance fills its area in a look: the watch paints an area so
       });
     });
   });
-  const EMERY = platform.computeEnv({ platform: 'emery' });
+  const EMERY = {};
   assert.equal(FORECAST.summary('clouds', EMERY), 'Clouds as a thick line, solid rain bars', 'a thick line says so');
 });
 
@@ -891,7 +890,7 @@ test('on emery Forecast length picks the hours; each look starts on its own: Cle
   const span = () => dom.picker('forecastHours');
   const graph = dom.find('[data-wiz-graph]');
   // The stored length, the hours the preview (and the watch) draws, and the preview's name.
-  const drawn = () => [ctx.S.forecastHours, spanHours.shownHours(ctx.S, ctx.ENV), graph.getAttribute('aria-label')];
+  const drawn = () => [ctx.S.forecastHours, spanHours.shownHours(ctx.S), graph.getAttribute('aria-label')];
   assert.match(dom.body.innerHTML, /<h3 class="wiz-sub" id="wiz-span">Forecast length<\/h3>/);
   assert.match(dom.body.innerHTML, /role="radiogroup" aria-labelledby="wiz-span" data-wiz-pick="forecastHours"/);
   assert.deepEqual(span().options, ['12', '24', '48']);

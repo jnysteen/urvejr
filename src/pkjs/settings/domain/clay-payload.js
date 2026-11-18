@@ -11,7 +11,6 @@ var resolveInk = require('../../theme/domain/resolve-ink.js').resolveInk;
 var statusThresholds = require('../../alerts/domain/status-thresholds.js');
 // buildSettingsBlob, the CLAY_THRESHOLDS_UINT8 packer.
 var statusWire = require('../../alerts/domain/status-wire.js');
-var platformLib = require('../../config-ui/lib/platform.js');
 var dateFormat = require('../../calendar/domain/date-format.js');
 var nightLight = require('../../theme/domain/night-light.js');
 // The forecast's left axis options: bits of the CLAY_LARGE_GRAPH_FONT word.
@@ -82,12 +81,10 @@ function holidayWindowOptsForCycle(settings, cycle) {
  * previous year the top row still showed.
  *
  * @param {Object} settings Clay settings (the layout keys; the theme is irrelevant).
- * @param {Object|null} watchInfo Active watch info; unused.
  * @returns {{startMon: boolean, prevWeek: boolean}} holidayMask window options.
  */
-function holidayWindowOpts(settings, watchInfo) {
-    return holidayWindowOptsForCycle(settings,
-        viewCycle.resolveViewCycle(settings, platformLib.computeEnv(watchInfo)));
+function holidayWindowOpts(settings) {
+    return holidayWindowOptsForCycle(settings, viewCycle.resolveViewCycle(settings));
 }
 
 // CLAY_VIEW_RESET_MIN's wire layout: config_wire.h VIEW_RESET_DOUBLE_FLICK (pinned equal by
@@ -120,12 +117,11 @@ function packViewReset(settings) {
  * way one int tuple: the boolean travels as a 4-byte int too, and the C reads its low half
  * (config_wire.c), so `true` is bit 0 alone.
  * @param {Object} settings Clay settings.
- * @param {Object} env platformLib.computeEnv() result.
  * @returns {(boolean|number)} The boolean while the axis bits are 0, else a word 0x04..0x2D.
  */
-function graphOptionsWord(settings, env) {
+function graphOptionsWord(settings) {
     var large = Boolean(settings.largeGraphFont);
-    var bits = forecastAxis.wireBits(settings, env);
+    var bits = forecastAxis.wireBits(settings);
     return bits ? ((large ? forecastAxis.BIT.LARGE_FONT : 0) | bits) : large;
 }
 
@@ -140,25 +136,21 @@ function noHoliday() {
 /**
  * Build the Clay settings AppMessage payload.
  * @param {Object} settings Clay settings (claySettings.read() shape).
- * @param {Object|null} watchInfo Active watch info.
  * @param {Date} now Reference time for the holiday window (the caller's clock).
  * @param {function(string, string, Date): boolean} [isHoliday] Whether a day is a public holiday
  *   (calendar/adapter/nager-source.js isHoliday); absent, no day is marked, as for a phone
  *   that has fetched no holiday data yet.
  * @returns {Object} AppMessage key→value payload.
  */
-function buildClayPayload(settings, watchInfo, now, isHoliday) {
+function buildClayPayload(settings, now, isHoliday) {
     var theme = settings.theme || 'dark';
-
-    // The watch's facts (config-ui/lib/platform.js), read by the tuples below.
-    var env = platformLib.computeEnv(watchInfo);
 
     // Resolve the packed view cycle up front (view-cycle.js, the reading the Layout
     // preview shows) — the holiday mask below anchors on it (holidayWindowOptsForCycle,
     // the same rule index.js's prefetch uses).
     // Each view's graph style survives only where the style exists (graph-styles.js
     // wireCycle).
-    var cycle = graphStyles.wireCycle(settings, env, viewCycle.resolveViewCycle(settings, env));
+    var cycle = graphStyles.wireCycle(settings, viewCycle.resolveViewCycle(settings));
     var defaultIsFull = cycle[0].tier === viewCycle.TIER_FULL;   // slot 0 is the 3-row calendar
     // CLAY_TOP_VIEW_MODE (TopViewMode enum: 0=full,1=compact,2=none) is a boot-time hint the
     // watch overwrites per active view; derive it from the default slot's tier for correctness.
@@ -226,7 +218,7 @@ function buildClayPayload(settings, watchInfo, now, isHoliday) {
     // its Bars from flag) and the line styling (colours, fill and night flags, the style
     // bytes with their Draw from bits). The layout and why none of it is platform-gated
     // live on forecast-graphs/domain/graph-wire.js, the one packer the fixture send shares.
-    Object.assign(payload, graphWire.buildGraphTuples(settings, watchInfo));
+    Object.assign(payload, graphWire.buildGraphTuples(settings));
 
     // Dim backlight, five bytes: [0..2] the LED's r/g/b channels, [3] the window's
     // start hour (inclusive), [4] its end hour (exclusive, wrapping past midnight).
@@ -238,12 +230,12 @@ function buildClayPayload(settings, watchInfo, now, isHoliday) {
     payload.CLAY_NIGHT_LIGHT_UINT8 = nightLight.buildNightLightBytes(settings);
 
     // Threshold-highlight settings (enabled bits + colors + health-kind
-    // thresholds + warn looks, whose default follows env.color) — settings-derived,
+    // thresholds + warn looks) — settings-derived,
     // so they ride the Clay message.
-    payload.CLAY_THRESHOLDS_UINT8 = statusWire.buildSettingsBlob(settings, env);
+    payload.CLAY_THRESHOLDS_UINT8 = statusWire.buildSettingsBlob(settings);
     // Bars 4 to 6's On demand cells (status-wire.js buildExtraCells): the blob's cell bytes
     // have no room for them. Zeros while no made bar shows.
-    payload.CLAY_OD_EXTRA_UINT8 = statusWire.buildExtraCells(settings, env);
+    payload.CLAY_OD_EXTRA_UINT8 = statusWire.buildExtraCells(settings);
     // Date-slot formats [monthYear, fullDate] — settings-derived, so they ride the Clay
     // message.
     payload.CLAY_DATE_FORMAT_UINT8 = dateFormat.buildDateFormatBytes(settings);
@@ -278,12 +270,12 @@ function buildClayPayload(settings, watchInfo, now, isHoliday) {
     // collapsing to false IS the default. A default-TRUE toggle would need the
     // hasOwnProperty ternary dayNightShading uses above. With every axis option at its
     // default it is the bare boolean it always was.
-    payload.CLAY_LARGE_GRAPH_FONT = graphOptionsWord(settings, env);
+    payload.CLAY_LARGE_GRAPH_FONT = graphOptionsWord(settings);
 
     // The graph styles' records: while a screen shows a style other than the first, each
     // shown style's look, hours and line-to-row map; empty tuples otherwise, which clear the
     // watch's (graph-style-wire.js buildStyleTuples): up to 3 x 48 B.
-    Object.assign(payload, graphStyleWire.buildStyleTuples(settings, watchInfo));
+    Object.assign(payload, graphStyleWire.buildStyleTuples(settings));
 
     return payload;
 }

@@ -354,7 +354,7 @@ test('a failed second pollen refresh packs -- instead of the previous severity a
     thirdLine: 'off', barSource: 'off', theme: 'dark'
   };
   function transform(payload) {
-    return renderPayload.toRenderPayload(payload, settings, { platform: 'basalt' }, NOW);
+    return renderPayload.toRenderPayload(payload, settings, NOW);
   }
   function fetchOnce() {
     provider.fetchWithCoordinates(52.52, 13.405, function() {

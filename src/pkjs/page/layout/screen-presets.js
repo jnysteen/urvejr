@@ -46,18 +46,17 @@
     // The rows' names (screens.js blockName).
     var M = node ? require('../../layout/domain/screens.js') : window.Screens;
     // In the order Add a screen lists them. `graph` is the graph the screen shows (screens.js
-    // kinds; none on Blank), `upper` the one over it on a screen of two graphs; `needs` names the
-    // env facts (config-ui/lib/platform.js computeEnv) the watch must have; `group` the heading it
-    // is listed under (GROUPS). `layouts`: its cards are its layouts, one per calendar (cards),
+    // kinds; none on Blank), `upper` the one over it on a screen of two graphs; `group` the heading
+    // it is listed under (GROUPS). `layouts`: its cards are its layouts, one per calendar (cards),
     // named after it (cardName), so its calendar is picked on its card and the screen is named
     // after its graph (screens-page.js); another kind's calendar is picked after its card.
     var KINDS = [
-        { id: 'blank', name: 'Blank', graph: '', needs: [], group: 'start' },
-        { id: 'forecast', name: 'Forecast', graph: 'fc', needs: [], group: 'fc', layouts: true },
-        { id: 'health', name: 'Health', graph: 'health', needs: ['health'], group: 'more' },
-        { id: 'radar', name: 'Rain radar', graph: 'radar', needs: ['radar'], group: 'more' },
-        { id: 'healthfc', name: 'Health + forecast', graph: 'fc', upper: 'health', needs: ['health'], group: 'more' },
-        { id: 'radarfc', name: 'Radar + forecast', graph: 'fc', upper: 'radar', needs: ['radar'], group: 'more' }
+        { id: 'blank', name: 'Blank', graph: '', group: 'start' },
+        { id: 'forecast', name: 'Forecast', graph: 'fc', group: 'fc', layouts: true },
+        { id: 'health', name: 'Health', graph: 'health', group: 'more' },
+        { id: 'radar', name: 'Rain radar', graph: 'radar', group: 'more' },
+        { id: 'healthfc', name: 'Health + forecast', graph: 'fc', upper: 'health', group: 'more' },
+        { id: 'radarfc', name: 'Radar + forecast', graph: 'fc', upper: 'radar', group: 'more' }
     ];
     // Add a screen's headings, in order, each over the cards of its group: Blank under none, the
     // forecast screen's layouts, then the other graphs' screens.
@@ -77,25 +76,6 @@
     // A screen with nothing but the Watch bar and the clock: Blank.
     var BLANK = [{ k: 'strip' }, { k: 'clock' }];
 
-    /**
-     * Whether a watch can draw a kind: it has every fact the kind needs. An unknown watch (no env)
-     * is capable, as the page reads one everywhere.
-     * @param {Object} kind A KINDS entry.
-     * @param {?Object} env Platform env.
-     * @returns {boolean}
-     */
-    function drawable(kind, env) {
-        return !env || kind.needs.every(function (fact) { return Boolean(env[fact]); });
-    }
-
-    /**
-     * The kinds this watch can draw, in Add a screen's order.
-     * @param {?Object} env Platform env.
-     * @returns {Array<Object>}
-     */
-    function offered(env) {
-        return KINDS.filter(function (kind) { return drawable(kind, env); });
-    }
 
     /**
      * A kind by its id.
@@ -143,30 +123,27 @@
     }
 
     /**
-     * The calendars a kind can have: every one, Dense only on a watch with the rain radar (an
-     * unknown one too); none on Blank, nor on a screen of two graphs (its upper graph has the
-     * calendar's seat).
+     * The calendars a kind can have: every one; none on Blank, nor on a screen of two graphs
+     * (its upper graph has the calendar's seat).
      * @param {Object} kind A KINDS entry.
-     * @param {?Object} [env] Platform env.
      * @returns {Array<Array<string>>} [name, rows] pairs
      */
-    function calendars(kind, env) {
+    function calendars(kind) {
         if (!kind.graph || kind.upper) { return []; }
-        return !env || env.radar ? CALENDARS : CALENDARS.filter(function (c) { return c[1] !== DENSE; });
+        return CALENDARS;
     }
 
     /**
-     * Add a screen's cards on this watch, in its order: each kind it can draw (offered), the
+     * Add a screen's cards, in its order: each kind, the
      * forecast screen once per calendar it can have (None, Compact, Full and Dense in turn: the
      * owner's, 2026-11-10, the layout first, its graph after it), the others once (Health's and
      * Rain radar's calendar is picked after them, from None).
-     * @param {?Object} env Platform env.
      * @returns {Array<{kind: Object, cal: string}>} cal: '' | '2' | '3' | DENSE
      */
-    function cards(env) {
+    function cards() {
         var out = [];
-        offered(env).forEach(function (kind) {
-            var cals = kind.layouts ? calendars(kind, env) : [['', '']];
+        KINDS.forEach(function (kind) {
+            var cals = kind.layouts ? calendars(kind) : [['', '']];
             cals.forEach(function (c) { out.push({ kind: kind, cal: c[1] }); });
         });
         return out;
@@ -244,37 +221,33 @@
     }
 
     /**
-     * The templates a screen's forecast graph can draw on this watch, in the New graph sheet's
-     * order (wizard-forecast.js LOOKS): every one on a watch with graph styles (an unknown watch
-     * has them), none elsewhere, where every screen keeps your graph.
-     * @param {?Object} env Platform env.
+     * The templates a screen's forecast graph can draw, in the New graph sheet's order
+     * (wizard-forecast.js LOOKS).
      * @returns {Array<Object>} LOOKS entries
      */
-    function templates(env) {
-        return !env || env.graphStyles ? looks().LOOKS : [];
+    function templates() {
+        return looks().LOOKS;
     }
 
     /**
-     * A template by its id, where this watch can draw it (templates).
+     * A template by its id.
      * @param {string} id A template's id.
-     * @param {?Object} env Platform env.
      * @returns {?Object} its LOOKS entry
      */
-    function template(id, env) {
-        return templates(env).length ? looks().lookOf(id) : null;
+    function template(id) {
+        return looks().lookOf(id);
     }
 
     /**
      * A template's lengths as Add a screen's Forecast length names them (wizard-forecast.js
-     * lookSpanOptions: the long span by the hours it shows), where this watch can draw it and has
-     * a Forecast length; none elsewhere.
+     * lookSpanOptions: the long span by the hours it shows); none for an unknown template.
      * @param {string} id A template's id.
      * @param {?Object} env Platform env.
      * @param {?Object} S The user's settings (the weather service).
      * @returns {Array<Array<string>>} [label, value] pairs
      */
     function spanOptions(id, env, S) {
-        return template(id, env) ? looks().lookSpanOptions(id, env, S) : [];
+        return template(id) ? looks().lookSpanOptions(id, env, S) : [];
     }
 
     var api = {
@@ -283,8 +256,6 @@
         CALENDARS: CALENDARS,
         DENSE: DENSE,
         BLANK: BLANK,
-        drawable: drawable,
-        offered: offered,
         byId: byId,
         listOf: listOf,
         screenOf: screenOf,

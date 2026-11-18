@@ -100,12 +100,10 @@ test('availability gating', () => {
   const s = { healthMode: 'all', radarProvider: 'rainbow', radarMode: 'graph' };
   assert.ok(catalog.itemAvailable(catalog.byCode('temp'), s, ENV_BASALT));
   assert.ok(catalog.itemAvailable(catalog.byCode('steps'), s, ENV_BASALT));
-  assert.ok(!catalog.itemAvailable(catalog.byCode('steps'), s, ENV_APLITE));
   // Not healthMode: since 2.6 it is worked out from the screens and the slots.
   assert.ok(catalog.itemAvailable(catalog.byCode('steps'), { healthMode: 'off' }, ENV_BASALT));
   assert.ok(catalog.itemAvailable(catalog.byCode('hr'), s, ENV_EMERY));
-  assert.ok(catalog.itemAvailable(catalog.byCode('hr'), s, ENV_DIORITE));
-  assert.ok(!catalog.itemAvailable(catalog.byCode('hr'), s, ENV_BASALT));
+  assert.ok(catalog.itemAvailable(catalog.byCode('hr'), s, ENV_BASALT), 'every watch reads the heart rate');
 });
 
 test('date is offered in EVERY slot position (custom layouts freed the calendar)', () => {
@@ -146,7 +144,7 @@ test('slotOptions: empty first, excludeCodes removed, sibling selections now sho
   assert.ok(codes.includes('temp'));       // own current value present
   assert.ok(codes.includes('sun'));        // sibling's selection NO LONGER hidden
   assert.ok(!codes.includes('city'));      // excludeCodes still honored
-  assert.ok(!codes.includes('hr'));        // env gate (basalt)
+  assert.ok(codes.includes('hr'));
   assert.ok(codes.includes('date'));       // date is position-free since custom layouts
 });
 
@@ -173,14 +171,10 @@ test('selectedCodes falls back to line defaults for missing keys, over the bars 
     .indexOf('aqi'), 8, 'the corner fetches air quality whatever the left slot holds');
   assert.equal(catalog.selectedCodes({ statusRadarMid: 'wind', statusTopRight: 'sun' }, ENV_EMERY)
     .indexOf('aqi'), -1, 'and a corner the user changed does not');
-  // A watch without the radar or health draws neither bar, whatever its screens say.
-  assert.equal(catalog.selectedCodes({ statusRadarMid: 'wind', healthMode: 'status' }, ENV_APLITE).length, 6,
-    'no radar, no health: the Forecast and Watch bars');
 });
 
 test('resolveSelection maps invalid/unavailable to empty without touching storage', () => {
   const s = { healthMode: 'all', radarProvider: 'rainbow', radarMode: 'graph' };
-  assert.equal(catalog.resolveSelection('hr', s, ENV_BASALT), 'empty');
   assert.equal(catalog.resolveSelection('hr', s, ENV_EMERY), 'hr');
   assert.equal(catalog.resolveSelection('nonsense', s, ENV_EMERY), 'empty');
   assert.equal(catalog.resolveSelection('empty', s, ENV_EMERY), 'empty');
@@ -460,26 +454,13 @@ test('the WATCH battery items are top-right only — there, and nowhere else', (
   });
 });
 
-test('slotOptions omits headers whose category has no available item', () => {
-  const noHealth = catalog.slotOptions({ healthMode: 'all', radarProvider: 'rainbow', radarMode: 'graph' },
-    ENV_APLITE, { slotKey: 'statusForecastLeft', position: 'left' });
-  assert.ok(!noHealth.some(o => o[1] === '__hdr_health'), 'no orphan Health header on a watch without Health');
-  // aplite edge slot: date (middleOnly) is gone, but city and week (now available
-  // on aplite as phone-baked text) remain, so the Date and location group DOES
-  // get a header (it is not an orphan single-item collapse).
-  const apliteEdge = catalog.slotOptions({ healthMode: 'off', radarMode: 'off' },
-    ENV_APLITE, { slotKey: 'statusTopLeft', position: 'left' });
-  assert.ok(apliteEdge.some(o => o[1] === '__hdr_datelocation'), 'Date and location header present');
-});
-
 // A slot picks a health item in any health mode (no Health screen needed): the mode follows
 // the slots and the screens (screens.js deriveModes, 'slot' for a health item in a shown slot).
-test('health items are selectable in any health mode, on a watch with Health', () => {
+test('health items are selectable in any health mode', () => {
   ['off', 'slot', 'status', 'all', undefined].forEach((healthMode) => {
     const S = { healthMode };
     ['steps', 'distance', 'sleep'].forEach((code) => {
       assert.ok(catalog.itemAvailable(catalog.byCode(code), S, ENV_BASALT), code + ' under healthMode ' + healthMode);
-      assert.ok(!catalog.itemAvailable(catalog.byCode(code), S, ENV_APLITE), code + ': never on aplite');
     });
     assert.ok(catalog.itemAvailable(catalog.byCode('hr'), S, ENV_EMERY), 'hr on a heart-rate watch, ' + healthMode);
   });

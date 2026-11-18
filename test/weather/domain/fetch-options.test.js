@@ -82,13 +82,13 @@ test('build\'s booleans are exactly forecast-series\' predicates on the raw sett
     { statusRadarMid: 'wind', windSlotDisplay: 'both' }
   ].forEach((s) => {
     [watch, null].forEach((wi) => {
-      const out = fetchOptions.build(s, wi);
+      const out = fetchOptions.build(s);
       const label = JSON.stringify([s, wi]);
-      assert.equal(out.fetchUv, forecastSeries.needsUv(s, wi), 'fetchUv ' + label);
-      assert.equal(out.fetchAqi, forecastSeries.needsAqi(s, wi), 'fetchAqi ' + label);
-      assert.equal(out.fetchPollen, forecastSeries.needsPollen(s, wi), 'fetchPollen ' + label);
-      assert.equal(out.fetchFeels, forecastSeries.needsFeels(s, wi), 'fetchFeels ' + label);
-      assert.deepEqual(out.dayPeakCodes, forecastSeries.dayPeakCodes(s, wi), 'dayPeakCodes ' + label);
+      assert.equal(out.fetchUv, forecastSeries.needsUv(s), 'fetchUv ' + label);
+      assert.equal(out.fetchAqi, forecastSeries.needsAqi(s), 'fetchAqi ' + label);
+      assert.equal(out.fetchPollen, forecastSeries.needsPollen(s), 'fetchPollen ' + label);
+      assert.equal(out.fetchFeels, forecastSeries.needsFeels(s), 'fetchFeels ' + label);
+      assert.deepEqual(out.dayPeakCodes, forecastSeries.dayPeakCodes(s), 'dayPeakCodes ' + label);
     });
   });
 });
@@ -109,12 +109,12 @@ test('pollen and the feels work follow their selections', () => {
 });
 
 test('aqicnToken comes from env.waqiToken only', () => {
-  assert.equal(fetchOptions.build({}, null, { waqiToken: 'TOKEN' }).aqicnToken, 'TOKEN');
+  assert.equal(fetchOptions.build({}, { waqiToken: 'TOKEN' }).aqicnToken, 'TOKEN');
   assert.equal(fetchOptions.build({ aqicnToken: 'FROM_SETTINGS' }).aqicnToken, '',
     'a settings key never supplies the build-injected token');
-  assert.equal(fetchOptions.build({}, null, {}).aqicnToken, '');
-  assert.equal(fetchOptions.build({}, null, { waqiToken: undefined }).aqicnToken, '');
-  assert.equal(fetchOptions.build({}, null, null).aqicnToken, '');
+  assert.equal(fetchOptions.build({}, {}).aqicnToken, '');
+  assert.equal(fetchOptions.build({}, { waqiToken: undefined }).aqicnToken, '');
+  assert.equal(fetchOptions.build({}, null).aqicnToken, '');
 });
 
 test('the string knobs pass through when set and fall back to DEFAULTS when unset or empty', () => {
@@ -146,12 +146,12 @@ test('a placed alert fetches its metric AND its day peaks with no slot showing i
   assert.equal(off.fetchAqi, false, 'guard: no AQI slot');
   assert.deepEqual(off.dayPeakCodes, []);
   const placed = placeOn(Object.assign({ provider: 'dwd' }, none), 'forecast', 'left', 'uv,aqi,wind,pollen');
-  const on = fetchOptions.build(placed, { platform: 'emery' });
+  const on = fetchOptions.build(placed);
   assert.equal(on.fetchUv, true);
   assert.equal(on.fetchAqi, true);
   assert.equal(on.fetchPollen, true);
   assert.deepEqual(on.dayPeakCodes, ['uv', 'wind', 'aqi']);
-  assert.deepEqual(fetchOptions.build(placed, null).dayPeakCodes, ['uv', 'wind', 'aqi'],
+  assert.deepEqual(fetchOptions.build(placed).dayPeakCodes, ['uv', 'wind', 'aqi'],
     'a missing watchInfo counts as capable');
   // A partial blob reads the default ticks (gust, UV, AQI and wind on the Watch Status
   // Bar): with no slot showing them it still fetches UV and AQI and keeps those four day
@@ -169,18 +169,18 @@ test('a placed alert fetches its metric AND its day peaks with no slot showing i
 
 test('forecastHours: the hours the stored span sends (14 / 24 or 26 / 68)', () => {
   const emery = { platform: 'emery' };
-  assert.equal(fetchOptions.build({ forecastHours: '48' }, emery).forecastHours, 68, 'the long span');
-  assert.equal(fetchOptions.build({ forecastHours: '12' }, emery).forecastHours, 14);
-  assert.equal(fetchOptions.build({ forecastHours: '24' }, emery).forecastHours, 24);
-  assert.equal(fetchOptions.build({}, emery).forecastHours, 24, 'absent reads the default');
-  assert.equal(fetchOptions.build({ forecastHours: '36' }, emery).forecastHours, 24, 'junk reads 24');
-  assert.equal(fetchOptions.build(null, emery).forecastHours, 24, 'no settings');
+  assert.equal(fetchOptions.build({ forecastHours: '48' }).forecastHours, 68, 'the long span');
+  assert.equal(fetchOptions.build({ forecastHours: '12' }).forecastHours, 14);
+  assert.equal(fetchOptions.build({ forecastHours: '24' }).forecastHours, 24);
+  assert.equal(fetchOptions.build({}).forecastHours, 24, 'absent reads the default');
+  assert.equal(fetchOptions.build({ forecastHours: '36' }).forecastHours, 24, 'junk reads 24');
+  assert.equal(fetchOptions.build(null).forecastHours, 24, 'no settings');
   // 24 h with no left axis (the numbers On graph or Off): 26, to the screen's right edge.
-  assert.equal(fetchOptions.build({ forecastAxisNumbers: 'graph' }, emery).forecastHours, 26);
-  assert.equal(fetchOptions.build({ forecastHours: '24', forecastAxisNumbers: 'off' }, emery).forecastHours, 26);
-  assert.equal(fetchOptions.build({ forecastHours: '24', forecastAxisNumbers: 'axis' }, emery).forecastHours, 24);
-  assert.equal(fetchOptions.build({ forecastHours: '12', forecastAxisNumbers: 'off' }, emery).forecastHours, 14);
-  assert.equal(fetchOptions.build({ forecastHours: '48', forecastAxisNumbers: 'off' }, emery).forecastHours, 68);
-  assert.equal(fetchOptions.build({ forecastHours: '48' }, null).forecastHours, 68, 'an unknown watch');
+  assert.equal(fetchOptions.build({ forecastAxisNumbers: 'graph' }).forecastHours, 26);
+  assert.equal(fetchOptions.build({ forecastHours: '24', forecastAxisNumbers: 'off' }).forecastHours, 26);
+  assert.equal(fetchOptions.build({ forecastHours: '24', forecastAxisNumbers: 'axis' }).forecastHours, 24);
+  assert.equal(fetchOptions.build({ forecastHours: '12', forecastAxisNumbers: 'off' }).forecastHours, 14);
+  assert.equal(fetchOptions.build({ forecastHours: '48', forecastAxisNumbers: 'off' }).forecastHours, 68);
+  assert.equal(fetchOptions.build({ forecastHours: '48' }).forecastHours, 68, 'an unknown watch');
 });
 

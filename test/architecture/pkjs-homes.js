@@ -19,8 +19,6 @@
 
 const HOMES = {
   'shell': ['index.js'],
-  // which watch has which capability, so which settings it gets
-  'settings/domain': ['config-ui/lib/platform.js'],
   // the icon pipeline's generated drawings, which the watch pictures draw (page/weather/pixel-icon.js)
   'weather/page': ['settings/status-pixels.generated.js'],
 };

@@ -40,7 +40,7 @@ const EMERY = { platform: 'emery', color: true };
  */
 function clock(S) {
   const st = Object.assign({ layoutPreset: 'noCal', healthMode: 'off', radarMode: 'off' }, S);
-  const spec = vc.resolveViewCycle(st, EMERY)[0];
+  const spec = vc.resolveViewCycle(st)[0];
   const band = pw.layoutView(spec, 1, pw.clockInk(st, 1, false)).bands.filter((b) => b.band === 'C')[0];
   return { svg: pw.screenSvg(spec, 0, st, EMERY, {}, 1, new Date(2026, 8, 7)).svg, band: band };
 }

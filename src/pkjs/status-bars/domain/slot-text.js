@@ -261,10 +261,9 @@
      * The weather condition slot's Look (its dialog's conditionSlotLook): 'both' (the glyph and
      * the name, the default, and what anything unknown reads as), 'text' or 'icon'.
      * @param {Object} settings Settings.
-     * @param {Object} [env] Platform env; unused.
      * @returns {string} 'both', 'text' or 'icon'
      */
-    function conditionLook(settings, env) {
+    function conditionLook(settings) {
         var look = settings && settings.conditionSlotLook;
         return look === 'text' || look === 'icon' ? look : 'both';
     }
@@ -273,10 +272,9 @@
      * Whether the city slot draws the current weather's icon before its name (its dialog's
      * citySlotIcon, off unless switched on, until the icons are redrawn).
      * @param {Object} settings Settings.
-     * @param {Object} [env] Platform env; unused.
      * @returns {boolean}
      */
-    function cityIcon(settings, env) {
+    function cityIcon(settings) {
         return Boolean(settings && settings.citySlotIcon === true);
     }
 
@@ -302,11 +300,10 @@
      * edge slot's 8 bytes hold no 'Partly cloudy'). Short: the short form, every slot.
      * @param {{full: string, short: string}} n The condition's names (weather/domain/condition.js).
      * @param {number} cap The slot's byte cap.
-     * @param {Object} [env] Platform env; unused.
      * @param {string} [name] conditionName(); absent = 'auto'.
      * @returns {string}
      */
-    function conditionText(n, cap, env, name) {
+    function conditionText(n, cap, name) {
         if (name === 'short') { return n.short; }
         var both = n.full + catalog.ALT_SEP + n.short;
         if (name !== 'full' && n.short.length < n.full.length && utf8.byteLength(both) <= cap) { return both; }

@@ -40,11 +40,7 @@ var PConf = (typeof global !== 'undefined' && global.PConf) ? global.PConf
     var UPSELL = node ? require('./wizard-upsell.js') : window.WizardUpsell;
 
     /**
-     * The steps. `when` names the env fact a step needs: the Screens step where the watch has a
-     * screen to flick to (radar, false on aplite, whose one screen leaves nothing to add); the theme
-     * where the watch ships the light polarity (themePolarity, compiled out on aplite); the forecast
-     * step where it draws the line styles its looks are made of (lineStyles, false on aplite). The
-     * forecast graph comes first, the screen the rest is chosen around (the owner's ask, 2026-11-15):
+     * The steps. The forecast graph comes first, the screen the rest is chosen around (the owner's ask, 2026-11-15):
      * the layout then makes the Default screen around it, and the Screens step adds flick screens to
      * it, on the Pebble Time 2 a second forecast over the other length. The theme comes last; a pick
      * lays the forecast's look on again where its conversion moved it (pickTheme). `summary` gives
@@ -52,10 +48,10 @@ var PConf = (typeof global !== 'undefined' && global.PConf) ? global.PConf
      */
     var STEPS = [
         { id: 'welcome', title: 'Welcome to urvejr', body: stepWelcome, summary: welcomeRows },
-        { id: 'forecast', when: 'lineStyles', title: 'Choose a forecast graph', body: stepForecast, summary: forecastRow },
+        { id: 'forecast', title: 'Choose a forecast graph', body: stepForecast, summary: forecastRow },
         { id: 'layout', title: 'Choose your layout', body: stepLayout, summary: pickerRow('Layout', 'layoutPreset', 'layout') },
-        { id: 'screens', when: 'radar', title: 'Flick to switch screens', body: stepScreens, summary: screensRows },
-        { id: 'theme', when: 'themePolarity', title: 'Choose a theme', body: stepTheme,
+        { id: 'screens', title: 'Flick to switch screens', body: stepScreens, summary: screensRows },
+        { id: 'theme', title: 'Choose a theme', body: stepTheme,
             summary: pickerRow('Theme', 'theme', 'theme') },
         { id: 'done', title: 'You’re all set', body: stepDone }
     ];
@@ -63,13 +59,11 @@ var PConf = (typeof global !== 'undefined' && global.PConf) ? global.PConf
     STEPS.forEach(function (step) { STEP[step.id] = step; });
 
     /**
-     * The step ids this watch runs, in order.
-     * @param {Object} env Config-UI env facts.
+     * The step ids setup runs, in order.
      * @returns {Array.<string>}
      */
-    function buildSteps(env) {
-        return STEPS.filter(function (step) { return !step.when || env[step.when]; })
-            .map(function (step) { return step.id; });
+    function buildSteps() {
+        return STEPS.map(function (step) { return step.id; });
     }
 
     /**
@@ -93,7 +87,6 @@ var PConf = (typeof global !== 'undefined' && global.PConf) ? global.PConf
     };
     // schema.js' two theme selects: colour watches get four, black-and-white ones dark and light.
     var THEME_OPTS_COLOR = [['Dark', 'dark'], ['Light', 'light'], ['B&W', 'bw'], ['B&W inverted', 'bw-light']];
-    var THEME_OPTS_BW = [['Dark', 'dark'], ['Light', 'light']];
     var THEME_DESC = {
         dark: 'Shows white text and lines on a black background. This is the default.',
         light: 'Shows black text and lines on a white background.',
@@ -115,7 +108,7 @@ var PConf = (typeof global !== 'undefined' && global.PConf) ? global.PConf
             write: pickLayout
         },
         theme: {
-            options: function () { return run.env.color ? THEME_OPTS_COLOR : THEME_OPTS_BW; },
+            options: function () { return THEME_OPTS_COLOR; },
             desc: function () { return THEME_DESC; },
             write: pickTheme
         },
@@ -130,8 +123,7 @@ var PConf = (typeof global !== 'undefined' && global.PConf) ? global.PConf
             write: pickLook,
             graph: true
         },
-        // emery only (the forecast step draws it where env.forecastSpan): the long span named by
-        // the hours it shows for the provider and the look.
+        // The long span named by the hours it shows for the provider and the look.
         forecastHours: {
             options: function () { return FORECAST.spanOptions(lookSettings()); },
             desc: function () {
@@ -157,7 +149,7 @@ var PConf = (typeof global !== 'undefined' && global.PConf) ? global.PConf
      */
     function newRun(ctx, fresh) {
         return {
-            ctx: ctx, env: ctx.ENV, steps: buildSteps(ctx.ENV), idx: 0, overlay: null,
+            ctx: ctx, env: ctx.ENV, steps: buildSteps(), idx: 0, overlay: null,
             // The screen the Screens step shows big (the Default when the step opens), and whether
             // this run turned the rain radar on for the Rain radar screen it added (addTemplate).
             screenIdx: 0, radarOnForScreen: false,
@@ -235,13 +227,12 @@ var PConf = (typeof global !== 'undefined' && global.PConf) ? global.PConf
         S.provider = m.provider;
         PConf.onChange.get('clearPollenForProvider')(S, oldProvider, m.provider);
         // No keyless radar covers the country: the radar goes off, unless a keyed source
-        // (Rainbow, Tomorrow.io) is already picked. A watch without the radar keeps its switch.
+        // (Rainbow, Tomorrow.io) is already picked.
         var keyed = S.radarProvider === 'rainbowkey' || S.radarProvider === 'tomorrowio';
-        var hasRadar = Boolean(env && env.radar);
         if (m.radarProvider !== 'off') {
             S.radarProvider = m.radarProvider;
-            if (hasRadar) { SP.setRadarEnabled(S, true, env); }
-        } else if (!keyed && hasRadar) {
+            SP.setRadarEnabled(S, true, env);
+        } else if (!keyed) {
             SP.setRadarEnabled(S, false, env);
         }
         S.temperatureUnits = m.temperatureUnits;
@@ -271,7 +262,7 @@ var PConf = (typeof global !== 'undefined' && global.PConf) ? global.PConf
      *   views and lists, and that screen's slot (-1 while no screen shows the forecast graph).
      */
     function forecastScreen() {
-        var cycle = VC.screensCycle(run.ctx.S, run.env), list = screens(cycle);
+        var cycle = VC.screensCycle(run.ctx.S), list = screens(cycle);
         for (var i = 0; i < list.length; i += 1) {
             if (M.idxOf(list[i], 'fc') >= 0) { return { cycle: cycle, list: list, i: i }; }
         }
@@ -289,7 +280,7 @@ var PConf = (typeof global !== 'undefined' && global.PConf) ? global.PConf
         var at = forecastScreen(), screen = at.i >= 0 ? at.list[at.i] : null;
         var fc = screen ? screen[M.idxOf(screen, 'fc')] : null;
         var k = fc ? GS.styleOf(fc.style) : 0;
-        return run.env.graphStyles && !GS.isTemplate(k) && GS.exists(run.ctx.S, k) ? k : 0;
+        return !GS.isTemplate(k) && GS.exists(run.ctx.S, k) ? k : 0;
     }
     /**
      * The settings as the forecast step's graph draws them (graph-styles.js settingsFor).
@@ -386,7 +377,7 @@ var PConf = (typeof global !== 'undefined' && global.PConf) ? global.PConf
     function pickLook(id) {
         var look = lookById(id), anew = currentLook().id !== look.id;
         run.lookId = look.id;
-        writeGraph(anew && run.env.forecastSpan ? Object.assign({}, look.values, { forecastHours: look.span })
+        writeGraph(anew ? Object.assign({}, look.values, { forecastHours: look.span })
             : look.values);
     }
     /**
@@ -412,7 +403,7 @@ var PConf = (typeof global !== 'undefined' && global.PConf) ? global.PConf
      */
     function forecastLabel() {
         var look = currentLook().label;
-        return run.env.forecastSpan ? look + ', ' + pickedLabel('forecastHours') : look;
+        return look + ', ' + pickedLabel('forecastHours');
     }
     /**
      * The forecast step's picture: the first screen holding the forecast graph (forecastScreen) as
@@ -444,7 +435,6 @@ var PConf = (typeof global !== 'undefined' && global.PConf) ? global.PConf
             graph.innerHTML = pic.svg;
             graph.setAttribute('aria-label', pic.label);
         }
-        if (!run.env.forecastSpan) { return; }
         var opts = optsFor('forecastHours'), segs = run.overlay.querySelectorAll('[data-wiz-group="forecastHours"]');
         for (var i = 0; i < segs.length; i += 1) { segs[i].textContent = labelFor(opts, segs[i].getAttribute('data-wiz-opt')); }
         markPicked('forecastHours', highlighted('forecastHours'), false);
@@ -579,26 +569,22 @@ var PConf = (typeof global !== 'undefined' && global.PConf) ? global.PConf
     // --- the layout: the Default screen ---
     /**
      * The layout the Layout picker shows as picked: what the Default screen reads as (its
-     * calendar's rows, or none) on a watch with screens; on aplite the stored layout, or the
-     * nearest the picker offers.
+     * calendar's rows, or none).
      * @returns {string} 'fullCal' | 'compactCal' | 'noCal'
      */
     function currentLayout() {
-        if (SP.hasScreens(run.env)) { return SCREENS.layoutOf(screens()[0]); }
-        var v = run.ctx.S.layoutPreset;
-        return labelFor(LAYOUT_OPTS, v) ? v : (SCREENS.NEAREST_LAYOUT[v] || 'compactCal');
+        return SCREENS.layoutOf(screens()[0]);
     }
     /**
-     * Pick a layout. On a watch with screens it makes the Default screen alone (the flick screens
+     * Pick a layout: it makes the Default screen alone (the flick screens
      * are the Screens step's): the preset's own Default view, the one its three-screen cycle starts
      * with, compiled back to the per-view keys of slot 0 (view-cycle.js specToKeys), as a screen
-     * edit (screens-page.js editScreens). aplite keeps the preset.
+     * edit (screens-page.js editScreens).
      * @param {string} layout 'fullCal' | 'compactCal' | 'noCal'.
      * @returns {void}
      */
     function pickLayout(layout) {
         var S = run.ctx.S;
-        if (!SP.hasScreens(run.env)) { run.ctx.setValue('layoutPreset', layout); return; }
         var keys = VC.specToKeys([VC.buildViewCycle(layout, 'off', 'off', S.swapClockStatus !== false)[0]]);
         SP.editScreens(S, run.env, function () {
             Object.keys(keys).forEach(function (k) { if (k !== 'viewCount') { S[k] = keys[k]; } });
@@ -621,7 +607,7 @@ var PConf = (typeof global !== 'undefined' && global.PConf) ? global.PConf
      * @param {Array<?Object>} [cycle] VC.screensCycle of the live settings, when the caller has it.
      * @returns {Array<Array<Object>>} The screens, the Default first.
      */
-    function screens(cycle) { return M.screensOf(run.ctx.S, run.env, cycle); }
+    function screens(cycle) { return M.screensOf(run.ctx.S, cycle); }
     /**
      * One screen as the screen editor draws it (screens-page.js screenPicture), in the wizard's
      * frame: its <svg> and its bands as spoken. A screen with nothing on it is its bare screen.
@@ -727,7 +713,7 @@ var PConf = (typeof global !== 'undefined' && global.PConf) ? global.PConf
                 + '<span class="wiz-scr-n">' + esc(name) + '</span></div>';
         });
         if (list.length >= M.MAX_SCREENS) { return h; }
-        SCREENS.offered(run.env).forEach(function (t) {
+        SCREENS.TEMPLATES.forEach(function (t) {
             if (SCREENS.slotOf(list, t.id) >= 0) { return; }
             var w = withTemplate(t.id, list);
             if (w.at < 0) { return; }   // the second forecast screen with every graph slot taken
@@ -850,10 +836,7 @@ var PConf = (typeof global !== 'undefined' && global.PConf) ? global.PConf
         return PConf.engine.renderRow(withOpts, { value: run.ctx.S[key] });
     }
     function stepWelcome() {
-        // aplite has no radar: no promise of one there.
-        var radar = Boolean(run.env.radar);
-        var lead = radar ? 'This watchface shows the forecast, the rain radar and your calendar.'
-            : 'This watchface shows the forecast and your calendar.';
+        var lead = 'This watchface shows the forecast, the rain radar and your calendar.';
         var region = FINISH.findItem(run.ctx.schema, 'holidayRegion');
         var h = '<div class="wiz-stage">' + watchHtml('urvejr on your watch') + '</div>'
             + stepHead('welcome')
@@ -861,7 +844,7 @@ var PConf = (typeof global !== 'undefined' && global.PConf) ? global.PConf
             + '<div class="wiz-card"><div class="wiz-card-hd">Your country</div>'
             + selectRow('holidayCountry');
         if (region && PConf.engine.resolveOptionsFrom(region, run.ctx.S).length) { h += selectRow('holidayRegion'); }
-        return h + '<p class="wiz-note">Your country sets the ' + (radar ? 'weather and radar service' : 'weather service')
+        return h + '<p class="wiz-note">Your country sets the ' + 'weather and radar service'
             + ' for your area, your units, the holidays and the first day of the week.</p></div>';
     }
     function stepLayout() {
@@ -876,7 +859,7 @@ var PConf = (typeof global !== 'undefined' && global.PConf) ? global.PConf
      * @returns {string} HTML.
      */
     function stepScreens() {
-        var cycle = VC.screensCycle(run.ctx.S, run.env), list = screens(cycle);
+        var cycle = VC.screensCycle(run.ctx.S), list = screens(cycle);
         if (run.screenIdx >= list.length) { run.screenIdx = 0; }
         return stepHead('screens')
             + '<p class="wiz-lead">Add the screens you want to flick to. '
@@ -888,7 +871,7 @@ var PConf = (typeof global !== 'undefined' && global.PConf) ? global.PConf
     }
     function stepTheme() {
         return stepHead('theme') + pickerHtml('theme')
-            + (run.env.color ? '<p class="wiz-fine">You can change any color later in Settings.</p>' : '');
+            + '<p class="wiz-fine">You can change any color later in Settings.</p>';
     }
     /**
      * The forecast step: the screen with the forecast graph (the Default), drawn live in the picked
@@ -902,7 +885,7 @@ var PConf = (typeof global !== 'undefined' && global.PConf) ? global.PConf
             + '<div class="' + (pic.onScreen ? 'wiz-watch wiz-look' : 'wiz-graph') + '" data-wiz-graph role="img" aria-label="'
             + esc(pic.label) + '">' + pic.svg + '</div>'
             + '</div>' + optsHtml('forecastLook', 'wiz-title')
-            + (run.env.forecastSpan ? '<h3 class="wiz-sub" id="wiz-span">Forecast length</h3>' + optsHtml('forecastHours', 'wiz-span') : '')
+            + '<h3 class="wiz-sub" id="wiz-span">Forecast length</h3>' + optsHtml('forecastHours', 'wiz-span')
             + '<p class="wiz-fine">You can change every line of the graph later on the Graphs tab.</p>';
     }
     function welcomeRows() {

@@ -15,12 +15,11 @@ const FIXTURE_NOW = new Date(2026, 5, 1, 12, 34);
  *
  * @param {Object} fixture The fixture.
  * @param {Object} settings Clay settings.
- * @param {Object} [watchInfo] Watch info.
  * @param {Date} [now] The bake's instant.
  * @returns {Object|null} The payload.
  */
-function getFixtureWeatherPayload(fixture, settings, watchInfo, now) {
-  return fixtureWeather.getFixtureWeatherPayload(fixture, settings, watchInfo, now || FIXTURE_NOW);
+function getFixtureWeatherPayload(fixture, settings, now) {
+  return fixtureWeather.getFixtureWeatherPayload(fixture, settings, now || FIXTURE_NOW);
 }
 const WeatherProvider = require('../../../src/pkjs/weather/adapter/provider.js');
 
@@ -54,14 +53,14 @@ test('fixture windKmh feeds the wind secondary line (mid scale)', () => {
 // to bundle the packed tuple with the weather send (exactly as it already does for
 // the rain palette), or a fixture renders in whatever colours the last real settings
 // send left on the watch.
-test('the fixture send bundles the line styling, threaded with watchInfo', () => {
+test('the fixture send bundles the line styling', () => {
   const sent = [];
   const origPebble = global.Pebble;
   global.Pebble = { sendAppMessage: function(payload) { sent.push(payload); } };
   try {
     sendFixtureWeather(makeFixture({ windKmh: [0, 25, 50] }), {
       settings: { secondaryLine: 'wind', windScale: 'mid', secondaryLineFill: true, barSource: 'off', theme: 'bw' },
-      watchInfo: { platform: 'emery' }, now: FIXTURE_NOW
+      now: FIXTURE_NOW
     });
   } finally {
     global.Pebble = origPebble;
@@ -281,7 +280,7 @@ test('fixtures/rain-countdown.json bakes UV danger 8 + wind warn 66 into ALERT_E
   assert.equal(fx.claySettings.statusTopOnDemandRightItems, 'battery,uv,wind',
     'the fixture ticks only what it bakes');
   ['emery'].forEach((platform) => {
-    const out = getFixtureWeatherPayload(fx, Object.assign({}, fx.claySettings), { platform });
+    const out = getFixtureWeatherPayload(fx, Object.assign({}, fx.claySettings));
     const bytes = out.ALERT_ENTRIES_UINT8;
     assert.equal(bytes.length, 5, platform + ': UV (1 + 1 value byte) + wind (1 + 2 value bytes)');
     const entries = decodeAlerts(bytes);
@@ -319,7 +318,7 @@ test('fixtures/uv-alert-tomorrow.json bakes a tomorrow UV entry (» 8, danger) +
   const windKind = thresholds.KINDS.findIndex((k) => k.code === 'wind');
   const wind = { kind: windKind, level: 1, day: 0, mark: null, value: '58' };
   const bake = (platform, over) => getFixtureWeatherPayload(fx,
-    Object.assign({}, fx.claySettings, over), { platform });
+    Object.assign({}, fx.claySettings, over));
   assert.equal(fx.claySettings.statusTopOnDemandRightItems, 'battery,uv,wind',
     'the fixture ticks only what it bakes');
   const gustKind = thresholds.KINDS.findIndex((k) => k.code === 'gust');
@@ -443,7 +442,7 @@ test('a raw fixtures/berlin.json (no startEpoch) still yields a payload', () => 
   const fx = JSON.parse(fs.readFileSync(
     path.join(__dirname, '..', '..', '..', 'fixtures', 'berlin.json'), 'utf8'));
   assert.equal('startEpoch' in fx.weather, false, 'premise: the committed fixture has no startEpoch');
-  const out = getFixtureWeatherPayload(fx, Object.assign({}, fx.claySettings), { platform: 'emery' });
+  const out = getFixtureWeatherPayload(fx, Object.assign({}, fx.claySettings));
   assert.ok(out, 'payload built despite the undefined startTime');
   assert.equal(out.TEMP_TREND_UINT8.length, fx.weather.temps.length);
 });
@@ -509,7 +508,7 @@ test('the fixture adopts its UV and feels whatever the settings select or the fo
     require('../../helpers/on-demand.js').NOTHING_PLACED);
   catalog.allSlotKeys().forEach(function(key) { settings[key] = 'empty'; });
   assert.equal(forecastSeries.needsUv(settings), false, 'premise: a live fetch would not adopt UV');
-  assert.equal(forecastSeries.needsFeels(settings, null), false, 'premise: nor feels');
+  assert.equal(forecastSeries.needsFeels(settings), false, 'premise: nor feels');
   const raw = capturePreTransform(
     makeFixture({ uvIndex: [1, 2, 3], feelsTemps: [40.4, 41, 42], currentFeels: 39.5 }), settings);
   assert.deepEqual(raw.UV_TREND_UINT8, [10, 20, 30], 'UV tenths, with no UV line or slot selected');
@@ -530,17 +529,16 @@ test('forecast-long.json: 68 hours on the long span, 14 on 12, 24 or 26 on 24', 
   assert.equal(fx.weather.temps.length, 68, 'premise: 68 hourly entries');
   assert.equal(fx.weather.temps.length, MAX_FORECAST_HOURS, 'premise: a full long-span feed');
   assert.equal(fx.claySettings.forecastHours, '48', 'the long span\'s token');
-  const emery = getFixtureWeatherPayload(fx, Object.assign({}, fx.claySettings), { platform: 'emery' });
+  const emery = getFixtureWeatherPayload(fx, Object.assign({}, fx.claySettings));
   assert.equal(emery.NUM_ENTRIES, 68);
   TRENDS.forEach((k) => assert.equal(emery[k].length, 68, 'emery ' + k));
-  const at12 = getFixtureWeatherPayload(fx, Object.assign({}, fx.claySettings, { forecastHours: '12' }),
-    { platform: 'emery' });
+  const at12 = getFixtureWeatherPayload(fx, Object.assign({}, fx.claySettings, { forecastHours: '12' }));
   assert.equal(at12.NUM_ENTRIES, 14);
   // 24 h: 24 On axis, 26 with no left axis (the numbers On graph or Off).
   const at24 = (nums) => getFixtureWeatherPayload(fx, Object.assign({}, fx.claySettings,
-    { forecastHours: '24', forecastAxisNumbers: nums }), { platform: 'emery' }).NUM_ENTRIES;
+    { forecastHours: '24', forecastAxisNumbers: nums })).NUM_ENTRIES;
   assert.deepEqual(['axis', 'graph', 'off'].map(at24), [24, 26, 26]);
-  assert.equal(getFixtureWeatherPayload(fx, Object.assign({}, fx.claySettings), null).NUM_ENTRIES, 68,
+  assert.equal(getFixtureWeatherPayload(fx, Object.assign({}, fx.claySettings)).NUM_ENTRIES, 68,
     'an unknown watch is the Pebble Time 2');
 });
 
@@ -548,32 +546,30 @@ test('forecast-48h.json: a 48-hour feed (OWM, WU) sends its 48 on the long span,
   const fx = loadFixture('forecast-48h.json');
   assert.equal(fx.weather.temps.length, 48, 'premise: 48 hourly entries');
   assert.equal(fx.claySettings.forecastHours, '48');
-  const emery = getFixtureWeatherPayload(fx, Object.assign({}, fx.claySettings), { platform: 'emery' });
+  const emery = getFixtureWeatherPayload(fx, Object.assign({}, fx.claySettings));
   assert.equal(emery.NUM_ENTRIES, 48, 'a short feed: the watch widens its pitch to fill the plot');
   TRENDS.forEach((k) => assert.equal(emery[k].length, 48, 'emery ' + k));
-  const at24 = getFixtureWeatherPayload(fx, Object.assign({}, fx.claySettings, { forecastHours: '24' }),
-    { platform: 'emery' });
+  const at24 = getFixtureWeatherPayload(fx, Object.assign({}, fx.claySettings, { forecastHours: '24' }));
   assert.equal(at24.NUM_ENTRIES, 24);
   TRENDS.forEach((k) => assert.equal(at24[k].length, 24, 'emery 24 ' + k));
 });
 
 test('berlin.json on an emery set to 12 sends 14 hours; the 39-hour time-lapse sends 24 by default', () => {
   const berlin = loadFixture('berlin.json');
-  const twelve = getFixtureWeatherPayload(berlin, Object.assign({}, berlin.claySettings, { forecastHours: '12' }),
-    { platform: 'emery' });
+  const twelve = getFixtureWeatherPayload(berlin, Object.assign({}, berlin.claySettings, { forecastHours: '12' }));
   assert.equal(twelve.NUM_ENTRIES, 14, 'the 13th column and the vertex past it');
   assert.equal(twelve.TEMP_TREND_UINT8.length, 14);
   assert.equal(twelve.BAR_TREND_UINT8.length, 14);
   const lapse = loadFixture('berlin-timelapse.json');
   assert.equal(lapse.weather.temps.length, 39, 'premise: 39 hourly entries');
-  const out = getFixtureWeatherPayload(lapse, Object.assign({}, lapse.claySettings), { platform: 'emery' });
+  const out = getFixtureWeatherPayload(lapse, Object.assign({}, lapse.claySettings));
   assert.equal(out.NUM_ENTRIES, 24);
   assert.equal(out.TEMP_TREND_UINT8.length, 24);
 });
 
 test('a 3-hour fixture still sends its 3 hours on every span', () => {
   ['12', '24', '48'].forEach((h) => {
-    const out = getFixtureWeatherPayload(makeFixture({}), { forecastHours: h, barSource: 'off' }, { platform: 'emery' });
+    const out = getFixtureWeatherPayload(makeFixture({}), { forecastHours: h, barSource: 'off' });
     assert.equal(out.NUM_ENTRIES, 3, h);
     assert.equal(out.TEMP_TREND_UINT8.length, 3, h);
   });
@@ -591,7 +587,7 @@ test('fixtures/condition.json bakes the condition into the forecast bar and the 
   const fx = JSON.parse(fs.readFileSync(path.join(__dirname, '..', '..', '..', 'fixtures', 'condition.json'), 'utf8'));
   normalizeWeather(fx);
   ['emery'].forEach((platform) => {
-    const out = getFixtureWeatherPayload(fx, Object.assign({}, fx.claySettings), { platform });
+    const out = getFixtureWeatherPayload(fx, Object.assign({}, fx.claySettings));
     const mid = decodeLine(out.STATUS_LINE_1_UINT8)[1];
     assert.equal(mid.icon, catalog.ICONS.COND_SUN_CLOUD, platform + ': the day glyph');
     assert.equal(mid.text, 'Partly cloudy\u001fPCLDY', platform + ': the name and its short form');

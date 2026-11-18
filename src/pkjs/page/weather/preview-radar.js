@@ -204,9 +204,9 @@ var PConf = (typeof global !== 'undefined' && global.PConf && global.PConf.block
      */
     function radarLegend(state, env, userData) {
         if ((state.radarMode || 'graph') === 'off') { return []; }
-        var isColor = drawsColor(env, state.theme), ink = previewInk(state.theme);
+        var isColor = drawsColor(state.theme), ink = previewInk(state.theme);
         var P = (userData && userData.palette) || FALLBACK_PALETTE;
-        var tiers = !(state.radarColor === 'white' || !isColor), top = drawFrom.barsFromTop(state, 'radar', env);
+        var tiers = !(state.radarColor === 'white' || !isColor), top = drawFrom.barsFromTop(state, 'radar');
         var out = [{ metric: 'radar', kind: 'bars', color: barFg(state, isColor, ink), outline: !isColor, top: top,
             tiers: tiers ? P.rainTiers.map(function (t) { return t.color; }) : null }];
         if (state.radarProvider === 'dwd') {
@@ -233,7 +233,7 @@ var PConf = (typeof global !== 'undefined' && global.PConf && global.PConf.block
     function radarPreview(state, env, userData, opts) {
         // Effective color: a color display renders as color only when the theme isn't
         // Black & White — a bw/bw-light theme reuses the exact preview a B&W watch gets.
-        var isColor = drawsColor(env, state.theme);
+        var isColor = drawsColor(state.theme);
         var ink = previewInk(state.theme);
         var radarMode = state.radarMode || 'graph';
         if (radarMode === 'off') {
@@ -275,7 +275,7 @@ var PConf = (typeof global !== 'undefined' && global.PConf && global.PConf.block
         // plot's top (PT: under the time axis and the sky rows); never previewing aplite,
         // whose env has no line styles (draw-from.js capable). The faint floor line is the
         // preview's own and goes with standing bars.
-        var barsTop = drawFrom.barsFromTop(state, 'radar', env);
+        var barsTop = drawFrom.barsFromTop(state, 'radar');
         var anchor = barsTop ? PT : PB;
         if (!barsTop) {
             e += '<line x1="' + PX0 + '" y1="' + PB + '" x2="' + PX1 + '" y2="' + PB + '" stroke="' + ink.rgba('0.18') + '" stroke-width="0.7"></line>';
@@ -372,7 +372,7 @@ var PConf = (typeof global !== 'undefined' && global.PConf && global.PConf.block
         // aplite (which lacks the feature). The icon and the text draw in the theme's
         // foreground, like every icon of the bars (the watch gives the rain alert no
         // colour of its own).
-        var side = onDemand.sideOf(state, 'top', 'rain', env);
+        var side = onDemand.sideOf(state, 'top', 'rain');
         var rain = thresholds.rainAlert(state);
         if (side === null) {
             return svgFrame(e, frameH);

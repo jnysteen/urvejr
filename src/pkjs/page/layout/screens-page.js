@@ -32,7 +32,6 @@
 // radarMode and healthMode follow every edit and every Save (screens.js deriveModes), so each
 // reader of them stays as it is; what reads them between Saves, where a tick on the Alerts
 // tab can have moved them, reads the ones Save will store (radarModeToSave).
-// aplite has no screens: its Watchface tab keeps a plain Layout choice.
 /* global PConf */
 var PConf = (typeof global !== 'undefined' && global.PConf) ? global.PConf
     : (typeof window !== 'undefined' && window.PConf) ? window.PConf
@@ -110,7 +109,6 @@ var PConf = (typeof global !== 'undefined' && global.PConf) ? global.PConf
     // what it is; under one of your graphs, why its length cannot be picked here.
     var ADD_FINE = 'A screen with a forecast graph picks its graph next: one of yours or a template.'
         + ' Your status bars keep what they show.';
-    var ADD_FINE_ONE_GRAPH = 'A screen brings its rows. Your graph and your status bars stay as they are.';
     var BLANK_LINE = 'The Watch bar and the clock. You add the rest.';
     var TEMPLATE_FINE = 'A template’s graph becomes one of your graphs only when you edit it.';
     // Change layout (the owner's pick, 2026-11-10): its title, what its cards say first, and its
@@ -119,17 +117,6 @@ var PConf = (typeof global !== 'undefined' && global.PConf) ? global.PConf
     var RELAYOUT_FINE = 'The screen keeps its name and its place.';
     var USE_LAYOUT = 'Use this layout';
     var YOUR_LENGTH = 'Your graph keeps its own length. Change it on the Graphs tab.';
-    // aplite's Layout choice, its Watchface tab having no screens: the three calendars.
-    var APLITE_LAYOUTS = [['Full calendar', 'fullCal'], ['Compact calendar', 'compactCal'], ['No calendar', 'noCal']];
-
-    /**
-     * Whether this watch has screens to edit: every watch but aplite (and an unknown one).
-     * @param {?Object} env Platform env.
-     * @returns {boolean}
-     */
-    function hasScreens(env) {
-        return true;
-    }
 
     /**
      * Turn a preset into the custom keys of its own cycle (view-cycle.js specToKeys, which
@@ -141,27 +128,22 @@ var PConf = (typeof global !== 'undefined' && global.PConf) ? global.PConf
      */
     function ensureCustom(S, env) {
         if (S.layoutPreset === 'custom') { return; }
-        Object.assign(S, VC.specToKeys(VC.resolveViewCycle(S, env)));
+        Object.assign(S, VC.specToKeys(VC.resolveViewCycle(S)));
         S.layoutPreset = 'custom';
         S.customLayoutSeeded = true;
     }
 
     /**
      * Write the modes the screens need (screens.js deriveModes) into S. A preset's screens
-     * follow its modes, so on a watch known to have screens it turns custom first
-     * (ensureCustom): a mode worked out from them can then never drop one (the radar turned
-     * off, then on again, keeps its screen). A watch that did not say what it is keeps its
-     * preset here, as the 2.6 migration does: it might be an aplite, which folds a custom
-     * layout to Compact calendar. Only a screen edit makes it custom there (editScreens).
-     * aplite keeps its own modes (its page sets both off as it opens, onbuild.js).
+     * follow its modes, so it turns custom first (ensureCustom): a mode worked out from them
+     * can then never drop one (the radar turned off, then on again, keeps its screen).
      * @param {Object} S Settings.
      * @param {?Object} env Platform env.
      * @returns {void}
      */
     function applyModes(S, env) {
-        if (!hasScreens(env)) { return; }
-        if (env && env.platform) { ensureCustom(S, env); }
-        var m = M.deriveModes(S, env);
+        ensureCustom(S, env);
+        var m = M.deriveModes(S);
         S.radarMode = m.radarMode;
         S.healthMode = m.healthMode;
     }
@@ -180,12 +162,12 @@ var PConf = (typeof global !== 'undefined' && global.PConf) ? global.PConf
      * @returns {void}
      */
     function fillNewBars(S, before, env) {
-        var now = VC.barsShown(S, env);
+        var now = VC.barsShown(S);
         Object.keys(now).forEach(function (bar) {
             if (!now[bar] || before[bar]) { return; }
             var slots = PSB.barCodes(S, env, bar);
             var blank = slots.every(function (c) { return c.code === 'empty'; });
-            if (blank) { slots.forEach(function (c) { S[c.key] = catalog.slotDefault(c.key, env); }); }
+            if (blank) { slots.forEach(function (c) { S[c.key] = catalog.slotDefault(c.key); }); }
         });
     }
 
@@ -202,7 +184,7 @@ var PConf = (typeof global !== 'undefined' && global.PConf) ? global.PConf
      */
     function editScreens(S, env, edit) {
         ensureCustom(S, env);
-        var before = VC.barsShown(S, env);
+        var before = VC.barsShown(S);
         if (!edit()) { return false; }
         fillNewBars(S, before, env);
         applyModes(S, env);
@@ -287,11 +269,10 @@ var PConf = (typeof global !== 'undefined' && global.PConf) ? global.PConf
      * bar): screens.js makeBar, and a Delete status bar's Undo dropped, since the bar made can be
      * the deleted one's slot (freeBar), which the Undo would write the old bar over.
      * @param {Object} S Settings.
-     * @param {?Object} env Platform env.
      * @returns {?string} the bar made, null for none
      */
-    function makeBar(S, env) {
-        var made = M.makeBar(S, env);
+    function makeBar(S) {
+        var made = M.makeBar(S);
         if (made) { kit.unflash(BAR_UNDO); }
         return made;
     }
@@ -428,7 +409,7 @@ var PConf = (typeof global !== 'undefined' && global.PConf) ? global.PConf
     function moveScreen(S, from, to, env) {
         var why = '';
         editScreens(S, env, function () {
-            var lists = M.screensOf(S, env), n = lists.length, order = [], x;
+            var lists = M.screensOf(S), n = lists.length, order = [], x;
             if (from === to || from < 0 || to < 0 || from >= n || to >= n) { return false; }
             for (x = 0; x < n; x++) { order.push(x); }
             order.splice(to, 0, order.splice(from, 1)[0]);
@@ -470,7 +451,7 @@ var PConf = (typeof global !== 'undefined' && global.PConf) ? global.PConf
      * @returns {string}
      */
     function freeName(S, env, name, n) {
-        var taken = M.screensOf(S, env).map(function (l, i) { return i === n ? '' : M.nameOf(S, i); });
+        var taken = M.screensOf(S).map(function (l, i) { return i === n ? '' : M.nameOf(S, i); });
         if (taken.indexOf(name) === -1) { return name; }
         for (var k = 2; taken.indexOf(name + ' ' + k) !== -1; k++) { /* the first free number */ }
         return name + ' ' + k;
@@ -494,7 +475,6 @@ var PConf = (typeof global !== 'undefined' && global.PConf) ? global.PConf
      * @returns {Array<{v: string, name: string, k: number, look: string}>}
      */
     function rollItems(N, env) {
-        if (env && !env.graphStyles) { return []; }
         return GSP.existing(N).map(function (k) { return { v: String(k + 1), name: GS.name(N, k), k: k, look: '' }; })
             .concat(PRESETS.templates(env).map(function (look) { return { v: look.id, name: look.label, k: -1, look: look.id }; }));
     }
@@ -587,7 +567,7 @@ var PConf = (typeof global !== 'undefined' && global.PConf) ? global.PConf
      * @returns {Array<Object>}
      */
     function addChoices(S, env, into) {
-        var N = GSP.asStored(S), lists = M.screensOf(N, env), replace = into >= 0 && into < lists.length;
+        var N = GSP.asStored(S), lists = M.screensOf(N), replace = into >= 0 && into < lists.length;
         if (!replace && lists.length >= M.MAX_SCREENS) { return []; }
         return PRESETS.cards(env).map(function (card) {
             return addChoice(N, env, lists, card.kind, card.cal, null, '', replace ? into : -1);
@@ -609,17 +589,17 @@ var PConf = (typeof global !== 'undefined' && global.PConf) ? global.PConf
      *   more metrics than the watch shows ('' when it can)
      */
     function addPreview(S, env, id, cal, v, span, into) {
-        var N = GSP.asStored(S), lists = M.screensOf(N, env), kind = PRESETS.byId(id);
+        var N = GSP.asStored(S), lists = M.screensOf(N), kind = PRESETS.byId(id);
         var replace = into >= 0 && into < lists.length;
-        if ((!replace && lists.length >= M.MAX_SCREENS) || !(kind && PRESETS.drawable(kind, env))) { return null; }
-        var cals = PRESETS.calendars(kind, env);
+        if ((!replace && lists.length >= M.MAX_SCREENS) || !kind) { return null; }
+        var cals = PRESETS.calendars(kind);
         if (cal && !cals.some(function (c) { return c[1] === cal; })) { return null; }
         var g = kind.graph === 'fc' ? graphOfValue(N, env, v) : null;
         if (kind.graph === 'fc' && !g) { return null; }
         var c = addChoice(N, env, lists, kind, cal || '', g, span || '', replace ? into : -1);
         // The top screen always shows the clock (the watch keeps it).
         if (c.n === 0 && M.idxOf(c.list, 'clock') < 0) { return null; }
-        c.why = c.k >= 0 && env && env.graphStyles && GSP.screenOverflows(c.W, env, c.n, c.k) ? GSP.limitDesc(c.W, env, c.k) : '';
+        c.why = c.k >= 0 && GSP.screenOverflows(c.W, env, c.n, c.k) ? GSP.limitDesc(c.W, env, c.k) : '';
         return c;
     }
 
@@ -643,10 +623,10 @@ var PConf = (typeof global !== 'undefined' && global.PConf) ? global.PConf
      */
     function addChosen(S, env, id, cal, v, span, into) {
         var kind = PRESETS.byId(id);
-        if (cal === undefined && kind && PRESETS.calendars(kind).length) { cal = PRESETS.calOf(M.screensOf(S, env)[0]); }
+        if (cal === undefined && kind && PRESETS.calendars(kind).length) { cal = PRESETS.calOf(M.screensOf(S)[0]); }
         var c = addPreview(S, env, id, cal || '', v, span, into);
         if (!c || c.why) { return -1; }
-        var replace = c.n < M.screensOf(S, env).length;
+        var replace = c.n < M.screensOf(S).length;
         var held = S.graphStyles;
         if (c.graph) {
             GSP.settle(S);
@@ -707,11 +687,11 @@ var PConf = (typeof global !== 'undefined' && global.PConf) ? global.PConf
      * @param {?Object} env Platform env.
      * @param {Object} [userData] Page userData (the palette).
      * @param {string} prefix What its graphs' ids start with, unique on the page.
-     * @param {Array<?Object>} [cycle] VC.screensCycle(S, env), when the caller has it already.
+     * @param {Array<?Object>} [cycle] VC.screensCycle(S), when the caller has it already.
      * @returns {{svg: string, label: string}}
      */
     function screenPicture(S, i, env, userData, prefix, cycle) {
-        var spec = (cycle || VC.screensCycle(S, env))[i] || null;
+        var spec = (cycle || VC.screensCycle(S))[i] || null;
         if (!spec) { return PW.viewScreen(S, env, i, userData); }
         return PW.screenSvg(drawnView(spec, S), i, S, env, userData || {}, 1,
             new Date(), prefix);
@@ -725,7 +705,7 @@ var PConf = (typeof global !== 'undefined' && global.PConf) ? global.PConf
      * @returns {boolean}
      */
     function fitsWatch(list, i, env) {
-        return M.fits(list, i, (env && env.platform) || '');
+        return M.fits(list, i, 'emery');
     }
 
     // ── Your status bars (screens.js THE NAMES) ────────────────────────────
@@ -735,11 +715,11 @@ var PConf = (typeof global !== 'undefined' && global.PConf) ? global.PConf
      * @param {Object} S Settings.
      * @param {?Object} env Platform env.
      * @param {string} bar An on-demand.js BARS bar.
-     * @param {Array<?Object>} [cycle] VC.screensCycle(S, env), when the caller has it already.
+     * @param {Array<?Object>} [cycle] VC.screensCycle(S), when the caller has it already.
      * @returns {number[]}
      */
     function barPlaces(S, env, bar, cycle) {
-        return M.placesWhere(S || {}, env, function (list) {
+        return M.placesWhere(S || {}, function (list) {
             return list.some(function (b) { return M.barOfBlock(b) === bar; });
         }, cycle);
     }
@@ -750,7 +730,7 @@ var PConf = (typeof global !== 'undefined' && global.PConf) ? global.PConf
      * @param {Object} S Settings.
      * @param {?Object} env Platform env.
      * @param {string} bar An on-demand.js BARS bar.
-     * @param {Array<?Object>} [cycle] VC.screensCycle(S, env), when the caller has it already.
+     * @param {Array<?Object>} [cycle] VC.screensCycle(S), when the caller has it already.
      * @returns {string}
      */
     function barWhere(S, env, bar, cycle) {
@@ -766,7 +746,7 @@ var PConf = (typeof global !== 'undefined' && global.PConf) ? global.PConf
      * @returns {string}
      */
     function barCount(S, env) {
-        return M.yourBars(S, env).length + ' of ' + M.MAX_BARS + ' status bars';
+        return M.yourBars(S).length + ' of ' + M.MAX_BARS + ' status bars';
     }
 
     /**
@@ -782,10 +762,10 @@ var PConf = (typeof global !== 'undefined' && global.PConf) ? global.PConf
      */
     function barRenamed(S, oldValue, value, env, key) {
         var bar = null, name = M.cleanName(value);
-        M.yourBars(S, env).forEach(function (b) { if (M.barNameKey(b) === key) { bar = b; } });
+        M.yourBars(S).forEach(function (b) { if (M.barNameKey(b) === key) { bar = b; } });
         if (!bar) { S[key] = name; return; }
         var own = M.KINDS[M.KIND_OF_BAR[bar]].name;
-        var taken = M.yourBars(S, env).filter(function (b) { return b !== bar; })
+        var taken = M.yourBars(S).filter(function (b) { return b !== bar; })
             .map(function (b) { return M.barName(S, b); }).concat([M.barName(S, 'top')]);
         S[key] = !name || name === own ? '' : M.freeName(taken, name);
     }
@@ -801,7 +781,7 @@ var PConf = (typeof global !== 'undefined' && global.PConf) ? global.PConf
      * @returns {boolean} whether a bar went
      */
     function deleteBar(S, bar, env) {
-        var name = M.barName(S, bar), snap = M.unmakeBar(S, bar, env);
+        var name = M.barName(S, bar), snap = M.unmakeBar(S, bar);
         if (!snap) { return false; }
         applyModes(S, env);
         kit.flash(BAR_UNDO, { text: name + ' deleted.', snap: snap }, 5000, renderPage);
@@ -813,21 +793,21 @@ var PConf = (typeof global !== 'undefined' && global.PConf) ? global.PConf
     /**
      * The alerts placed on a bar, for its row on the Your status bars card: the icons the bar's dialog's
      * Alerts row shows (alerts-page.js onDemandBarIcons: "Left" and "Right", each with its
-     * icons), '' with none placed or on a watch without alerts (aplite).
+     * icons), '' with none placed.
      * @param {Object} S Live settings.
      * @param {?Object} env Platform env.
      * @param {string} bar An on-demand.js BARS bar.
      * @returns {string} HTML
      */
     function barAlerts(S, env, bar) {
-        var icons = env && env.onDemand && PConf && PConf.hintResolvers ? PConf.hintResolvers.get('onDemandBarIcons') : null;
+        var icons = PConf && PConf.hintResolvers ? PConf.hintResolvers.get('onDemandBarIcons') : null;
         return icons ? icons(S, env, { bar: bar, where: '' }) : '';
     }
 
     /**
      * The Your status bars card (block 'barsList', the owner's pick, 2026-11-09), in the page's shared
      * parts (kit): a line per bar, the Watch bar first and then your bars (screens.js yourBars),
-     * each its name, the screens that show it (none on aplite, which has one) and the alerts
+     * each its name, the screens that show it and the alerts
      * placed on it (barAlerts; the owner's ask, 2026-11-09: seen without opening the bar); under
      * it the bar's picture, dimmed while no screen shows it; and the red arrow of a row that
      * opens a screen of its own, in the middle of the whole row. The whole row is one button that
@@ -840,8 +820,8 @@ var PConf = (typeof global !== 'undefined' && global.PConf) ? global.PConf
      * @returns {string} HTML
      */
     function barsCard(S, env) {
-        var st = S || {}, cycle = hasScreens(env) ? VC.screensCycle(st, env) : null;
-        var h = ['top'].concat(M.yourBars(st, env)).map(function (bar) {
+        var st = S || {}, cycle = VC.screensCycle(st);
+        var h = ['top'].concat(M.yourBars(st)).map(function (bar) {
             var name = M.barName(st, bar), places = cycle ? barPlaces(st, env, bar, cycle) : null;
             var where = !places ? '' : places.length ? places.map(function (i) { return M.nameOf(st, i); }).join(', ')
                 : 'No screen';
@@ -854,9 +834,9 @@ var PConf = (typeof global !== 'undefined' && global.PConf) ? global.PConf
                 + PSB.barPicture(st, env, bar, { dim: Boolean(places && !places.length) }) + '</span>'
                 + '<span class="bl-go" aria-hidden="true">' + kit.navArrow() + '</span></button></div>';
         }).join('');
-        if (M.freeBar(st, env)) {
+        if (M.freeBar(st)) {
             h += kit.newRow('New status bar', barCount(st, env), { 'data-action': 'newBar' });
-        } else if (env && env.extraBars) {
+        } else {
             h += '<div class="ui-row ui-foot">' + esc(BARS_FULL) + '</div>';
         }
         if (BAR_UNDO.v) { h += kit.undoToast(BAR_UNDO.v.text, { 'data-action': 'undoDeleteBar' }); }
@@ -879,7 +859,7 @@ var PConf = (typeof global !== 'undefined' && global.PConf) ? global.PConf
         if (!bar) { return ''; }
         ensureStyle();
         return '<div class="bl-pin">' + PSB.barPicture(S || {}, env, bar, { big: true })
-            + (hasScreens(env) ? '<div class="ui-d">' + esc(barWhere(S || {}, env, bar)) + '</div>' : '') + '</div>';
+            + '<div class="ui-d">' + esc(barWhere(S || {}, env, bar)) + '</div></div>';
     }
 
     // ── Styles ──────────────────────────────────────────────────
@@ -1067,12 +1047,11 @@ var PConf = (typeof global !== 'undefined' && global.PConf) ? global.PConf
      * after a delete.
      * @param {Object} S Live settings.
      * @param {?Object} env Platform env.
-     * @returns {string} HTML ('' on aplite)
+     * @returns {string} HTML
      */
     function screensCard(S, env) {
-        if (!hasScreens(env)) { return ''; }
         ensureStyle();
-        var s = S || {}, lists = M.screensOf(s, env), many = lists.length > 1;
+        var s = S || {}, lists = M.screensOf(s), many = lists.length > 1;
         var rows = lists.map(function (list, i) {
             var name = esc(M.nameOf(s, i));
             var pill = i === 0 && M.nameOf(s, 0) !== NAMES[0] ? '<span class="scr-pill">' + NAMES[0] + '</span>' : '';
@@ -1162,7 +1141,7 @@ var PConf = (typeof global !== 'undefined' && global.PConf) ? global.PConf
         if (!g || !UI.ctx || (e.key !== 'ArrowUp' && e.key !== 'ArrowDown')) { return; }
         e.preventDefault();
         var i = Number(g.getAttribute('data-scr-grip')), to = e.key === 'ArrowUp' ? i - 1 : i + 1;
-        if (to < 0 || to >= M.screensOf(UI.ctx.S, UI.ctx.ENV).length) { return; }
+        if (to < 0 || to >= M.screensOf(UI.ctx.S).length) { return; }
         var at = cardMove(i, to) ? i : to;
         var again = document.querySelector('[data-scr-grip="' + at + '"]');
         if (again) { again.focus(); }
@@ -1225,7 +1204,7 @@ var PConf = (typeof global !== 'undefined' && global.PConf) ? global.PConf
      * @returns {number} its index, -1 where the screen draws one of your graphs or none
      */
     function templateOf(S, env, list) {
-        var at = M.idxOf(list, 'fc'), k = at < 0 || !(env && env.graphStyles) ? -1 : blockStyle(list[at], S);
+        var at = M.idxOf(list, 'fc'), k = at < 0 ? -1 : blockStyle(list[at], S);
         return GS.isTemplate(k) ? k : -1;
     }
 
@@ -1247,7 +1226,7 @@ var PConf = (typeof global !== 'undefined' && global.PConf) ? global.PConf
      *   gone or picks no size
      */
     function sizeRow(S, env) {
-        var list = M.screensOf(S || {}, env)[ED.i] || [], b = list[ED.sizeRow], opt = b ? sizeOf(b) : null;
+        var list = M.screensOf(S || {})[ED.i] || [], b = list[ED.sizeRow], opt = b ? sizeOf(b) : null;
         return opt ? { list: list, j: ED.sizeRow, b: b, opt: opt } : null;
     }
 
@@ -1310,7 +1289,7 @@ var PConf = (typeof global !== 'undefined' && global.PConf) ? global.PConf
      * @returns {boolean}
      */
     function manyGraphs(S, env) {
-        return Boolean(env && env.graphStyles) && GS.count(S) > 1;
+        return GS.count(S) > 1;
     }
 
     /**
@@ -1323,7 +1302,7 @@ var PConf = (typeof global !== 'undefined' && global.PConf) ? global.PConf
      * @returns {string}
      */
     function rowName(b, S, env) {
-        if (b.k !== 'fc' || !(env && env.graphStyles)) { return M.blockName(b, S); }
+        if (b.k !== 'fc') { return M.blockName(b, S); }
         var k = blockStyle(b, S);
         return manyGraphs(S, env) || GS.isTemplate(k) ? GSP.graphName(S, env, k) : M.blockName(b, S);
     }
@@ -1492,12 +1471,12 @@ var PConf = (typeof global !== 'undefined' && global.PConf) ? global.PConf
      */
     function addOffers(S, env, i, list) {
         var out = [];
-        M.addable(list, env, S).forEach(function (k) {
+        M.addable(list, S).forEach(function (k) {
             if (!fitsWatch(M.add(list, k), i, env)) { return; }
             var graphs = k === 'fc' ? graphOffers(S, env, i, list) : null;
             out = out.concat(graphs || [{ se: 'add', k: k, label: M.blockName({ k: k }, S), off: false }]);
         });
-        var free = M.newBarFor(list, S, env);
+        var free = M.newBarFor(list, S);
         if (free && fitsWatch(M.add(list, M.KIND_OF_BAR[free]), i, env)) {
             out.push({ se: 'newbar', label: 'New status bar', off: false });
         }
@@ -1534,7 +1513,7 @@ var PConf = (typeof global !== 'undefined' && global.PConf) ? global.PConf
      * @returns {string} HTML
      */
     function editorBody(S, env, userData) {
-        var i = ED.i, cycle = VC.screensCycle(S, env), list = M.screensOf(S, env, cycle)[i] || [];
+        var i = ED.i, cycle = VC.screensCycle(S), list = M.screensOf(S, cycle)[i] || [];
         var note = !cycle[i] ? NOTHING_YET : !fitsWatch(list, i, env) ? TOO_TALL : '';
         var pic = screenPicture(S, i, env, userData, 'se' + i + '-', cycle).svg;
         // The page's own card (the engine's .card and header), how to reorder under its rows while
@@ -1613,7 +1592,7 @@ var PConf = (typeof global !== 'undefined' && global.PConf) ? global.PConf
                 + 'id="saGrp-' + grp.id + '">' + esc(grp.name) + '</span>' : '>') + '<div class="sa-grid">' + cards + '</div></div>';
         }).join('');
         return groups + '<div class="sa-fine">' + esc((ED.into >= 0 ? RELAYOUT_FINE + ' ' : '')
-            + (env && env.graphStyles ? ADD_FINE : ADD_FINE_ONE_GRAPH)) + '</div>';
+            + ADD_FINE) + '</div>';
     }
 
     /**
@@ -1665,7 +1644,7 @@ var PConf = (typeof global !== 'undefined' && global.PConf) ? global.PConf
      * @returns {{pic: {svg: string, label: string, bg: string}, legend: Array<Object>}}
      */
     function addShown(c, env, userData, prefix) {
-        var cycle = VC.screensCycle(c.W, env);
+        var cycle = VC.screensCycle(c.W);
         return { pic: screenPicture(c.W, c.n, env, userData, prefix, cycle),
             legend: LEGEND.groups(drawnView(cycle[c.n] || null, c.W), c.W, env, userData) };
     }
@@ -1823,13 +1802,13 @@ var PConf = (typeof global !== 'undefined' && global.PConf) ? global.PConf
         if (!c) { big.innerHTML = sel.innerHTML = foot.innerHTML = ''; return; }
         var kind = c.kind, N = GSP.asStored(S), shown = addShown(c, env, userData, 'sa-big-');
         var items = kind.graph === 'fc' ? ED.items : [], item = items[rollIndex(items, ED.pick.v)];
-        var gap = LEGEND.gapNote(shown.legend, N.provider), cals = kind.layouts ? [] : PRESETS.calendars(kind, env);
+        var gap = LEGEND.gapNote(shown.legend, N.provider), cals = kind.layouts ? [] : PRESETS.calendars(kind);
         big.innerHTML = '<div class="sa-big" role="img" aria-label="' + esc(PRESETS.cardName(kind, c.cal)
             + (item ? ', ' + item.name : '') + ': ' + shown.pic.label) + '">' + shown.pic.svg + '</div>';
         sel.innerHTML = '<div class="sa-legend">' + LEGEND.rowsHtml(shown.legend, shown.pic.bg) + '</div>'
             + (gap ? '<div class="sa-gap">' + esc(gap) + '</div>' : '');
         var h = cals.length ? segRow('Calendar', 'acal', cals, c.cal) : '';
-        if (item && env && env.forecastSpan) {
+        if (item) {
             var Sk = c.look ? null : GS.settingsFor(N, c.k);
             h += c.look ? segRow('Forecast length', 'aspan', PRESETS.spanOptions(c.look, env, N), c.span)
                 : segRow('Forecast length', 'aspan', spanHours.spanOptions(Sk), String(Sk.forecastHours), YOUR_LENGTH);
@@ -2127,7 +2106,7 @@ var PConf = (typeof global !== 'undefined' && global.PConf) ? global.PConf
         if (!g || !ED.overlay || (e.key !== 'ArrowUp' && e.key !== 'ArrowDown')) { return; }
         e.preventDefault();
         var j = Number(g.getAttribute('data-grip')), to = e.key === 'ArrowUp' ? j - 1 : j + 1;
-        var list = M.screensOf(UI.ctx.S, UI.ctx.ENV)[ED.i] || [];
+        var list = M.screensOf(UI.ctx.S)[ED.i] || [];
         if (to < 0 || to >= list.length) { return; }
         var again = ED.overlay.querySelector('[data-grip="' + (editorMove(list, j, to) ? to : j) + '"]');
         if (again) { again.focus(); }
@@ -2201,7 +2180,7 @@ var PConf = (typeof global !== 'undefined' && global.PConf) ? global.PConf
      * @returns {void}
      */
     function newBarHere(S, env, list) {
-        var made = makeBar(S, env);
+        var made = makeBar(S);
         if (!made) { return; }
         commit(M.add(list, M.KIND_OF_BAR[made]));
         openBar(made, true, M.nameOf(S, ED.i), renderEditor);
@@ -2217,7 +2196,7 @@ var PConf = (typeof global !== 'undefined' && global.PConf) ? global.PConf
      * @returns {{v: string, span: string}}
      */
     function graphValueOf(S, env, fc) {
-        var k = env && env.graphStyles ? blockStyle(fc, S) : 0;
+        var k = blockStyle(fc, S);
         if (GS.isTemplate(k)) { return { v: GS.lookOf(S, k), span: String(GS.settingsFor(S, k).forecastHours || '') }; }
         return { v: String(k + 1), span: '' };
     }
@@ -2289,7 +2268,7 @@ var PConf = (typeof global !== 'undefined' && global.PConf) ? global.PConf
         if (!t || !UI.ctx || ED.drag) { return; }
         var ctx = UI.ctx, S = ctx.S, env = ctx.ENV;
         var act = t.getAttribute('data-se'), j = Number(t.getAttribute('data-j'));
-        var list = M.screensOf(S, env)[ED.i] || [];
+        var list = M.screensOf(S)[ED.i] || [];
         if (act === 'close') { closeEditor(); return; }
         if (act === 'rename') { startRename(S); return; }
         if (act === 'renameok') { if (ED.nameEl) { endRename(ED.nameEl.value); } return; }
@@ -2333,7 +2312,7 @@ var PConf = (typeof global !== 'undefined' && global.PConf) ? global.PConf
         // The forecast graph's Edit: the graph's dialog over the editor, which repaints as it closes.
         if (act === 'editgraph') {
             if (!list[j] || list[j].k !== 'fc') { return; }
-            GSP.openGraph(S, env && env.graphStyles ? blockStyle(list[j], S) : 0, false,
+            GSP.openGraph(S, blockStyle(list[j], S), false,
                 { kicker: M.nameOf(S, ED.i), onClose: renderEditor });
             return;
         }
@@ -2462,7 +2441,7 @@ var PConf = (typeof global !== 'undefined' && global.PConf) ? global.PConf
         // The click a drag ends in is not a tap on the row.
         setTimeout(function () { ED.drag = null; }, 0);
         if (d.to === d.j || !UI.ctx) { return; }
-        editorMove(M.screensOf(UI.ctx.S, UI.ctx.ENV)[ED.i] || [], d.j, d.to);
+        editorMove(M.screensOf(UI.ctx.S)[ED.i] || [], d.j, d.to);
     }
 
     /**
@@ -2559,8 +2538,7 @@ var PConf = (typeof global !== 'undefined' && global.PConf) ? global.PConf
      * @returns {string} 'off' | 'countdown' | 'status' | 'graph'
      */
     function radarModeToSave(S, env) {
-        if (!hasScreens(env)) { return (S && S.radarMode) || 'graph'; }   // aplite: its own, as Save keeps it
-        return M.deriveModes(S || {}, env).radarMode;
+        return M.deriveModes(S || {}).radarMode;
     }
 
     /**
@@ -2616,8 +2594,8 @@ var PConf = (typeof global !== 'undefined' && global.PConf) ? global.PConf
             // Save writes the modes the screens need, whatever changed them (a screen, the
             // radar, a slot's health item, the rain alert's ticks).
             PConf.hooks.onSubmit(function (ctx) {
-                if (!UI.ctx || !hasScreens(ctx.env)) { return; }
-                var m = M.deriveModes(UI.ctx.S, ctx.env);
+                if (!UI.ctx) { return; }
+                var m = M.deriveModes(UI.ctx.S);
                 ctx.set('radarMode', m.radarMode);
                 ctx.set('healthMode', m.healthMode);
             });
@@ -2635,7 +2613,7 @@ var PConf = (typeof global !== 'undefined' && global.PConf) ? global.PConf
         // New status bar, Delete status bar and its Undo (the Status bars tab, Pebble Time 2): New status bar makes an
         // empty bar and opens its dialog, its name field ready.
         PConf.actions.newBar = function (arg, S, env) {
-            var made = makeBar(S, env);
+            var made = makeBar(S);
             if (made) { openBar(made, true, 'Your status bars', null); }
             return !made;
         };
@@ -2666,13 +2644,12 @@ var PConf = (typeof global !== 'undefined' && global.PConf) ? global.PConf
             PConf.displayResolvers.register('screenRowSizeTitle', sizeTitle);
         }
         if (PConf.optionsResolvers) {
-            PConf.optionsResolvers.register('apliteLayouts', function () { return APLITE_LAYOUTS.slice(); });
             PConf.optionsResolvers.register('screenRowSizeOptions', sizeOptions);
         }
         if (PConf.hintResolvers) { PConf.hintResolvers.register('batterySaverPauseHint', batterySaverPauseHint); }
         if (PConf.whenResolvers) {
             PConf.whenResolvers.register('manyScreens', function (S, env) {
-                return hasScreens(env) && M.screensOf(S, env).length > 1;
+                return M.screensOf(S).length > 1;
             });
         }
     }
@@ -2680,7 +2657,6 @@ var PConf = (typeof global !== 'undefined' && global.PConf) ? global.PConf
     var api = {
         CSS: CSS,
         NAMES: NAMES,
-        APLITE_LAYOUTS: APLITE_LAYOUTS,
         TOO_TALL: TOO_TALL,
         NOTHING_YET: NOTHING_YET,
         NO_ROOM_FOR_CLOCK: NO_ROOM_FOR_CLOCK,
@@ -2688,7 +2664,6 @@ var PConf = (typeof global !== 'undefined' && global.PConf) ? global.PConf
         TEMPLATE_NOTE: TEMPLATE_NOTE,
         REORDER_HINT: REORDER_HINT,
         ROWS_HINT: ROWS_HINT,
-        hasScreens: hasScreens,
         ensureCustom: ensureCustom,
         applyModes: applyModes,
         editScreens: editScreens,

@@ -84,10 +84,10 @@ test('a fresh install starts on the Default screen alone, the rain alert on, and
     ['countdown', 'off', 'off', 'graph']);
   assert.equal(read.forecastHours, '48', 'the new install\'s long span (emery\'s; dormant elsewhere)');
   const env = { platform: 'basalt', radar: true, health: true, onDemand: true };
-  assert.equal(VC.resolveViewCycle(read, env).length, 1, 'the Default screen alone');
-  assert.deepEqual(M.screensOf(read, env), [[{ k: 'strip' }, { k: 'cal', rows: '2' }, { k: 'clock' }, { k: 'fcbar' },
+  assert.equal(VC.resolveViewCycle(read).length, 1, 'the Default screen alone');
+  assert.deepEqual(M.screensOf(read), [[{ k: 'strip' }, { k: 'cal', rows: '2' }, { k: 'clock' }, { k: 'fcbar' },
     { k: 'fc', size: 'fill' }]], 'today\'s compact calendar Default');
-  assert.deepEqual(M.deriveModes(read, env), { radarMode: 'countdown', healthMode: 'off' },
+  assert.deepEqual(M.deriveModes(read), { radarMode: 'countdown', healthMode: 'off' },
     'the modes the screens work out are the shipped ones: Rain ticked on the Watch bar fetches the radar');
 });
 
@@ -104,7 +104,7 @@ test('an existing install that lacks the 2.6 keys keeps its three screens and it
     ['graph', 'all', 'uv', 'axis']);
   assert.equal(read.forecastHours, '24', 'the 24 hours it drew, not a new install\'s long span');
   const env = { platform: 'basalt', radar: true, health: true, onDemand: true };
-  assert.equal(VC.resolveViewCycle(read, env).length, 3, 'the Default, Health and Rain radar screens');
+  assert.equal(VC.resolveViewCycle(read).length, 3, 'the Default, Health and Rain radar screens');
 });
 
 test('an existing install that stores the changed keys keeps them either way', () => {

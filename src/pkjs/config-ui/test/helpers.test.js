@@ -1,7 +1,6 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const color = require('../../lib/color.js');
-const platform = require('../../config-ui/lib/platform.js');
 const defaults = require('../lib/defaults.js');
 
 const FIXTURE = { tabs: [ { id: 't', label: 'T', sections: [ { title: 'S', items: [
@@ -16,14 +15,6 @@ test('color int<->hex round-trips; no padStart trap at 0', () => {
     assert.equal(color.hexToInt(color.intToHex(n)), n, 'round-trip ' + n));
   assert.equal(color.intToHex(0), '#000000');
   assert.equal(color.intToHex(0x0055AA), '#0055AA');
-});
-
-test('computeEnv: every env is the Pebble Time 2\'s, whatever watchInfo says', () => {
-  const emery = { color: true, platform: 'emery', health: true, radar: true, themePolarity: true, hr: true,
-    thresholds: true, colorBacklight: true, lineStyles: true, onDemand: true, fineBattery: true,
-    forecastSpan: true, graphStyles: true, extraBars: true };
-  [undefined, null, {}, { platform: 'emery' }, { platform: 'basalt' }].forEach((wi) =>
-    assert.deepEqual(platform.computeEnv(wi), emery, JSON.stringify(wi)));
 });
 
 test('deriveDefaults/deriveColorKeys are schema-driven (colors as ints)', () => {

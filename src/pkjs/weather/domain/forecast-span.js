@@ -40,23 +40,21 @@ var SENT_HOURS = {
 
 /**
  * The hours the phone fetches and sends to this watch: the hours of its signature() token
- * (14 / 24 / 68; 26 for 24 h with no left axis), else 24 without env.forecastSpan. So the
- * hours sent and the render signature cannot disagree.
+ * (14 / 24 / 68; 26 for 24 h with no left axis). So the hours sent and the render
+ * signature cannot disagree.
  * @param {?Object} settings Clay settings.
- * @param {?Object} env config-ui/lib/platform.js computeEnv() result.
  * @returns {number} 14, 24, 26 or 68.
  */
-function hours(settings, env) {
-    return (env && env.forecastSpan) ? SENT_HOURS[signature(settings)] : DAY_HOURS;
+function hours(settings) {
+    return SENT_HOURS[signature(settings)];
 }
 
 /**
  * The most hours this watch is ever sent (the inbox budget's span).
- * @param {?Object} env config-ui/lib/platform.js computeEnv() result.
- * @returns {number} 68 on a span watch, else 24.
+ * @returns {number} 68.
  */
-function maxHours(env) {
-    return (env && env.forecastSpan) ? hourlyWindow.MAX_FORECAST_HOURS : DAY_HOURS;
+function maxHours() {
+    return hourlyWindow.MAX_FORECAST_HOURS;
 }
 
 /**
@@ -83,7 +81,6 @@ module.exports = {
     DAY_WIDE_HOURS: DAY_WIDE_HOURS,
     storedHours: storedHours,
     hours: hours,
-    option: spanHours.option,
     maxHours: maxHours,
     signature: signature
 };

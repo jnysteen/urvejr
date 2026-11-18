@@ -20,7 +20,6 @@
 const assert = require('node:assert/strict');
 const vm = require('vm');
 const schema = require('../../src/pkjs/page/settings/schema.js');
-const platformLib = require('../../src/pkjs/config-ui/lib/platform.js');
 
 // A select trigger as engine.js renderSelectTrigger writes it; the groups the fake below
 // reads and rewrites are 2 (the data-select key), 4 (the aria-label) and 6 (the label).
@@ -240,7 +239,7 @@ function bootGeneratedPage(cfg, platformName, opts) {
   opts = opts || {};
   const html = require('../../src/pkjs/config-ui/scripts/build-page.js').previewPage({
     appFiles: require('../../scripts/build-config-page.js').APP_FILES,
-    schema, env: platformLib.computeEnv({ platform: platformName || 'emery' }),
+    schema, env: {},
     // An installed, already-onboarded config: the real boot injects a seeded blob,
     // and without onboardingDone the first-run wizard would auto-open over the page
     // (wizard.js shouldShow). A caller can still pass onboardingDone: false.

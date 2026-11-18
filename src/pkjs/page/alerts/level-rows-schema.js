@@ -170,8 +170,8 @@ function nextDayMarkOptions() {
 // contract module (status-thresholds.js) — the same source the watch packs with,
 // so the UI can never disagree about which way is worse.
 // `gate` (optional showWhen) hides kinds that can't appear in any slot (health
-// on aplite / with health off); color pickers additionally hide on B&W
-// (capability + bw theme).
+// with health off); color pickers additionally hide on a B&W
+// theme.
 // The group has ONE home per kind: the goal kinds' slot sheet
 // (schema.js goalSlotSheet, below the slot's Bold row), and for the five alert kinds the
 // alert sheet their Alerts-tab row opens (alerts-schema.js alertSheet) — their slot
@@ -325,8 +325,7 @@ function levelLook(keyStem, voice, gate, offWhen, joinsAbove, moreLook) {
         displayFrom: {resolver: 'thresholdColor', args: {keyStem: keyStem, which: 'Warn'}},
         joinPrevious: true,
         more: true,
-        capabilities: ['COLOR'],
-        // colorWhen (gate + color-capable theme) composed with the warn look — a
+        // colorWhen (gate + a colour theme) composed with the warn look — a
         // look of 'none' draws no box to colour.
         showWhen: {all: [colorWhen, {not: {key: 'thresh' + keyStem + 'WarnLook', eq: 'none'}}]},
         disabledWhen: offWhen
@@ -338,7 +337,6 @@ function levelLook(keyStem, voice, gate, offWhen, joinsAbove, moreLook) {
         displayFrom: {resolver: 'thresholdColor', args: {keyStem: keyStem, which: 'Danger'}},
         joinPrevious: true,
         more: true,
-        capabilities: ['COLOR'],
         showWhen: colorWhen,
         disabledWhen: offWhen
     }];

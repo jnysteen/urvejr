@@ -89,31 +89,26 @@
 
     /**
      * Whether a feels-like or dew point line is drawn: one of the forecast lines draws a
-     * temperature-axis metric (line-style.js firstDrawnLine). The Third and Fourth metric
-     * lines (fourthLine / fifthLine) count only where the watch draws them (env.lineStyles,
-     * read truthy as when-resolvers.js hostLine reads it), so the settings gate, the wire and
-     * the preview agree.
+     * temperature-axis metric (line-style.js firstDrawnLine), so the settings gate, the wire
+     * and the preview agree.
      * @param {?Object} s Clay settings.
-     * @param {?Object} env computeEnv() result (only its lineStyles is read).
      * @returns {boolean}
      */
-    function tempAxisLineDrawn(s, env) {
-        return lineStyle.firstDrawnLine(s, Boolean(env && env.lineStyles),
-            lineStyle.isTempAxisMetric) !== null;
+    function tempAxisLineDrawn(s) {
+        return lineStyle.firstDrawnLine(s, lineStyle.isTempAxisMetric) !== null;
     }
 
     /**
      * The options as drawn, dormant values read as their defaults (the wire's and the settings
      * preview's reading).
      * @param {?Object} s Clay settings.
-     * @param {?Object} env computeEnv() result.
      * @returns {{numbers: string, scale: boolean}}
      */
-    function resolved(s, env) {
+    function resolved(s) {
         var nums = numbers(s);
         return {
             numbers: nums,
-            scale: nums !== OFF && scale(s) && tempAxisLineDrawn(s, env)
+            scale: nums !== OFF && scale(s) && tempAxisLineDrawn(s)
         };
     }
 
@@ -121,11 +116,10 @@
      * The options' bits of the CLAY_LARGE_GRAPH_FONT word (never bit 0 or a retired bit:
      * within 0x2C): 0 exactly when the graph is today's.
      * @param {?Object} s Clay settings.
-     * @param {?Object} env computeEnv() result.
      * @returns {number}
      */
-    function wireBits(s, env) {
-        var a = resolved(s, env);
+    function wireBits(s) {
+        var a = resolved(s);
         return (a.numbers === GRAPH ? BIT.NUMS_GRAPH : 0)
             | (a.numbers === OFF ? BIT.NUMS_OFF : 0)
             | (a.scale ? BIT.SCALE : 0);
@@ -136,10 +130,9 @@
      * stored on. Deliberately blind to the numbers and the lines: with no line
      * drawn the scale's ends are the air's, and a numbers flip never re-bakes them.
      * @param {?Object} s Clay settings.
-     * @param {?Object} env computeEnv() result.
      * @returns {boolean}
      */
-    function bakesScale(s, env) {
+    function bakesScale(s) {
         return scale(s);
     }
 
@@ -151,7 +144,7 @@
      * @returns {string} '' or 'scale'.
      */
     function signature(s) {
-        return (scale(s) && tempAxisLineDrawn(s, { lineStyles: true })) ? 'scale' : '';
+        return (scale(s) && tempAxisLineDrawn(s)) ? 'scale' : '';
     }
 
     var api = {

@@ -1,12 +1,11 @@
 // test/page/settings/config-warn-look-save.test.js — the warn look's "absent = the watch's own
 // default" contract, end to end: the REAL generated page saves, the phone stores the
 // response the way index.js does (parseResponse, saved wholesale) and re-seeds on the
-// next boot, and the packer builds CLAY_THRESHOLDS_UINT8 for another watch.
+// next boot, and the packer builds CLAY_THRESHOLDS_UINT8.
 //
-// One phone can drive a colour and a B&W watch from a single PKJS store. The look's
-// default is per platform (fill on colour, outline on B&W, outline for goal kinds), so
-// a save must not store the default it hydrated, or the first watch configured would
-// hand its default to the other (thresh<K>WarnLook's defaultFrom is sticky: false).
+// The look's default is per kind (fill, outline for goal kinds). A save does not store the
+// default it hydrated (thresh<K>WarnLook's defaultFrom is sticky: false), so a later
+// change of the default reaches every install that never picked a look.
 'use strict';
 const test = require('node:test');
 const assert = require('node:assert/strict');
@@ -87,11 +86,11 @@ function pickLook(page, stem, look) {
   assert.equal(page.S[key], look);
 }
 
-test('a colour-watch save leaves every warn look absent, so a B&W watch packs its outline', async () => {
+test('a save leaves every default warn look absent, and the packer packs the default', async () => {
   const page = bootGeneratedPage({ provider: 'dwd' }, 'emery');
   STEMS.forEach(stem => {
     assert.equal(page.S['thresh' + stem + 'WarnLook'], thresholds.isGoalKind(stem) ? 'outline' : 'fill',
-      stem + ': the page shows the colour watch\'s default');
+      stem + ': the page shows the default');
   });
   const saved = await page.save();
   STEMS.forEach(stem => {
@@ -101,11 +100,9 @@ test('a colour-watch save leaves every warn look absent, so a B&W watch packs it
   STEMS.forEach(stem => {
     assert.ok(!has(stored, 'thresh' + stem + 'WarnLook'), stem + ': still absent after the next boot');
   });
-  assert.deepEqual(packedLooks(wire.buildSettingsBlob(stored, { color: false })),
-    looksBy(() => 'outline'), 'the B&W watch packs its own default: outline everywhere');
-  assert.deepEqual(packedLooks(wire.buildSettingsBlob(stored, { color: true })),
+  assert.deepEqual(packedLooks(wire.buildSettingsBlob(stored)),
     looksBy(stem => (thresholds.isGoalKind(stem) ? 'outline' : 'fill')),
-    'the colour watch keeps fill for its weather kinds');
+    'fill for the weather kinds, outline for the goal kinds');
 });
 
 test('a look picked off the default is saved; picking the default back drops it', async () => {
@@ -115,10 +112,10 @@ test('a look picked off the default is saved; picking the default back drops it'
   const saved = await page.save();
   assert.equal(saved.threshUvWarnLook, 'outline', 'a pick that differs from the default is saved');
   const stored = storeOnPhone(saved);
-  assert.equal(packedLooks(wire.buildSettingsBlob(stored, { color: true })).Uv, 'outline');
+  assert.equal(packedLooks(wire.buildSettingsBlob(stored)).Uv, 'outline');
 
   // Back to Fill, and a Wind look a save stored before the key went non-sticky: both
-  // equal the colour default, so the save drops them and they resolve per watch again.
+  // equal the default, so the save drops them and they resolve to it again.
   const again = bootGeneratedPage({ provider: 'dwd', threshUvWarnLook: 'outline', threshWindWarnLook: 'fill' },
     'emery');
   openAlertSheet(again, 'Uv');
@@ -126,8 +123,8 @@ test('a look picked off the default is saved; picking the default back drops it'
   const resaved = await again.save();
   assert.ok(!has(resaved, 'threshUvWarnLook'), 'picking the default back is not saved');
   assert.ok(!has(resaved, 'threshWindWarnLook'), 'a stored default is dropped by the next save');
-  const bw = packedLooks(wire.buildSettingsBlob(storeOnPhone(resaved), { color: false }));
-  assert.equal(bw.Uv, 'outline');
-  assert.equal(bw.Wind, 'outline');
+  const packed = packedLooks(wire.buildSettingsBlob(storeOnPhone(resaved)));
+  assert.equal(packed.Uv, 'fill');
+  assert.equal(packed.Wind, 'fill');
 });
 

@@ -24,7 +24,6 @@
 var VC = require('../../../layout/domain/view-cycle.js');
 var screens = require('../../../layout/domain/screens.js');
 var catalog = require('../../../status-bars/domain/status-line-catalog.js');
-var platformLib = require('../../../config-ui/lib/platform.js');
 
 /**
  * The views a 2.5 watch drew for a custom layout: buildCustomCycle with the Radar bar
@@ -83,14 +82,13 @@ function keysOf(cycle, S) {
  * @param {Object} blob Settings, mutated.
  * @param {{top: boolean, forecast: boolean, radar: boolean, health: boolean}} bars The bars
  *   2.5 drew (view-cycle.js barsIn of its views).
- * @param {Object} env Platform env.
  * @returns {boolean} whether a slot changed
  */
-function emptyHealthSlots(blob, bars, env) {
+function emptyHealthSlots(blob, bars) {
     var changed = false;
     catalog.LINES.forEach(function (line) {
         if (!bars[line.id]) { return; }
-        catalog.healthSlots(blob, line.id, env).forEach(function (key) {
+        catalog.healthSlots(blob, line.id).forEach(function (key) {
             blob[key] = 'empty';
             changed = true;
         });
@@ -104,16 +102,15 @@ function emptyHealthSlots(blob, bars, env) {
  * Since 3.0.0's named bars a custom layout's bars need no mode, but the move keeps what it
  * sent 2.6's way, so a 2.5 install is sent nothing new; its next Save works the modes out.
  * @param {Object} blob Settings (a custom layout).
- * @param {Object} env Platform env.
  * @returns {{radarMode: string, healthMode: string}}
  */
-function modesOf26(blob, env) {
-    var modes = screens.deriveModes(blob, env);
-    var shown = VC.barsShown(blob, env);
-    if (shown.radar && env.radar !== false && blob.radarEnabled !== false && modes.radarMode !== 'graph') {
+function modesOf26(blob) {
+    var modes = screens.deriveModes(blob);
+    var shown = VC.barsShown(blob);
+    if (shown.radar && blob.radarEnabled !== false && modes.radarMode !== 'graph') {
         modes.radarMode = 'status';
     }
-    if (shown.health && env.health !== false && modes.healthMode !== 'all') { modes.healthMode = 'status'; }
+    if (shown.health && modes.healthMode !== 'all') { modes.healthMode = 'status'; }
     return modes;
 }
 
@@ -121,11 +118,10 @@ function modesOf26(blob, env) {
  * The CLAY_VIEW words and the two modes the settings send, to tell whether the move needs a
  * send.
  * @param {Object} S Settings.
- * @param {Object} env Platform env.
  * @returns {string} a comparable fingerprint
  */
-function wireOf(S, env) {
-    return VC.resolveViewCycle(S, env).map(function (v) { return VC.packWire(v || null); }).join(',')
+function wireOf(S) {
+    return VC.resolveViewCycle(S).map(function (v) { return VC.packWire(v || null); }).join(',')
         + '|' + (S.radarMode || 'graph') + '|' + (S.healthMode || 'off');
 }
 
@@ -140,23 +136,22 @@ function migrateToScreens(blob) {
     var before = JSON.stringify(blob);
     // seedDefaults has already backfilled the new key's default (on); this sets it once.
     blob.radarEnabled = oldRadar !== 'off';
-    var env = platformLib.computeEnv();
-    var wireBefore = wireOf(blob, env);
+    var wireBefore = wireOf(blob);
     var custom = blob.layoutPreset === 'custom';
     // The views 2.5 drew: a custom layout as its modes folded it, a preset as its cycle.
-    var cycle = custom ? legacyCycle(blob) : VC.resolveViewCycle(blob, env);
-    if (oldHealth === 'off') { emptyHealthSlots(blob, VC.barsIn(cycle), env); }
+    var cycle = custom ? legacyCycle(blob) : VC.resolveViewCycle(blob);
+    if (oldHealth === 'off') { emptyHealthSlots(blob, VC.barsIn(cycle)); }
     Object.assign(blob, keysOf(cycle, blob));
     blob.layoutPreset = 'custom';
     blob.customLayoutSeeded = true;
-    var modes = modesOf26(blob, env);
+    var modes = modesOf26(blob);
     if (modes.healthMode === 'off' && oldHealth === 'slot') { modes.healthMode = 'slot'; }
     if (modes.radarMode === 'off' && oldRadar === 'countdown' && blob.radarEnabled) {
         modes.radarMode = 'countdown';
     }
     blob.radarMode = modes.radarMode;
     blob.healthMode = modes.healthMode;
-    return { changed: JSON.stringify(blob) !== before, send: wireOf(blob, env) !== wireBefore };
+    return { changed: JSON.stringify(blob) !== before, send: wireOf(blob) !== wireBefore };
 }
 
 module.exports = {

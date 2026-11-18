@@ -53,7 +53,7 @@ test('no settings supplier: onSuccess runs at once and nothing is sent', () => {
   storage = {};
   const sends = [];
   statusRebake.init(withHost({ sendWeather: (p) => sends.push(p), buildStatusLines: fakeBake }));
-  statusRebake.rememberBakeInputs({ CITY: 'Bonn' }, null);
+  statusRebake.rememberBakeInputs({ CITY: 'Bonn' });
   const cb = callbacks();
   statusRebake.resendStatus('test', cb.ok, cb.fail);
   assert.deepEqual(cb.log, ['ok']);
@@ -68,7 +68,7 @@ test('the outbox\'s callbacks are forwarded: ACK runs onSuccess, NACK onFailure'
     buildStatusLines: fakeBake,
     sendWeather: (p, onSuccess, onFailure) => sends.push({ p, onSuccess, onFailure })
   }));
-  statusRebake.rememberBakeInputs({ CITY: 'Bonn' }, null);
+  statusRebake.rememberBakeInputs({ CITY: 'Bonn' });
   const cb = callbacks();
   assert.equal(statusRebake.resendStatus('test', cb.ok, cb.fail), true);
   assert.deepEqual(cb.log, [], 'nothing runs before the watch answers');
@@ -86,7 +86,7 @@ test('a bake that throws runs onFailure and sends nothing', () => {
     buildStatusLines: () => { throw new Error('boom'); },
     sendWeather: (p) => sends.push(p)
   }));
-  statusRebake.rememberBakeInputs({ CITY: 'Bonn' }, null);
+  statusRebake.rememberBakeInputs({ CITY: 'Bonn' });
   const cb = callbacks();
   assert.doesNotThrow(() => statusRebake.resendStatus('test', cb.ok, cb.fail));
   assert.deepEqual(cb.log, ['fail'], 'the chain behind it still runs');
@@ -101,7 +101,7 @@ test('through the real outbox: an unchanged status category skips the send and s
   };
   statusRebake.init(withHost({ getSettings: () => ({}), buildStatusLines: fakeBake,
     sendWeather: require('../../../src/pkjs/wire/adapter/outbox.js').sendWeather }));
-  statusRebake.rememberBakeInputs({ CITY: 'Bonn' }, null);
+  statusRebake.rememberBakeInputs({ CITY: 'Bonn' });
   const cb = callbacks();
   statusRebake.resendStatus('first', cb.ok, cb.fail);
   statusRebake.resendStatus('again', cb.ok, cb.fail);
@@ -121,7 +121,7 @@ test('the backstop keeps what alerts look ahead to: a restart re-bakes Days and 
   statusRebake.rememberBakeInputs({
     CITY: 'Bonn', UV_TREND_UINT8: [20], UV_DAY_PEAKS: [30, 90, 0],
     POLLEN_TODAY: '1', POLLEN_TOMORROW: '3'
-  }, null);
+  });
   const KEYS = require('../../../src/pkjs/settings/domain/storage-keys.js');
   const stored = JSON.parse(storage[KEYS.PHONE_BATTERY_SNAPSHOT]).payload;
   assert.deepEqual(stored.UV_DAY_PEAKS, [30, 90, 0], 'tomorrow\'s UV peak is in the backstop');
@@ -160,7 +160,7 @@ test('onTick re-bakes once at sunset and once at sunrise, and not in between', (
   statusRebake.init(withHost({ getSettings: () => ({}), sendWeather: (p) => sends.push(p),
     buildStatusLines: fakeBake, now: () => now }));
   assert.equal(statusRebake.onTick(), false, 'no snapshot yet: nothing to re-bake');
-  statusRebake.rememberBakeInputs({ SUN_EVENTS: sunEvents(1, SUNSET, SUNRISE) }, null);
+  statusRebake.rememberBakeInputs({ SUN_EVENTS: sunEvents(1, SUNSET, SUNRISE) });
   assert.equal(statusRebake.onTick(), false, 'still the day the fetch baked');
   now = (SUNSET - 1) * 1000;
   assert.equal(statusRebake.onTick(), false);
@@ -182,7 +182,7 @@ test('onTick after a restart sends nothing until the next sunset', () => {
   const opts = { getSettings: () => ({}), sendWeather: (p) => sends.push(p),
     buildStatusLines: fakeBake, now: () => now };
   statusRebake.init(withHost(opts));
-  statusRebake.rememberBakeInputs({ SUN_EVENTS: sunEvents(1, T + 3600, T + 13 * 3600) }, null);
+  statusRebake.rememberBakeInputs({ SUN_EVENTS: sunEvents(1, T + 3600, T + 13 * 3600) });
   statusRebake.init(withHost(opts));   // PKJS restarted
   assert.equal(statusRebake.onTick(), false, 'no resend of the old snapshot on the return');
   now = (T + 3600) * 1000;
@@ -197,7 +197,7 @@ test('a resend for another reason counts as the bake of its side of sunset', () 
   const sends = [];
   statusRebake.init(withHost({ getSettings: () => ({}), sendWeather: (p) => sends.push(p),
     buildStatusLines: fakeBake, now: () => now }));
-  statusRebake.rememberBakeInputs({ SUN_EVENTS: sunEvents(1, T + 3600, T + 13 * 3600) }, null);
+  statusRebake.rememberBakeInputs({ SUN_EVENTS: sunEvents(1, T + 3600, T + 13 * 3600) });
   now = (T + 7200) * 1000;
   statusRebake.resendStatus('charging');
   assert.equal(statusRebake.onTick(), false, 'the charging resend already baked the night');
@@ -214,7 +214,7 @@ test('the battery saver: no sunrise or sunset re-bake inside its window; the fir
   const settings = { sleepNightEnabled: true, sleepStartHour: '0', sleepEndHour: '7' };
   statusRebake.init(withHost({ getSettings: () => settings, sendWeather: (p) => sends.push(p),
     buildStatusLines: fakeBake, now: () => now }));
-  statusRebake.rememberBakeInputs({ SUN_EVENTS: sunEvents(0, SUNRISE, SUNSET) }, null);
+  statusRebake.rememberBakeInputs({ SUN_EVENTS: sunEvents(0, SUNRISE, SUNSET) });
   now = SUNRISE * 1000;
   assert.equal(statusRebake.onTick(false), false, 'sunrise inside [0, 7): nothing goes out');
   now = at(6, 59);
@@ -237,11 +237,11 @@ test('a tick with a fetch in flight leaves the sunset to that fetch\'s bake', ()
   statusRebake.init(withHost({ getSettings: () => ({}), sendWeather: (p) => sends.push(p),
     buildStatusLines: fakeBake, now: () => now }));
   const payload = { SUN_EVENTS: sunEvents(1, SUNSET, T + 13 * 3600) };
-  statusRebake.rememberBakeInputs(payload, null);
+  statusRebake.rememberBakeInputs(payload);
   now = SUNSET * 1000;
   assert.equal(statusRebake.onTick(true), false, 'the fetch in flight bakes the night');
   assert.equal(sends.length, 0);
-  statusRebake.rememberBakeInputs(payload, null, new Date(now));   // ...and it did
+  statusRebake.rememberBakeInputs(payload, new Date(now));   // ...and it did
   assert.equal(statusRebake.onTick(false), false, 'nothing left to turn');
   // A fetch that never bakes (it failed) leaves it to the next tick without one.
   now = (T + 13 * 3600) * 1000;

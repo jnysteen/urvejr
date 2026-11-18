@@ -173,7 +173,7 @@
    * Phone-side availability gate. The watch never gates.
    * @param {Object} item catalog entry
    * @param {Object} settings Clay settings blob
-   * @param {Object} env {color, platform, health, radar, hr, phoneBattery}
+   * @param {Object} env {phoneBattery}: the phone's facts
    * @param {Object} [slotCtx] {slotKey, position: 'left'|'mid'|'right'} of the
    *   slot being resolved; position-gated items are unavailable without it
    * @returns {boolean}
@@ -182,10 +182,6 @@
     if (!item) { return false; }
     if (item.middleOnly && (!slotCtx || slotCtx.position !== 'mid')) { return false; }
     if (item.topRightOnly && (!slotCtx || slotCtx.slotKey !== 'statusTopRight')) { return false; }
-    // Health items need the watch's health. Not healthMode: since 2.6 it follows the screens
-    // and the slots (screens.js deriveModes), so a slot can pick a health item in any mode.
-    if (item.needsHealth && (!env || !env.health)) { return false; }
-    if (item.needsHr && (!env || !env.hr)) { return false; }
     // The phone's battery is readable only where the PKJS host exposes the
     // Battery Status API — Android's Chromium WebView, never iOS's
     // JavaScriptCore and never the emulator. env.phoneBattery carries that
@@ -295,18 +291,17 @@
    * code is on screen anywhere. So a slot on a bar no screen shows fetches nothing, and an
    * unset slot fetches what the watch draws in it.
    * @param {Object} settings Clay settings blob
-   * @param {?Object} [env] platform env (omitted: capable, the base flavor)
    * @returns {string[]} the effective slot codes (stored or line default), three per line
    */
-  function selectedCodes(settings, env) {
+  function selectedCodes(settings) {
     var out = [];
-    var lines = bakedLines(settings, env);
+    var lines = bakedLines(settings);
     for (var l = 0; l < lines.length; l++) {
       var line = lines[l];
       for (var s = 0; s < line.slots.length; s++) {
         var key = line.slots[s];
         var v = settings && settings[key];
-        out.push(v || slotDefault(key, env));
+        out.push(v || slotDefault(key));
       }
     }
     return out;
@@ -335,14 +330,12 @@
    * last one it had (status_bar.c loads no row for it); the save that puts it on a screen
    * re-bakes at once (status-rebake.js) and fetches what its slots need (render-signature.js).
    * @param {Object} settings Clay settings blob
-   * @param {?Object} [env] platform env (omitted: capable)
    * @returns {Array<Object>} LINES and EXTRA_LINES entries, in wire order
    */
-  function bakedLines(settings, env) {
-    var shown = VC.barsShown(settings, env);
+  function bakedLines(settings) {
+    var shown = VC.barsShown(settings);
     return ALL_LINES.filter(function (line) {
       if (line.id === 'top') { return true; }
-      if ((line.id === 'radar' || line.id === 'health') && env && env[line.id] === false) { return false; }
       return Boolean(shown[line.id]);
     });
   }
@@ -374,10 +367,9 @@
    * here — the settings page (statusSlotDefault), the per-row reset, and the phone's bake
    * (status-lines.js packLine).
    * @param {string} slotKey slot settings key (e.g. 'statusHealthRight')
-   * @param {Object} [env] platform env; unused
    * @returns {string|undefined} default item code, or undefined for an unknown slotKey
    */
-  function slotDefault(slotKey, env) {
+  function slotDefault(slotKey) {
     for (var l = 0; l < ALL_LINES.length; l++) {
       var line = ALL_LINES[l];
       if (line.slots.indexOf(slotKey) === -1) { continue; }
@@ -424,13 +416,12 @@
    * migration's emptied slots (settings/domain/migrations/screens.js) ask this.
    * @param {Object} S Settings.
    * @param {string} lineId A LINES id.
-   * @param {?Object} [env] Platform env (slotDefault's).
    * @returns {Array<string>} the slot keys
    */
-  function healthSlots(S, lineId, env) {
+  function healthSlots(S, lineId) {
     var line = lineById(lineId);
     return (line ? line.slots : []).filter(function (key) {
-      var item = byCode((S || {})[key] || slotDefault(key, env));
+      var item = byCode((S || {})[key] || slotDefault(key));
       return Boolean(item && item.needsHealth);
     });
   }
@@ -524,13 +515,12 @@
    * forecast-series.js dayPeakCodes, so this catalog stays alert-agnostic.
    * @param {Object} settings Clay settings blob.
    * @param {string} kind A DAY_MAX_KINDS entry.
-   * @param {?Object} [env] platform env (omitted: capable)
    * @returns {boolean}
    */
-  function dayMaxInUse(settings, kind, env) {
+  function dayMaxInUse(settings, kind) {
     if (!settings) { return false; }
     var mode = settings[kind + 'SlotDisplay'];
-    return (mode === 'max' || mode === 'both') && selectedCodes(settings, env).indexOf(kind) !== -1;
+    return (mode === 'max' || mode === 'both') && selectedCodes(settings).indexOf(kind) !== -1;
   }
 
   /**

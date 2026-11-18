@@ -1,6 +1,5 @@
 var rainTier = require('../../forecast-graphs/domain/rain-tier');
 var lineStyle = require('../../forecast-graphs/domain/line-style.js');   // LINE_COLORS/FILL_COLORS + the resolved line styling
-var platforms = require('../../config-ui/lib/platform.js');   // computeEnv
 var statusCatalog = require('../../status-bars/domain/status-line-catalog.js');
 // alertOn — whether a metric's alert is placed on a status bar (On demand), which the
 // fetch gates below add to what the slots and lines ask for.
@@ -257,12 +256,11 @@ function pressurePermille(arr, scale) {
  * effectiveLineMetric: an off line, or one repeating an earlier line's pick, draws
  * nothing and so widens nothing.
  * @param {Object} settings Clay settings.
- * @param {Object} [watchInfo] getActiveWatchInfo() result; unused.
  * @param {string} metric 'feels' | 'dew'.
  * @returns {boolean} True when the line is selected and the watch draws it.
  */
-function tempAxisLineDrawn(settings, watchInfo, metric) {
-    return lineStyle.firstDrawnLine(settings, true,
+function tempAxisLineDrawn(settings, metric) {
+    return lineStyle.firstDrawnLine(settings,
         function (m) { return m === metric; }) !== null;
 }
 
@@ -399,20 +397,16 @@ function rowBytes(metric, stripe, raw, settings, bands, all) {
  * settings-derived, so they ride the Clay settings message instead — see
  * line-style.js and clay-payload.js's CLAY_LINE_STYLE_UINT8. The style reaches the
  * values in one place: a line drawn as a stripe sends level bytes (stripeBytes). The
- * watch facts the values read — which lines the watch draws, for the band a wind
- * and a gust line both drawn Show: Alert share, and whether it draws the line styles
- * (raw.lineStyles) — arrive on raw
- * from applyForecastSeries, the way the temp axis band does; without them the values
- * are those of a watch that draws every line and style and has Alert settings.
+ * Show: Alert lines' bands arrive on raw from applyForecastSeries, the way the temp axis
+ * band does.
  *
- * @param {{precips:number[], clouds:number[], rains:number[], winds:number[], gusts:number[], uvs:number[], pressures:number[], feels:number[], dews:Array, tempBand:Object, alertBands:Object, lineStyles:boolean}} raw Raw series (+ the temp axis band the feels and dew metrics share, the Show: Alert lines' bands, line-alert.js alertBands, and whether the watch draws the line styles).
+ * @param {{precips:number[], clouds:number[], rains:number[], winds:number[], gusts:number[], uvs:number[], pressures:number[], feels:number[], dews:Array, tempBand:Object, alertBands:Object}} raw Raw series (+ the temp axis band the feels and dew metrics share, and the Show: Alert lines' bands, line-alert.js alertBands).
  * @param {{secondaryLine:string, thirdLine:string, fourthLine:string, fifthLine:string, windScale:string, barSource:string, graphStyleSlots:(Array|undefined)}} settings Settings.
  * @returns {Object} Wire fields (see module interface).
  */
 function buildForecastSeries(raw, settings) {
     var out = {};
-    var bands = raw.alertBands || lineAlert.alertBands(settings, null);
-    var stylesDrawn = raw.lineStyles !== false;
+    var bands = raw.alertBands || lineAlert.alertBands(settings);
     var slots = settings.graphStyleSlots || null;
 
     // One symmetric block per ordered line (line-style.js FORECAST_LINES).
@@ -429,7 +423,7 @@ function buildForecastSeries(raw, settings) {
         // Drawn as a stripe: the watch draws the styles and the line's effective style is
         // a stripe (lineStyleValue never resolves one on a metric that cannot be one, and
         // every metric that can has a scale: stripe-levels.js METRIC_SCALES, pinned equal).
-        var stripe = Boolean(metric) && stylesDrawn && (slots ? slot.stripe
+        var stripe = Boolean(metric) && (slots ? slot.stripe
             : lineStyle.isStripeStyle(settings, lineStyle.FORECAST_LINES[i].styleKey));
         // A graph style's row draws its metric Show: Alert only where its own flag says so: the
         // union may draw it with all its values on another row.
@@ -438,7 +432,7 @@ function buildForecastSeries(raw, settings) {
     // The union's spare row: its series as the lines bake theirs.
     var spare = slots ? slots[lineStyle.FORECAST_LINES.length] : null;
     if (spare) {
-        out.SPARE_LINE_TREND_UINT8 = rowBytes(spare.metric, stylesDrawn && spare.stripe, raw, settings,
+        out.SPARE_LINE_TREND_UINT8 = rowBytes(spare.metric, spare.stripe, raw, settings,
             bands, !spare.alert);
     }
 
@@ -479,16 +473,15 @@ function tempScaleRange(temps, series) {
  * live-fetch and fixture send paths call this so the two can't drift.
  * @param {Object} payload Weather payload with PRECIP_/RAIN_/WIND_/GUST_/UV_TREND_UINT8.
  * @param {Object} settings Clay settings.
- * @param {Object} watchInfo getActiveWatchInfo() result, or null/undefined.
  * @returns {Object} The same payload, raw keys removed and wire keys set.
  */
-function applyForecastSeries(payload, settings, watchInfo) {
+function applyForecastSeries(payload, settings) {
     // The caller (weather/application/render-payload.js) also bakes the status lines and
     // removes their inputs afterwards; this reads some of the same trends and leaves them.
     // From here on the graph's settings: with screens showing several graph styles,
     // the shown styles' union (forecast-graphs/domain/graph-style-wire.js weatherSettings),
     // else the settings themselves.
-    settings = graphStyleWire.weatherSettings(settings, watchInfo);
+    settings = graphStyleWire.weatherSettings(settings);
     // THE one temp encode: getPayload ships whole-degree temps (TEMP_RAW_TREND,
     // transient) and this is where they become wire bytes — with settings in
     // hand. Joint temp∪feels∪dew axis: the curves only read as one graph if they
@@ -508,7 +501,7 @@ function applyForecastSeries(payload, settings, watchInfo) {
     // (text_labels_refresh). So they carry the ACTUAL air temperature range,
     // over the very window the watch's fit reads off the bytes — a "lo" of 52
     // on a day whose air never dropped below 60 would be a plain lie — unless a
-    // known emery has the left axis's 'High/low includes feels-like & dew point' option on
+    // the left axis's 'High/low includes feels-like & dew point' option on
     // (forecast-axis.js bakesScale): then the labels name the temperature
     // scale's ends, the lowest and highest value of the air and of every drawn
     // feels-like / capped dew point line, and the numbers sit at those points
@@ -524,7 +517,7 @@ function applyForecastSeries(payload, settings, watchInfo) {
         uvs: payload.UV_TREND_UINT8, pressures: payload.PRESSURE_TREND };
     var drawnAxis = [];
     lineStyle.TEMP_AXIS_METRIC_IDS.forEach(function (m) {
-        var series = tempAxisLineDrawn(settings, watchInfo, m)
+        var series = tempAxisLineDrawn(settings, m)
             ? (payload[TEMP_AXIS_SERIES[m].payload] || []) : [];
         if (TEMP_AXIS_SERIES[m].atMostTemp) {
             series = series.map(function (v, i) {
@@ -541,16 +534,12 @@ function applyForecastSeries(payload, settings, watchInfo) {
     }
     raw.tempBand = tempBand;
     // The Show: Alert lines' bands, over the lines the watch draws.
-    var env = platforms.computeEnv(watchInfo);
-    raw.alertBands = lineAlert.alertBands(settings, env);
-    // Whether the watch draws the line styles (WW_LINE_STYLE): only then does a line
-    // stored as a stripe take stripe level bytes.
-    raw.lineStyles = env.lineStyles;
-    // emery's left axis (forecast-axis.js): the numbers name the temperature scale's
+    raw.alertBands = lineAlert.alertBands(settings);
+    // The left axis (forecast-axis.js): the numbers name the temperature scale's
     // ends -- the air and every drawn feels-like / capped dew point value, over the window
     // the watch fits (getPayload's payloadEntries hours). tempBand read the air pair above,
     // so no byte changes; with no line drawn the ends are the air's own.
-    if (forecastAxis.bakesScale(settings, env) && rawTemps.length) {
+    if (forecastAxis.bakesScale(settings) && rawTemps.length) {
         var ends = tempScaleRange(rawTemps, drawnAxis);
         if (ends) {
             payload.TEMP_MIN = ends.min;
@@ -591,13 +580,11 @@ function applyForecastSeries(payload, settings, watchInfo) {
  * below; each adds its own line or provider rule.
  * @param {Object} settings Clay settings (non-null).
  * @param {string} code 'uv' | 'aqi' | 'pollen'.
- * @param {?Object} [watchInfo] getActiveWatchInfo() result, or null/undefined.
  * @returns {boolean}
  */
-function metricWanted(settings, code, watchInfo) {
-    var env = platforms.computeEnv(watchInfo);
-    return statusThresholds.alertOn(settings, code, env)
-        || statusCatalog.selectedCodes(settings, env).indexOf(code) !== -1;
+function metricWanted(settings, code) {
+    return statusThresholds.alertOn(settings, code)
+        || statusCatalog.selectedCodes(settings).indexOf(code) !== -1;
 }
 
 /**
@@ -605,15 +592,14 @@ function metricWanted(settings, code, watchInfo) {
  * bake's settings, forecast-graphs/domain/graph-style-wire.js weatherSettings), in a status slot or
  * placed as an alert, so providers fetch it.
  * @param {Object} settings Clay settings.
- * @param {?Object} [watchInfo] getActiveWatchInfo() result, or null/undefined.
  * @returns {boolean} True when any rendered selection needs UV.
  */
-function needsUv(settings, watchInfo) {
+function needsUv(settings) {
     if (!settings) { return false; }
     if (settings.secondaryLine === 'uv' || settings.thirdLine === 'uv'
         || settings.fourthLine === 'uv' || settings.fifthLine === 'uv'
         || settings[lineStyle.SPARE_LINE.key] === 'uv') { return true; }
-    return metricWanted(settings, 'uv', watchInfo);
+    return metricWanted(settings, 'uv');
 }
 
 /**
@@ -624,14 +610,12 @@ function needsUv(settings, watchInfo) {
  * renderSignature, so switching a slot to Day max or placing an alert forces the
  * refetch that starts its record. No stored settings keep no record.
  * @param {Object} settings Clay settings.
- * @param {?Object} [watchInfo] getActiveWatchInfo() result, or null/undefined.
  * @returns {string[]} Codes out of 'uv' | 'wind' | 'gust' | 'aqi'.
  */
-function dayPeakCodes(settings, watchInfo) {
+function dayPeakCodes(settings) {
     if (!settings) { return []; }
-    var env = platforms.computeEnv(watchInfo);
     return statusCatalog.DAY_MAX_KINDS.filter(function (kind) {
-        return statusThresholds.alertOn(settings, kind, env) || statusCatalog.dayMaxInUse(settings, kind, env);
+        return statusThresholds.alertOn(settings, kind) || statusCatalog.dayMaxInUse(settings, kind);
     });
 }
 
@@ -640,12 +624,11 @@ function dayPeakCodes(settings, watchInfo) {
  * is status-only (never a forecast line), so unlike needsUv there is no
  * secondary/third check.
  * @param {Object} settings Clay settings.
- * @param {?Object} [watchInfo] getActiveWatchInfo() result, or null/undefined.
  * @returns {boolean} True when any status slot selects AQI, or its alert is placed.
  */
-function needsAqi(settings, watchInfo) {
+function needsAqi(settings) {
     if (!settings) { return false; }
-    return metricWanted(settings, 'aqi', watchInfo);
+    return metricWanted(settings, 'aqi');
 }
 
 /**
@@ -654,12 +637,11 @@ function needsAqi(settings, watchInfo) {
  * the (sometimes Steadman-computed) apparent-temperature work on this so non-users
  * pay nothing.
  * @param {Object} settings Clay settings.
- * @param {Object} [watchInfo] getActiveWatchInfo() result, or null/undefined.
  * @returns {boolean} True when any rendered selection needs feels-like data.
  */
-function needsFeels(settings, watchInfo) {
+function needsFeels(settings) {
     if (!settings) { return false; }
-    if (tempAxisLineDrawn(settings, watchInfo, 'feels')) { return true; }
+    if (tempAxisLineDrawn(settings, 'feels')) { return true; }
     return Boolean(settings.tempSlotDisplay) && settings.tempSlotDisplay !== 'actual';
 }
 
@@ -667,13 +649,12 @@ function needsFeels(settings, watchInfo) {
  * Whether a DWD status slot selects pollen, or its alert is placed. Pollen is
  * DWD-only and status-only.
  * @param {Object} settings Clay settings.
- * @param {?Object} [watchInfo] getActiveWatchInfo() result, or null/undefined.
  * @returns {boolean} True when the effective provider and slot selection (or the
  *     pollen alert) need pollen.
  */
-function needsPollen(settings, watchInfo) {
+function needsPollen(settings) {
     if (!settings || settings.provider !== 'dwd') { return false; }
-    return metricWanted(settings, 'pollen', watchInfo);
+    return metricWanted(settings, 'pollen');
 }
 
 module.exports = {

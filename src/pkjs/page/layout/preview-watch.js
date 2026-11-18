@@ -118,14 +118,12 @@
     function r1(v) { return Math.round(v * 10) / 10; }
 
     /**
-     * The theme the watch draws: the picked one, or dark on a watch without the light
-     * polarity (aplite), as the Status bars preview reads it.
+     * The theme the watch draws: the picked one, dark without one.
      * @param {Object} S Settings.
-     * @param {Object} env Platform env.
      * @returns {string} 'dark' | 'light' | 'bw' | 'bw-light'.
      */
-    function themeOf(S, env) {
-        return env && env.themePolarity === false ? 'dark' : (S.theme || 'dark');
+    function themeOf(S) {
+        return S.theme || 'dark';
     }
 
     /**
@@ -142,7 +140,7 @@
      *     The top bar's height (0 without one), the status rows' tier and each band's rows.
      */
     function layoutView(spec, f, ink) {
-        var lay = WL.stackLayout(spec, f, ink || clockInk(null, f, false));
+        var lay = WL.stackLayout(spec, f, ink || clockInk(null, f));
         var last = lay.bands[lay.bands.length - 1];
         if (last && last.band === lay.fill) { last.h = SCREEN[f].h - last.y; }
         return { strip: spec.stripOff ? 0 : STRIP[f].h, tier: lay.tier, bands: lay.bands };
@@ -153,12 +151,11 @@
      * offset in the band and the digits' ink height (clockSet's).
      * @param {?Object} S Settings (timeFont), null for Roboto.
      * @param {number} f Screen family.
-     * @param {boolean} bw A black-and-white watch or theme (the 1-bit faces).
      * @returns {{centreOff: number, inkH: number}}
      */
-    function clockInk(S, f, bw) {
+    function clockInk(S, f) {
         var font = S && (S.timeFont === 'leco' || S.timeFont === 'bitham') ? S.timeFont : 'roboto';
-        var row = clockGlyphs ? clockGlyphs.ink[f][font] : null, set = clockSet(font, { f: f, bw: bw });
+        var row = clockGlyphs ? clockGlyphs.ink[f][font] : null, set = clockSet(font, { f: f });
         return { centreOff: row ? row.centreOff : 0, inkH: set ? set.inkH : (f ? 46 : 35) };
     }
 
@@ -256,7 +253,7 @@
      * height, left bearing, top (rows below the set's line top), advance, PNG base64], and the
      * digits' union ink rows (inkTop, inkH: the ink height the band seats, clock_ink.c's).
      * @param {string} font 'roboto' | 'leco' | 'bitham'.
-     * @param {{bw: boolean, f: number}} cx Draw context.
+     * @param {{f: number}} cx Draw context.
      * @returns {?{glyphs: !Array, inkTop: number, inkH: number}}
      */
     function clockSet(font, cx) {
@@ -279,7 +276,7 @@
      * takes them crisp, every alpha cut at half coverage (clock_glyphs.c).
      * @param {Object} S Settings.
      * @param {{x: number, y: number, w: number, h: number}} box The band.
-     * @param {{fg: string, color: boolean, bw: boolean, f: number}} cx Draw context.
+     * @param {{fg: string, color: boolean, f: number}} cx Draw context.
      * @param {string} tag The band's id suffix.
      * @returns {string} SVG markup.
      */
@@ -569,7 +566,7 @@
         if (bar === 'top') { ch = f ? 24 : 18; }
         else {
             var rowFull = Boolean(spec)
-                && layoutView(spec, f, clockInk(S, f, Boolean(env && env.color === false))).tier === VC.TIER_FULL;
+                && layoutView(spec, f, clockInk(S, f)).tier === VC.TIER_FULL;
             ch = f ? (rowFull ? 18 : 24) : (rowFull ? 14 : 18);
         }
         var slots = rowLayout(bars, sc.w - 2 * pad - 2 * ROW_MARGIN, ch, rowIconH(bar === 'top', ch, Infinity), f, watchFamily(env)).slots;
@@ -629,7 +626,7 @@
     function graphBand(kind, S, env, userData, box, tag) {
         var frame;
         if (kind === 'forecast') {
-            var hours = spanHours.shownHours(S, env);
+            var hours = spanHours.shownHours(S);
             // The band at the watch's own scale (forecastPreview opts.watch): u frame units a
             // watch pixel, its hour axis BOTTOM_VIEW_AXIS_H over the band's foot (emery's 10 more
             // for its labels, BOTTOM_VIEW_BOTTOM_PAD, over the window's bottom pad).
@@ -739,11 +736,11 @@
      *     as spoken (describe), and the watch's background it is drawn on.
      */
     function screenSvg(spec, vi, S, env, userData, f, now, idPrefix) {
-        var sc = SCREEN[f], theme = themeOf(S, env), ink = svgLib.previewInk(theme);
-        var cx = { fg: ink.fg, color: resolveInk.drawsColor(env, theme), bw: Boolean(env && env.color === false),
+        var sc = SCREEN[f], theme = themeOf(S), ink = svgLib.previewInk(theme);
+        var cx = { fg: ink.fg, color: resolveInk.drawsColor(theme),
                    f: f, now: now, fullDate: !statusBars.calendarShown(spec),
                    holidays: (userData && userData.holidays) || null };
-        var lay = layoutView(spec, f, clockInk(S, f, cx.bw)), e = '';
+        var lay = layoutView(spec, f, clockInk(S, f)), e = '';
         // The forecast graph draws the screen's graph style, as the watch does (the view's
         // style, where the watch has styles and the style exists); every other band the
         // settings as they are.
@@ -815,10 +812,10 @@
      */
     function watchPreview(S, env, userData) {
         var st = S || {};
-        var views = VC.resolveViewCycle(st, env);
+        var views = VC.resolveViewCycle(st);
         var editable = true;
         var f = 1, now = new Date();
-        var bg = svgLib.previewInk(themeOf(st, env)).bg;
+        var bg = svgLib.previewInk(themeOf(st)).bg;
         var n = 0, figs = '';
         views.forEach(function (spec, i) {
             if (!spec && !editable) { return; }
@@ -852,9 +849,9 @@
      */
     function viewScreen(S, env, i, userData) {
         var st = S || {}, f = 1, sc = SCREEN[f];
-        var spec = VC.resolveViewCycle(st, env)[i] || null;
+        var spec = VC.resolveViewCycle(st)[i] || null;
         if (spec) { return screenSvg(spec, i, st, env, userData || {}, f, new Date(), 've' + i + '-'); }
-        var ink = svgLib.previewInk(themeOf(st, env));
+        var ink = svgLib.previewInk(themeOf(st));
         return { svg: framedSvg(sc.w, sc.h, ink.bg,
             text(sc.w / 2, sc.h / 2 + 4, f ? 15 : 12, ink.rgba('0.6'), 'middle', 600, 'Nothing to show')),
             bg: ink.bg,
@@ -873,9 +870,9 @@
      */
     function fontPicture(S, env, args) {
         var st = Object.assign({}, S || {}, { timeFont: args.value });
-        var theme = themeOf(st, env), ink = svgLib.previewInk(theme);
+        var theme = themeOf(st), ink = svgLib.previewInk(theme);
         var f = 1, w = SCREEN[f].w, h = f ? 64 : 49;
-        var cx = { fg: ink.fg, color: resolveInk.drawsColor(env, theme), bw: Boolean(env && env.color === false), f: f };
+        var cx = { fg: ink.fg, color: resolveInk.drawsColor(theme), f: f };
         return framedSvg(w, h, ink.bg,
             clockBand(st, { x: 0, y: 0, w: w, h: h }, cx, 'tf' + String(args.value).replace(/[^A-Za-z0-9]/g, '') + '-'));
     }

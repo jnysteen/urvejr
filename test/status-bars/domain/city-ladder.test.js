@@ -19,7 +19,6 @@ const cityLadder = require('../../../src/pkjs/status-bars/domain/city-ladder.js'
 const utf8 = require('../../../src/pkjs/lib/utf8.js');
 const statusLines = require('../../../src/pkjs/status-bars/domain/status-lines.js');
 const catalog = require('../../../src/pkjs/status-bars/domain/status-line-catalog.js');
-const platformLib = require('../../../src/pkjs/config-ui/lib/platform.js');
 
 /**
  * The CITY_VECTORS rows of the C test: each is the name, then its abbreviated forms.
@@ -115,7 +114,7 @@ function settings(extra) {
  * @returns {Object[]} the decoded slots
  */
 function bakeTop(city, platform) {
-  const env = platformLib.computeEnv(platform ? { platform } : null);
+  const env = {};
   return decodeLine(statusLines.packLine(TOP, { CITY: city },
     settings({ statusTopLeft: 'city', statusTopMid: 'city', statusTopRight: 'city' }), env, null, bakeEnv(NOW)));
 }

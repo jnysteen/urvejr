@@ -7,9 +7,7 @@ const assert = require('node:assert/strict');
 
 const forecastAxis = require('../../../src/pkjs/forecast-graphs/domain/forecast-axis.js');
 const { readC, cDefine } = require('../../helpers/c-source.js');
-const platform = require('../../../src/pkjs/config-ui/lib/platform.js');
 
-const env = (p) => platform.computeEnv(p === null ? null : { platform: p });
 const LINE_KEYS = ['secondaryLine', 'thirdLine', 'fourthLine', 'fifthLine'];
 const DEFAULTS = { numbers: 'axis', scale: false };
 
@@ -32,36 +30,34 @@ test('readers: absent or junk read the shipped defaults', () => {
   assert.deepEqual(forecastAxis.KEYS, { numbers: 'forecastAxisNumbers', scale: 'forecastAxisScale' });
   // The betas' retired keys are read by nothing: they change no reading.
   const retired = { forecastAxisLine: false, forecastAxisOutline: false };
-  assert.deepEqual(forecastAxis.resolved(retired, env('emery')), DEFAULTS);
-  assert.equal(forecastAxis.wireBits(retired, env('emery')), 0);
+  assert.deepEqual(forecastAxis.resolved(retired), DEFAULTS);
+  assert.equal(forecastAxis.wireBits(retired), 0);
 });
 
-test('tempAxisLineDrawn: a drawn feels-like or dew point line, lines 3-4 only with line styles', () => {
-  const styles = env('emery');
-  assert.equal(forecastAxis.tempAxisLineDrawn({}, styles), false);
-  assert.equal(forecastAxis.tempAxisLineDrawn({ secondaryLine: 'wind', thirdLine: 'uv' }, styles), false);
-  LINE_KEYS.forEach((key, i) => {
+test('tempAxisLineDrawn: a drawn feels-like or dew point line, on any line', () => {
+  assert.equal(forecastAxis.tempAxisLineDrawn({}), false);
+  assert.equal(forecastAxis.tempAxisLineDrawn({ secondaryLine: 'wind', thirdLine: 'uv' }), false);
+  LINE_KEYS.forEach((key) => {
     ['feels', 'dew'].forEach((metric) => {
       const s = {};
       s[key] = metric;
-      assert.equal(forecastAxis.tempAxisLineDrawn(s, styles), true, key + ' ' + metric);
-      assert.equal(forecastAxis.tempAxisLineDrawn(s, {}), i < 2, key + ' ' + metric + ' no fact');
+      assert.equal(forecastAxis.tempAxisLineDrawn(s), true, key + ' ' + metric);
     });
   });
   // A repeated pick draws only its earliest copy, which still counts.
-  assert.equal(forecastAxis.tempAxisLineDrawn({ secondaryLine: 'dew', thirdLine: 'dew' }, styles), true);
-  assert.equal(forecastAxis.tempAxisLineDrawn({ secondaryLine: 'off', fifthLine: 'feels' }, styles), true);
+  assert.equal(forecastAxis.tempAxisLineDrawn({ secondaryLine: 'dew', thirdLine: 'dew' }), true);
+  assert.equal(forecastAxis.tempAxisLineDrawn({ secondaryLine: 'off', fifthLine: 'feels' }), true);
 });
 
 test('resolved: the stored options, dormant ones read as their defaults', () => {
   const all = { forecastAxisNumbers: 'graph', forecastAxisScale: true, secondaryLine: 'dew' };
-  assert.deepEqual(forecastAxis.resolved({}, env('emery')), DEFAULTS);
-  assert.deepEqual(forecastAxis.resolved(all, env('emery')), { numbers: 'graph', scale: true });
+  assert.deepEqual(forecastAxis.resolved({}), DEFAULTS);
+  assert.deepEqual(forecastAxis.resolved(all), { numbers: 'graph', scale: true });
   // The scale is dormant with the numbers off or no feels-like / dew point line.
-  assert.equal(forecastAxis.resolved({ forecastAxisScale: true }, env('emery')).scale, false);
+  assert.equal(forecastAxis.resolved({ forecastAxisScale: true }).scale, false);
   assert.equal(forecastAxis.resolved({ forecastAxisScale: true, secondaryLine: 'dew',
-    forecastAxisNumbers: 'off' }, env('emery')).scale, false);
-  assert.equal(forecastAxis.resolved({ forecastAxisScale: true, secondaryLine: 'dew' }, env('emery')).scale,
+    forecastAxisNumbers: 'off' }).scale, false);
+  assert.equal(forecastAxis.resolved({ forecastAxisScale: true, secondaryLine: 'dew' }).scale,
     true, 'On axis names the scale too');
 });
 
@@ -79,7 +75,7 @@ test('wireBits: the exhaustive table, canonical (a dormant value packs no bit)',
           const want = (nums === 'graph' ? B.NUMS_GRAPH : 0)
             | (nums === 'off' ? B.NUMS_OFF : 0)
             | (scale && nums !== 'off' && metric ? B.SCALE : 0);
-          const bits = forecastAxis.wireBits(s, env('emery'));
+          const bits = forecastAxis.wireBits(s);
           assert.equal(bits, want, JSON.stringify(s));
           assert.equal(bits & 1, 0, 'never bit 0 (Larger graph fonts)');
           assert.equal(bits & forecastAxis.RETIRED_BITS, 0, 'never a retired bit');
@@ -91,14 +87,14 @@ test('wireBits: the exhaustive table, canonical (a dormant value packs no bit)',
     });
   });
   assert.equal(rows, 3 * 4 * 2 * 3);
-  assert.equal(forecastAxis.wireBits({}, env('emery')), 0, 'all zero exactly at the defaults');
+  assert.equal(forecastAxis.wireBits({}), 0, 'all zero exactly at the defaults');
 });
 
 test('bakesScale: the option stored on, blind to numbers and lines', () => {
-  assert.equal(forecastAxis.bakesScale({ forecastAxisScale: true }, env('emery')), true);
-  assert.equal(forecastAxis.bakesScale({ forecastAxisScale: true, forecastAxisNumbers: 'off' }, env('emery')),
+  assert.equal(forecastAxis.bakesScale({ forecastAxisScale: true }), true);
+  assert.equal(forecastAxis.bakesScale({ forecastAxisScale: true, forecastAxisNumbers: 'off' }),
     true, 'a numbers flip never re-bakes the scale');
-  assert.equal(forecastAxis.bakesScale({}, env('emery')), false);
+  assert.equal(forecastAxis.bakesScale({}), false);
 });
 
 test('signature: \'scale\' only while the option and a temperature-axis line are on', () => {

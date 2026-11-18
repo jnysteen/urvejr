@@ -3,7 +3,7 @@
 // Your graphs card on Graphs › Forecast (the owner's ask, 2026-11-09: a list of the graphs, each
 // with its picture, name, length and screens, the metrics it draws and the room left; a tap opens
 // the graph's dialog, schema.js graphDialog, with its settings; New graph and the Undo of a Delete
-// under the rows; on a watch without graph styles the one graph), the dialog's title (the graph's
+// under the rows), the dialog's title (the graph's
 // name, renamed there) and its Show on card with Delete under it (the page's shared parts,
 // config-ui/lib/ui.js), the swap that lets every row of the dialog edit the graph it shows, and
 // the five-series limit the forecast pickers, the Show on card and the screen editor's graph
@@ -115,15 +115,6 @@ var PConf = (typeof global !== 'undefined' && global.PConf) ? global.PConf
     }
 
     /**
-     * Whether this watch has graph styles (emery: platform.js env.graphStyles).
-     * @param {?Object} env Platform env.
-     * @returns {boolean}
-     */
-    function on(env) {
-        return Boolean(env && env.graphStyles);
-    }
-
-    /**
      * The style whose values sit in the flat keys now: 0 off the swap.
      * @param {?Object} S Settings.
      * @returns {number}
@@ -222,8 +213,7 @@ var PConf = (typeof global !== 'undefined' && global.PConf) ? global.PConf
     function onRender(c) {
         var S = c.S;
         UI.covered = Boolean(c.dialog);
-        if (!on(c.env) && !S[SWAP]) { return; }
-        var want = (on(c.env) && c.dialog === SHEET) ? pickIndex(S) : 0;
+        var want = c.dialog === SHEET ? pickIndex(S) : 0;
         if (want !== editing(S)) {
             settle(S);
             if (want) { swapIn(S, want); }
@@ -238,7 +228,7 @@ var PConf = (typeof global !== 'undefined' && global.PConf) ? global.PConf
      * @returns {boolean}
      */
     function graphShown(S, env) {
-        return !on(env) || GS.exists(S, picked(S));
+        return GS.exists(S, picked(S));
     }
 
     /**
@@ -263,7 +253,7 @@ var PConf = (typeof global !== 'undefined' && global.PConf) ? global.PConf
      * @returns {Object}
      */
     function screenSettings(S, env, spec) {
-        var k = (on(env) && spec && spec.graphStyle && GS.exists(S, spec.graphStyle)) ? spec.graphStyle : 0;
+        var k = (spec && spec.graphStyle && GS.exists(S, spec.graphStyle)) ? spec.graphStyle : 0;
         return (k === 0 && !S[SWAP]) ? S : styleSettings(S, k);
     }
 
@@ -288,7 +278,7 @@ var PConf = (typeof global !== 'undefined' && global.PConf) ? global.PConf
      */
     function screenNames(S, env) {
         var out = {};
-        M.screensOf(S, env).forEach(function (list, i) {
+        M.screensOf(S).forEach(function (list, i) {
             var k = drawnBy(S, list[M.idxOf(list, 'fc')]);
             if (k >= 0) { (out[k] = out[k] || []).push(M.nameOf(S, i)); }
         });
@@ -344,7 +334,7 @@ var PConf = (typeof global !== 'undefined' && global.PConf) ? global.PConf
         return GS.rowsNeeded(shown.map(function (j) {
             var Sj = GS.settingsFor(N, j);
             return (j === k && over) ? Object.assign({}, Sj, over) : Sj;
-        }), env) > GS.ROWS;
+        })) > GS.ROWS;
     }
 
     /**
@@ -360,8 +350,8 @@ var PConf = (typeof global !== 'undefined' && global.PConf) ? global.PConf
      * @returns {Array} the options, one over the limit with meta {desc}
      */
     function limitOptions(options, S, env, key) {
-        if (!on(env) || !S) { return options; }
-        var N = normalize(S), k = editing(S), shown = GS.stylesShown(N, env);
+        if (!S) { return options; }
+        var N = normalize(S), k = editing(S), shown = GS.stylesShown(N);
         if (shown.length < 2 || shown.indexOf(k) === -1) { return options; }
         return options.map(function (o) {
             if (o[1] === S[key]) { return o; }
@@ -380,8 +370,8 @@ var PConf = (typeof global !== 'undefined' && global.PConf) ? global.PConf
      * @returns {number}
      */
     function overBy(S, env) {
-        if (!on(env) || !S) { return 0; }
-        var N = normalize(S), shown = GS.stylesShown(N, env);
+        if (!S) { return 0; }
+        var N = normalize(S), shown = GS.stylesShown(N);
         if (shown.indexOf(editing(S)) === -1) { return 0; }
         var n = seriesUnion(N, env, shown).length;
         return n > GS.ROWS ? n : 0;
@@ -397,8 +387,8 @@ var PConf = (typeof global !== 'undefined' && global.PConf) ? global.PConf
      */
     function offLines(S, env) {
         var N = normalize(S), all = [];
-        GS.stylesShown(N, env).forEach(function (k) {
-            GS.seriesOf(GS.settingsFor(N, k), env).forEach(function (s, j) {
+        GS.stylesShown(N).forEach(function (k) {
+            GS.seriesOf(GS.settingsFor(N, k)).forEach(function (s, j) {
                 if (s) { all.push({ k: k, key: lineStyle.FORECAST_LINES[j].key, s: s, j: j }); }
             });
         });
@@ -526,7 +516,7 @@ var PConf = (typeof global !== 'undefined' && global.PConf) ? global.PConf
      */
     function screenOverflows(S, env, i, k) {
         var N = withScreen(S, i, k);
-        return overflows(N, env, GS.stylesShown(N, env), -1, null);
+        return overflows(N, env, GS.stylesShown(N), -1, null);
     }
 
     /**
@@ -563,7 +553,7 @@ var PConf = (typeof global !== 'undefined' && global.PConf) ? global.PConf
     function seriesIn(list, env) {
         var out = [];
         list.forEach(function (Sk) {
-            GS.seriesOf(Sk, env).forEach(function (s) {
+            GS.seriesOf(Sk).forEach(function (s) {
                 if (s && !hasSeries(out, s)) { out.push(s); }
             });
         });
@@ -607,7 +597,7 @@ var PConf = (typeof global !== 'undefined' && global.PConf) ? global.PConf
      * @returns {string}
      */
     function limitDesc(N, env, k, name) {
-        var shown = GS.stylesShown(N, env);
+        var shown = GS.stylesShown(N);
         var extra = extraNames(N, env, k, shown.filter(function (j) { return j !== k; }));
         var lead = extra.length ? (name ? name + ' also needs ' : 'Also needs ') + andList(extra) + ': that makes '
             : (name ? name + ' makes ' : 'That makes ');
@@ -622,11 +612,11 @@ var PConf = (typeof global !== 'undefined' && global.PConf) ? global.PConf
      * make room once all five are active.
      * @param {Object} S Settings.
      * @param {?Object} env Platform env.
-     * @returns {?{text: string, label: string, info: string}} null where the watch has no graph styles
+     * @returns {?{text: string, label: string, info: string}} null without settings
      */
     function metricsNote(S, env) {
-        if (!on(env) || !S) { return null; }
-        var N = normalize(S), inUse = seriesUnion(N, env, GS.stylesShown(N, env)).map(seriesName);
+        if (!S) { return null; }
+        var N = normalize(S), inUse = seriesUnion(N, env, GS.stylesShown(N)).map(seriesName);
         var used = inUse.length;
         return {
             text: used + '/' + GS.ROWS + ' metrics active',
@@ -649,7 +639,7 @@ var PConf = (typeof global !== 'undefined' && global.PConf) ? global.PConf
      * @returns {string}
      */
     function limitNote(S, env, k) {
-        var N = normalize(S), shown = GS.stylesShown(N, env);
+        var N = normalize(S), shown = GS.stylesShown(N);
         var inUse = seriesUnion(N, env, shown).map(seriesName), extra = extraNames(N, env, k, shown);
         return 'The watch can show ' + GS.ROWS + ' metrics across all your screens.'
             + (inUse.length ? ' In use: ' + inUse.join(', ') + '.' : '')
@@ -658,7 +648,7 @@ var PConf = (typeof global !== 'undefined' && global.PConf) ? global.PConf
     }
 
     /**
-     * The card's lead over its one graph, on a watch with graph styles: what New graph is for.
+     * The card's lead over its one graph: what New graph is for.
      * With two graphs or more the rows say it themselves.
      * @param {Object} S Settings.
      * @returns {string} '' for none
@@ -675,7 +665,7 @@ var PConf = (typeof global !== 'undefined' && global.PConf) ? global.PConf
      * @returns {string}
      */
     function sharedHint(S, env) {
-        return (on(env) && GS.count(S) > 1) ? 'Every graph shares this.' : '';
+        return GS.count(S) > 1 ? 'Every graph shares this.' : '';
     }
 
     // ── The modules loaded after this one, read when asked ──────────────────
@@ -1002,7 +992,7 @@ var PConf = (typeof global !== 'undefined' && global.PConf) ? global.PConf
      */
     function setScreenGraph(S, env, i, k) {
         settle(S);
-        var list = M.screensOf(S, env)[i] || [], j = M.idxOf(list, 'fc');
+        var list = M.screensOf(S)[i] || [], j = M.idxOf(list, 'fc');
         if (j < 0) { return; }
         var next = M.copy(list);
         if (k > 0) { next[j].style = GS.codeOf(k); } else { delete next[j].style; }
@@ -1019,7 +1009,7 @@ var PConf = (typeof global !== 'undefined' && global.PConf) ? global.PConf
      * @returns {void}
      */
     function toggleScreen(S, env, i) {
-        var k = pickIndex(S), list = M.screensOf(S, env)[i] || [];
+        var k = pickIndex(S), list = M.screensOf(S)[i] || [];
         var drawn = drawnBy(S, list[M.idxOf(list, 'fc')]);
         if (drawn < 0) { return; }
         if (drawn === k) {
@@ -1060,24 +1050,22 @@ var PConf = (typeof global !== 'undefined' && global.PConf) ? global.PConf
     }
 
     /**
-     * The Your graphs card's rows, worked out once per render: a row per graph on a watch with
-     * graph styles, else the one graph with no screens line. Each has the settings it draws (its
+     * The Your graphs card's rows, worked out once per render: a row per graph. Each has the settings it draws (its
      * picture), its name, its length and the screens it shows on (cardLine), the metrics it draws
      * and the room it has left (roomText; THE LIMIT read once for all of them).
      * @param {Object} S Settings.
      * @param {?Object} env Platform env.
-     * @returns {{N: Object, solo: boolean, rows: Array<{k: number, Sk: Object, name: string,
+     * @returns {{N: Object, rows: Array<{k: number, Sk: Object, name: string,
      *   where: string, metrics: string, room: string}>}} N: the settings as stored
      */
     function listRows(S, env) {
-        var N = normalize(S), solo = !on(env), shown = GS.stylesShown(N, env);
+        var N = normalize(S), shown = GS.stylesShown(N);
         var names = screenNames(N, env), used = seriesUnion(N, env, shown).length;
         return {
             N: N,
-            solo: solo,
-            rows: (solo ? [0] : existing(N)).map(function (k) {
+            rows: existing(N).map(function (k) {
                 var Sk = GS.settingsFor(N, k), series = seriesIn([Sk], env);
-                return { k: k, Sk: Sk, name: graphName(N, env, k), where: solo ? '' : cardLine(Sk, names[k] || []),
+                return { k: k, Sk: Sk, name: graphName(N, env, k), where: cardLine(Sk, names[k] || []),
                     metrics: series.length ? series.map(seriesName).join(', ') : 'No metrics',
                     room: roomText(series.length, shown.indexOf(k) !== -1, used, env) };
             })
@@ -1095,23 +1083,21 @@ var PConf = (typeof global !== 'undefined' && global.PConf) ? global.PConf
      * @returns {string} "Room for 2 more metrics", "Full: 4 metrics", "Full: the screens show 5 metrics"
      */
     function roomText(count, shown, used, env) {
-        var slots = GS.linesDrawn(env), free = Math.max(0, slots - count);
+        var slots = GS.TRENDS, free = Math.max(0, slots - count);
         var room = shown ? Math.min(free, Math.max(0, GS.ROWS - used)) : free;
         if (room > 0) { return 'Room for ' + room + ' more metric' + (room > 1 ? 's' : ''); }
         return free === 0 ? 'Full: ' + slots + ' metrics' : 'Full: the screens show ' + GS.ROWS + ' metrics';
     }
 
     /**
-     * A graph by the name the page gives it: where the watch has graph styles one of yours by
-     * its own (graph-styles.js name) and a template graph by its template's ("Outdoor"), else
-     * the Forecast graph.
+     * A graph by the name the page gives it: one of yours by its own (graph-styles.js name) and
+     * a template graph by its template's ("Outdoor"), the Forecast graph for an unknown one.
      * @param {Object} S Settings.
      * @param {?Object} env Platform env.
      * @param {number} k A style index.
      * @returns {string}
      */
     function graphName(S, env, k) {
-        if (!on(env)) { return SOLO; }
         if (!GS.isTemplate(k)) { return GS.name(S, k); }
         var look = forecastLooks().lookOf(GS.lookOf(S, k));
         return look ? look.label : SOLO;
@@ -1140,8 +1126,7 @@ var PConf = (typeof global !== 'undefined' && global.PConf) ? global.PConf
     /**
      * The Your graphs card (block 'graphList'; the owner's ask, 2026-11-09: the graphs in a list
      * with their pictures, a graph's settings behind a tap), in the page's shared parts (kit): a
-     * row per graph (graphRow), the one graph on a watch without graph styles; then, on a watch
-     * with them, New graph while a slot is free, with how many graphs there are (its sheet starts
+     * row per graph (graphRow); then New graph while a slot is free, with how many graphs there are (its sheet starts
      * one from a template or as a copy, and the new graph's dialog opens), else why there is none,
      * and the Undo after a Delete. Under a dialog, which covers the whole page, it is the card as
      * last drawn: a tap in a graph's dialog draws that dialog, not the pictures of a list nobody
@@ -1155,16 +1140,14 @@ var PConf = (typeof global !== 'undefined' && global.PConf) ? global.PConf
         if (!S) { return ''; }
         if (UI.covered && UI.list) { return UI.list; }
         ensureStyle();
-        var list = listRows(S, env), lead = list.solo ? '' : cardHint(list.N);
+        var list = listRows(S, env), lead = cardHint(list.N);
         var h = (lead ? '<div class="gl-lead">' + esc(lead) + '</div>' : '')
-            + '<div role="list" aria-label="' + esc(listTitle(S, env) || SOLO) + '">'
+            + '<div role="list" aria-label="' + esc(listTitle(S, env)) + '">'
             + list.rows.map(function (r) { return graphRow(r, env, userData); }).join('') + '</div>';
-        if (!list.solo) {
-            h += GS.freeSlot(list.N) >= 0
-                ? kit.newRow('New graph', list.rows.length + ' of ' + GS.MAX_STYLES + ' graphs', { 'data-action': 'newGraph' })
-                : '<div class="ui-row ui-foot">' + esc(FULL) + '</div>';
-            if (UI.toast.v) { h += kit.undoToast(UI.toast.v.label + ' deleted.', { 'data-action': 'undoDeleteGraphStyle' }); }
-        }
+        h += GS.freeSlot(list.N) >= 0
+            ? kit.newRow('New graph', list.rows.length + ' of ' + GS.MAX_STYLES + ' graphs', { 'data-action': 'newGraph' })
+            : '<div class="ui-row ui-foot">' + esc(FULL) + '</div>';
+        if (UI.toast.v) { h += kit.undoToast(UI.toast.v.label + ' deleted.', { 'data-action': 'undoDeleteGraphStyle' }); }
         UI.list = '<div class="ui-list">' + h + '</div>';
         return UI.list;
     }
@@ -1180,9 +1163,9 @@ var PConf = (typeof global !== 'undefined' && global.PConf) ? global.PConf
      * @returns {string} HTML ('' with one graph or none to choose between)
      */
     function showOnBlock(S, env) {
-        if (!on(env) || !S || GS.count(S) < 2) { return ''; }
+        if (!S || GS.count(S) < 2) { return ''; }
         ensureStyle();
-        var k = pickIndex(S), lists = M.screensOf(S, env), none = [], full = false, kept = false;
+        var k = pickIndex(S), lists = M.screensOf(S), none = [], full = false, kept = false;
         var chips = lists.map(function (list, i) {
             var name = M.nameOf(S, i), drawn = drawnBy(S, list[M.idxOf(list, 'fc')]);
             if (drawn < 0) { none.push(name); return kit.chip(name, { disabled: true }); }
@@ -1208,8 +1191,7 @@ var PConf = (typeof global !== 'undefined' && global.PConf) ? global.PConf
     }
 
     /**
-     * The dialog's title (display resolver 'graphName'): the graph's name, or on a watch with
-     * one graph the Forecast graph.
+     * The dialog's title (display resolver 'graphName'): the graph's name.
      * @param {Object} S Settings.
      * @param {?Object} env Platform env.
      * @returns {string}
@@ -1229,14 +1211,13 @@ var PConf = (typeof global !== 'undefined' && global.PConf) ? global.PConf
     }
 
     /**
-     * The Your graphs card's title (display resolver 'graphListTitle'): "Your graphs" where the
-     * watch has graph styles, none over the one graph elsewhere (its row names it).
+     * The Your graphs card's title (display resolver 'graphListTitle').
      * @param {Object} S Settings.
      * @param {?Object} env Platform env.
      * @returns {string}
      */
     function listTitle(S, env) {
-        return on(env) ? 'Your graphs' : '';
+        return 'Your graphs';
     }
 
     /**
@@ -1260,14 +1241,14 @@ var PConf = (typeof global !== 'undefined' && global.PConf) ? global.PConf
     }
 
     /**
-     * Whether the dialog's Delete shows (when resolver 'graphDeletable'): on a watch with graph
-     * styles, while the dialog's graph is not the first, which every screen falls back to.
+     * Whether the dialog's Delete shows (when resolver 'graphDeletable'): while the dialog's
+     * graph is not the first, which every screen falls back to.
      * @param {Object} S Settings (the show-when context: the settings by key).
      * @param {?Object} env Platform env.
      * @returns {boolean}
      */
     function deletable(S, env) {
-        return on(env) && pickIndex(S) > 0;
+        return pickIndex(S) > 0;
     }
 
     /**

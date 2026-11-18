@@ -15,7 +15,6 @@ require('../../src/pkjs/page/settings/blocks.js');
 require('../../src/pkjs/page/status-bars/reset-status-defaults.js');
 const schema = require('../../src/pkjs/page/settings/schema.js');
 const eng = require('../../src/pkjs/config-ui/lib/engine.js');
-const platformLib = require('../../src/pkjs/config-ui/lib/platform.js');
 const { deriveDefaults } = require('../../src/pkjs/config-ui/lib/defaults.js');
 const { eachItem } = require('../../src/pkjs/config-ui/lib/schema-walk.js');
 const policy = require('../../src/pkjs/page/settings/defaults-policy.js');
@@ -39,7 +38,7 @@ test('every policy rule reaches the printed overview — id, why and all of its 
 
 test('the wizard columns equal what the real wizard writes, on every platform', () => {
   report.PLATFORMS.forEach((platform) => {
-    const env = platformLib.computeEnv({ platform: platform });
+    const env = report.envFor(platform);
     report.SCENARIOS.filter((sc) => sc.wizard).forEach((sc) => {
       // The real code path: hydrate a fresh install of this watch, make the wizard's
       // health pick, then press the finish button.

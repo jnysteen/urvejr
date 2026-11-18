@@ -13,7 +13,6 @@ require('../../../src/pkjs/config-ui/lib/schema-walk.js');
 require('../../../src/pkjs/lib/color.js');
 require('../../../src/pkjs/config-ui/lib/show-when.js');
 const E = require('../../../src/pkjs/config-ui/lib/engine.js');
-const platformLib = require('../../../src/pkjs/config-ui/lib/platform.js');
 const nightHours = require('../../../src/pkjs/page/theme/night-hours.js');
 
 const PAIRS = [['backlightDimStartHour', 'backlightDimEndHour'], ['themeAutoStartHour', 'themeAutoEndHour'],
@@ -36,7 +35,7 @@ test('page-only keys are never stored: the Night hours, Separate hours and the R
   // editor's Rows and Size picker (screens-page.js) writes the screen's rows.
   assert.deepEqual(uiOnly.sort(), ['graphStyleName', 'graphStyleNewFrom', 'graphStylePick', 'nightHoursFrom',
     'nightHoursSeparate', 'nightHoursTo', 'radarSource', 'screenRowSize']);
-  const S = E.hydrate(schema, {}, platformLib.computeEnv({ platform: 'emery' }));
+  const S = E.hydrate(schema, {}, {});
   const blob = E.serialize(schema, S);
   uiOnly.forEach(k => assert.equal(Object.prototype.hasOwnProperty.call(blob, k), false, k));
 });
@@ -62,7 +61,7 @@ test('the info text shows by default; Misc\'s Hide info text puts it behind ? bu
 });
 
 test('Separate hours reads the pairs the night features use, ignoring the ones they do not', () => {
-  const emery = platformLib.computeEnv({ platform: 'emery' });
+  const emery = {};
   // Defaults: dim 0–7, saver 0–7, the theme's custom hours 20–7 but the theme follows the sun.
   assert.equal(nightHours.nightHoursSeparate(E.hydrate(schema, {}, emery), emery), false);
   assert.equal(nightHours.nightHoursSeparate(E.hydrate(schema, { themeAuto: true, themeAutoMode: 'manual' }, emery), emery),

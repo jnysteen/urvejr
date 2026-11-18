@@ -14,7 +14,6 @@ require('../../../src/pkjs/page/settings/blocks.js');
 require('../../../src/pkjs/page/status-bars/status-slot-icons.js');
 const VC = require('../../../src/pkjs/layout/domain/view-cycle.js');
 const WL = require('../../../src/pkjs/page/layout/watch-layout.js');
-const plat = require('../../../src/pkjs/config-ui/lib/platform.js');
 const schema = require('../../../src/pkjs/page/settings/schema.js');
 const pw = require('../../../src/pkjs/page/layout/preview-watch.js');
 
@@ -34,8 +33,8 @@ function settings(over) {
  * @returns {{views: !Array, env: !Object}}
  */
 function cycle(S, platform) {
-  const env = plat.computeEnv({ platform: platform });
-  return { views: VC.resolveViewCycle(S, env), env: env };
+  const env = {};
+  return { views: VC.resolveViewCycle(S), env: env };
 }
 
 /**
@@ -79,8 +78,8 @@ test('the Dense screen: the bar above the clock as far under the calendar as the
     viewUpper0: 'radar', viewLower0: 'weather', viewBody0: 'forecast', viewBodySize0: 'fill', viewOrder0: 'TACB',
     viewAlign0: 'clock', radarMode: 'graph' });
   [['emery', 1, 24, 18, [8, 8, 8]]].forEach((p) => {
-    const env = plat.computeEnv({ platform: p[0] }), f = p[1], large = p[2], ch = p[3];
-    const spec = VC.resolveViewCycle(S, env)[0], ink = pw.clockInk(S, f, false);
+    const env = {}, f = p[1], large = p[2], ch = p[3];
+    const spec = VC.resolveViewCycle(S)[0], ink = pw.clockInk(S, f, false);
     const at = {};
     pw.layoutView(spec, f, ink).bands.forEach((b) => { at[b.band] = b; });
     assert.deepEqual(Object.keys(at), ['T', 'A', 'C', 'B', 'G'], p[0] + ': calendar, bar, clock, bar, graph');
@@ -96,7 +95,7 @@ test('the Dense screen: the bar above the clock as far under the calendar as the
 
 test('each screen is named and spoken band by band, and a tap opens its editor', () => {
   const S = settings({ layoutPreset: 'compactCal', radarMode: 'graph', healthMode: 'all' });
-  const env = plat.computeEnv({ platform: 'emery' });
+  const env = {};
   const html = pw.watchPreview(S, env, {});
   assert.deepEqual(labels(html), [
     'Edit Default: Watch bar, Calendar (2 rows), Clock, Forecast bar, Forecast',
@@ -113,7 +112,7 @@ test('each screen is named and spoken band by band, and a tap opens its editor',
 });
 
 test('each view is a card of its own, the screen edge to edge on its own background, pinned bare', () => {
-  const env = plat.computeEnv({ platform: 'emery' });
+  const env = {};
   const cards = (S) => pw.watchPreview(S, env, {}).match(/<div class="wpv-card" style="background:([^"]*)"><svg class="wpv-scr"/g) || [];
   const dark = cards(settings({ layoutPreset: 'compactCal', radarMode: 'graph', healthMode: 'all' }));
   assert.equal(dark.length, 3, 'three cards');
@@ -128,11 +127,11 @@ test('each view is a card of its own, the screen edge to edge on its own backgro
 
 test('the watch draws its 200×228 screen', () => {
   const S = settings({ layoutPreset: 'compactDense', radarMode: 'graph', healthMode: 'all' });
-  assert.match(pw.watchPreview(S, plat.computeEnv({ platform: 'emery' }), {}), /viewBox="-12 -12 224 252"/);
+  assert.match(pw.watchPreview(S, {}, {}), /viewBox="-12 -12 224 252"/);
 });
 
 test('the calendar: its week as Start week on says, today in its cell, Auto taking the weekday\'s colour', () => {
-  const env = plat.computeEnv({ platform: 'emery' });
+  const env = {};
   const c = cycle(settings({ layoutPreset: 'compactCal', radarMode: 'off', healthMode: 'off' }), 'emery');
   const friday = new Date(2026, 10, 6), sunday = new Date(2026, 10, 8);
   // The strip's air quality emptied (it is a number too): the first numbers drawn are
@@ -156,7 +155,7 @@ test('the calendar: its week as Start week on says, today in its cell, Auto taki
 });
 
 test('the clock: the samples\' 15:00 in the time colour and the picked face\'s weight', () => {
-  const env = plat.computeEnv({ platform: 'emery' });
+  const env = {};
   const c = cycle(settings({ layoutPreset: 'noCal', radarMode: 'off', healthMode: 'off' }), 'emery');
   const svg = (over) => pw.screenSvg(c.views[0], 0, settings(Object.assign({ layoutPreset: 'noCal' }, over)), env, {}, 1, new Date()).svg;
   // Roboto and Bitham: the watch's glyph images, tinted (test/page/layout/clock-glyphs-page.test.js has the
@@ -172,7 +171,7 @@ test('the clock: the samples\' 15:00 in the time colour and the picked face\'s w
 });
 
 test('a light theme draws black on white, the status rows print the Status bars tab\'s slots', () => {
-  const env = plat.computeEnv({ platform: 'emery' });
+  const env = {};
   const S = settings({ layoutPreset: 'compactCal', radarMode: 'off', healthMode: 'off', theme: 'light',
     statusForecastLeft: 'city', statusForecastMid: 'empty', statusForecastRight: 'empty' });
   const html = pw.watchPreview(S, env, {});
@@ -188,7 +187,7 @@ test('a side slot\'s weather condition: the whole name beside an empty middle, t
   const draw = (platform, mid) => pw.watchPreview(settings({ layoutPreset: 'compactCal', radarMode: 'off',
     healthMode: 'off', statusForecastLeft: 'condition', statusForecastMid: mid, statusForecastRight: 'empty',
     citySlotIcon: true }),
-  plat.computeEnv({ platform: platform }), {});
+  {}, {});
   const shows = (html, text) => html.indexOf('>' + text + '</text>') !== -1;
   ['emery'].forEach((platform) => {
     assert.ok(shows(draw(platform, 'empty'), 'Partly cloudy'), platform + ': the whole name beside an empty middle');
@@ -207,7 +206,7 @@ test('the Status bars tab\'s bar pictures print the short form where the watch d
   const S = settings({ layoutPreset: 'compactCal', radarMode: 'off', healthMode: 'off',
     statusForecastLeft: 'condition', statusForecastMid: 'city', statusForecastRight: 'empty', citySlotIcon: true });
   const pictures = (platform) => {
-    const env = plat.computeEnv({ platform: platform });
+    const env = {};
     return [sbp.barPicture(S, env, 'forecast', { big: true }), sbp.statusBarsPreview(S, env)];
   };
   pictures('emery').forEach((html) => {
@@ -216,7 +215,7 @@ test('the Status bars tab\'s bar pictures print the short form where the watch d
 });
 
 test('a graph\'s pattern and clip ids carry its band\'s suffix, so two graphs never share one', () => {
-  const env = plat.computeEnv({ platform: 'emery' });
+  const env = {};
   const html = pw.watchPreview(settings({ layoutPreset: 'compactCal', radarMode: 'graph', healthMode: 'all',
     dayNightShading: true }), env, {});
   const ids = (html.match(/ id="[^"]*"/g) || []).map((m) => m.slice(5, -1));
@@ -227,13 +226,13 @@ test('a graph\'s pattern and clip ids carry its band\'s suffix, so two graphs ne
 });
 
 test('the calendar marks the holidays the phone holds for the picked country, in the holiday colour', () => {
-  const env = plat.computeEnv({ platform: 'emery' });
+  const env = {};
   const now = new Date(2026, 10, 6);   // a Friday
   const holidays = { country: 'DE', years: { 2026: [['11-03', null], ['11-11', ['DE-BY']]] } };
   const cal = (over, ud) => {
     const S = settings(Object.assign({ layoutPreset: 'fullCal', radarMode: 'off', healthMode: 'off',
       holidayCountry: 'DE', holidayRegion: 'all', weekStartDay: 'mon', colorUSFederal: '#0055FF' }, over));
-    return pw.screenSvg(VC.resolveViewCycle(S, env)[0], 0, S, env, ud === undefined ? { holidays: holidays } : ud, 1, now).svg;
+    return pw.screenSvg(VC.resolveViewCycle(S)[0], 0, S, env, ud === undefined ? { holidays: holidays } : ud, 1, now).svg;
   };
   const day = (svg, n) => (new RegExp('fill="([^"]*)" font-family="[^"]*" font-weight="(\\d+)">' + n + '</text>').exec(svg) || []).slice(1);
   // #0055FF as the screen shows it (displayColors).
@@ -250,16 +249,16 @@ test('each screen sits in a margin of its own ground, so a card\'s round corners
   // The owner, 2026-11-06: the corners cut the top bar's edge slots (W45, 19:14). The ground
   // runs on round the screen, about 6 % of its width, and the card is that colour throughout.
   [['emery', 200, 228, 12]].forEach((p) => {
-    const env = plat.computeEnv({ platform: p[0] });
+    const env = {};
     const S = settings({ layoutPreset: 'compactCal', radarMode: 'off', healthMode: 'off', theme: 'light' });
-    const svg = pw.screenSvg(VC.resolveViewCycle(S, env)[0], 0, S, env, {}, 1, new Date()).svg;
+    const svg = pw.screenSvg(VC.resolveViewCycle(S)[0], 0, S, env, {}, 1, new Date()).svg;
     const m = p[3], vb = [-m, -m, p[1] + 2 * m, p[2] + 2 * m].join(' ');
     assert.ok(svg.indexOf('<svg class="wpv-scr" viewBox="' + vb + '"') === 0, p[0] + ': ' + svg.slice(0, 70));
     assert.ok(svg.indexOf('<rect x="' + (-m) + '" y="' + (-m) + '" width="' + (p[1] + 2 * m) + '" height="'
       + (p[2] + 2 * m) + '" fill="#FFFFFF"></rect>') > 0, p[0] + ': the ground fills the margin');
     assert.ok(m / p[1] >= 0.06, p[0] + ': a card 90 px wide keeps over 5 px of it, past a 12 px corner\'s reach');
   });
-  const html = pw.watchPreview(settings({ theme: 'light' }), plat.computeEnv({ platform: 'emery' }), {});
+  const html = pw.watchPreview(settings({ theme: 'light' }), {}, {});
   assert.match(html, /<div class="wpv-card" style="background:#FFFFFF">/, 'the card is the screen\'s white');
 });
 
@@ -294,7 +293,7 @@ test('the pictures draw a slot\'s drawing, its seat with it, and set the text of
   const S = settings({ layoutPreset: 'compactCal', radarMode: 'off', healthMode: 'off',
     statusForecastLeft: 'uv', statusForecastMid: 'empty', statusForecastRight: 'empty' });
   const drawn = (platform) => {
-    const html = pw.watchPreview(S, plat.computeEnv({ platform: platform }), {});
+    const html = pw.watchPreview(S, {}, {});
     return (html.match(/<path transform="translate\(\S+ \S+\)" fill="[^"]*" d="[^"]*"/g) || []);
   };
   const uv = PixelIcon.pixels.icons.UV;
@@ -313,7 +312,7 @@ test('the pictures draw a slot\'s drawing, its seat with it, and set the text of
   });
   const placed = (w, seat) => {
     seated(w, seat);
-    const html = pw.watchPreview(S, plat.computeEnv({ platform: 'emery' }), {});
+    const html = pw.watchPreview(S, {}, {});
     const ds = Object.keys(orig).map((size) => 'd="M0 ' + ((uv[size].rows.length - 1) / 2 - seat) + 'h' + w + 'v1h-' + w + 'z"');
     const m = new RegExp('translate\\((\\S+) (\\S+)\\)" fill="[^"]*" (' + ds.join('|') + ')'
       + ' shape-rendering="crispEdges"></path><text x="(\\d+)"').exec(html);

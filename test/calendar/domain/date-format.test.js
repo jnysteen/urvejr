@@ -46,7 +46,7 @@ test('the Clay payload carries the tuple', () => {
   };
   const { buildClayPayload } = require('../../../src/pkjs/settings/domain/clay-payload.js');
   const settings = { dateSlotMonthFormat: 'dots', dateSlotFullFormat: 'textyear' };
-  const capable = buildClayPayload(settings, { platform: 'emery' },
+  const capable = buildClayPayload(settings,
     new Date('2026-09-07T00:00:00Z'));
   assert.deepEqual(capable.CLAY_DATE_FORMAT_UINT8, [2, 6]);
 });

@@ -22,7 +22,6 @@
     var resolveInk = resolveInkLib.resolveInk;
     var drawsColor = resolveInkLib.drawsColor;
     var isLightPolarity = resolveInkLib.isLightPolarity;
-    var effectiveTheme = resolveInkLib.effectiveTheme;
 
     // Metric → line stroke colour per platform class. `light` is an OPTIONAL light-polarity
     // override, tested with hasOwnProperty (GColorBlack is falsy); without one a metric
@@ -421,19 +420,14 @@
     /**
      * The first forecast line the watch draws whose metric passes `test`: THE one walk
      * for "which line draws metric X" (forecast-axis.js, forecast-series.js and the
-     * settings page's when-resolvers.js hostLine). A line draws its effectiveLineMetric;
-     * the Third and Fourth metric lines (fourthLine / fifthLine) count only with
-     * `allLines`, where the watch draws them (WW_LINE_STYLE). It takes that fact as a
-     * boolean because each caller reads it its own way. The bake's spare row (SPARE_LINE,
-     * set in the bake's settings copy only) counts after them, with `allLines` too.
+     * settings page's when-resolvers.js hostLine). A line draws its effectiveLineMetric.
+     * The bake's spare row (SPARE_LINE, set in the bake's settings copy only) counts last.
      * @param {Object} settings Clay settings blob.
-     * @param {boolean} allLines Whether the watch draws all four lines.
      * @param {function(string): boolean} test Asked with each drawn metric.
      * @returns {?string} secondaryLine|thirdLine|fourthLine|fifthLine|spareLine, or null.
      */
-    function firstDrawnLine(settings, allLines, test) {
+    function firstDrawnLine(settings, test) {
         for (var i = 0; i < BAKE_LINES.length; i++) {
-            if (i >= 2 && !allLines) { break; }
             var key = BAKE_LINES[i].key;
             var m = effectiveLineMetric(settings, key);
             if (m !== null && test(m)) { return key; }
@@ -568,28 +562,19 @@
      * asks instead of re-deriving it. Never re-derive these three: two consumers
      * did once and diverged (ADR-0003 §8).
      *
-     * `theme` is the FOLDED theme (aplite has the light polarity compiled out, so resolving
-     * off settings.theme would send black lines to a black background). `isColor` is the
-     * EFFECTIVE colour flag — colour hardware only counts when the theme isn't B&W, so
-     * `caps.color` is the DISPLAY's colour capability and the bw/bw-light fold is applied
-     * here, exactly as it is for a real watch. `suffix` is the polarity half of every key
-     * name, off the folded theme, so the pick that is read is the pick that is painted.
-     *
-     * The target comes as its capabilities, so the phone (config-ui computeEnv of the
-     * connected watch: forecast-graphs/domain/graph-wire.js) and the settings page (its own
-     * env) ask the one question the same way.
+     * `theme` is the stored theme. `isColor` is the EFFECTIVE colour flag: false in the
+     * bw/bw-light themes. `suffix` is the polarity half of every key name, so the pick that is
+     * read is the pick that is painted. The phone (forecast-graphs/domain/graph-wire.js) and
+     * the settings page ask the one question the same way.
      *
      * @param {Object} settings Clay settings blob; only `theme` is read.
-     * @param {{color: boolean, themePolarity: boolean}} caps config-ui computeEnv() facts,
-     *   or any object carrying these two: whether the target renders in colour at all, and
-     *   whether it ships the light polarity (false folds light→dark).
      * @returns {{theme: string, isColor: boolean, suffix: string}} The render context.
      */
-    function renderContextFor(settings, caps) {
-        var theme = effectiveTheme((settings || {}).theme || 'dark', Boolean(caps.themePolarity));
+    function renderContextFor(settings) {
+        var theme = (settings || {}).theme || 'dark';
         return {
             theme: theme,
-            isColor: drawsColor(caps, theme),
+            isColor: drawsColor(theme),
             suffix: isLightPolarity(theme) ? 'Light' : 'Dark'
         };
     }
@@ -738,10 +723,9 @@
     }
 
     /**
-     * Resolve the graph's line styling from settings alone (no weather data), for a target
-     * described by its capabilities: the connected watch on the phone (forecast-graphs/domain/graph-wire.js
-     * packs this answer, with config-ui computeEnv of the watch) and the platform the
-     * settings page previews. One body, so the preview and the wire run the SAME
+     * Resolve the graph's line styling from settings alone (no weather data): the answer
+     * forecast-graphs/domain/graph-wire.js packs for the watch and the settings page
+     * previews. One body, so the preview and the wire run the SAME
      * resolution rather than two copies of it (ADR-0003 §8).
      *
      * CONTRACT: every colour handed back is 0xRRGGBB on the Pebble-64 grid, so nothing
@@ -750,17 +734,12 @@
      * @param {Object} settings Clay settings blob (theme, secondaryLine, thirdLine,
      *   fourthLine, fifthLine, secondaryLineFill, secondaryLineStyle, rainBarColor, and the
      *   gc* graph-colour keys).
-     * @param {{color: boolean, themePolarity: boolean, lineStyles: boolean}} caps config-ui
-     *   computeEnv() facts, or any object carrying these three; see renderContextFor.
-     *   `lineStyles` is the WW_LINE_STYLE mirror: only an explicit false (aplite) ignores
-     *   the stored styles, so a stripe picked on a colour watch paired to the same phone
-     *   cannot switch an aplite fill off.
      * @returns {{secondary: number, fill: number, third: number, fourth: number,
      *   fifth: number, fillOn: boolean, night: Object}} Four 0xRRGGBB line colours, the
      *   fill colour, the resolved fill flag, and the night colours (see resolveNightColors).
      */
-    function resolveGraphColors(settings, caps) {
-        var cx = renderContextFor(settings, caps);
+    function resolveGraphColors(settings) {
+        var cx = renderContextFor(settings);
         var secMetric = settings.secondaryLine;
         var thirdMetric = settings.thirdLine;
         /**
@@ -790,7 +769,7 @@
             fourth: resolved(settings.fourthLine, 'Line'),
             fifth: resolved(settings.fifthLine, 'Line'),
             night: resolveNightColors(settings, cx, secMetric),
-            fillOn: mainLineFills(settings, caps)
+            fillOn: mainLineFills(settings)
         };
     }
 
@@ -798,20 +777,16 @@
      * Whether the Main metric's line fills the area under it: THE authoritative gate on
      * feels/dew never filling (ADR-0003 §6) — the config UI also hides and clears the toggle,
      * but a blob stored before that landed, or any future caller, still cannot turn it on. A
-     * stripe-styled main line has no curve to fill below, so it never fills either (only an
-     * explicit lineStyles false, aplite, ignores the stored style). The fill flag the wire
+     * stripe-styled main line has no curve to fill below, so it never fills either. The fill flag the wire
      * packs (resolveGraphColors) and the words the settings page describes a graph with
      * (page/settings/wizard/wizard-forecast.js) both read it.
      * @param {Object} settings Clay settings (secondaryLine, secondaryLineFill,
      *   secondaryLineStyle).
-     * @param {?{lineStyles: boolean}} caps computeEnv() facts; none reads as a watch that
-     *   draws the styles.
      * @returns {boolean}
      */
-    function mainLineFills(settings, caps) {
-        var styled = !(caps && caps.lineStyles === false);
+    function mainLineFills(settings) {
         return Boolean(settings.secondaryLineFill) && !isTempAxisMetric(settings.secondaryLine)
-            && !(styled && isStripeStyle(settings, 'secondaryLineStyle'));
+            && !isStripeStyle(settings, 'secondaryLineStyle');
     }
 
     var api = {

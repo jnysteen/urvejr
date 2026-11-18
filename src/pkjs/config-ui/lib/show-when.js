@@ -33,14 +33,9 @@ PConf.showWhen = (function () {
       var fn = PConf.whenResolvers ? PConf.whenResolvers.get(pred.when) : undefined;
       return typeof fn === 'function' ? Boolean(fn(ctx, ctx.env, pred.args || {})) : false;
     }
-    // `env` reads a capability fact rather than a setting value. The fact names are
-    // owned by lib/platform.js computeEnv() (the platform SoT) — `color`,
-    // `platform`, `health`, `radar`, `themePolarity`, `hr`, `thresholds`, `lineStyles`,
-    // `onDemand`, `fineBattery`, `forecastSpan` (emery's 12 h / 24 h / long forecast) and
-    // `colorBacklight` (emery's RGB backlight LED) — plus whatever the host app
-    // overlays at generateUrl() time for facts about the PHONE (e.g. phoneBattery).
-    // A fact the host never supplied reads as undefined, so a bare { env: 'x' } gate
-    // fails closed: an unrecognized watch is never offered hardware it may not have.
+    // `env` reads a fact the host app supplies at generateUrl() time, about the PHONE
+    // (e.g. phoneBattery). A fact the host never supplied reads as undefined, so a bare
+    // { env: 'x' } gate fails closed.
     var subject = has(pred, 'env') ? (ctx.env ? ctx.env[pred.env] : undefined) : ctx[pred.key];
     if (has(pred, 'eq')) { return subject === pred.eq; }
     if (has(pred, 'ne')) { return subject !== pred.ne; }
@@ -49,18 +44,12 @@ PConf.showWhen = (function () {
     return Boolean(subject);
   }
   /**
-   * Build the combined visibility predicate for a schema item from its
-   * showWhen and a COLOR capability (which requires a color display).
-   * @param {Object} item Schema item; may carry .showWhen and .capabilities.
-   * @returns {(Object|null)} The predicate (single, or wrapped in { all }), or null when the item is unconditionally visible.
+   * The visibility predicate of a schema item: its showWhen.
+   * @param {Object} item Schema item; may carry .showWhen.
+   * @returns {(Object|null)} The predicate, or null when the item is unconditionally visible.
    */
   function itemPredicate(item) {
-    var preds = [];
-    if (item.showWhen) { preds.push(item.showWhen); }
-    if (item.capabilities && item.capabilities.indexOf('COLOR') >= 0) { preds.push({ env: 'color' }); }
-    if (preds.length === 0) { return null; }
-    if (preds.length === 1) { return preds[0]; }
-    return { all: preds };
+    return item.showWhen || null;
   }
   /**
    * Whether a schema item should be visible given the current context.

@@ -284,7 +284,7 @@ test('a night tint the 1.15.0 page carried from the fill is released on upgrade'
   assert.equal(lineStyle.graphColorIsPicked(healed, 'wind', 'Night', 'Light'), false,
     'and it reads as the default again, not a pick');
   assert.deepEqual(
-    Array.from(graphWire.buildLineStyleBytes(healed, { platform: 'emery' })).slice(0, 8),
+    Array.from(graphWire.buildLineStyleBytes(healed)).slice(0, 8),
     SHIPPED_BYTES,
     'the healed blob packs byte-for-byte what 1.15.0 sent: the cascade re-derives ' +
     'the same night triple from the fill, with the flag clear');
@@ -1093,8 +1093,8 @@ test('warn look: a weather outline that was on stays an outline; a goal outline 
   assert.strictEqual(read.threshWindWarnOutlineOn, true, 'the old toggle is left in place');
   // What the watch is told matches what it drew before: outline where there was one,
   // no box for the goal kinds that had none.
-  assert.equal(thresholdsContract.warnLookFor(read, 'Wind', false), 'outline');
-  assert.equal(thresholdsContract.warnLookFor(read, 'Steps', true), 'none');
+  assert.equal(thresholdsContract.warnLookFor(read, 'Wind'), 'outline');
+  assert.equal(thresholdsContract.warnLookFor(read, 'Steps'), 'none');
 });
 
 test('warn look: a stored look is the page\'s own truth', () => {
@@ -1123,7 +1123,7 @@ test('warn look: a weather danger that held the old auto text colour turns red',
   assert.equal(read.threshPollenDangerColor, '', 'unset stays unset');
   assert.equal(read.threshStepsDangerColor, 0xFFFFFF, 'goal kinds are not touched');
   const wind = thresholdsContract.kindConfig(read,
-    thresholdsContract.KINDS.findIndex(k => k.key === 'Wind'), true);
+    thresholdsContract.KINDS.findIndex(k => k.key === 'Wind'));
   assert.equal(wind.dangerColor, 0xFF0000, 'the watch gets red');
   assert.notEqual(wind.warnColor, wind.dangerColor, 'and warn stays apart from it');
 });
@@ -1280,8 +1280,8 @@ test('seed pairs: a pin under the unit in effect leaves the bytes and the refetc
   ].forEach((blob, n) => {
     const { before, read: after } = stepOn(blankSeeds, blob, true);
     [{ color: true }, { color: false }].forEach((env) => {
-      assert.deepEqual(wire.buildSettingsBlob(after, env),
-        wire.buildSettingsBlob(before, env), n + ': CLAY_THRESHOLDS_UINT8');
+      assert.deepEqual(wire.buildSettingsBlob(after),
+        wire.buildSettingsBlob(before), n + ': CLAY_THRESHOLDS_UINT8');
     });
     assert.equal(renderSignature(after), renderSignature(before), n + ': no refetch');
     thresholdsContract.KINDS.filter((k) => !k.boldOnly).forEach((k) => {
@@ -1310,7 +1310,7 @@ test('seed pairs: a pin of a seed 1.24.0 moved goes blank and takes the new defa
     // The weather pairs ride no Clay byte; the phone bakes the new levels on the next
     // fetch, which the changed signature asks for.
     [{ color: true }, { color: false }].forEach((env) => {
-      assert.deepEqual(wire.buildSettingsBlob(after, env), wire.buildSettingsBlob(before, env),
+      assert.deepEqual(wire.buildSettingsBlob(after), wire.buildSettingsBlob(before),
         'CLAY_THRESHOLDS_UINT8');
     });
     assert.notEqual(renderSignature(after), renderSignature(before), 'the bake reads new levels');
@@ -1733,8 +1733,7 @@ test('alert defaults: each weather kind\'s stored outline goes and resolves to t
     const read = L.read();
     assert.ok(!(warnLookKey(k) in read), k.key + ': the stored outline is deleted');
     assert.equal(res.clayRequired, true, k.key + ': the warn look rides the Clay blob, so it is sent');
-    assert.equal(thresholdsContract.warnLookFor(read, k.key, true), 'fill', k.key + ': the fill on colour');
-    assert.equal(thresholdsContract.warnLookFor(read, k.key, false), 'outline', k.key + ': the outline on B&W');
+    assert.equal(thresholdsContract.warnLookFor(read, k.key), 'fill', k.key + ': the default fill');
     assert.equal(L.saves.n, 1, k.key + ': saved once');
     assert.equal(L.store[ALERT_DEFAULTS], '1', k.key + ': marked at once');
   });
@@ -1878,7 +1877,7 @@ test('alert defaults, upgrade paths: a 1.24.0 install gets the fill and the valu
   const v123 = bootWholeLedger({ theme: 'dark', radarMode: 'graph',
     threshAqiWarnOutlineOn: true, threshAqiWarnColor: 0xFFFFFF }, THROUGH_1_23_1, true);
   assert.ok(!('threshAqiWarnLook' in v123.read), 'the 1.23.1 outline ends on the default');
-  assert.equal(thresholdsContract.warnLookFor(v123.read, 'Aqi', true), 'fill');
+  assert.equal(thresholdsContract.warnLookFor(v123.read, 'Aqi'), 'fill');
   assert.equal(v123.read.alertAqiDisplay, 'value');
 });
 
@@ -1967,8 +1966,7 @@ function bootOnce(scenario, marked) {
 
 test('every entry: a fresh seeded blob is a no-op but for its preset written as its screens', () => {
   const VC = require('../../../src/pkjs/layout/domain/view-cycle.js');
-  const env = require('../../../src/pkjs/config-ui/lib/platform.js').computeEnv();
-  const wire = (s) => VC.resolveViewCycle(s, env).map((v) => VC.packWire(v || null));
+  const wire = (s) => VC.resolveViewCycle(s).map((v) => VC.packWire(v || null));
   FRESH.forEach((sc) => {
     const { L, seeded, res } = bootOnce(sc);
     const read = L.read();

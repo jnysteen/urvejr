@@ -24,7 +24,7 @@ function rects(svg, fill) {
 test('the step bars stand on the axis, over the sleep stripe', () => {
   // The owner, 2026-11-06: the bars started on top of the stripe, floating above the axis.
   // The watch's BARS layer maps a value from the plot's bottom and draws over the stripe.
-  const svg = health.healthPreview({}, { color: true });
+  const svg = health.healthPreview({}, {});
   const bars = rects(svg, '#00FF00');
   assert.ok(bars.length > 10, 'premise: the sample day\'s bars');
   bars.forEach((b) => assert.ok(Math.abs(b.y + b.h - AXIS_Y) < 0.11, 'a bar ends on the axis: ' + JSON.stringify(b)));
@@ -38,7 +38,7 @@ test('the step bars stand on the axis, over the sleep stripe', () => {
 });
 
 test('the step gridlines sit on the bars\' scale, from the axis', () => {
-  const svg = health.healthPreview({}, { color: true });
+  const svg = health.healthPreview({}, {});
   const bars = rects(svg, '#00FF00');
   const tallest = bars.reduce((a, b) => (b.h > a.h ? b : a));
   // The 2600-step hour is the peak: a mark of m steps sits at m / 2600 of its height.
@@ -49,8 +49,8 @@ test('the step gridlines sit on the bars\' scale, from the axis', () => {
   });
 });
 
-test('on B&W the bars are the background with an ink outline, still from the axis', () => {
-  const svg = health.healthPreview({}, { color: false });
+test('on a B&W theme the bars are the background with an ink outline, still from the axis', () => {
+  const svg = health.healthPreview({ theme: 'bw' }, {});
   const outlines = [...svg.matchAll(/<path d="M([\d.]+) ([\d.]+) V([\d.]+) H([\d.]+) V([\d.]+)" fill="none"/g)];
   assert.ok(outlines.length > 10);
   outlines.forEach((o) => {

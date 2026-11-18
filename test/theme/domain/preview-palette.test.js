@@ -14,7 +14,7 @@ const hex = (n) => '#' + (n & 0xFFFFFF).toString(16).toUpperCase().padStart(6, '
 
 test('palette rain tiers come from rain-tier.buildPalette', () => {
   const P = buildPreviewPalette();
-  const tier = rt.buildPalette('basalt', 'multicolor');
+  const tier = rt.buildPalette('multicolor');
   assert.equal(P.rainTiers.length, tier.from.length);
   tier.from.forEach((f, k) => {
     assert.equal(P.rainTiers[k].from, f);

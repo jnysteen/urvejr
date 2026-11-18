@@ -210,7 +210,7 @@ test('upgrade: a 1.23.2 install on its own key opens on Rainbow and saves it as 
 
 // --- the setup wizard -------------------------------------------------------------------------
 
-const ENV = { color: true, radar: true, platform: 'basalt' };
+const ENV = {};
 
 test('the wizard\'s country pick: DWD/Met.no where they cover, else the radar off unless a keyed source is picked', () => {
   const de = { holidayCountry: 'DE', radarProvider: 'rainbowkey', provider: 'openmeteo', radarEnabled: false };
@@ -225,7 +225,4 @@ test('the wizard\'s country pick: DWD/Met.no where they cover, else the radar of
   W.applyDerived(own, ENV);
   assert.equal(own.radarProvider, 'rainbowkey', 'a keyed source stays');
   assert.notEqual(own.radarEnabled, false, 'and stays on');
-  const aplite = { holidayCountry: 'US', radarProvider: 'dwd', provider: 'dwd' };
-  W.applyDerived(aplite, { color: false, radar: false, platform: 'aplite' });
-  assert.equal(aplite.radarEnabled, undefined, 'a watch without the radar keeps its switch');
 });

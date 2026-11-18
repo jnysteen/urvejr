@@ -149,12 +149,10 @@ function openSheet(page, key) {
 // forecastMetric resolver from the schema item's optionsFrom.args. The resolver's own tests
 // load blocks.js as a Node module; this drives the ACTUAL generated page, so a build step
 // that drops blocks.js, a schema arg that re-bans temperature-axis metrics, or a resolver
-// regression all fail here. aplite has no curve inset and no Third/Fourth line at all: its
-// rows stay hidden, and even the Main/Second sheets never offer feels or dew.
+// regression all fail here.
 test('generated page offers feels and dew on the Third and Fourth metric pickers', function () {
     ['emery'].forEach(function (platform) {
         var page = loadDevicePage(platform);
-        assert.equal(page.INJECTED_ENV.platform, platform, 'env computed for ' + platform);
         ['fourthLine', 'fifthLine'].forEach(function (key) {
             var sheet = openSheet(page, key);
             assert.ok(sheet.visible, key + ' row shows on ' + platform);

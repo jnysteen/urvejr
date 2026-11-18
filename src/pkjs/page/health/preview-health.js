@@ -48,29 +48,27 @@
      * ink on every theme but colour-dark; the heart rate red (the ink); light and deep sleep
      * blue (light gray and the ink).
      * @param {Object} st Settings.
-     * @param {Object} env Platform env.
      * @returns {{ink: Object, color: boolean, steps: string, outlined: boolean, hr: string,
      *     sleepLight: string, sleepDeep: string}}
      */
-    function healthInk(st, env) {
+    function healthInk(st) {
         var ink = previewInk(st.theme);
-        var color = Boolean(env && env.color !== false) && !resolveInk.isBwTheme(st.theme);
+        var color = !resolveInk.isBwTheme(st.theme);
         return { ink: ink, color: color, steps: color ? '#00FF00' : ink.bg, outlined: !(color && ink.bg === '#000000'),
             hr: color ? '#FF0000' : ink.fg, sleepLight: color ? '#00AAFF' : '#AAAAAA', sleepDeep: color ? '#0000FF' : ink.fg };
     }
 
     /**
      * What the health graph draws, as a legend lists it: the steps as bars, the heart rate as a
-     * line on a watch with a heart-rate sensor, the sleep as a band along the bottom.
+     * line, the sleep as a band along the bottom.
      * @param {Object} S Settings.
-     * @param {Object} env Platform env.
      * @returns {Array<{metric: string, kind: string, color: string, outline: ?string, deep: ?string}>}
      */
-    function healthLegend(S, env) {
-        var k = healthInk(S || {}, env);
-        return [{ metric: 'steps', kind: 'bars', color: k.steps, outline: k.outlined ? k.ink.fg : null, deep: null }]
-            .concat(env && env.hr ? [{ metric: 'hr', kind: 'line', color: k.hr, outline: null, deep: null }] : [],
-                [{ metric: 'sleep', kind: 'band', color: k.sleepLight, outline: null, deep: k.sleepDeep }]);
+    function healthLegend(S) {
+        var k = healthInk(S || {});
+        return [{ metric: 'steps', kind: 'bars', color: k.steps, outline: k.outlined ? k.ink.fg : null, deep: null },
+            { metric: 'hr', kind: 'line', color: k.hr, outline: null, deep: null },
+            { metric: 'sleep', kind: 'band', color: k.sleepLight, outline: null, deep: k.sleepDeep }];
     }
 
     /**
@@ -81,7 +79,7 @@
      */
     function healthPreview(S, env) {
         var st = S || {};
-        var hk = healthInk(st, env), ink = hk.ink, color = hk.color;
+        var hk = healthInk(st), ink = hk.ink, color = hk.color;
         // The frame and the step gridlines: dark gray on a colour theme, black on light,
         // the ink on B&W (health_graph_layer.c HEALTH_AXIS_COLOR / STEP_GRID_COLOR).
         var furniture = color ? (ink.bg === '#000000' ? '#555555' : '#000000') : ink.fg;

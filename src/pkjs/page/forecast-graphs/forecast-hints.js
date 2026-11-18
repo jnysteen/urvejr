@@ -56,10 +56,8 @@ var PConf = (typeof global !== 'undefined' && global.PConf) ? global.PConf
     // `off` leads with an Off row, `exclude` names the sibling picker keys
     // whose CURRENT pick is withheld (a collision left in a stored value is
     // display-snapped by the engine — a later pick turns the later line off).
-    // Every picker offers the temperature-axis metrics (feels, dew) — each line
-    // has its own curve-inset byte — except on aplite: the temp-axis line inset
-    // is not compiled there, so they would render misaligned with the
-    // temperature curve.
+    // Every picker offers the temperature-axis metrics (feels, dew): each line
+    // has its own curve-inset byte.
     PConf.optionsResolvers.register('forecastMetric', function (S, env, args) {
         var a = args || {};
         var exclude = a.exclude || [];
@@ -110,10 +108,7 @@ var PConf = (typeof global !== 'undefined' && global.PConf) ? global.PConf
     // ---- The forecast line hints: how a metric's value reads on the graph ----
     // The scale lives on the LINE-STYLE picker, because the style decides how a value
     // is shown: a curve or its marks by HEIGHT, a stripe by COLOUR STRENGTH. The
-    // metric pickers keep only notes true of the metric whatever its style — except on
-    // a watch without style pickers (env.lineStyles false: aplite, the schema's
-    // LINE_STYLES_WHEN gate), where the metric picker adds the height wording, so the
-    // scale is explained there too. No hint restates a metric's or a style's name, a
+    // metric pickers keep only notes true of the metric whatever its style. No hint restates a metric's or a style's name, a
     // default look or 'Off'. The wind scale is named, not placed ("below"): with wind
     // and gusts both picked, its row sits under the first of them only; the pressure
     // scale row always sits below its (single) pressure line.
@@ -226,7 +221,7 @@ var PConf = (typeof global !== 'undefined' && global.PConf) ? global.PConf
      */
     function alertScaleLevels(metric, S, env) {
         if (!S || !lineAlert.showsAlert(S, metric)) { return null; }
-        var band = lineAlert.alertBands(S, env)[metric];
+        var band = lineAlert.alertBands(S)[metric];
         if (!band) { return null; }
         return {
             bottom: lineAlert.levelText(S, metric, band.bottom),
@@ -259,26 +254,21 @@ var PConf = (typeof global !== 'undefined' && global.PConf) ? global.PConf
         if (stripe) {
             return 'The color starts faint at ' + levels.bottom + ' and is full from ' + levels.full + '.';
         }
-        return (drawFrom.metricFromTop(S, metric, env) ? 'The graph top is ' : 'The graph bottom is ')
+        return (drawFrom.metricFromTop(S, metric) ? 'The graph top is ' : 'The graph bottom is ')
             + levels.bottom + ' and full height is ' + levels.top + '.';
     }
 
     /**
-     * A metric picker's hint: the metric's own note, and — only on a watch without
-     * style pickers — its height scale after it (a Show: Alert line's band instead).
+     * A metric picker's hint: the metric's own note (the scale is the style picker's).
      * @param {string} metric The picker's shown metric (or 'off').
-     * @param {Object} [env] Platform env; `lineStyles` truthy = style pickers exist
-     *   (the same truthy test as the schema's {env: 'lineStyles'} row gate).
-     * @param {Object} [S] Live settings state (the Show rows).
+     * @param {Object} [env] Platform env; unused.
+     * @param {Object} [S] Live settings state (the weather service).
      * @returns {string} The hint, '' for none.
      */
     function forecastMetricHint(metric, env, S) {
         var gap = forecastMetrics.gapOf((S || {}).provider);
-        var note = joinHint([copyOf(METRIC_NOTES, metric),
+        return joinHint([copyOf(METRIC_NOTES, metric),
             gap && gap.metrics.indexOf(metric) >= 0 ? gap.note : '']);
-        if (env && env.lineStyles) { return note; }
-        return joinHint([note,
-            alertScaleCopy(metric, false, S, env) || copyOf(HEIGHT_SCALE, metric)]);
     }
 
     /**
@@ -313,9 +303,8 @@ var PConf = (typeof global !== 'undefined' && global.PConf) ? global.PConf
     };
 
     /**
-     * Whether a metric's drawn line is a stripe on this watch: it has style pickers
-     * (env.lineStyles, as forecastMetricHint reads it) and the picker that draws the
-     * metric (line-style.js effectiveLineMetric: never a repeat) resolves to a stripe
+     * Whether a metric's drawn line is a stripe: the picker that draws the metric
+     * (line-style.js effectiveLineMetric: never a repeat) resolves to a stripe
      * (isStripeStyle, the style the bake draws).
      * @param {Object} S Live settings state.
      * @param {string} metric A graph metric id.
@@ -323,7 +312,6 @@ var PConf = (typeof global !== 'undefined' && global.PConf) ? global.PConf
      * @returns {boolean}
      */
     function drawnAsStripe(S, metric, env) {
-        if (!env || !env.lineStyles) { return false; }
         for (var i = 0; i < lineStyle.FORECAST_LINES.length; i += 1) {
             var line = lineStyle.FORECAST_LINES[i];
             if (lineStyle.effectiveLineMetric(S, line.key) === metric) {
@@ -352,7 +340,7 @@ var PConf = (typeof global !== 'undefined' && global.PConf) ? global.PConf
             return 'The stripe\'s color then runs from faint at ' + levels.bottom
                 + ' to full at ' + levels.full + '.';
         }
-        var fromTop = drawFrom.metricFromTop(S, metric, env);
+        var fromTop = drawFrom.metricFromTop(S, metric);
         return 'The graph then runs from ' + levels.bottom + (fromTop ? ' at the top' : ' at the bottom')
             + ' to ' + levels.top + (fromTop ? ' at the bottom.' : ' at the top.');
     }
@@ -396,8 +384,8 @@ var PConf = (typeof global !== 'undefined' && global.PConf) ? global.PConf
      */
     function windScaleHint(S, env) {
         if (!S) { return null; }
-        var drawn = lineAlert.drawnMetrics(S, env);
-        var bands = lineAlert.alertBands(S, env);
+        var drawn = lineAlert.drawnMetrics(S);
+        var bands = lineAlert.alertBands(S);
         var winds = 0, onAlert = [], i;
         for (i = 0; i < drawn.length; i += 1) {
             if (drawn[i] !== 'wind' && drawn[i] !== 'gust') { continue; }
@@ -448,7 +436,7 @@ var PConf = (typeof global !== 'undefined' && global.PConf) ? global.PConf
      */
     function lineFromHint(S, env, args) {
         if (drawFrom.value(args.value) !== drawFrom.TOP) { return ''; }
-        return drawFrom.linesSharing(S || {}, args.key, env) >= 2
+        return drawFrom.linesSharing(S || {}, args.key) >= 2
             ? LINES_FROM_TOP_HINT : LINE_FROM_TOP_HINT;
     }
     PConf.hintResolvers.register('lineFromHint', lineFromHint);
