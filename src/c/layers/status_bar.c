@@ -16,8 +16,7 @@ typedef struct {
 
 // The pre-create tier is COMPACT, as it was in each of the three predecessors.
 // Keep the explicit initialiser: defaulting it to 0 would silently make the
-// pre-create tier FULL. (It moves the struct from .bss to .data; the aplite image
-// check sums text+data+bss, so the total is unchanged.)
+// pre-create tier FULL.
 static StatusBar s_bars[STATUS_BAR_COUNT] = {
     [STATUS_BAR_FORECAST] = { .tier = LAYOUT_TIER_COMPACT },
     [STATUS_BAR_RADAR]    = { .tier = LAYOUT_TIER_COMPACT },
@@ -37,8 +36,7 @@ static uint8_t s_in_use = STATUS_BAR_ALL_IN_USE;
 // The bars are declared in the order of their sources (view_spec.h StatusSource,
 // which starts at 1: 0 is "no bar") and of their lines (status_line.h, where the
 // strip's line sits between the Radar bar's and the Health bar's), so both are
-// arithmetic on the bar's id, and a single constant on aplite, where
-// STATUS_BAR_COUNT is 1. The asserts below hold every bar a build has to that order.
+// arithmetic on the bar's id. The asserts below hold every bar a build has to that order.
 #define BAR_SOURCE(id) ((int) (id) + (int) STATUS_SRC_FORECAST)
 #define BAR_LINE(id)   ((int) (id) < (int) STATUS_LINE_TOP ? (int) (id) : (int) (id) + 1)
 #define BAR_IS(id, source, line) \
@@ -61,8 +59,7 @@ static inline uint8_t bar_source(StatusBarId id) {
 }
 
 // ── Update procs ─────────────────────────────────────────────────────────────
-// One trampoline per bar, selected by a switch that folds to a constant on
-// aplite. Deliberately NOT a table (an extra .rodata array plus an indirect load)
+// One trampoline per bar, selected by a switch. Deliberately NOT a table (an extra .rodata array plus an indirect load)
 // and deliberately not a linear search of s_bars for a matching Layer*.
 
 static void bar_draw_forecast(Layer *layer, GContext *ctx) {

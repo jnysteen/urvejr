@@ -58,18 +58,15 @@ static inline int chart_clamp_count(const ChartRender *r, int count) {
     return count;
 }
 
-// Label placement constants — per-side/per-platform font-whitespace and
-// optical-centering geometry, in one place (the engine label convention).
-// emery derives its label boxes from the font tier inside chart_axis_label() below;
-// these constants are the 144 px arm only.
-    // emery: wide pitch — the centered digit already sits on its column, no pull-back.
+// Label placement: the label boxes come from the font tier inside chart_axis_label() below.
+// Wide pitch: the centered digit already sits on its column, no pull-back.
     #define CHART_LABEL_NUDGE_X     0
 
 // Axis-label typography, resolved fresh on every axis render. On emery the "Larger
 // graph fonts" setting steps the hour digits up one tier (GOTHIC_14 -> 18) at runtime
 // from a settings apply with no relaunch, and config_get() is only valid after
 // config_load() -- so this must never be hoisted into a file-scope static or computed
-// once at init. On every other platform it constant-folds to today's values.
+// once at init.
 typedef struct {
     GFont font;
     int   bottom_dy;
@@ -283,8 +280,7 @@ static int chart_value_y(int16_t v, int lo, int range, int inner_h,
 // height (not clipped), so a 100% value keeps its whole mark — the same clamps
 // either way, so a hanging line's floor mark slides down to the plot's first rows
 // and a full one up off the axis. An x is slid the same way, and its arms may touch
-// the axis row, as a near-zero standing x always has. aplite compile-time folds the
-// x arms out (WW_LINE_STYLE): its mark lines are frozen dots (series_style_pick).
+// the axis row, as a near-zero standing x always has.
 //
 // An x needs a center pixel to read as an x, so its box is width|1 (odd): 5x5
 // over the 4 px bar columns (1 px into the right gap, still 1 px clear of the
@@ -550,11 +546,8 @@ static void chart_render_area(const ChartRender *r, const ChartAreaLayer *a) {
     // (graphics_fill_rect, no GPath) plus an UNBACKED stride-2 fg dot pass
     // (hatch_fill_rect_raw, not hatch_fill_rect — a per-dot backing square would
     // paint over half of every other checker cell instead of completing the
-    // pattern). Same per-column contour walk the aplite branch below already
-    // does, so this is the same cost class of work, not an extra pass. Gated to
-    // color hardware only: on real B&W builds theme_is_bw() is constant-true with
-    // no PBL_COLOR, so this whole arm compiles out and the plain fill below runs,
-    // which real hardware then dithers itself.
+    // pattern). Same per-column contour walk as the plain fill, so this is the
+    // same cost class of work, not an extra pass.
     if (theme_is_bw()) {
         const int16_t x_lo = pts[0].x;
         const int16_t x_hi = pts[count - 1].x;

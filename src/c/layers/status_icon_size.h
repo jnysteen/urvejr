@@ -9,8 +9,6 @@
 // scripts/test-c.sh host-compiles this with the generated tables
 // (status_pixel_icons.generated.h) and checks that every box a bar can ask for has its
 // drawing (test/c/status_icon_drawings_test.c).
-//
-// NOT BUILT ON APLITE: its lean status row (status_row_aplite.c) draws bit masks.
 
 // Glyph ids for the On demand items' own drawings (layers/status_on_demand.c). In memory only,
 // never on the wire: right after every StatusIconId (STATUS_ICON_MAX), below the city's glyph
@@ -24,7 +22,7 @@ _Static_assert(STATUS_ROW_ICON_HEAVY_RAIN < STATUS_ICON_CITY_GLYPH,
 
 // The rain alert's glyph for its bucket (rain_tier.c rain_tier_to_bucket3: 1 light, 2 rain,
 // 3 heavy): the weather condition's Drizzle and Rain drawings, and Heavy rain's own, which
-// only the Pebble Time 2 asks for (the other watches fold heavy rain into rain).
+// the Pebble Time 2 asks for.
 static inline uint8_t status_rain_glyph(uint8_t bucket) {
     switch (bucket) {
         case 1: return STATUS_ICON_COND_DRIZZLE;

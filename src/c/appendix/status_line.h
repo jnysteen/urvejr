@@ -69,8 +69,7 @@ typedef enum {
                                 // per-kind bold mode (status_threshold.h)
     STATUS_ICON_DEWPOINT = 15,  // droplets; dew point is a temperature, so the
                                 // glyph is what separates it from the temp slot.
-                                // An id of its own is required even where the
-                                // glyph is absent (aplite): a SLOT_TEXT slot with
+                                // An id of its own is required: a SLOT_TEXT slot with
                                 // STATUS_ICON_NONE inherits THRESH_CITY's bold mode
     STATUS_ICON_PHONE_BATTERY = 16,      // phone glyph; the PHONE's charge, baked
                                          // as "NN%" text by the phone (SLOT_TEXT)
@@ -114,7 +113,6 @@ typedef enum {
 // The city slot can draw the current weather's glyph before its name: the glyph's id
 // (STATUS_ICON_COND_SUN..STATUS_ICON_COND_WIND) with this bit set, so the slot stays the
 // city's (SLOT_TEXT + STATUS_ICON_NONE's bold row and word ladder) and loads that glyph.
-// The phone sends it to every watch but aplite, whose lean row draws no such glyph.
 #define STATUS_ICON_CITY_GLYPH 0x80u
 _Static_assert(STATUS_ICON_MAX < STATUS_ICON_CITY_GLYPH, "the city's glyph bit sits above every id");
 

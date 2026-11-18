@@ -1,11 +1,5 @@
 #include "health.h"
 
-// This HealthService wrapper exists only on health-capable hardware. On
-// platforms without PBL_HEALTH (e.g. aplite) there are no sensors and no
-// callers — the health view that used these accessors is itself compiled out
-// (see health_graph_layer.c / health_status_layer.c / main_window.c) — so the
-// whole module drops out rather than shipping unreachable stubs.
-
 #define HOUR_SECS 3600
 
 /**
@@ -46,7 +40,7 @@ static void health_release_service_cache(void) {
 }
 
 /** health_service_sum_today(metric), with the firmware's cache freed again. Out of
-    line: the three sums share one copy (16 B less on basalt than inlined). */
+    line: the three sums share one copy (16 B less than inlined). */
 __attribute__((noinline)) static int sum_today(HealthMetric metric) {
     const int v = (int)health_service_sum_today(metric);
     health_release_service_cache();

@@ -32,7 +32,7 @@
 // eyeball: fixtures/ampm-{roboto,leco,bitham}.json are the three faces in 12h with the label on
 // at the WIDEST string ("12:34 PM", the one that fills the band), and ampm-roboto-941.json is
 // the 4-glyph string the default leading-zero-off setting actually shows most of the day. Shoot
-// with PLATFORMS="basalt emery" scripts/capture-screenshots.sh <label> <fixture> and row-scan
+// with PLATFORMS=emery scripts/capture-screenshots.sh <label> <fixture> and row-scan
 // the clock band: the label's first inked row must equal the digits' first inked row. MEASURED
 // 2026-08-26, 8 of 8 combinations, all exact bar 144px Bitham on a digit set with no 0 and no 8
 // — which is the ink-table caveat recorded in clock_ink.h, not this seating.
@@ -50,9 +50,7 @@
 // nominal size (verified on device at 14/18/24 — see status_content_h in layer_util.h), and
 // status_ink_top() gives the blank rows such a line leaves above its capitals: 7 at Gothic 18.
 // It is written as an expression rather than a literal and constant-folds because its argument
-// is one — the same shape as layout_aplite.c's STATUS_LARGE_BAND_H, and for the same reason:
-// aplite compiles this file, and its image is measured against a hard launch ceiling on every
-// build (scripts/check-aplite-size.sh).
+// is one.
 //
 // It is not a coincidence that AM_PM_INK_TOP comes out at 7, the value the retired hand-tuned
 // MT_AM_PM carried: that constant was measuring this same blank leading. What it got wrong was

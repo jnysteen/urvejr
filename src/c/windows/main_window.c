@@ -51,7 +51,7 @@ static bool s_tap_subscribed;
 // Radar data present? — the ONE availability predicate the ViewSpec resolves
 // against. Non-static (declared in main_window.h) so app_message.c's
 // availability-flip bracket calls this very definition and can never drift from
-// it. Constant-false on aplite (radar is compiled out).
+// it.
 bool main_window_radar_has_data(void) {
     // A stored window, or the radar notice alone (radar_limit.h radar_has_view):
     // a source that refused us before any window arrived, or cannot see the place,
@@ -60,8 +60,7 @@ bool main_window_radar_has_data(void) {
     return radar_has_view(persist_get_rain_radar_start() > 0, persist_has_radar_notice());
 }
 
-// Can this platform + config render health right now? Hard false on no-health platforms
-// (aplite compiles the health service out entirely).
+// Can this config render health right now?
 static bool health_renderable(void) {
     return config_get()->health_mode != HEALTH_OFF && health_available();
 }
@@ -198,8 +197,7 @@ static void render_active_view(void) {
     // one call — the bars own the fan-out now (see layers/status_bar.h).
     status_bar_apply_view(&spec, &L);
     // Each graph layer frames to ITS seat: the top band when a custom layout put it
-    // there, else the body. (aplite keeps the plain body frames below — the helper
-    // call measured +16 B of image there.)
+    // there, else the body.
     // emery: the forecast layer sits in a clip of its own (forecast_layer.c), framed with it,
     // and draws the view's graph style (the view word's ext bits 9-10; graph_style.h).
     forecast_layer_set_frame(layout_forecast_frame(&spec, &L));
@@ -214,9 +212,7 @@ static void render_active_view(void) {
     layer_set_hidden(health_graph_layer_get_root(), !v.health_graph);
     // Custom per-view omissions (any view may drop its top bar, flick views also the
     // clock; slot 0's clock is belted above, peek forces both back on). Hidden, never destroyed — ticks/refreshes on a hidden layer only
-    // set text and frames. Deliberately not routed through LayerVisibility: a field
-    // there would oblige the aplite twin's layout_visibility to populate a flag aplite
-    // can never raise.
+    // set text and frames.
     //
     // The strip must be REFRAMED here too, not just toggled: it is created once at
     // window load from the BOOT view's L.top_status, which is 0-height for a stripless
@@ -490,7 +486,6 @@ static void minute_handler(struct tm *tick_time, TimeUnits units_changed) {
     // builds (watch_services_now() freezes it for display but mktime/TZ/DST make
     // it unsafe to compare against the JS-derived radar start), so the advance
     // logic would roll the whole window to empty and re-anchor to real time.
-    // (aplite has no radar — WW_RAIN_RADAR undefined — so this drops out.)
     if (rain_radar_layer_tick(time(NULL))) {
         // Window advanced — re-evaluate the top view, mirroring the arrival path.
         main_window_apply_top_view();
@@ -568,8 +563,7 @@ void main_window_refresh() {
     // and keeping it out of this set is what made each new repaint path forget it
     // (a config-only theme flip left it on the old polarity, most recently). Cheap
     // and idempotent — a recolor plus one or two persist reads — so the flick/peek
-    // paths can afford it; on aplite (no flick — WW_VIEW_CYCLE is compiled out)
-    // this runs on the settings/fetch checkpoints only.
+    // paths can afford it.
     loading_layer_refresh();
     // The rows above can newly show a health reading (a settings change, a flick, the
     // strip a Quick View peek brings back): read it now, not at the next tick.

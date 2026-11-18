@@ -10,8 +10,7 @@
 // tier<<8 | clockOff<<10 | stripOff<<11 | order<<12) to a ViewSpec. Pure — the
 // producer (main_window) supplies the value; availability is resolved separately by
 // view_spec_resolve. Value 0 decodes to a zeroed spec. Bits 10-15 exist only on the
-// custom-layout wire; every preset value keeps them clear, and the aplite twin never
-// reads them. Garbage order codes (12-15 — no compiler emits them) are clamped to 0
+// custom-layout wire; every preset value keeps them clear. Garbage order codes (12-15 — no compiler emits them) are clamped to 0
 // (the legacy order) here at the decode boundary, so spec.order is a valid 0-11
 // everywhere downstream.
 ViewSpec view_spec_unpack(uint16_t v);
@@ -57,7 +56,7 @@ static inline uint8_t view_word_sources(uint32_t word) {
 
 // Data-availability downgrades, pure. The status rows always stay: the Radar bar and the
 // Health bar are status bars like the others and stay without radar or health data. Without
-// health data (aplite, or health off): a health graph body -> forecast, a health graph top
+// health data (health off): a health graph body -> forecast, a health graph top
 // -> empty. Without radar data: a radar top band -> calendar, a radar body -> forecast
 // (radar-in-body is valid with a calendar).
 ViewSpec view_spec_resolve(ViewSpec spec, bool has_radar, bool has_health);
@@ -101,7 +100,7 @@ static inline void layout_peek_spec(ViewSpec *s) {
 // top, then the clock, the status row(s), and the body (forecast/graph/radar) below. Clock
 // and body keep ~full-tier proportions (the freed calendar space covers the ~51px overlay).
 // `spec` supplies the status shape (NONE / single / DUAL); its top/calendar fields are
-// ignored. Pure; excluded on aplite.
+// ignored. Pure.
 MainLayout layout_compute_peek(GRect bounds, const ViewSpec *spec, LayoutMetrics m);
 
 // ── View-cycle cursor (pure) ─────────────────────────────────────────────────
@@ -155,10 +154,9 @@ bool view_auto_return_due(int32_t now, int32_t flick_since, uint8_t reset_min);
 //    later partner re-arms instead. Expiry is judged lazily on the next callback: no timer.
 // Time only: on Core-era firmware every shake reports as AXIS_Z, 0.
 #define VIEW_FLICK_DEBOUNCE_MS 500
-// 3 s: the BMI160 driver (basalt) latches any-motion for ~1.28 s (one event per
-// latch), so a partner cannot arrive sooner there — a natural quick flick-flick reads as one
-// flick on those watches. 3 s leaves them a >= 1.7 s slot for flick, pause, flick; every
-// other platform pairs anywhere from the 500 ms debounce up to 3 s.
+// 3 s: long enough for a deliberate flick, pause, flick; a partner pairs anywhere from the
+// 500 ms debounce up to 3 s. (The BMI160 driver of the older watches latched any-motion for
+// ~1.28 s, which is where the 3 s came from.)
 #define VIEW_FLICK_PAIR_MS 3000
 _Static_assert(VIEW_FLICK_PAIR_MS > VIEW_FLICK_DEBOUNCE_MS,
                "a flick's partner must be able to clear the debounce");
@@ -170,8 +168,7 @@ typedef struct {
 // absorbs its 49.7-day wrap and reads a wall-clock step back (time_ms is UTC wall time) as
 // "long ago", so the callback counts and a stale arm re-arms rather than pairing. need_pair
 // is read live from config; single mode always clears the arm, so a settings toggle needs no
-// reset. static inline, 32-bit: tap_handler is its one caller, and the 64 KB watches' image
-// ceilings (scripts/check-64k-size.sh) have no room for a call and 64-bit math.
+// reset. static inline, 32-bit: tap_handler is its one caller.
 static inline bool view_flick_accept(ViewFlickGate *gate, uint32_t now_ms, bool need_pair) {
     uint32_t since = now_ms - gate->last_ms;
     if (since < VIEW_FLICK_DEBOUNCE_MS) { return false; }   // same physical flick

@@ -69,10 +69,6 @@ typedef struct {
     uint8_t status_lower;   // StatusSource feeding the lower (forecast-abutting) band
     uint8_t status_tier;    // LayoutTier the status rows render at
     // Custom-layout fields, decoded from wire bits 10/11/12-15 (view-cycle.js packSpec).
-    // Guarded on the flick-cycle feature macro because custom layouts are a colour-platform
-    // feature: aplite (frozen-lean fork) folds every wire value to its preset shapes and its
-    // twin never reads these bits, so the guard keeps aplite's struct — and every byte of its
-    // copy/codegen — identical to pre-custom builds.
     uint8_t clock_off;      // 1 = this view omits the clock band (flick views only)
     uint8_t strip_off;      // 1 = this view omits the top status strip (any view)
     uint8_t order;          // canonical band-order code; 0 = the legacy fixed order
@@ -115,11 +111,7 @@ typedef struct {
 } LayerVisibility;
 
 // ── Shared tier / status predicates (pure, header-inline) ───────────────────
-// These live in the header as `static inline`, not as functions in layout.c, because
-// main_window.c is NOT forked — one file compiles for every platform — while layout.c
-// is (aplite compiles layout_aplite.c instead). An extern here would force a second
-// definition in the twin and cost aplite image bytes; inlining in the header is the
-// zero-cost way to share the rule with both twins and with main_window.
+// These live in the header as `static inline`, shared by layout.c and main_window.c.
 
 // Calendar rows for a packed WIRE tier field (0=off, 1=none, 2=compact, 3=full — see
 // src/pkjs/layout/domain/view-cycle.js). "off" and "none" are different things to the producer (a
@@ -187,8 +179,7 @@ static inline GRect layout_status_band(const ViewSpec *spec, const MainLayout *L
 
 // The frame of the forecast / health graph LAYER for a view: the top band when the
 // custom layout placed that graph there (TOP_BAND_GRAPH + top_kind), else the body band.
-// Static inline for the unforked main_window.c (the tier-predicate idiom above); aplite
-// never calls them — it frames both layers to L.bottom directly.
+// Static inline for main_window.c (the tier-predicate idiom above).
 static inline GRect layout_forecast_frame(const ViewSpec *spec, const MainLayout *L) {
     if (spec->top == TOP_BAND_GRAPH && spec->top_kind == TOP_GRAPH_FORECAST) { return L->top; }
     return L->bottom;
@@ -201,11 +192,9 @@ static inline GRect layout_health_frame(const ViewSpec *spec, const MainLayout *
 
 // Does the top strip (and any status row) print the FULL date for this view? Only
 // while no calendar is on screen: the calendar's rows carry the day numbers, so
-// beside them the date slot shows the month. On colour watches the calendar is
-// visible only when the top band holds it — a radar or graph top can carry a
-// calendar row count (radar tops compile at the full tier) without drawing one.
-// aplite's top band only ever holds the calendar (radar is compiled out and
-// resolves to it), so the row count alone decides there, byte-for-byte as before.
+// beside them the date slot shows the month. The calendar is visible only when the
+// top band holds it — a radar or graph top can carry a calendar row count (radar tops
+// compile at the full tier) without drawing one.
 static inline bool layout_full_date(const ViewSpec *spec) {
     return !(spec->calendar_rows > 0 && spec->top == TOP_BAND_CALENDAR);
 }

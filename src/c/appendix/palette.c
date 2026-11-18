@@ -80,7 +80,7 @@ static bool apply(const uint8_t *packed, int len, ChartColorStop *store, int *st
 }
 
 // emery: a graph style's own bar palette (graph_style.h), read per paint into the caller's
-// stops. A wrapper, so parse_packed stays static (and inlined) on every other platform.
+// stops. A wrapper, so parse_packed stays static (and inlined).
 int palette_parse_stops(const uint8_t *packed, int len, ChartColorStop *out) {
     return parse_packed(packed, len, out);
 }

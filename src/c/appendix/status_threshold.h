@@ -11,12 +11,6 @@
 // test/alerts/domain/status-thresholds-contract.test.js greps this header to enforce both.
 // Deliberately no <pebble.h> so the module host-compiles (scripts/test-c.sh).
 //
-// NOT LINKED ON APLITE: aplite paints its status rows from the lean
-// layers/status_row_aplite.c twin, which carries no highlighting, so the whole
-// feature is compiled out there (WW_THRESHOLD_HIGHLIGHT in wscript) and
-// --gc-sections reaps this module. Keep every caller behind that macro, or in a
-// file aplite never compiles (status_row.c: wscript builds its twin instead).
-//
 // Wire formats:
 //  - STATUS_LEVELS_UINT8 (weather message, 2 bytes LE): packed per-kind levels
 //    for the weather kinds, 2 bits each — kinds 0..3 at bits 2k..2k+1, UV
@@ -58,8 +52,7 @@
 //                       warn level in % (valid 5..30; 0 or out of range reads
 //                       as 10), bit 6 its Look (0 icon, 1 icon + value), bit 7
 //                       reserved 0. The phone writes the level already on the
-//                       platform's step (5s on emery, 10/20/30 elsewhere), so the
-//                       watch uses it verbatim and never rounds.
+//                       watch's 5 % step, so the watch uses it verbatim.
 //      [36 + (k >> 2)]  warn look (ThreshWarnLook) per PAIRED kind, 2 bits at
 //                       bits 2 * (k & 3) — kinds 0..7 = bytes 36..37
 //                       (THRESH_WARN_LOOK_OFFSET): the box drawn at the WARN

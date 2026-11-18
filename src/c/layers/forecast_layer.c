@@ -18,15 +18,8 @@
 #include "paint_scratch.h"
 
 #define TEMP_LABEL_PAD 2
-// Base 6 on effectively-colour builds, 7 on B&W (a sparser dot pattern reads better
+// Base 6 in the colour themes, 7 in the B&W ones (a sparser dot pattern reads better
 // without hue to separate it), then scaled up for taller plots — see hatch.h.
-//
-// aplite: frozen at the unscaled base, so this feature costs the aplite image 0 bytes.
-// The image is already 356 B past the 21800 B launch-safety ceiling on main
-// (scripts/check-aplite-size.sh) and past the ~22058 B cliff where the firmware silently
-// refuses to launch, so aplite cannot afford the scaling arithmetic. Aplite therefore
-// keeps the tighter hatch in its taller presets; it has no rain radar, so the night hatch
-// is the only hatch it draws.
 #define NIGHT_HATCH_SPACING(plot_h) \
     hatch_stride_scaled(theme_is_bw() ? 7 : 6, HATCH_BASE_PLOT_H, (plot_h))
 // Every night colour — the full-height hatch and the day line as well as the
@@ -34,19 +27,15 @@
 // (line-style.js resolveNightColors) and reaches the watch as the NIGHT_COLORS
 // blob (layout in persist.h), read into s_night_ink below. Left on Auto the
 // phone sends exactly what this file used to hardcode, so the render is
-// unchanged. The B&W arms still live here, in the theme_pick() calls at the two
-// call sites: B&W has no range, so the night-area path draws the theme fg over
+// unchanged. The B&W theme's arms still live here, in the theme_pick() calls at the two
+// call sites: the B&W theme has no range, so the night-area path draws the theme fg over
 // the LightGray fill (has_underlay gated to colour), and the day line keeps
 // its polarity swap (bw-dark LightGray; bw-light DarkGray — a LightGray line
 // reads too faint against a white bw-light background).
 #define FORECAST_TREND_FULL_SCALE 250  // uint8 wire range (PKJS sends 0..250)
 
 // Named indices into the NIGHT_COLORS blob the phone resolved (canonical layout
-// in persist.h). Declared OUTSIDE the PBL_COLOR guard deliberately: on a B&W
-// build NIGHT_C(i) expands to a constant that leaves its argument unexpanded, so
-// an enum hidden inside the guard would still appear to compile there and would
-// break the day a name reached an evaluated position. Enumerators occupy no
-// image bytes, so naming these costs aplite nothing.
+// in persist.h).
 enum night_ink {
     NIGHT_INK_HATCH = 0,      // full-height night hatch
     NIGHT_INK_DAY_LINE,       // the line at midnight
@@ -54,10 +43,6 @@ enum night_ink {
     NIGHT_INK_AREA_HATCH      // filled area's night hatch
 };
 
-// B&W builds never read the blob — theme_pick() is the macro `(bw_arm)` there
-// (theme.h) and has_underlay is false — so both the load and the store compile
-// out entirely and NIGHT_C() expands to a constant that is never evaluated. That
-// is what keeps this feature free on aplite.
 static uint8_t s_night_ink[NIGHT_COLOR_BYTES];
 #define NIGHT_C(i) ((GColor){ .argb = s_night_ink[(i)] })
 
@@ -74,10 +59,8 @@ static void style_reload(void) {
     s_style_len = graph_style_valid(s_style_rec, n) ? n : 0;
 }
 
-// The day/night shading and the left axis's options (config.h GRAPH_OPT_*; 0 off emery) of
-// the graph on screen. Plain reads of the settings off emery: the helper functions measured
-// 4 B more on the 64 KB B&W images (scripts/check-64k-size.sh).
-// emery: its graph style's record's, while it has one.
+// The day/night shading and the left axis's options (config.h GRAPH_OPT_*) of
+// the graph on screen: its graph style's record's, while it has one, else the settings'.
 static inline bool forecast_night_on(void) {
     if (s_style_len) { return (s_style_rec[GS_FLAGS] & GS_FLAG_NIGHT) != 0; }
     return config_get()->day_night_shading;
@@ -99,8 +82,8 @@ static inline SeriesId graph_style_series(uint8_t t) {
                               ? graph_style_series(graph_style_trend((rec), (s))) : (s))
 
 // Chart config: frame + ticks + slots in one block. Two variants because
-// the axis colour tracks the night-overlay state — orange (or theme_fg() on
-// B&W) normally, darker grey under night shading so the axis reads as
+// the axis colour tracks the night-overlay state — orange (or theme_fg() in
+// the B&W theme) normally, darker grey under night shading so the axis reads as
 // part of the night region instead of competing with it. Left and
 // bottom share one colour per variant. Ticks and slots are identical
 // between variants; only the frame swaps at draw time. theme_furniture()
@@ -124,11 +107,11 @@ static void apply_line_style(SeriesLine *line, uint8_t style_byte, int solid_wid
 }
 
 // A stripe-styled series draws as a CHART_LAYER_STRIPE band, never as a line,
-// marks or a fill. aplite folds to false: its styles are frozen.
+// marks or a fill.
 #define SERIES_IS_STRIPE(s) ((s)->line.style == CHART_LINE_STRIPE)
 // A line-, mark- or fill-drawn series hangs from the plot's top ("Draw from: Top"):
 // its layers carry it as ChartLayer.from_top. Read only for a series that is not a
-// stripe (for a stripe the same flag is its band's edge). aplite folds to false.
+// stripe (for a stripe the same flag is its band's edge).
 #define SERIES_FROM_TOP(s) ((s)->line.from_top)
 // The stripe geometry (FORECAST_STRIPE_H, the gaps, forecast_stripe_band) is in
 // temp_axis_pad.h, with the rest of the plot's vertical layout.
@@ -183,11 +166,11 @@ static void load_dataset(ForecastDataset *ds) {
 
     // Same read-persist-inline cadence as the insets above: load_dataset runs at
     // the top of every paint, so the night colours are always the last ones the
-    // phone sent. B&W builds never reference s_night_ink, so this compiles out.
+    // phone sent.
     persist_get_night_colors(s_night_ink);
 
     // The memset above cleared every series; each sets only what it draws with. The
-    // metric lines' colours are the raw per-metric ones (the SDK reduces them on B&W).
+    // metric lines' colours are the raw per-metric ones.
     for (SeriesId s = SERIES_SECOND; s < SERIES_COUNT; ++s) {
         ds->series[s].present = persist_series_present(s);
     }
@@ -208,14 +191,9 @@ static void load_dataset(ForecastDataset *ds) {
     third->color = persist_get_third_line_color();
     third->width = FORECAST_GRID_BAR_W;   // marks match the rain-bar columns
     third->inset_y = curve_insets[SERIES_THIRD];
-    // No style here: capable platforms overwrite it from the persisted
-    // blob just below, and aplite reads the frozen constant through
-    // series_style_pick at the layer-build site instead.
+    // No style here: the persisted blob just below overwrites it.
 
-    // The block below indexes curve_insets[SERIES_FOURTH/FIFTH], slots that
-    // exist only in the WW_CURVE_INSET tuple — the aplite #else array above is
-    // three bytes. wscript sets both flags off aplite today, but nothing else
-    // ties them together, so say it here instead of reading past the array.
+    // The block below indexes curve_insets[SERIES_FOURTH/FIFTH]: the array must reach them.
     _Static_assert(SERIES_FIFTH < CURVE_INSET_BYTES,
                    "CLAY_CURVE_INSET_UINT8 must carry one byte per SeriesId up to SERIES_FIFTH");
     SeriesLine *const fourth = &ds->series[SERIES_FOURTH].line;
@@ -276,8 +254,6 @@ static void load_dataset(ForecastDataset *ds) {
 // their rows in place (temp_axis_rows), so their layers map rows 1:1: lo 0, hi temp_rows
 // (forecast_update_proc's count of the plot's content rows), no insets. A line with no inset
 // (every metric line off the temperature axis) keeps its bytes and its full-height mapping.
-// aplite has neither: its insets are the plain constants and every layer maps bytes,
-// byte-for-byte as before (the frozen fork).
 #define LINE_HI(inset) ((inset) ? temp_rows : FORECAST_TREND_FULL_SCALE)
 #define LINE_INSET(inset) 0   // a layer's inset_top and inset_bottom alike
 #define TEMP_HI temp_rows
@@ -285,18 +261,13 @@ static void load_dataset(ForecastDataset *ds) {
 // How a metric line reads its wire byte 0, "nothing" (chart_runs.h): a metric with a zero
 // (rain chance, clouds, wind, gusts, UV, and a Visible values: Alert line below its warn
 // level) still comes down to the zero row next to a reading (JOIN); a floating line's
-// byte 0 is a missing reading (pressure, feels-like, dew point), a plain gap. aplite has
-// no float bit, so its lines all JOIN, which changes nothing there: feels-like and dew
-// point are not offered, and a pressure line never carries byte 0 (forecast-series.js:
-// pressurePermille drops a series with any implausible hour, metricBytes floors the
-// rest to byte 1).
+// byte 0 is a missing reading (pressure, feels-like, dew point), a plain gap.
 #define LINE_ZERO(s) ((s)->line.floating ? CHART_ZERO_GAP : CHART_ZERO_JOIN)
 
 /**
  * The ChartLayer for one bar-aligned mark line (SERIES_THIRD..SERIES_FIFTH):
  * the one place their layer literal exists, whatever z-slot the fill decides.
- * aplite reads the frozen DOTS style through series_style_pick (series.h) —
- * only SERIES_THIRD is reachable there, and its style is fixed. `hi` is the
+ * `hi` is the
  * line's full scale, LINE_HI: its rows on the temperature axis, else 250.
  */
 static ChartLayer mark_line_layer(const Series *s, int count, int hi) {
@@ -323,8 +294,7 @@ static char s_buffer_hi[12];
 // the bars and lines.
 //
 // On the first slot of each new calendar day, by the slot's own wall-clock date, so a midnight
-// that a clock change skips or repeats still draws once. Off emery the hour labels count on from
-// the first one, so across a clock change the line can sit a tick from where they put midnight.
+// that a clock change skips or repeats still draws once.
 // Slot 0 is the graph's edge, never a line. From the graph's top row (through a top stripe band,
 // as the night shading runs) to the zero row's neighbour.
 static void day_lines_draw(const ChartRender *r, void *user) {
@@ -350,8 +320,7 @@ static void day_lines_draw(const ChartRender *r, void *user) {
 }
 
 // curve[0..count): the temperature curve as its layer draws it, rows out from baseline_y
-// (fit_temp_axis), which the labels line up with when there is space. aplite, the frozen
-// fork, has no fit: its labels keep today's places and never read the curve.
+// (fit_temp_axis), which the labels line up with when there is space.
 static void draw_left_axis(GContext *ctx, int h, int16_t baseline_y,
                            const int16_t *curve, int count) {
     // Mask anything drawn into the label strip. The vertical axis line
@@ -446,9 +415,7 @@ static __attribute__((noinline)) void draw_axis_numbers(GContext *ctx, const For
 // it widens no range and stays one; the curve's is data.
 //
 // noinline, noclone: out of forecast_update_proc and handed `ds` in a register, the two
-// passes cost basalt nothing and diorite/flint 20 B less than the inlined temperature-only
-// fit did; inlined they cost basalt 28 B more (diorite/flint 72), cloned onto the paint
-// scratch's address 36 (40) (measured 2026-10-04; basalt sits at its 64 KB ceiling).
+// passes cost less image than inlined or cloned onto the paint scratch's address.
 static __attribute__((noinline, noclone)) void fit_temp_axis(ForecastDataset *ds, int plot_h,
                                                                int anchors) {
     Series *const first = &ds->series[SERIES_FIRST];
@@ -478,8 +445,7 @@ static void forecast_update_proc(Layer *layer, GContext *ctx)
     MEMORY_LOG_HEAP("forecast_update:enter");
     GRect bounds = layer_get_bounds(layer);
     const bool night_on = forecast_night_on();
-    // The left axis's options (config.h GRAPH_OPT_*; 0 off emery, so axis_on is true
-    // there). The numbers On axis (today) draw the left axis: the label strip and the axis line
+    // The left axis's options (config.h GRAPH_OPT_*). The numbers On axis (today) draw the left axis: the label strip and the axis line
     // along the plot's left edge. On graph or Off draw no left axis at all (owner, 2026-10-09:
     // "the complete left axis should not be drawn, and the graph should start as much on the
     // left screen as possible"): no strip, no axis line (the frame's left border, in the plot
@@ -501,7 +467,7 @@ static void forecast_update_proc(Layer *layer, GContext *ctx)
 
     // The per-redraw buffers are the shared paint scratch's (paint_scratch.h), not stack:
     // the dataset off the stack keeps nested chart_draw/SDK graphics calls enough
-    // headroom, and aplite's small app stack overflows otherwise (PC=0/LR=0). All are
+    // headroom (an overflow shows as PC=0/LR=0). All are
     // recomputed each redraw. Series values are already contiguous int16 permille from
     // PKJS, so the chart layers read them directly; only the contour points + axis
     // slots need scratch.
@@ -694,9 +660,7 @@ static void forecast_update_proc(Layer *layer, GContext *ctx)
                                   // size: one layer per present series (a stripe replaces
                                   // its line, never adds one), plus the area fill, two night
                                   // hatches, the day line, frame and axis. A new layer has
-                                  // to grow it — 10 on aplite, 11 with the third-metric
-                                  // line, from the enum instead of a hand-maintained
-                                  // platform pair.
+                                  // to grow it, from the enum.
     int n = 0;
     // "Draw from: Top" of the Main metric: its fill, the fill's night re-shade and its
     // line or marks all hang.
@@ -752,9 +716,8 @@ static void forecast_update_proc(Layer *layer, GContext *ctx)
             .style = BAR_OUTLINED } };
     }
     // Mark lines (second + third metric): bar-aligned marks whose styles are
-    // user-selectable off the LINE_STYLES blob on capable platforms. The loop
-    // over [SERIES_THIRD, SERIES_BARS) is the platform-correct set straight
-    // from the enum — {THIRD} on aplite, {THIRD, FOURTH} elsewhere. Z-order
+    // user-selectable off the LINE_STYLES blob. The loop over
+    // [SERIES_THIRD, SERIES_BARS) is the set straight from the enum. Z-order
     // vs. the main-metric line depends on the fill: with an opaque area fill
     // the marks ride ABOVE the line so the fill can't hide them; with no fill
     // (a thin stroke) they sit BELOW so the main line stays the dominant

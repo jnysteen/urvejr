@@ -25,8 +25,7 @@
 // tier lifts the box by exactly its content-height step (14 -> 18 px) — out of the strip
 // and into whatever sits above the radar, which in the compact views is a status row.
 // Adding the same step back keeps the label's clearance identical at both tiers, at the
-// cost of 4 px of plot height on emery's large tier. config_large_graph_font() is
-// constant false off emery, so every other platform folds this to the plain 12.
+// cost of 4 px of plot height on the large tier.
 #define RADAR_AXIS_H_BASE       12
 #define RADAR_AXIS_H_LARGE_STEP 4
 
@@ -374,8 +373,8 @@ static void radar_update_proc(Layer *layer, GContext *ctx) {
                             RADAR_NUM_SLOTS * RADAR_SLOT_SECONDS),
         axis_outer.size.h);
 
-    // The shared paint scratch (paint_scratch.h), not stack: aplite's small app stack
-    // overflows otherwise (PC=0/LR=0). Both are recomputed before each use (exact_pm
+    // The shared paint scratch (paint_scratch.h), not stack: keeps nested drawing calls
+    // headroom (an overflow shows as PC=0/LR=0). Both are recomputed before each use (exact_pm
     // only on a redraw with rain), as is the sky blob above.
     int16_t *const exact_pm = g_paint_scratch.radar.exact_pm;
     ChartAxisSlot *const axis_slots = g_paint_scratch.radar.axis_slots;

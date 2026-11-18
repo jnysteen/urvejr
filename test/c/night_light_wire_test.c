@@ -7,26 +7,12 @@
 // persisted tuple, so it is the part worth pinning. app_message.c itself cannot be
 // host-compiled (it needs the whole AppMessage + layer surface), which is exactly
 // why the rule lives in a header instead of inside the handler.
-//
-// Built THREE times by scripts/test-c.sh: plain, with -DPBL_RGB_BACKLIGHT (the SDK's
-// colour-backlight capability) and with -DPBL_PLATFORM_EMERY (the board that carries
-// it today). The runtime assertions are identical on purpose — the WIRE is
-// platform-independent, only the persist accessors behind it are gated — while the
-// two gated builds prove persist.h's guarded declarations still parse, and the static
-// check below pins the gate itself in all three.
+
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
 
 #include "c/appendix/persist.h"
-
-// persist.h spells the gate once, as NIGHT_LIGHT_SUPPORTED, so the unpacker, the
-// persist accessors and the apply cannot drift apart. Pin both of its terms: either
-// one alone must light it up (an SDK too old for the capability macro must still
-// build the feature on the board that has the hardware), and neither must not.
-#  if !defined(NIGHT_LIGHT_SUPPORTED)
-#    error "NIGHT_LIGHT_SUPPORTED must follow PBL_RGB_BACKLIGHT / PBL_PLATFORM_EMERY"
-#  endif
 
 static int s_failures = 0;
 

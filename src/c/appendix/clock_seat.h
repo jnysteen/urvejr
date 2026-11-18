@@ -20,21 +20,15 @@
 // per font covers every preset — and layout_compute_peek(), whose clock band is a different
 // height entirely.
 // Byte fields, not ints: the measured range is -2..+2 and 29..46, and this struct is BOTH a
-// table (in clock_ink.h) and a by-value parameter on a platform where the aplite
-// image has ~40 B of headroom under a hard launch ceiling. Both fields promote to int the
-// moment they are used, so the arithmetic below is unaffected.
+// table (in clock_ink.h) and a by-value parameter. Both fields promote to int the moment they
+// are used, so the arithmetic below is unaffected.
 typedef struct {
     int8_t  centre_off;   // (ink centre) - (band centre), + = ink sits low. MEASURED.
     uint8_t ink_h;        // rows of ink the digits occupy
 } ClockInk;
 
-// The font-derived numbers the WINDOW measures and the pure layout consumes — one bundle so the
-// set can differ per platform without every call site knowing.
-//
-// aplite carries no clock field: see the WW_CLOCK_INK note in wscript. Its lean twin seats the
-// clock on fixed Roboto-tuned anchors instead of solving, so the metric would be dead weight on
-// the one platform that cannot afford any. Callers never branch on this — they build the struct
-// through LAYOUT_METRICS_NOW() in layers/clock_ink.h, which has the platform arms.
+// The font-derived numbers the WINDOW measures and the pure layout consumes, in one bundle.
+// Callers build the struct through LAYOUT_METRICS_NOW() in layers/clock_ink.h.
 typedef struct {
     int16_t fc_band_h;   // status_forecast_band_h(status_full_tier_font())
     ClockInk clock;      // the active time font's measured ink

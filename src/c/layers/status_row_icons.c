@@ -1,8 +1,6 @@
 #include "status_row_icons.h"
 #include "../appendix/theme.h"
 
-// Not built on aplite: its lean status row (status_row_aplite.c) draws bit masks.
-
 #include "status_pixel_icons.generated.h"
 
 // Every status icon is drawn once for every height a bar draws it at (scripts/pixel-icons/README.md),

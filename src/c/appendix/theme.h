@@ -3,31 +3,22 @@
 // Theme accessors — dark=0 (default) / light=1 / bw=2 / bw-light=3 (Config.theme;
 // see docs/superpowers/specs/2026-07-07-theme-inversion-design.md). No heap: every
 // accessor reads config_get()->theme directly, so it's safe to call anywhere after
-// config_load() has run. Out of line in appendix/theme.c wherever the light polarity
-// exists (WW_THEME_POLARITY, below); static inline on aplite, where it folds away.
+// config_load() has run. Out of line in appendix/theme.c (below says why).
 //
 // Two independent axes used throughout the C render sweep:
 //  - Polarity: dark/bw are white-on-black; light/bw-light are black-on-white.
 //    theme_fg()/theme_bg() give the polarity's foreground/background.
-//  - Effective color: a watch renders "as color" only when the display IS color
-//    AND theme isn't bw or bw-light. theme_pick()/theme_is_bw() encode that split
-//    so a color build's bw/bw-light theme reuses the EXACT drawing path a real
-//    B&W watch takes (in dark or light polarity respectively), and a B&W build
-//    (aplite/diorite/flint) never pays for the color arm.
+//  - Effective color: the watch renders "as color" unless the theme is bw or bw-light.
+//    theme_pick()/theme_is_bw() encode that split.
 //
-// bw-light is the light-polarity twin of bw: a stored bw-light reaching real B&W
-// hardware renders as that hardware's Light theme (theme_is_light() alone decides
-// polarity there — B&W hardware IS the bw drawing path already, see theme_is_bw()
-// below), while on a color build it takes the bw draw path (theme_is_bw() true)
-// with light-polarity fg/bg (theme_is_light() true).
+// bw-light is the light-polarity twin of bw: it takes the bw draw path (theme_is_bw()
+// true) with light-polarity fg/bg (theme_is_light() true).
 
 #include <pebble.h>
 #include "config.h"
 
-// Out of line (appendix/theme.c) wherever the light polarity exists: every platform
-// but aplite. As static inlines, -Os kept them as calls and emitted a private copy in
-// every file that used one — about 30 copies, some 0.9 KB of image on basalt — and on
-// these platforms the image comes out of the app heap too.
+// Out of line (appendix/theme.c): as static inlines, -Os kept them as calls and emitted a
+// private copy in every file that used one — about 30 copies, some 0.9 KB of image.
 
 /** True in the light theme (black-on-white polarity): light or bw-light. */
 bool theme_is_light(void);

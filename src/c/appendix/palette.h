@@ -27,7 +27,7 @@ int palette_parse_stops(const uint8_t *packed, int len, ChartColorStop *out);
 // (forecast-graphs/domain/graph-wire.js markPalette; rain-tier.js packPalette): the flag needs no mask or
 // storage of its own, rides the palette's own change compare (so a flip repaints the
 // chart it belongs to), and every reader of .from clamps a stop under the floor, so a
-// renderer that ignores the flag still draws the bars standing. aplite has no Top.
+// renderer that ignores the flag still draws the bars standing.
 #define palette_from_top(stops) chart_flip_palette_top((stops)[0].from)
 
 // Per-tier color over the RADAR palette: tier 1..n -> that stop's color;

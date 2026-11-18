@@ -2,9 +2,6 @@
 
 #include <pebble.h>
 
-// Exists only on health-capable hardware; aplite (no sensors) compiles the whole
-// module and its call sites out, mirroring health.c / health_cache.c.
-
 // The readings a status slot can show, one bit each: what a row reports for its slots
 // (status_row_live_health) and what health_summary_sync reads.
 #define HEALTH_SUMMARY_STEPS    0x01

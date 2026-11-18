@@ -1,8 +1,8 @@
 #include "health.h"
 
 // Screenshot/showcase twin of services/health.c. Selected by the wscript ONLY when
-// WW_HEALTH_FIXTURE is set in the environment (see the source-selection block), and
-// never on aplite — so it never ships in a normal build. Where health.c reads live
+// WW_HEALTH_FIXTURE is set in the environment (see the source-selection block), so it
+// never ships in a normal build. Where health.c reads live
 // values from HealthService, this returns one canned, deterministic set so captured
 // frames show stable, realistic health numbers instead of the emulator's arbitrary
 // (and low) simulated data. Feature-frozen mirror of health.c's interface: if health.h

@@ -1,31 +1,9 @@
 #include "night_light.h"
 
-// UNGUARDED ON PURPOSE, and it must stay that way. waf decides build order by
-// scanning includes, and it does not evaluate a -D macro while scanning: an
-// `#include <pebble.h>` sitting inside `#if defined(WW_COLOR_BACKLIGHT)` is
-// invisible to it, so this file never picks up its dependency on the generated
-// src/resource_ids.auto.h that pebble.h pulls in — and on emery, the one platform
-// that lights the guard, it can be compiled before that header is generated:
-//   pebble.h:5:10: fatal error: src/resource_ids.auto.h: No such file or directory
-// The platforms that gate the feature out never noticed, because the guard also
-// hid the include from the compiler. Every other translation unit here includes
-// <pebble.h> unconditionally at top level; so does this one. Including a header
-// emits no code, so the gated-out platforms still compile to an empty object.
 #include <pebble.h>
-
 
 #include "persist.h"
 #include "c/services/watch_services.h"
-
-// wscript lights WW_COLOR_BACKLIGHT for emery alone, and persist.h lights
-// NIGHT_LIGHT_SUPPORTED for the SDK's PBL_RGB_BACKLIGHT capability (emery alone) or
-// the emery platform macro — so on every real build the first implies the second.
-// If that ever stops being true the persist accessors below are declared away and
-// this file would fail to LINK, one platform at a time, with no hint as to why. Say
-// it here instead, naming both macros.
-#if !defined(NIGHT_LIGHT_SUPPORTED)
-#error "WW_COLOR_BACKLIGHT is set but persist.h's NIGHT_LIGHT_SUPPORTED is not — the night-light persist accessors are not declared on this build"
-#endif
 
 // What we last told the firmware, so the minute tick can stay silent on all but the
 // two ticks a day the answer actually moves. The SDK calls are cheap but they are

@@ -6,9 +6,8 @@
 // mapped onto, and what happens to readings outside it.
 //
 // Deliberately SDK-free (only <stdint.h>) for two reasons: it is host-testable
-// (test/c/hr_scale_test.c), and it stays a leaf whose only caller lives inside
-// health_graph_layer.c's `#if defined(PBL_HEALTH)` — so on aplite, which has no
-// health at all, --gc-sections reaps the whole module. The "no value" sentinel
+// (test/c/hr_scale_test.c), and it stays a leaf whose only caller is
+// health_graph_layer.c. The "no value" sentinel
 // is passed in rather than included (CHART_ABSENT lives in chart.h, which needs
 // the SDK) so there is only ever one definition of it.
 

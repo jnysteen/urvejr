@@ -17,12 +17,8 @@ bool status_row_refresh(StatusRow *row);
 // row (tier push); the resolver reads only row state.
 void status_row_set_full_date(StatusRow *row, bool full_date);
 // The health readings the row's slots show (services/health_summary.h HEALTH_SUMMARY_*),
-// as of its last refresh; 0 when it shows none. Health watches only: aplite's lean twin
-// need not answer it.
+// as of its last refresh; 0 when it shows none.
 uint8_t status_row_live_health(const StatusRow *row);
-// Declared only where On demand exists: aplite has none, so its lean twin need not
-// answer it.
-//
 // Every refresh reads which On demand items sit on the row's bar — its cells in the
 // thresholds blob (status_threshold_on_demand_side; the compiled defaults, Bluetooth,
 // Quiet time and Sleep left and Battery plus the weather alerts right on the Watch

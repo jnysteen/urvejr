@@ -7,10 +7,6 @@
 #define HEALTH_SLEEP_LIGHT 1
 #define HEALTH_SLEEP_DEEP  2
 
-// These accessors exist only on health-capable platforms. Builds without
-// PBL_HEALTH (e.g. aplite) have no sensors and compile the whole health
-// feature out, so there is nothing to declare there.
-
 /** Returns true once step-count health data is accessible; the first true is
  *  latched for the app's life (health.c). */
 bool health_available(void);

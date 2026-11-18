@@ -104,8 +104,7 @@ typedef struct {
 
 // The zero row and direction of the layer being drawn, for every renderer and for a
 // CUSTOM layer's own bars (the radar's nearby-area pass), so they all hang by the one
-// rule. aplite has no Top (WW_LINE_STYLE): the bottom edge and -1, constant-folded,
-// which is today's "baseline minus height" there.
+// rule.
 #define CHART_ZERO(r) ((r)->zero)
 #define CHART_DIR(r)  ((r)->dir)
 #define CHART_VERTEX_Y(zero, dir, h, held) chart_flip_vertex_y((zero), (dir), (h), (held))
@@ -155,9 +154,7 @@ typedef struct {
 // How a LINE layer strokes its series. SOLID is the polyline (width = stroke
 // px); DOTS and X are per-slot marks aligned to the bar columns (width = mark
 // box px). STRIPE is not drawn by a LINE layer at all: the caller turns such a
-// series into a CHART_LAYER_STRIPE (forecast_layer.c). The X and STRIPE arms
-// are compiled out of aplite (WW_LINE_STYLE, wscript) — aplite's two lines only
-// ever carry SOLID/DOTS. Values are also the wire/persist encoding's kind bits
+// series into a CHART_LAYER_STRIPE (forecast_layer.c). Values are also the wire/persist encoding's kind bits
 // (persist.h LINE_STYLE_KIND_MASK), so never renumber.
 typedef enum { CHART_LINE_SOLID = 0, CHART_LINE_DOTS = 1, CHART_LINE_X = 2,
                CHART_LINE_STRIPE = 3 } ChartLineStyle;
@@ -166,7 +163,7 @@ typedef struct {
     const int16_t *values;            // the points are computed from these
     GPoint        *points;            // a SOLID line's vertices, count of them: the caller's
                                       // buffer (the engine keeps none; a point array is too
-                                      // large for aplite's stack). Layers drawn one after
+                                      // large for the stack). Layers drawn one after
                                       // another may share one, since each computes its points
                                       // before it uses them; a contour HATCH reads the buffer
                                       // of the AREA drawn before it. The mark styles need none.
@@ -180,8 +177,8 @@ typedef struct {
                                       // Hanging (from_top), the two swap edges: inset_bottom
                                       // is the margin at the zero edge (the top), inset_top
                                       // the one at the full edge (the bottom). Only the
-                                      // health HR line and aplite's temperature curve
-                                      // carry insets, and they never hang.
+                                      // health HR line carries insets, and it never
+                                      // hangs.
     GColor         color;
     uint8_t        width;
     uint8_t        style;             // ChartLineStyle
@@ -219,8 +216,7 @@ typedef struct {
     int16_t          extend_top;         // full-height bands only: rows ABOVE the content
                                          // that the hatch covers too
                                          // (the forecast's top stripe band), so the night
-                                         // shading runs to the top of the graph. aplite
-                                         // compiles it out (no stripes).
+                                         // shading runs to the top of the graph.
     uint8_t          num_bands;
     GColor           hatch_color;
     GColor           underlay_color;     // per-column solid fill before hatch (area re-shade)
@@ -234,8 +230,7 @@ typedef struct {
 
 // A metric as a thin band of per-slot cells along the top or bottom edge of the
 // plot, each shaded by its value (chart_stripe.h): a colour ramp from the
-// background toward `color`, or a B&W dither density. aplite compiles it out
-// (WW_LINE_STYLE) — its lines have no selectable styles.
+// background toward `color`, or a B&W dither density.
 typedef struct {
     const int16_t *values;
     uint16_t       count;
@@ -255,10 +250,8 @@ typedef struct {
     uint8_t        from_top;   // nonzero: BARS, LINE, AREA and a contour HATCH (and a CUSTOM
                                // layer through CHART_ZERO/CHART_DIR) hang from the content's
                                // top instead of standing on its bottom (chart_flip.h).
-                               // FRAME, AXIS, STRIPE and a full-height HATCH ignore it. On
-                               // every platform, in the padding after the short enum:
-                               // rain_radar_layer.c still compiles on aplite, where nothing
-                               // reads it.
+                               // FRAME, AXIS, STRIPE and a full-height HATCH ignore it. In
+                               // the padding after the short enum.
     union {
         ChartFrameLayer  frame;
         ChartAxisLayer   axis;

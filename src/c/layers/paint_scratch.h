@@ -12,7 +12,7 @@
 
 // The paint scratch: the per-draw buffers of the update procs, in one block of .bss
 // they share. Each member is one proc's (or one pass's) working set, too big for the
-// app stack (aplite's overflows: PC=0/LR=0), and dead between its uses. Pebble runs
+// app stack (an overflow shows as PC=0/LR=0), and dead between its uses. Pebble runs
 // update procs and event handlers one at a time and never nests them, and every user
 // fills its member at the start of its pass before reading it, so the members can
 // overlay: the block is as big as the largest one, the forecast's, not their sum.
@@ -22,8 +22,6 @@
 // they fill and consume within one call.
 //
 // The member types live here, with their owners named, so the union sees them all.
-// aplite links only the forecast's (its status row is the twin, it has no health
-// graph and no radar), so there the block is the forecast's buffers alone.
 
 // forecast_layer.c's per-redraw dataset: every series, reloaded at the top of each
 // paint (load_dataset).
@@ -38,9 +36,8 @@ typedef struct {
     Series series[SERIES_COUNT];
 } ForecastDataset;
 
-// The hours the scale and the labels cover: `n`, every hour sent (the caller's
-// ds->num_entries), off emery.
-#define FORECAST_FIT_N(ds, n) ((ds)->fit_entries)   // emery: the hours on screen
+// The hours the scale and the labels cover: the hours on screen.
+#define FORECAST_FIT_N(ds, n) ((ds)->fit_entries)
 
 // forecast_update_proc: the dataset, its layer list (the plot's, then each stripe
 // band's), the lines' vertices and the area fill's contour (one buffer: chart.h

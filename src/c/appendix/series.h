@@ -10,11 +10,8 @@ typedef enum {
     SERIES_SECOND,      // configurable metric line (+ optional area fill)
     SERIES_THIRD,       // configurable metric, bar-aligned marks (dots by default)
     SERIES_FOURTH,      // configurable metric, bar-aligned marks (x by default).
-                        // aplite compiles the slot out (frozen-lean fork): its
-                        // dataset stays four Series and SERIES_BARS shifts down —
-                        // safe, SeriesId values are compile-time only, never persisted.
-    SERIES_FIFTH,       // configurable metric ("Fourth metric"), x marks by
-                        // default. Same feature set as FOURTH, compiled out alike.
+                        // SeriesId values are compile-time only, never persisted.
+    SERIES_FIFTH,       // configurable metric ("Fourth metric"), x marks by default.
     SERIES_BARS,        // rain bars, multi-stop palette
     SERIES_COUNT,
     // emery: the graph styles' spare trend (graph_style.h GS_TREND_SPARE), a metric row no
@@ -24,15 +21,10 @@ typedef enum {
     SERIES_SPARE = SERIES_COUNT,
 } SeriesId;
 
-// The half-open range [SERIES_THIRD, SERIES_BARS) is the platform-correct set
-// of bar-aligned MARK lines — {THIRD} on aplite, {THIRD, FOURTH, FIFTH} elsewhere —
-// straight from the enum, with no preprocessor at the loop sites.
+// The half-open range [SERIES_THIRD, SERIES_BARS) is the set of bar-aligned MARK
+// lines — {THIRD, FOURTH, FIFTH} — straight from the enum.
 
-// The aplite line-style freeze, in the theme_pick / NIGHT_HATCH_SPACING
-// compile-time-fold shape: capable platforms read the phone-resolved style off
-// the SeriesLine; aplite loads the caller's frozen constant as an immediate
-// (its styles are fixed and the runtime read would be dead bytes against the
-// exactly-full image ceiling — scripts/check-aplite-size.sh).
+// A line's phone-resolved style, off the SeriesLine (`frozen` is the pre-style default).
 #define series_style_pick(line, frozen) ((line).style)
 
 typedef struct {                       // FIRST / SECOND / THIRD (/ FOURTH / FIFTH)

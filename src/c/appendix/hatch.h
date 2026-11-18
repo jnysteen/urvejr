@@ -96,12 +96,9 @@ void hatch_fill_rect_raw(GContext *ctx, GRect rect, GColor color, int stride);
 // 'stride' is the pixel spacing between hatch dots. Both the forecast night-shading
 // (NIGHT_HATCH_SPACING) and the radar area-bar background (RADAR_HATCH_SPACING) derive
 // it from their live plot height via hatch_stride_scaled() above: a base of 6 on
-// effectively-color builds / 7 on B&W at the baseline height, growing for taller plots.
-// Exception: on aplite, NIGHT_HATCH_SPACING is frozen at the constant base stride instead
-// (no radar there to keep in step with) — see forecast_layer.c.
+// the colour themes / 7 in the B&W ones at the baseline height, growing for taller plots.
 //
-// In any B&W theme (theme_is_bw() — TRUE both for a color build's bw/bw-light theme
-// AND, constant-true, on real B&W hardware: see theme.h), each dot additionally gets
+// In any B&W theme (theme_is_bw(): the bw and bw-light themes), each dot additionally gets
 // a theme_bg() backing: a 1px-wide vertical run one pixel above and below the dot (its
 // own column only), so a sparse fg dot reads over whatever it lands on (an area fill, a
 // bar) instead of blending into it — same reasoning as chart.c's chart_draw_bar_dots

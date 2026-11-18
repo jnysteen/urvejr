@@ -22,10 +22,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-// Never compiled on aplite — wscript builds status_row_aplite.c in its place — and
-// every other platform has both features, so nothing below is guarded on them, nor
-// on PBL_PLATFORM_APLITE.
-
 #define STATUS_ROW_MARGIN 2
 // Icon height as a fraction of the status text's content height. Bumped 5/9 -> 6/9
 // (~2/3) so the glyphs read heftier at every tier (they were noticeably timid at 5/9);
@@ -89,7 +85,6 @@ static int s_levels_word;
 
 // The sunrise/sunset arrow, turned for the wind-direction arrow too: one GPath every
 // row shares, created with the first row and destroyed with the last (s_row_count).
-// (The aplite twin draws its sun arrow from primitive lines instead.)
 static GPath *s_arrow_path;
 static const GPathInfo ARROW_PATH_INFO = {
     .num_points = 6,
@@ -116,8 +111,7 @@ uint16_t sig_fold(uint16_t sig, const uint8_t *data, size_t len) {
 // strip, which rides STATUS_TOP_STRIP_LIFT rows higher inside an unchanged band — its top edge
 // is the screen edge, so the air above the line is invisible while the gap below, down to the
 // calendar, is what reads. Line-id-keyed like row_font() just below, for the same reason.
-// One seat, minus STATUS_TOP_STRIP_LIFT for the strip: a single measure-and-seat body, which
-// keeps the image small on aplite.
+// One seat, minus STATUS_TOP_STRIP_LIFT for the strip: a single measure-and-seat body.
 static int row_text_y(const StatusRow *row, GFont font) {
     int y = status_text_y(row->bounds.size.h, font);
     return (row->line_id == STATUS_LINE_TOP) ? y - STATUS_TOP_STRIP_LIFT : y;

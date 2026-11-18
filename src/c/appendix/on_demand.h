@@ -12,10 +12,6 @@
 // (scripts/test-c.sh) with the row layout it places slots through. The SDK half —
 // which items are active, their glyphs, measures and paint — is
 // layers/status_on_demand.c.
-//
-// NOT LINKED ON APLITE: On demand is aplite-absent (WW_ON_DEMAND in wscript), so the
-// .c body sits behind that macro and compiles to an empty object there. These
-// declarations emit nothing.
 
 // The items, in priority order, which is also the wire order of the thresholds
 // blob's item cells (status_threshold.h, THRESH_ON_DEMAND_OFFSET) and the order the

@@ -24,8 +24,8 @@
 // the SDK at render time, per time font. layout.c has no font calls (test/c/stub/pebble.h), so
 // the budget it may spend is a constant here rather than a computation. At 3 the reference band's
 // FLOOR — the deepest row a descender's tails can reach, since the clamp-free band holds cap +
-// tails exactly — still clears the clock's first inked row: floor 60 vs clock ink 63 on basalt,
-// 84 vs 89 on emery (clock rows MEASURED on the default Roboto, the tallest of the three time
+// tails exactly — still clears the clock's first inked row: floor 84 vs clock ink 89
+// (clock rows MEASURED on the default Roboto, the tallest of the three time
 // fonts; the actual slot text in those captures inked no deeper than 58 / 81).
 // Deliberately NOT per preset: it used to be applied to the lone row only, which is
 // exactly the defect the dense-clearance audit fixed.
@@ -189,7 +189,7 @@ static int spec_top_rows(const ViewSpec *s) {
 // the graph — keeps the LARGE font whatever its shape: the squeeze exists to fit rows
 // into a screen that carries all its chrome and a graph, and any of those removals frees
 // at least the rows the bigger type wants. Shared by unpack, apply_ext and resolve so
-// they can never disagree; the aplite twin keeps calling layout_status_tier directly.
+// they can never disagree.
 static uint8_t status_tier_for(const ViewSpec *s) {
     int rows = spec_top_rows(s);
     bool two_rows = (s->status_upper != STATUS_SRC_NONE) && (s->status_lower != STATUS_SRC_NONE);
@@ -222,10 +222,7 @@ ViewSpec view_spec_unpack(uint16_t v) {
     spec.body = body;
     spec.status_upper = su;
     spec.status_lower = sl;
-    // Custom-layout bits. Unconditional: layout.c is compiled with WW_VIEW_CYCLE
-    // everywhere it is compiled at all (wscript's twin filter drops it on aplite;
-    // the host base build defines the macro too — scripts/test-c.sh). Decoded
-    // BEFORE the tier below, which reads clock_off.
+    // Custom-layout bits. Decoded BEFORE the tier below, which reads clock_off.
     spec.clock_off = (uint8_t)((v >> 10) & 1);
     spec.strip_off = (uint8_t)((v >> 11) & 1);
     spec.order     = (uint8_t)((v >> 12) & 15);
@@ -365,8 +362,6 @@ LayerVisibility layout_visibility(const ViewSpec *spec) {
     return v;
 }
 
-// Excluded on aplite (Timeline Quick View is compiled out there via WW_QUICK_VIEW, see
-// wscript) so aplite's layout code pays nothing for a view it never renders.
 MainLayout layout_compute_peek(GRect bounds, const ViewSpec *spec, LayoutMetrics m) {
     int fc_band_h = m.fc_band_h;
     ClockInk ink = m.clock;

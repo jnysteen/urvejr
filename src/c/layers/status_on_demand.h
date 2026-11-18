@@ -9,11 +9,6 @@
 // status_on_demand_fold() on every refresh, status_on_demand_layout() and
 // status_on_demand_paint() on every draw; everything in between happens here.
 //
-// NOT LINKED ON APLITE: On demand is aplite-absent (WW_ON_DEMAND in wscript) — the .c
-// body sits behind the macro and compiles to an empty object there. Its one caller,
-// status_row.c, is never compiled on aplite (wscript builds status_row_aplite.c
-// instead); these declarations emit nothing.
-//
 // Which items sit on which side of which bar is the thresholds blob's On demand cells
 // (status_threshold_on_demand_side — the compiled defaults until the phone sends
 // them). An item draws while it is active:

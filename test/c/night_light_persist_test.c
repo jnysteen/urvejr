@@ -12,21 +12,13 @@
 //      and reports false, so nothing downstream re-applies;
 //   2. the short-read guard in the getter, which must leave its all-zero default
 //      ("never") standing rather than half-filling out[] from a corrupt slot.
-//
-// Built TWICE by scripts/test-c.sh, once per term of persist.h's
-// NIGHT_LIGHT_SUPPORTED gate (-DPBL_RGB_BACKLIGHT, the SDK capability macro, and
-// -DPBL_PLATFORM_EMERY + -DPBL_COLOR, the board that carries it today), so both
-// spellings are proven to DEFINE the accessors and not merely declare them.
+
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
 
 #include "c/appendix/persist.h"
 #include "fake_persist.h"
-
-#if !defined(NIGHT_LIGHT_SUPPORTED)
-#error "night_light_persist_test.c must be built with a colour-backlight macro"
-#endif
 
 // The on-flash slot ID. persist.c's `enum key` is file-static, so pin the NUMBER
 // here: the enum is append-only precisely because these values are storage slots,

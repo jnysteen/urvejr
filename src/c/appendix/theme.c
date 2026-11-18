@@ -1,10 +1,6 @@
-// The theme accessors, out of line (theme.h says why). Every include stays above the
-// guard: waf's dependency scanner does not evaluate -D macros (see night_light.c),
-// and including a header emits no code, so aplite, which lacks WW_THEME_POLARITY and
-// keeps the header's constant-folding inlines, compiles this file to an empty object.
+// The theme accessors, out of line (theme.h says why).
 #include <pebble.h>
 #include "theme.h"
-
 
 bool theme_is_light(void) {
     return config_get()->theme == 1 || config_get()->theme == 3;

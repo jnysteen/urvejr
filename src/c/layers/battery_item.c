@@ -1,10 +1,6 @@
-// Every include stays ABOVE the WW_ON_DEMAND guard, on purpose: waf's dependency
-// scanner does not evaluate -D macros (see night_light.c). Aplite, which lacks the
-// flag, compiles this file to an empty object.
 #include <pebble.h>
 #include "battery_item.h"
 #include "battery_draw.h"
-
 
 // The body is about 1.7 times as wide as it is high — the Watch battery slot's body
 // (17 x 10) at every tier.

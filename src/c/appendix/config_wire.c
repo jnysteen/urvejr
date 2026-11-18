@@ -107,8 +107,8 @@ bool config_parse_wire(DictionaryIterator *iterator, Config *out) {
     // zero from the memset above. Each is looked up where it is read.
     // Packed view slots — read the full int16 tuple as uint16 (NOT truncated to a byte;
     // the tier bits 8-9 live above the low byte). See config.h view_spec2 / view_spec_unpack.
-    // Without them the phone re-sends the real cycle on connect. Off aplite the high half
-    // carries the view's ext word too (read_view_tuple above).
+    // Without them the phone re-sends the real cycle on connect. The high half carries the
+    // view's ext word (read_view_tuple above).
     read_view_tuple(dict_find(iterator, MESSAGE_KEY_CLAY_VIEW_0), 0, &out->view_spec2[0], &out->view_ext[0]);
     read_view_tuple(dict_find(iterator, MESSAGE_KEY_CLAY_VIEW_1), 1, &out->view_spec2[1], &out->view_ext[1]);
     read_view_tuple(dict_find(iterator, MESSAGE_KEY_CLAY_VIEW_2), 2, &out->view_spec2[2], &out->view_ext[2]);
@@ -131,8 +131,6 @@ bool config_parse_wire(DictionaryIterator *iterator, Config *out) {
     if (clay_date_month_first_tuple) {
         out->date_month_first = (bool) (clay_date_month_first_tuple->value->int16);
     }
-    // emery-only, like the field (config.h): the tuple still RIDES to every platform,
-    // but only emery pays the dict_find to look it up.
     const Tuple *clay_large_graph_font_tuple = dict_find(iterator, MESSAGE_KEY_CLAY_LARGE_GRAPH_FONT);
     if (clay_large_graph_font_tuple) {
         // emery: the graph-options word (config.h GRAPH_OPT_*): bit 0 Larger graph fonts,
@@ -143,9 +141,7 @@ bool config_parse_wire(DictionaryIterator *iterator, Config *out) {
         out->large_graph_font = (word & GRAPH_OPT_LARGE_FONT) != 0;
         out->forecast_axis = (uint8_t) (word & GRAPH_OPT_AXIS_MASK);
     }
-    // Not on aplite, like the fields (config.h): the phone omits the tuple for an
-    // aplite watch too (clay-payload gates it with the threshold blob). Without it,
-    // both date formats stay 0 = Auto.
+    // Without the tuple both date formats stay 0 = Auto.
     const Tuple *clay_date_format_tuple = dict_find(iterator, MESSAGE_KEY_CLAY_DATE_FORMAT_UINT8);
     if (clay_date_format_tuple && clay_date_format_tuple->type == TUPLE_BYTE_ARRAY
         && clay_date_format_tuple->length >= 2) {

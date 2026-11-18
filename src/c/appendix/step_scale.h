@@ -2,7 +2,7 @@
 // The health graph's step scale (health_graph_layer.c): the bars' top, the labeled dotted
 // lines from the visible window's busiest hour, and where their labels sit. Pure and SDK-free,
 // so the host suite can pin it (test/c/step_scale_test.c, the hr_scale.h pattern). Only the
-// health graph includes it, so aplite (no PBL_HEALTH) never compiles it.
+// health graph includes it.
 
 #include <stdbool.h>
 #include <stdint.h>

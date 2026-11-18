@@ -1,5 +1,5 @@
 #pragma once
-// Graph styles (emery only): each screen's forecast graph draws one of up to three graph
+// Graph styles: each screen's forecast graph draws one of up to three graph
 // styles, named in its view word (layout.h view_ext_graph_style). A style is everything on
 // the settings page's Graphs › Forecast pane that draws the graph: its lines and their
 // trends, its colours and line styles, the rain bars' palette, the night shading, the left

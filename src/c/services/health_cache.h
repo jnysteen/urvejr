@@ -2,9 +2,6 @@
 
 #include <pebble.h>
 
-// The health cache exists only on health-capable hardware. aplite (no sensors)
-// compiles the whole module + every call site out (see main_window.c).
-
 // Rollover/restore gaps up to this many trailing buckets keep the cache ready
 // (the slid buckets stay on screen) and refill in background slices; larger
 // catch-ups drop to the loading state first — slid data hours stale is worse

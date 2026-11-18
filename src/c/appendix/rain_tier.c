@@ -27,8 +27,6 @@ int rain_tier_to_bucket3(int tier) {
     if (tier <= 0) { return 0; }
     if (tier <= 2) { return 1; }  // drizzle
     if (tier <= 4) { return 2; }  // rain (tier 3-4)
-    // emery: the only strip wide enough to fit "Downpour …" without an ellipsis,
-    // so the downpour bucket (widest noun + densest glyph) is emery-only.
     return 3;                     // downpour (tier 5, > 10 mm/h)
 }
 

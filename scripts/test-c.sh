@@ -132,8 +132,6 @@ build/host/status_row_layout_test
 cc $CFLAGS test/c/row_swap_dump.c src/c/appendix/status_row_layout.c -o build/host/row_swap_dump
 build/host/row_swap_dump > build/host/row_swap.txt
 node scripts/check-row-swap-lockstep.js build/host/row_swap.txt
-cc $CFLAGS test/c/status_row_alloc_test.c src/c/appendix/status_row_alloc.c -o build/host/status_row_alloc_test
-build/host/status_row_alloc_test
 # Header-only pure date-slot formatters (static inline in date_format.h, no .c file —
 # the status_icon_size.h pattern).
 cc $CFLAGS test/c/date_format_test.c -o build/host/date_format_test

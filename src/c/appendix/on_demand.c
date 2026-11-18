@@ -2,10 +2,6 @@
 #include <stddef.h>
 #include <string.h>
 
-// Only the BODY is guarded, the include stays above it: waf's dependency scanner
-// does not evaluate -D macros (see night_light.c). Aplite, which lacks WW_ON_DEMAND,
-// compiles this file to an empty object.
-
 #define GAP STATUS_ROW_GROUP_GAP
 // A budget no slot reaches: status_slot_place_at() then answers the desired width.
 #define WIDE 0x3FFF

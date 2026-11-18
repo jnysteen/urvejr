@@ -7,9 +7,7 @@
 // start from (FORECAST_GRID_DEF; the health graph fits its own pitch to a full day,
 // health_graph_layer.c health_grid_def), their axis chrome, the left-axis label font and
 // each one's label strip. One source of truth for the geometry/chrome both views used to
-// hand-copy. This module is NOT PBL_HEALTH-gated: forecast (which always ships)
-// consumes it on every platform; only the health-side *calls* sit behind the
-// health guard. Paint-free; allocates zero heap (a few bytes of .bss only).
+// hand-copy. Paint-free; allocates zero heap (a few bytes of .bss only).
 
 // --- Geometry (group A) ---
 // Slot count for the shared bottom graphs: the health window and the 24 h grid
@@ -48,9 +46,7 @@ TickSide bottom_view_tick_style(void);
 // --- Left-axis label font ---
 // One resolver for BOTH views' draw AND measure paths, on purpose: each strip below is
 // sized from its measured labels, so a draw/measure font mismatch would size the gutter
-// wrong. emery's "Larger graph
-// fonts" setting steps it up one tier (18 -> 24); every other platform is frozen at
-// GOTHIC_18 — on a 144 px screen the left axis is already calendar-sized. The setting
+// wrong. The "Larger graph fonts" setting steps it up one tier (18 -> 24). The setting
 // flips at runtime from a settings apply with no relaunch, so call this fresh on every
 // draw/measure, never cache it (same reason bottom_view_tick_style() is a function).
 GFont bottom_view_label_font(void);
@@ -68,8 +64,7 @@ GSize bottom_view_label_size(const char *text);
 #define BOTTOM_VIEW_LABEL_FONT_KEY_LARGE  FONT_KEY_GOTHIC_24
 #define BOTTOM_VIEW_LABEL_FONT_H_LARGE    24
 
-// bottom_view_label_font()'s measured height, without measuring it: constant off emery, so the
-// metrics read from it fold to constants there.
+// bottom_view_label_font()'s measured height, without measuring it.
 static inline int bottom_view_label_font_h(void) {
     return config_large_graph_font() ? BOTTOM_VIEW_LABEL_FONT_H_LARGE : BOTTOM_VIEW_LABEL_FONT_H;
 }

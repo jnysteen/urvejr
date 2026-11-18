@@ -10,23 +10,10 @@
 // slot (persist.h), copied byte for byte off the phone's CLAY_NIGHT_LIGHT_UINT8
 // tuple; this module is the only thing that reads them back and drives the LED.
 //
-// EXCLUDED, NOT TWINNED (docs/adr/0001, mechanism 2): only a watch with an RGB
-// backlight can show a tint, and today that is emery alone — the firmware backs the
-// colour LED with CONFIG_BACKLIGHT_AW2016, which appears in one board file
-// (boards/obelix, CONFIG_PLATFORM_EMERY). So wscript defines WW_COLOR_BACKLIGHT for
-// emery only, the definitions below exist only there, and the call sites in
-// windows/main_window.c are guarded so --gc-sections reaps the module everywhere
-// else. The declarations are guarded TOO (persist.h's night-light choice, not
-// quick_view.h's unconditional one): an unguarded caller must fail to COMPILE, with
-// the macro named in the error, rather than fail to link on one platform.
-//
-// The two pure helpers are compiled on EVERY platform on purpose, exactly as
-// persist.h keeps night_light_wire_ok() everywhere: they are the only decisions here
-// that are not SDK calls, and keeping them out of the gate is what lets
-// scripts/test-c.sh execute them (night_light.c can't be host-compiled — it needs
-// persist + applib). Unreferenced static inlines emit no code, so the platforms that
-// gate the feature out pay nothing for them. Deliberately no <pebble.h> here, for
-// the same reason status_threshold.h omits it.
+// The two pure helpers below are the only decisions here that are not SDK calls, which
+// lets scripts/test-c.sh execute them (night_light.c can't be host-compiled — it needs
+// persist + applib). Deliberately no <pebble.h> here, for the same reason
+// status_threshold.h omits it.
 
 /**
  * Does `hour` fall inside the nightly window [start_hour, end_hour)?

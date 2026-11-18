@@ -1,12 +1,7 @@
-// Every include stays ABOVE the WW_THRESHOLD_HIGHLIGHT guard, on purpose: waf's
-// dependency scanner does not evaluate -D macros, so an include inside the guard
-// would be invisible to it (night_light.c records the failure). Including a header
-// emits no code, so aplite still compiles this file to an empty object.
 #include <pebble.h>
 #include "status_highlight.h"
 #include "status_icon_size.h"
 #include "../appendix/theme.h"
-
 
 // The drawable colour for a look's RAW accent byte. On effective B&W (real hardware
 // or the bw/bw-light theme) the escalation is polarity, not hue: outline fg, fill fg

@@ -20,9 +20,7 @@
 
 // The most hourly entries the forecast keeps (persist, the series buffers, the paint
 // scratch, the chart's point buffer). Lockstep with hourly-window.js MAX_FORECAST_HOURS
-// (test/weather/domain/forecast-span.test.js). Every other platform keeps today's 24, equal to
-// MAX_BOTTOM_VIEW_ENTRIES (asserted in forecast_grid.c), which the health graph keeps on
-// emery too.
+// (test/weather/domain/forecast-span.test.js). The health graph keeps MAX_BOTTOM_VIEW_ENTRIES.
 // emery: the long span sends 68 hourly points: ceil(200 / 3) + 1, the widest plot (the whole
 // 200 px screen: the numbers On graph or Off start the plot at its left edge, forecast_layer.c)
 // at the 3 px pitch, plus the hour whose vertex lies past the right edge. The watch picks

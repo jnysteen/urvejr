@@ -49,50 +49,30 @@ enum key {
     STATUS_LINE_ENCODING_VERSION, // 41
     NOTICE_TEXT,                  // 42 — phone-pushed overlay string (empty = no notice)
     // Appended: status-slot threshold highlighting (layouts in status_threshold.h).
-    // aplite never reads or writes these two (WW_THRESHOLD_HIGHLIGHT is undefined
-    // there and the accessors below compile out), but the IDs stay listed on every
-    // platform: the enum is append-only because the numbers are the on-flash slots.
     STATUS_LEVELS,                // 43 — packed weather-kind levels byte
     THRESHOLD_SETTINGS,           // 44 — enabled bits + colors + health thresholds blob
     // Appended: custom radar empty-state text (CLAY_NORAIN_TEXT; absent =
-    // built-in default). aplite never reads or writes it — its only callers
-    // (the WW_RAIN_RADAR-guarded app_message handler and the unreferenced
-    // rain_radar_layer.c) drop out there and --gc-sections reaps the
-    // accessors — but the ID stays listed on every platform: the enum is
-    // append-only because the numbers are the on-flash slots.
+    // built-in default).
     NORAIN_TEXT,                  // 45 — radar no-rain text, <= 24 B UTF-8 + NUL
     // Appended: per-series forecast curve insets (CLAY_CURVE_INSET_UINT8 tuple,
     // [FIRST, SECOND, THIRD, FOURTH, FIFTH] px; installs from before the
     // fourth/fifth channels hold a 3-byte blob until the next Clay save
-    // rewrites it). aplite never reads or writes it
-    // (WW_CURVE_INSET is undefined there and the accessors below compile out),
-    // but the ID stays listed on every platform: the enum is append-only
-    // because the numbers are the on-flash slots.
+    // rewrites it).
     CURVE_INSETS,                 // 46 — 5 render-ready inset bytes (legacy 3), absent = {7, 0, 0, 0, 0}
-    // Appended: the user-selectable night colours (layout in persist.h). B&W
-    // builds never read or write it (the accessors are PBL_COLOR-guarded and
-    // theme_pick discards the colour arm there), but the ID stays listed on
-    // every platform: the enum is append-only because the numbers are the
-    // on-flash slots.
+    // Appended: the user-selectable night colours (layout in persist.h).
     NIGHT_COLORS,                 // 47 — 5 GColor8 argb bytes + flags, absent = the built-in defaults
     // Appended: the night-light backlight tint and the window it burns in
-    // (layout in persist.h). Only a watch with an RGB backlight (emery today)
-    // can show it, so every other build declares the accessors away and never
-    // reads or writes this slot, but the ID stays listed on every platform:
-    // the enum is append-only because the numbers are the on-flash slots.
+    // (layout in persist.h).
     NIGHT_LIGHT,                  // 48 — 3 raw LED bytes + start/end hour, absent = never
     // Appended: the third selectable metric line (SERIES_FOURTH) and the
-    // per-line marker styles — one feature set behind WW_LINE_STYLE. aplite
-    // never reads or writes these three (the flag is undefined there and the
-    // accessors compile out), but the IDs stay listed on every platform: the
-    // enum is append-only because the numbers are the on-flash slots. Presence
+    // per-line marker styles. Presence
     // of the fourth line is "does FOURTH_LINE_TREND exist?" — the
     // THIRD_LINE_TREND convention, not the count-keyed LINE_/BAR_ one.
     FOURTH_LINE_TREND,            // 49 — uint8 trend bytes, absent = line off
     FOURTH_LINE_COLOR,            // 50 — GColor8 argb byte, absent = theme foreground
     LINE_STYLES,                  // 51 — 3 style bytes (layout in persist.h), absent = the frozen look
     // Appended: the fourth selectable metric line (SERIES_FIFTH, "Fourth
-    // metric" in the settings) — the same WW_LINE_STYLE feature set and the
+    // metric" in the settings) — the same feature set and the
     // same existence-keyed presence as FOURTH_LINE_TREND. Its style byte has a
     // slot of its own rather than widening LINE_STYLES, whose fixed 3-byte
     // length is what existing installs have on flash.
@@ -100,50 +80,41 @@ enum key {
     FIFTH_LINE_COLOR,             // 53 — GColor8 argb byte, absent = theme foreground
     FIFTH_LINE_STYLE,             // 54 — 1 style byte (persist.h layout), absent = x marks
     // Appended: the radar's sky rows (RADAR_SKY_UINT8, layout in radar_sky.h),
-    // stored verbatim. Radar-only (WW_RAIN_RADAR), so aplite never reads or
-    // writes it, but the ID stays listed on every platform (append-only enum).
+    // stored verbatim.
     RADAR_SKY,                    // 55 — <= RADAR_SKY_MAX_BYTES, absent = no sky rows
     // Appended: the radar limit notice (RAIN_RADAR_LIMITED): the radar source
     // refuses us over a request limit, so the radar says "Radar limit reached"
-    // where its window shows no rain. aplite never reads or writes it (its
-    // callers, the WW_RAIN_RADAR-guarded handler and the unreferenced
-    // rain_radar_layer.c, drop out there), but the ID stays listed on every
-    // platform: the enum is append-only because the numbers are the on-flash slots.
+    // where its window shows no rain.
     RADAR_LIMITED,                // 56 — RETIRED (1.24.0): the bool the notice text below replaced
     // Appended: the weather alerts' phone-baked metric entries (ALERT_ENTRIES_UINT8,
     // encoding in alert_set.h), stored verbatim so the On demand items survive a
-    // relaunch. On demand only (WW_ON_DEMAND), so aplite never reads or writes it,
-    // but the ID stays listed on every platform: the enum is append-only because
-    // the numbers are the on-flash slots.
+    // relaunch.
     ALERT_ENTRIES,                // 57 — <= ALERT_ENTRIES_MAX_BYTES, absent = no metric alert
     // Appended: the radar notice's text (RAIN_RADAR_LIMITED, now the phone's line:
     // "Radar limit reached", or the source's coverage), replacing the RADAR_LIMITED
     // bool above, whose slot stays listed (append-only) and is never read again: a
     // notice that was up across the upgrade comes back with the source's next answer.
-    // Radar-only, so aplite never reads or writes it (the radar callers drop out there).
     RADAR_NOTICE,                 // 58 — <= RADAR_NOTICE_BUF_BYTES text + NUL, absent = no notice
     // Appended: the graph styles' records (CLAY_GRAPH_STYLE_1..3_UINT8, layout in
     // graph_style.h), stored as sent while a screen shows a style other than the first,
-    // absent otherwise (every screen then draws the look the other tuples carry). emery
-    // only, so no other platform reads or writes them, but the IDs stay listed on every
-    // platform: the enum is append-only because the numbers are the on-flash slots.
+    // absent otherwise (every screen then draws the look the other tuples carry).
     GRAPH_STYLE_1,                // 59 — <= GRAPH_STYLE_MAX_BYTES, absent = no record
     GRAPH_STYLE_2,                // 60 — likewise
     GRAPH_STYLE_3,                // 61 — likewise
     // Appended: the graph styles' spare trend (series.h SERIES_SPARE,
     // SPARE_LINE_TREND_UINT8), the fifth metric row the shown styles' lines share while
     // they draw five series between them. Existence-keyed like the THIRD..FIFTH trends:
-    // a weather message without it deletes it. emery only, listed everywhere (append-only).
+    // a weather message without it deletes it.
     SPARE_LINE_TREND,             // 62 — uint8 trend bytes, absent = no spare row
     // Appended: bars 4 to 6's packed lines (STATUS_LINE_5..7_UINT8, status_line.h
     // STATUS_LINE_BAR4..6), stored like STATUS_LINE_1..4 but after every other key, so a
     // line id past the Health bar's maps here (status_line_key below), not onto
-    // STATUS_LINE_1 + id. emery only, listed everywhere (append-only).
+    // STATUS_LINE_1 + id.
     STATUS_LINE_5,                // 63 — packed line blob, bar 4
     STATUS_LINE_6,                // 64 — bar 5
     STATUS_LINE_7,                // 65 — bar 6
     // Appended: bars 4 to 6's On demand cells (CLAY_OD_EXTRA_UINT8, layout in
-    // status_threshold.h), stored as sent. emery only, listed everywhere (append-only).
+    // status_threshold.h), stored as sent.
     OD_EXTRA_CELLS                // 66 — OD_ITEM_COUNT bytes, absent = nothing ticked
 };
 
@@ -531,9 +502,6 @@ int persist_get_notice_text(char *buffer, size_t buffer_size) {
     return n > 0 ? n : 0;
 }
 
-// Unguarded on purpose (see persist.h): rain_radar_layer.c compiles on every
-// platform, so the getter must exist everywhere; on aplite both accessors are
-// unreferenced and --gc-sections reaps them (the notice-text pattern).
 // A radar text (the no-rain line, the notice) stored bounded to `cap` - 1 bytes +
 // NUL: the phone already truncates to that budget; this is a defensive clamp for a
 // skewed/rogue sender. The back-off loop drops any UTF-8 continuation bytes
@@ -574,9 +542,6 @@ bool persist_set_radar_sky(const uint8_t *data, size_t size) {
     return write_present_blob(RADAR_SKY, data, size);
 }
 
-// Unguarded on purpose (see persist.h), like the no-rain text above:
-// rain_radar_layer.c compiles on every platform and reads the getters; on aplite
-// the accessors are unreferenced and --gc-sections reaps them.
 bool persist_has_radar_notice(void) {
     return store_exists(RADAR_NOTICE);
 }
@@ -852,7 +817,6 @@ void persist_get_night_colors(uint8_t out[NIGHT_COLOR_BYTES]) {
     memcpy(out, stored, sizeof(stored));
 }
 
-#if defined(NIGHT_LIGHT_SUPPORTED)
 bool persist_set_night_light(const uint8_t bytes[NIGHT_LIGHT_BYTES]) {
     // Stored verbatim off the wire (app_message.c validated it): three raw LED
     // channels then the window's start/end hour. write_data_if_changed reports
@@ -874,4 +838,3 @@ void persist_get_night_light(uint8_t out[NIGHT_LIGHT_BYTES]) {
     }
     memcpy(out, stored, sizeof(stored));
 }
-#endif  // NIGHT_LIGHT_SUPPORTED

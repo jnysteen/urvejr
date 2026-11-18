@@ -34,8 +34,7 @@ static inline int status_text_y(int band_h, GFont font) {
 // status_text_y centres the glyph at band_h/2 and the layout pins the band bottom to the
 // forecast top, the glyph clears the forecast by (band_h - content_h)/2. Sizing the band FROM
 // the font — content_h + 2*clearance — makes that gap a constant STATUS_FORECAST_CLEARANCE px at
-// ANY tier/platform (Gothic 14 → a 20px band on aplite/basalt, Gothic 18 → a taller ~24px band
-// on emery), so the line lands identically across top-view modes and never crowds the graph.
+// ANY tier (Gothic 18 → a ~24px band, Gothic 24 → a taller one), so the line lands identically across top-view modes and never crowds the graph.
 // This replaces the old magic per-mode band pixels (WEATHER_STATUS_HEIGHT for the full band, the
 // FULL_STATUS_RISE nudge) that fit one font and were wrong for another. The band extends up into
 // the clock band's slack; see layout_compute_spec() in windows/layout.c.

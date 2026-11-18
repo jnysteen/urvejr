@@ -18,5 +18,4 @@ void battery_draw_deinit(void);
 // right edge, (h * 6) / 10 high and centred. Needs bw > 4 and h >= 4.
 // battery_draw() draws it beside its bolt lane; the On demand Battery item
 // (battery_item.c) draws it at the row's icon tier.
-// NOT ON APLITE: the aplite twin draws no glyph and defines no body.
 void battery_body_draw(GContext *ctx, GPoint origin, int bw, int h, int level, GColor fg);

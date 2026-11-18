@@ -7,8 +7,7 @@
 // The zero row is never part of a value, so both directions cover the same rows of the
 // plot and Top is the exact mirror y' = content_top + content_bottom - 1 - y.
 //
-// chart.c reaches these through CHART_ZERO / CHART_DIR (chart.h), which fold to the
-// bottom edge and -1 on aplite (no WW_LINE_STYLE), so its code is today's there.
+// chart.c reaches these through CHART_ZERO / CHART_DIR (chart.h).
 #include <stdbool.h>
 #include <stdint.h>
 
