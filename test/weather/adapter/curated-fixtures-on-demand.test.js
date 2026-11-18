@@ -99,7 +99,7 @@ test('every store-shot fixture pins its On demand ticks and bakes no alert entry
   names.forEach((name) => {
     const fx = readFixture(path.join(ROOT, 'fixtures', name + '.json'));
     assertPinned(fx, name);
-    ['basalt', 'emery'].forEach((platform) => {
+    ['emery'].forEach((platform) => {
       assert.deepEqual(bakedAlertEntries(fx, platform), [], name + ' on ' + platform);
     });
   });
@@ -113,7 +113,7 @@ test('every showcase frame (variants included) pins its On demand ticks and bake
     const fx = readFixture(file);
     const label = path.basename(file);
     assertPinned(fx, label);
-    ['basalt', 'emery'].forEach((platform) => {
+    ['emery'].forEach((platform) => {
       assert.deepEqual(bakedAlertEntries(fx, platform), [], label + ' on ' + platform);
     });
   });

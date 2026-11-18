@@ -33,11 +33,8 @@ const POLLEN_BAKED = '1-2';
 
 const PLATFORM_CAPS = {
   emery:  { color: true,  themePolarity: true,  radar: true,  health: true,  hr: true },
-  basalt: { color: true,  themePolarity: true,  radar: true,  health: true,  hr: false },
-  flint:  { color: false, themePolarity: true,  radar: true,  health: true,  hr: false },
-  aplite: { color: false, themePolarity: false, radar: false, health: false, hr: false },
 };
-const ALL_PLATFORMS = ['emery', 'basalt', 'flint', 'aplite'];
+const ALL_PLATFORMS = ['emery'];
 
 /** Ordered reel themes for a platform (sweep order dark→bw→light→bw-light, gated). */
 function themesFor(platform) {
@@ -103,16 +100,16 @@ function themeSegments() {
 // timeFont pinned to leco across the whole graph chapter (see the theme/status chapters'
 // matching bitham/roboto pins — each chapter holds the font constant, intro previews all 3).
 const GRAPH_SEGMENTS = [
-  { id: 'graph-1', group: 'graph', flicks: 0, platforms: 'emery basalt flint aplite',
+  { id: 'graph-1', group: 'graph', flicks: 0, platforms: 'emery',
     clay: { layoutPreset: 'noCal', theme: 'dark', timeFont: 'leco',
       secondaryLine: 'precip_prob', secondaryLineFill: true, thirdLine: 'gust',
       barSource: 'rain', rainBarColor: 'multicolor', radarProvider: 'disabled', healthMode: 'off',
       statusForecastRight: 'uv', statusTopLeft: 'aqi', statusTopRight: 'battery' } },
-  { id: 'graph-2', group: 'graph', flicks: 0, platforms: 'emery basalt flint aplite',
+  { id: 'graph-2', group: 'graph', flicks: 0, platforms: 'emery',
     clay: { layoutPreset: 'noCal', theme: 'dark', timeFont: 'leco',
       secondaryLine: 'wind', thirdLine: 'gust', barSource: 'off', radarProvider: 'disabled', healthMode: 'off',
       statusForecastRight: 'gust', statusTopLeft: 'aqi' } },
-  { id: 'graph-3', group: 'graph', flicks: 0, platforms: 'emery basalt flint aplite',
+  { id: 'graph-3', group: 'graph', flicks: 0, platforms: 'emery',
     clay: { layoutPreset: 'noCal', theme: 'dark', timeFont: 'leco',
       // secondaryLineFill: false overrides the base fixture's true (tuned for graph-1's
       // filled precip line) — UV renders as a plain line, no fill.
@@ -121,27 +118,24 @@ const GRAPH_SEGMENTS = [
       // 'status' (not 'off') so the health summary cache actually ticks — statusTopRight:
       // 'steps' below is a LIVE health value that renders blank/zero while health is off.
       healthMode: 'status',
-      statusForecastRight: 'uv', statusTopRight: 'steps' },
-    // aplite has no health capability -> no steps; fall back to a weather metric.
-    variants: { aplite: { statusTopRight: 'wind' } } },
-  { id: 'graph-4', group: 'graph', flicks: 1, platforms: 'emery basalt flint',
+      statusForecastRight: 'uv', statusTopRight: 'steps' } },
+  { id: 'graph-4', group: 'graph', flicks: 1, platforms: 'emery',
     clay: { layoutPreset: 'noCal', theme: 'dark', timeFont: 'leco',
       radarProvider: 'dwd', radarColor: 'multicolor', rainCountdownHorizon: '60', healthMode: 'off' },
     radar: { exact: RAIN_EXACT, area: RAIN_AREA }, countdown: { mins: 15, raining: false, tier: 3 } },
-  { id: 'graph-5', group: 'graph', flicks: 1, platforms: 'emery basalt flint',
-    clay: { layoutPreset: 'noCal', theme: 'dark', timeFont: 'leco', healthMode: 'all', radarProvider: 'disabled' },
-    // emery only: HR needs the sensor; base (basalt/flint) keeps the plain health-graph frame.
-    variants: { emery: { statusTopLeft: 'distance', statusTopMid: 'date', statusTopRight: 'hr' } } },
+  { id: 'graph-5', group: 'graph', flicks: 1, platforms: 'emery',
+    clay: { layoutPreset: 'noCal', theme: 'dark', timeFont: 'leco', healthMode: 'all', radarProvider: 'disabled',
+      statusTopLeft: 'distance', statusTopMid: 'date', statusTopRight: 'hr' } },
 ];
 
 // timeFont pinned to roboto across the whole status chapter (see GRAPH_SEGMENTS comment).
 const STATUS_SEGMENTS = [
-  { id: 'status-1', group: 'status', flicks: 0, platforms: 'emery basalt flint aplite',
+  { id: 'status-1', group: 'status', flicks: 0, platforms: 'emery',
     clay: { layoutPreset: 'compactCal', theme: 'dark', timeFont: 'roboto', radarProvider: 'disabled', healthMode: 'off',
       rainBarColor: 'solid',
       statusForecastLeft: 'temp', statusForecastMid: 'city', statusForecastRight: 'uv',
       statusTopLeft: 'empty', statusTopRight: 'battery' } },
-  { id: 'status-2', group: 'status', flicks: 0, platforms: 'emery basalt flint aplite',
+  { id: 'status-2', group: 'status', flicks: 0, platforms: 'emery',
     // healthMode 'status' (not 'off'): statusTopLeft/Right below are LIVE health values
     // (steps/sleep/hr) that render blank/zero while the health summary cache is off.
     clay: { layoutPreset: 'compactCal', theme: 'dark', timeFont: 'roboto', radarProvider: 'disabled', healthMode: 'status',
@@ -153,56 +147,40 @@ const STATUS_SEGMENTS = [
       // via status_row_draw, so highlights apply there too). Gust is deliberately
       // NOT in the forecast bar — thresholds are per-kind, so it would fill there
       // as well and recreate the crowding. Same stored formats as the settings
-      // page (string values, '#RRGGBB'). Aplite keeps its plain frames.
+      // page (string values, '#RRGGBB').
       statusForecastLeft: 'temp', statusForecastMid: 'wind', statusForecastRight: 'uv',
-      statusTopLeft: 'gust', statusTopMid: 'steps', statusTopRight: 'sleep',
+      statusTopLeft: 'gust', statusTopMid: 'steps', statusTopRight: 'hr',
       threshWindOn: true, threshWindWarn: '15', threshWindDanger: '40',
       threshWindWarnLook: 'outline', threshWindWarnColor: '#FFAA00',
       threshGustOn: true, threshGustWarn: '20', threshGustDanger: '30',
-      threshGustDangerColor: '#FF0000' },
-    // emery has the HR sensor; aplite has no health at all -> weather-only top strip.
-    variants: {
-      emery:  { statusTopRight: 'hr' },
-      aplite: { statusTopLeft: 'wind', statusTopMid: 'empty', statusTopRight: 'battery' },
-    } },
-  { id: 'status-3', group: 'status', flicks: 0, platforms: 'emery basalt flint aplite',
+      threshGustDangerColor: '#FF0000' } },
+  { id: 'status-3', group: 'status', flicks: 0, platforms: 'emery',
     // healthMode 'status' (not 'off'): statusTopRight below is a LIVE health value
-    // (sleep/hr) that renders blank/zero while the health summary cache is off.
+    // (hr) that renders blank/zero while the health summary cache is off.
     clay: { layoutPreset: 'compactCal', theme: 'dark', timeFont: 'roboto', radarProvider: 'dwd', healthMode: 'status',
       rainBarColor: 'solid', btIcons: 'connected',
       statusForecastLeft: 'pollen', statusForecastMid: 'city', statusForecastRight: 'aqi',
-      statusTopLeft: 'empty', statusTopRight: 'sleep',
+      statusTopLeft: 'empty', statusTopRight: 'hr',
       // All-bold showcase (mirrors showcase scene 3): the chapter's third frame
       // shows every slot value bold via the Bold values master.
       statusBoldAll: 'all' },
-    pollen: POLLEN_BAKED,
-    variants: {
-      emery:  { statusTopRight: 'hr' },
-      aplite: { statusTopRight: 'battery' },
-    } },
-  // Health row (compactDense). Base = non-HR (basalt/flint); emery variant pins HR. No aplite.
-  { id: 'status-4', group: 'status', flicks: 0, platforms: 'basalt flint',
+    pollen: POLLEN_BAKED },
+  // Health row (compactDense), heart rate on the right.
+  { id: 'status-4', group: 'status', flicks: 0, platforms: 'emery',
     clay: { layoutPreset: 'compactDense', theme: 'dark', timeFont: 'roboto', healthMode: 'status', radarProvider: 'dwd',
-      statusHealthLeft: 'steps', statusHealthMid: 'empty', statusHealthRight: 'sleep',
+      statusHealthLeft: 'steps', statusHealthMid: 'sleep', statusHealthRight: 'hr',
       statusTopLeft: 'uv', statusTopMid: 'pollen' },
-    pollen: POLLEN_BAKED,
-    variants: { emery: { statusHealthMid: 'sleep', statusHealthRight: 'hr' } } },
-  // Compact top strip. Base (basalt/flint) = distance/--/steps; emery = uv/date/steps;
-  // aplite (no health) = temp/--/battery. Forecast-right adds heart rate on emery. Mid
-  // slot is empty on every non-emery platform; emery keeps date there.
-  // healthMode 'status' (not 'off'): statusTopLeft/Right are LIVE health values that
-  // render blank/zero while the health summary cache is off.
-  { id: 'status-5', group: 'status', flicks: 0, platforms: 'basalt flint',
+    pollen: POLLEN_BAKED },
+  // Compact top strip: uv/date/steps, heart rate forecast-right.
+  // healthMode 'status' (not 'off'): statusTopRight and the heart rate are LIVE health values
+  // that render blank/zero while the health summary cache is off.
+  { id: 'status-5', group: 'status', flicks: 0, platforms: 'emery',
     clay: { layoutPreset: 'compactCal', theme: 'dark', timeFont: 'roboto', radarProvider: 'disabled', healthMode: 'status',
-      statusTopLeft: 'distance', statusTopMid: 'empty', statusTopRight: 'steps',
+      statusTopLeft: 'uv', statusTopMid: 'date', statusTopRight: 'steps',
       // All slot values bold via the Bold values master (user call: the closing
       // status frame doubles as the bold showcase, like status-3).
       statusBoldAll: 'all',
-      statusForecastRight: 'wind' },
-    variants: {
-      emery:  { statusTopLeft: 'uv',   statusTopMid: 'date', statusTopRight: 'steps', statusForecastRight: 'hr' },
-      aplite: { statusTopLeft: 'temp', statusTopRight: 'battery' },
-    } },
+      statusForecastRight: 'hr' } },
 ];
 
 const SEGMENTS = [].concat(themeSegments(), GRAPH_SEGMENTS, STATUS_SEGMENTS);

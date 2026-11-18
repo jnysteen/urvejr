@@ -39,7 +39,7 @@ description = "Serve telemetry ingest function locally"
 run = "supabase functions serve telemetry-ingest --env-file .env"
 
 [tasks.preview-config]
-description = "Render a browser-openable preview of the config UI to build/ (args: [out] [platform], default basalt). Open the file in a browser instead of the emulator."
+description = "Render a browser-openable preview of the config UI to build/ (args: [out]). Open the file in a browser instead of the emulator."
 alias = "preview"
 run = "node scripts/preview-config-page.js"
 
@@ -70,12 +70,12 @@ alias = "cloud"
 run = "scripts/install-cloud.sh"
 
 [tasks.install-emulator]
-description = "Build and install on emulator (default profile: dev, emulator: basalt)"
+description = "Build and install on emulator (default profile: dev)"
 alias = "emu"
 run = "pebble wipe && scripts/install-emulator.sh"
 
 [tasks.config-emulator]
-description = "Open the running emulator app's config (settings) page in a browser (default: basalt)"
+description = "Open the running emulator app's config (settings) page in a browser"
 alias = "config"
 run = "scripts/config-emulator.sh"
 
@@ -85,7 +85,7 @@ alias = "kill"
 run = "pebble kill"
 
 [tasks.capture-screenshots]
-description = "Build dev .pbw and capture screenshots for all platforms (args: version [fixture], e.g. v1.0.0 berlin)"
+description = "Build dev .pbw and capture screenshots (args: version [fixture], e.g. v1.0.0 berlin)"
 run = "scripts/capture-screenshots.sh"
 
 [tasks.screenshot-phone]
@@ -93,7 +93,7 @@ description = "Take a screenshot from phone"
 run = "scripts/screenshot-phone.sh"
 
 [tasks.screenshot-emulator]
-description = "Take a screenshot from emulator (default: basalt)"
+description = "Take a screenshot from emulator"
 alias = "screenshot"
 run = "scripts/screenshot-emulator.sh"
 
@@ -147,15 +147,3 @@ run = [
   "cd supabase/functions/news && deno check index.ts && deno test",
   "cd supabase/functions/telemetry-ingest && deno check index.ts && deno test",
 ]
-
-[tasks.aplite-size]
-description = "Build and print aplite image footprint (text+data+bss via arm-none-eabi-size; heap leading indicator)"
-run = "scripts/aplite-size.sh"
-
-[tasks.check-aplite-size]
-description = "On-demand: fail when the aplite image exceeds the launch-safety ceiling (past ~22.06 KB the firmware silently never starts the app). Builds first if needed; portable across macOS/Linux SDK layouts. Run it yourself before shipping aplite changes."
-run = "scripts/check-aplite-size.sh"
-
-[tasks.check-64k-size]
-description = "On-demand: fail when a 64 KB watch's image (basalt, diorite, flint; text+data+bss, which the heap shares) grows past its recorded ceiling. Builds first if needed. Run it yourself after C changes."
-run = "scripts/check-64k-size.sh"

@@ -3,7 +3,7 @@
 set -euo pipefail
 
 profile="dev"
-emulator="${PEBBLE_EMULATOR:-basalt}"
+emulator="${PEBBLE_EMULATOR:-emery}"
 install_args=()
 
 if [[ "${1:-}" == "release" || "${1:-}" == "dev" ]]; then
@@ -29,7 +29,7 @@ while (($#)); do
       emulator="${1#*=}"
       shift
       ;;
-    aplite|basalt|diorite|emery|flint)
+    emery)
       emulator="$1"
       shift
       ;;

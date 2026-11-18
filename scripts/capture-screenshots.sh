@@ -20,15 +20,15 @@ version="$1"
 export FIXTURE="${2:-berlin}"
 raw_dir="screenshot/$version/raw"
 # PLATFORMS (space-separated) overrides the default set — e.g. the showcase shoots only
-# the three README platforms.
+# the README platform.
 if [[ -n "${PLATFORMS:-}" ]]; then
   read -ra platforms <<< "$PLATFORMS"
 else
-  platforms=(aplite basalt diorite emery flint)
+  platforms=(emery)
 fi
 
 # Screenshot captures don't need the unit suites (visual artifact; suites run elsewhere),
-# and building only the platforms we're about to shoot avoids compiling all five for a
+# and building only the platforms we're about to shoot avoids compiling every one for a
 # single-platform capture. Both default here for every screenshot wrapper and stay
 # overridable (WW_SKIP_TESTS=0 / WW_BUILD_PLATFORMS=... before invoking).
 export WW_SKIP_TESTS="${WW_SKIP_TESTS:-1}"

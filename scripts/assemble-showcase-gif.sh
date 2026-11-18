@@ -17,7 +17,7 @@ set -euo pipefail
 # GIF ends fully resolved on scene_1, matching frame 0 — the loop-around has no seam.
 #
 # Usage:   scripts/assemble-showcase-gif.sh <version> <platform> [hold_secs] [fade_secs] [fps]
-# Example: scripts/assemble-showcase-gif.sh v1.6.0 basalt 1 0.35 15
+# Example: scripts/assemble-showcase-gif.sh v1.6.0 emery 1 0.35 15
 # Env:     MAX_SCENES=N  include only the first N captured scenes in the GIF (default 0 =
 #                        all captured scenes — the README hero shows every scene).
 
@@ -37,8 +37,7 @@ fps="${5:-15}"
 max_scenes="${MAX_SCENES:-0}"
 # Drop specific scene ids from this platform's GIF (space- or comma-separated), applied
 # before the MAX_SCENES cap. Scenes the table limits to other platforms (`platforms` in
-# gen-showcase-fixtures.js — e.g. the health graph and the Miami scenes on aplite) are
-# never shown here, whatever frames sit on disk.
+# gen-showcase-fixtures.js) are never shown here, whatever frames sit on disk.
 exclude_scenes="${EXCLUDE_SCENES:-}"
 
 frames_dir="screenshot/$version/showcase/frames/$platform"

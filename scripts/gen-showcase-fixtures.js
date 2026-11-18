@@ -80,11 +80,8 @@ const RAIN_APPROACH_AREA = segment(2, 6, 1.8);
 const RAIN_NOW_EXACT = segment(0, 4, 1.5);
 const RAIN_NOW_AREA = segment(0, 5, 1.8);
 
-// Health-status-row slot pins for the emery variant. emery (Pebble Time 2) is the only HR
-// platform in the showcase set; the others (aplite/basalt/flint) have no HR sensor. The
-// scenes don't pin the health-row slots, so packLine bakes the *base* health-right default
-// (walked distance) on every platform — so a plain capture shows distance, not the heart
-// rate a real Pebble Time 2 renders. Scenes needing per-platform slots declare a
+// Health-status-row slot pins for the emery variant, so a capture shows the heart rate a
+// real Pebble Time 2 renders. Scenes needing per-platform slots declare a
 // `variants: {<platform>: clayOverrides}` map (mirroring gen-reel-fixtures.js): each
 // variant writes its own showcase-<id>-<platform>.json layered on the scene clay, and
 // capture-showcase.sh shoots that platform from it while the rest use the base fixture.
@@ -92,8 +89,8 @@ const HR_EMERY = { statusHealthMid: 'sleep', statusHealthRight: 'hr' };
 
 // The platforms the showcase is captured on, and the colour ones among them. A scene
 // with `platforms` is captured, shown and put in the reel intro only there.
-const SHOWCASE_PLATFORMS = ['aplite', 'basalt', 'flint', 'emery'];
-const COLOUR_PLATFORMS = ['basalt', 'flint', 'emery'];
+const SHOWCASE_PLATFORMS = ['emery'];
+const COLOUR_PLATFORMS = ['emery'];
 
 /**
  * Target date for scene 4's date-countdown slot, 21 days out from TODAY.
@@ -127,8 +124,8 @@ function feelsFrom(weather) {
   };
 }
 // Clock fonts (user call): 1+2 roboto, 4 leco, 5+6 bitham; the Miami scenes (7-9)
-// keep the default roboto. Roboto and Bitham draw from the anti-aliased glyph strips on
-// basalt/emery; leco stays on the system font. The reel intro previews all three.
+// keep the default roboto. Roboto and Bitham draw from the anti-aliased glyph strips;
+// leco stays on the system font. The reel intro previews all three.
 const SCENES = [
   {
     // Full top view (classic 3-row calendar) with a quiet top strip: calendar week
@@ -176,8 +173,7 @@ const SCENES = [
     countdown: { mins: 15, raining: false, tier: 3 },
   },
   // Miami, from the fixtures of the same name (live OpenWeatherMap data, pinned): UV as
-  // dots, cloud cover and rain chance as top stripes, feels-like as a curve. Colour
-  // watches only — aplite has no stripes, fourth line, radar or custom layout. Ids 7-9
+  // dots, cloud cover and rain chance as top stripes, feels-like as a curve. Ids 7-9
   // are new; the table ORDER (not the id) is the showcase and reel order.
   { id: 7, flicks: 0, fixture: 'miami-stripes-cal', platforms: COLOUR_PLATFORMS },
   // The custom flick view: no top bar, a 3-row radar with the no-rain text and sky rows.
@@ -204,8 +200,8 @@ const SCENES = [
       statusBoldAll: 'all',
       statusForecastLeft: 'temp', statusForecastMid: 'city', statusForecastRight: 'aqi',
       tempSlotDisplay: 'both',
-      // Base = the 144px platforms (aplite/basalt/flint): the bold date needs narrow
-      // side slots or it gets cut off (user call) — calendar week left, UV right.
+      // Base: narrow side slots, so the bold date is never cut off (user call) — calendar
+      // week left, UV right.
       statusTopLeft: 'week', statusTopMid: 'date', statusTopRight: 'uv',
     },
     // emery's wider strip carries the real-watch look: date-countdown / date / steps.
@@ -226,7 +222,7 @@ const SCENES = [
     // the floor of the 40–150 default.
     // reelIntro: false — the reel intro reuses the showcase scenes in THIS table's
     // order (gen-reel-fixtures.js derives its INTRO_SCENES from here); this one is
-    // skipped there (flick-gated). Not on aplite, which has no health graph.
+    // skipped there (flick-gated).
     // Captured only (inShowcase: false) since 1.23.0 — see scene 2.
     id: 5, flicks: 1, reelIntro: false, variants: { emery: HR_EMERY }, platforms: COLOUR_PLATFORMS,
     inShowcase: false,
@@ -243,7 +239,6 @@ const SCENES = [
     // NONE mode with a rain-now countdown ("Rain for X"): full-date strip, big clock,
     // full-screen forecast. Three metric lines: filled precip, wind and gust as x marks
     // in their default colours (wind yellow, gust white), multicolour rain bars.
-    // aplite has no fourth line or style picker and keeps its classic look.
     id: 6, flicks: 0,
     clay: {
       layoutPreset: 'noCal', healthMode: 'off',
@@ -330,8 +325,8 @@ function generateShowcaseFixtures(opts = {}) {
     }
     fs.writeFileSync(outPath, JSON.stringify(buildFrame(scene), null, 2) + '\n');
     written.push(outPath);
-    // Per-platform variants (e.g. emery pinning the HR slot it alone can render, aplite
-    // falling back off health slots) layer their overrides on the scene clay.
+    // Per-platform variants (e.g. emery pinning the HR slot) layer their overrides on the
+    // scene clay.
     for (const plat of Object.keys(scene.variants || {})) {
       const vPath = path.join(outDir, 'showcase-' + scene.id + '-' + plat + '.json');
       fs.writeFileSync(vPath, JSON.stringify(buildFrame(scene, scene.variants[plat]), null, 2) + '\n');

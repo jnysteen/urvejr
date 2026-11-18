@@ -14,14 +14,13 @@ set -euo pipefail
 #
 # Usage:   scripts/capture-showcase.sh [version]
 # Example: scripts/capture-showcase.sh v1.6.0
-#          PLATFORMS="basalt" scripts/capture-showcase.sh v1.6.0   # one platform
 
 version="${1:-v1.0.0}"
 here="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 # Canned health values for every scene; the default platforms unless overridden.
 export WW_HEALTH_FIXTURE=1
-export PLATFORMS="${PLATFORMS:-aplite basalt flint emery}"
+export PLATFORMS="${PLATFORMS:-emery}"
 
 # (Re)generate the scene fixtures so the on-disk set matches the scene table.
 node "$here/scripts/gen-showcase-fixtures.js"
@@ -57,8 +56,7 @@ for i in "${!ids[@]}"; do
     case " $SCENE_IDS " in *" $id "*) ;; *) continue ;; esac
   fi
 
-  # A scene with per-platform variants (emery pinning HR, aplite falling back off health
-  # slots) shoots each variant platform from its own fixture; every other platform in
+  # A scene with per-platform variants (emery pinning HR) shoots each variant platform from its own fixture; every other platform in
   # PLATFORMS shares the base fixture in one capture run. Variant platforms not in
   # PLATFORMS are simply skipped.
   base_plats=""

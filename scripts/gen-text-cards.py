@@ -16,11 +16,11 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 FONT_PATH = REPO_ROOT / "screenshot" / "fonts" / "Poppins-Regular.ttf"
 
 # native resolution per platform
-RES = {"aplite": (144, 168), "basalt": (144, 168), "flint": (144, 168), "emery": (200, 228)}
+RES = {"emery": (200, 228)}
 # theme count per platform (mirror themesFor() in gen-reel-fixtures.js)
-THEME_COUNT = {"emery": 4, "basalt": 4, "flint": 2, "aplite": 0}
+THEME_COUNT = {"emery": 4}
 # radar/health availability (mirror PLATFORM_CAPS)
-HAS_RADAR = {"emery": True, "basalt": True, "flint": True, "aplite": False}
+HAS_RADAR = {"emery": True}
 
 BG = (0, 0, 0)
 FG = (255, 255, 255)

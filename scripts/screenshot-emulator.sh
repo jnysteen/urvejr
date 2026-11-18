@@ -2,7 +2,7 @@
 
 set -euo pipefail
 
-emulator="${PEBBLE_EMULATOR:-basalt}"
+emulator="${PEBBLE_EMULATOR:-emery}"
 screenshot_args=()
 
 if [[ "${1:-}" == "--" ]]; then
@@ -23,7 +23,7 @@ while (($#)); do
       emulator="${1#*=}"
       shift
       ;;
-    aplite|basalt|diorite|emery|flint)
+    emery)
       emulator="$1"
       shift
       ;;
