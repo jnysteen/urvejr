@@ -109,12 +109,15 @@ test('the health graph\'s and the rain radar\'s rows, as each draws on this watc
     'no heart-rate sensor');
   // The radar draws its sky rows as a graph: the card's picture holds the modes the screens need
   // with it added, so it draws them too.
-  assert.deepEqual(said(legendOf('radar', BASALT)), [['radar', 'Rain: bars', 'Clouds: stripe', 'Sun: stripe', 'Lightning: bolt']]);
-  assert.deepEqual(said(legendOf('radar', BASALT, fresh(BASALT, { radarSky: false }))), [['radar', 'Rain: bars']]);
+  const point = { radarProvider: 'metno' };   // a radar with no rain nearby
+  assert.deepEqual(said(legendOf('radar', BASALT, fresh(BASALT, point))),
+    [['radar', 'Rain: bars', 'Clouds: stripe', 'Sun: stripe', 'Lightning: bolt']]);
+  assert.deepEqual(said(legendOf('radar', BASALT, fresh(BASALT, { radarProvider: 'metno', radarSky: false }))),
+    [['radar', 'Rain: bars']]);
   assert.deepEqual(said(legendOf('radar', BASALT, fresh(BASALT, { radarProvider: 'dwd', radarSky: false }))),
     [['radar', 'Rain: bars', 'Rain nearby: faint bars']], 'DWD\'s rain nearby');
   // Two graphs: the upper one first.
-  assert.deepEqual(said(legendOf('radarfc', BASALT, fresh(BASALT, { radarSky: false }))),
+  assert.deepEqual(said(legendOf('radarfc', BASALT, fresh(BASALT, { radarProvider: 'metno', radarSky: false }))),
     [['radar', 'Rain: bars'], ['forecast', 'Temperature: thick line', 'Rain chance: shaded area', 'Rain: bars']]);
 });
 

@@ -349,20 +349,13 @@ function applyDevConfig(devConfig) {
 
     // Every dev-config key that is CONSUMED at boot rather than being a Clay
     // setting. A key missing here is copied into the persisted settings blob
-    // and stays there forever (four had already leaked: the update-check trio
-    // and the phone-battery fake). When adding a boot-only dev key, add it to
+    // and stays there forever. When adding a boot-only dev key, add it to
     // its consumer AND here — the drift test in clay-settings.test.js pins the
     // known consumers' keys against this list.
     var localOnlyDevConfigKeys = {
         clearPkjsStorageOnBoot: true,
-        forceShowReleaseNotificationOnBoot: true,
-        maxNotifiedVersion: true,
         resetV134WeekendHolidayColorMigration: true,
         resetV140HolidayRegionKeyMigration: true,
-        // index.js's update-check runner (boot/tick only):
-        resetUpdateNotifiedVersion: true,
-        forceUpdateCheckOnBoot: true,
-        overrideLatestStoreVersions: true,
         // phone-battery.js's dev fake reading:
         devPhoneBattery: true
     };

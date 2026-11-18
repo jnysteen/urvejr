@@ -76,8 +76,6 @@ test('withGpsCoordinates writes the fresh fix to the cache on success', () => {
   assert.equal(cached.lat, 1.5);
   assert.equal(cached.lon, 2.5);
   assert.equal(typeof cached.time, 'number');
-  assert.equal(p.usedGpsCache, false);
-  assert.equal(p.gpsErrorCode, null);
 });
 
 test('withGpsCoordinates reuses a cached fix within the window without calling native GPS', () => {
@@ -95,8 +93,6 @@ test('withGpsCoordinates reuses a cached fix within the window without calling n
 
   assert.deepEqual(got, { lat: 52.5, lon: 13.4 });
   assert.equal(tracker.called, false);
-  assert.equal(p.usedGpsCache, true);
-  assert.equal(p.gpsErrorCode, null);
 });
 
 test('withGpsCoordinates re-acquires when the cached fix is older than the window', () => {
@@ -149,8 +145,6 @@ test('withGpsCoordinates falls back to a cached fix when native GPS errors', () 
 
   assert.deepEqual(got, { lat: 48.1, lon: 11.6 });
   assert.equal(failed, false);
-  assert.equal(p.usedGpsCache, true);
-  assert.equal(p.gpsErrorCode, 2);
 });
 
 test('withGpsCoordinates reports failure when native GPS errors and no cache exists', () => {
@@ -167,7 +161,6 @@ test('withGpsCoordinates reports failure when native GPS errors and no cache exi
 
   assert.deepEqual(failureArg, { stage: 'coordinates', code: 'gps_1', reason: 'refused', detail: 'denied' },
     'the phone\'s message rides along: the Core Devices app reports every location error as code 1');
-  assert.equal(p.gpsErrorCode, 1);
 });
 
 test('gpsFailure reads the phone\'s message first, the W3C code only without one', () => {

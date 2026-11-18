@@ -144,9 +144,8 @@ function bootIndex(t, opts) {
       location: '52.52,13.40', provider: 'openmeteo', radarMode: 'off', fetchIntervalMin: '60',
       sleepNightEnabled: false,
     }, opts.settings || {}));
-    // Keep the daily update check and the day-change Clay resend quiet: neither
-    // is under test, and both would add XHRs / sends to every count.
-    store.last_update_check = String(Date.now());
+    // Keep the day-change Clay resend quiet: it is not under test, and would add
+    // sends to every count.
     const today = new Date();
     store.last_holiday_day = today.getFullYear() + '-' + today.getMonth() + '-' + today.getDate();
     Object.assign(store, opts.store || {});
@@ -202,7 +201,6 @@ function bootIndex(t, opts) {
     addEventListener: (name, fn) => { listeners[name] = fn; },
     getActiveWatchInfo: () => (opts.watchInfo
       || { platform: 'basalt', model: 'qemu_platform_basalt', language: 'en' }),
-    getAccountToken: () => 'test-token',
     getWatchToken: () => 'watch-token',
     sendAppMessage: (dict, ack, nack) => {
       sends.push(dict);
@@ -212,7 +210,6 @@ function bootIndex(t, opts) {
       if (verdict === 'hold') { held.push({ dict, ack, nack }); return; }
       if (ack) { ack({}); }
     },
-    showSimpleNotificationOnPebble: () => {},
     openURL: () => {},
   };
 

@@ -14755,7 +14755,7 @@
               {
                 "type": "hidden",
                 "messageKey": "radarProvider",
-                "defaultValue": "rainbow"
+                "defaultValue": "dwd"
               },
               {
                 "type": "segmented",
@@ -15121,7 +15121,7 @@
                 "uiOnly": true,
                 "messageKey": "radarSource",
                 "label": "Rain radar",
-                "defaultValue": "rainbow",
+                "defaultValue": "dwd",
                 "initFrom": {
                   "resolver": "radarSourceValue"
                 },
@@ -15130,8 +15130,7 @@
                 "hintByValue": {
                   "dwd": "Precise weather radar that shows rain at your exact spot and nearby (about 2 km). Germany only.",
                   "metno": "Precise weather radar that shows rain at your exact spot. Nordics only.",
-                  "rainbow": "Refreshes at most every 30 minutes. Powered by <a target='_blank' href='https://rainbow.ai'>Rainbow.ai</a>.",
-                  "rainbowkey": "A worldwide nowcast from satellite and radar data. It uses your own Rainbow key, so it refreshes at every update. A key is free: Rainbow's free plan covers 5,000 calls a month. Powered by <a target='_blank' href='https://rainbow.ai'>Rainbow.ai</a>.",
+                  "rainbowkey": "A worldwide nowcast from satellite and radar data, on your own Rainbow key. A key is free: Rainbow's free plan covers 5,000 calls a month. Powered by <a target='_blank' href='https://rainbow.ai'>Rainbow.ai</a>.",
                   "tomorrowio": "A precise rain nowcast from machine-learning models, worldwide. It uses your tomorrow.io API key and counts against that key's call budget. Powered by <a target='_blank' href='https://www.tomorrow.io'>Tomorrow.io</a>."
                 },
                 "attentionFrom": {
@@ -15160,14 +15159,7 @@
                     }
                   ],
                   [
-                    "Rainbow (limited)",
-                    "rainbow",
-                    {
-                      "desc": "Worldwide satellite + radar nowcast · no key, every 30 min"
-                    }
-                  ],
-                  [
-                    "Rainbow (own key)",
+                    "Rainbow",
                     "rainbowkey",
                     {
                       "desc": "Worldwide satellite + radar nowcast · needs a free key"
@@ -15386,9 +15378,7 @@
                 "messageKey": "rainbowApiKey",
                 "label": "API key",
                 "defaultValue": "",
-                "suffixAction": "testRainbowKey",
-                "suffixLabel": "Test",
-                "hint": "<b>How to get a key:</b><br>1. <a target='_blank' href='https://developer.rainbow.ai/signup/'>Sign up at developer.rainbow.ai</a>. Rainbow asks for a credit card, but the first 5,000 calls each month are free.<br>2. Open your <a target='_blank' href='https://developer.rainbow.ai/profile'>profile page</a><button type=\"button\" class=\"copybtn\" data-copy=\"https://developer.rainbow.ai/profile\" title=\"Copy the profile page link\" aria-label=\"Copy the profile page link\"><svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><rect x=\"9\" y=\"9\" width=\"11\" height=\"11\" rx=\"2\"/><path d=\"M5 15V5a2 2 0 0 1 2-2h10\"/></svg></button>, copy the API key and paste it here.<br>3. Tap Test.<br>Keep \"Fit update interval to rate limit\" on and the watch stays within the free 5,000 calls.",
+                "hint": "<b>How to get a key:</b><br>1. <a target='_blank' href='https://developer.rainbow.ai/signup/'>Sign up at developer.rainbow.ai</a>. Rainbow asks for a credit card, but the first 5,000 calls each month are free.<br>2. Open your <a target='_blank' href='https://developer.rainbow.ai/profile'>profile page</a><button type=\"button\" class=\"copybtn\" data-copy=\"https://developer.rainbow.ai/profile\" title=\"Copy the profile page link\" aria-label=\"Copy the profile page link\"><svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><rect x=\"9\" y=\"9\" width=\"11\" height=\"11\" rx=\"2\"/><path d=\"M5 15V5a2 2 0 0 1 2-2h10\"/></svg></button>, copy the API key and paste it here.<br>Keep \"Fit update interval to rate limit\" on and the watch stays within the free 5,000 calls.",
                 "showWhen": {
                   "all": [
                     {
@@ -15646,15 +15636,8 @@
             "collapsible": true,
             "items": [
               {
-                "type": "toggle",
-                "messageKey": "telemetryEnabled",
-                "label": "Share anonymous telemetry",
-                "defaultValue": true,
-                "hint": "Sends anonymous data about weather updates and how the watchface is used, to improve reliability."
-              },
-              {
                 "type": "staticText",
-                "text": "<b>Privacy</b><br>While Share anonymous telemetry is on, urvejr sends: whether each weather update worked and how long it took, the weather provider, a rough country, the app and watch versions, and which settings are used. It never sends your location, the places you type, your API keys or any health data: steps, sleep and heart rate stay on the watch. Your account and watch are stored only as one-way hashes."
+                "text": "<b>Privacy</b><br>urvejr collects no usage data. Your location goes only to the weather, radar and place services you use, to fetch the weather there. Steps, sleep and heart rate stay on the watch."
               },
               {
                 "type": "staticText",
@@ -15697,34 +15680,10 @@
               },
               {
                 "type": "toggle",
-                "messageKey": "devStatsEnabled",
-                "label": "Enable connection stats",
-                "defaultValue": false,
-                "hint": "Records connection events sent to the watch, on this phone only. Events older than 7 days are deleted."
-              },
-              {
-                "type": "toggle",
                 "messageKey": "reset",
                 "label": "Reset watchface",
                 "defaultValue": false,
                 "hint": "When you save, this erases all settings and cached data and re-runs first-time setup. Your API keys are kept. This cannot be undone."
-              }
-            ]
-          },
-          {
-            "title": "Connection stats",
-            "collapsible": true,
-            "block": "devStats",
-            "items": [
-              {
-                "type": "toggle",
-                "messageKey": "devStatsClear",
-                "label": "Clear connection stats",
-                "defaultValue": false,
-                "showWhen": {
-                  "key": "devStatsEnabled",
-                  "eq": true
-                }
               }
             ]
           }

@@ -91,7 +91,7 @@ test('Tomorrow.io radar: a whitespace-only key is a missing key, not a request',
   assert.deepEqual(got, radarWire.clearRadarTuples());
 });
 
-test('Rainbow (own key): the radar sends the trimmed key in the header, never in the URL', () => {
+test('Rainbow: the radar sends the trimmed key in the header, never in the URL', () => {
   const radar = require('../../../../src/pkjs/weather/adapter/radar/rainbow-radar.js');
   const urls = capture(() => { radar.fetchRadarTuplesWithKey(PASTED, 52.5, 13.4, 1700000100, () => {}); });
   assert.equal(urls.length, 1);
@@ -100,7 +100,7 @@ test('Rainbow (own key): the radar sends the trimmed key in the header, never in
     [{ name: 'Ocp-Apim-Subscription-Key', value: KEY }]);
 });
 
-test('Rainbow (own key): a whitespace-only key is a missing key, not a request', () => {
+test('Rainbow: a whitespace-only key is a missing key, not a request', () => {
   const radar = require('../../../../src/pkjs/weather/adapter/radar/rainbow-radar.js');
   const radarWire = require('../../../../src/pkjs/weather/domain/radar/radar-wire.js');
   let got;
@@ -108,21 +108,6 @@ test('Rainbow (own key): a whitespace-only key is a missing key, not a request',
   assert.equal(urls.length, 0);
   assert.equal(FakeXhr.headers.length, 0);
   assert.deepEqual(got, radarWire.clearRadarTuples());
-});
-
-test('Rainbow (own key): the Test body carries the same key the radar sends', () => {
-  const radarFactory = require('../../../../src/pkjs/weather/adapter/radar-factory.js');
-  const rbwTest = require('../../../../src/pkjs/page/weather/keys/rainbow-key-test.js');
-  const urls = capture(() => {
-    radarFactory.createRadarSource('rainbowkey', { rainbowApiKey: PASTED })
-      .fetchRadarTuplesAt(52.5, 13.4, 1700000100, () => {});
-  });
-  assert.equal(urls.length, 1, 'the adapter sent one radar request');
-  const sent = FakeXhr.headers.filter((h) => h.name === 'Ocp-Apim-Subscription-Key');
-  assert.equal(sent.length, 1);
-  const tested = JSON.parse(rbwTest.buildBody(PASTED)).key;
-  assert.equal(tested, KEY);
-  assert.equal(sent[0].value, tested, 'the radar header carries the key the Test checked');
 });
 
 test('settings Weather tab: OWM and Tomorrow.io graphs send the trimmed key', () => {

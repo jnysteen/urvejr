@@ -4,7 +4,7 @@ DEV.md is the reference for urvejr's commands, scripts and config. The setup wal
 
 ## Prerequisites
 
-Install the toolchain (Python, pebble-tool and the uv it builds the SDK with, Deno, Supabase CLI, resvg):
+Install the toolchain (Python, pebble-tool and the uv it builds the SDK with, resvg):
 ```bash
 mise install
 ```
@@ -135,18 +135,6 @@ and a phone settings-UI screenshot. It rebuilds the gradient background, the tag
 the phone and watch mockups (needs Pillow: `pip install pillow`):
 ```bash
 mise gen-banner v1.6.2 3 "resources/app screenshot.jpeg"
-```
-
-Serve the `telemetry-ingest` edge function locally:
-```bash
-mise telemetry-serve
-```
-
-Type-check each edge function's `index.ts` and run its Deno test suite (rainbow-nowcast, news and
-telemetry-ingest). This is a separate runner from `mise test`, and CI runs it before
-`supabase functions deploy`:
-```bash
-mise test-deno
 ```
 
 Build and print the aplite image footprint (text+data+bss, the leading indicator for heap):
@@ -528,10 +516,6 @@ mise prepare-package release
 | `FIXTURE` | Fixture name to load (e.g. `berlin`). Fixture files: `fixtures/<name>.json` |
 | `ENABLE_MEMORY_LOGGING` | Set to `1` to enable the extra Pebble heap debug logs in the build, with either package profile. It does not build on aplite (the `MEM\|` logging overflows `.bss`), so capture heap logs on diorite or another platform. On the 64 KB watches it costs about 3.1 KB of heap and links only while the release image leaves that much room; `scripts/check-64k-size.sh` has the numbers |
 | `PEBBLE_EMULATOR` | Default emulator platform (e.g. `basalt`) |
-| `TELEMETRY_ENDPOINT` | Telemetry function URL. It ships commented out in `.env.example`, and telemetry is off without it. Local stack: `http://127.0.0.1:54321/functions/v1/telemetry-ingest`. Set for release/CI builds via the `TELEMETRY_ENDPOINT_RELEASE`/`_PREVIEW` repo secrets (`https://<your-project-ref>.supabase.co/functions/v1/telemetry-ingest`) |
-| `TELEMETRY_HASH_SECRET` | Secret for server-side HMAC hashing of IDs. Generate one with `openssl rand -hex 32` |
-| `RAINBOW_PROXY_ENDPOINT` | Rainbow nowcast proxy URL baked into the bundle. Set for release/CI builds via the `RAINBOW_PROXY_ENDPOINT_RELEASE`/`_PREVIEW` repo secrets. A release build hard-fails if it is empty: Rainbow is the default radar provider, and an empty endpoint still shows the option but makes every Rainbow radar fetch fail soft, so no radar reaches the watch. Dev and fork builds may leave it empty on purpose. It also reaches the settings page (userData `rainbowEndpoint`) for the Rainbow API key's Test button (Graphs tab › Rain radar, the key dialog of *Rainbow (own key)*); when it is empty, the button says the test isn't available |
-| `NEWS_ENDPOINT` | News edge-function URL baked into the bundle. Set for release/CI builds via the `NEWS_ENDPOINT_RELEASE`/`_PREVIEW` repo secrets. A release build hard-fails if it is empty, since the config page's news pill would otherwise be silently disabled for every user |
 | `AQICN_TOKEN` | Shared WAQI (aqicn.org) token baked into the bundle. Set for release/CI builds via the `AQICN_TOKEN_RELEASE`/`_PREVIEW` repo secrets. A release build hard-fails if it is empty: WAQI is the default AQI source, so every device would otherwise silently fall back to Open-Meteo |
 
 ## Fixtures
@@ -564,13 +548,10 @@ Fields supported in `fixtures/<name>.json`:
 
 | Key | Type | Effect |
 |-----|------|--------|
-| `clearPkjsStorageOnBoot` | `true/false` | Forces PKJS `localStorage` reset on each boot. Keep it `true` only while testing first-install behavior, and set it back to `false` before testing upgrade-notification behavior |
-| `forceShowReleaseNotificationOnBoot` | `'1.26.0'` | Shows the release notification for that version key on every boot, whatever the upgrade state. The string must match a key in `release-notifications.json` exactly. Use it to work on the next entry's copy while `package.json` is still on an older version; remove it (or comment it out) when testing normal upgrade behavior |
+| `clearPkjsStorageOnBoot` | `true/false` | Forces PKJS `localStorage` reset on each boot. Keep it `true` only while testing first-install behavior, and set it back to `false` before testing upgrade behavior |
 | `owmApiKey` | `'abc123'` | Preloads OpenWeatherMap API key |
-| `maxNotifiedVersion` | `'1.26.0'` | Seeds the release-notification "max notified version" marker (simulate skipped-version upgrades) |
 | `resetV134WeekendHolidayColorMigration` | `true/false` | Clears the v1.34.0 weekend/holiday color migration marker so it re-runs on next boot |
 | `resetV140HolidayRegionKeyMigration` | `true/false` | Clears the v1.4.0 holiday-region-key migration marker so it re-runs on next boot |
-| `resetUpdateNotifiedVersion` | `true/false` | Clears the update-notification "already notified" version marker and the last-check timestamp, so the daily update check re-runs on next boot |
 
 These flags are local only: they are not committed or written to Clay settings. Set one as
 an export, e.g. `module.exports.clearPkjsStorageOnBoot = true;`.
@@ -587,152 +568,6 @@ JS:
 ```js
 console.log("msg");
 ```
-
-## Supabase (telemetry and Rainbow proxy)
-
-Telemetry runs on Supabase Edge Functions and Postgres. `mise install` installs and updates
-the Supabase CLI through its aqua backend (pinned in `mise.toml`); check it with
-`supabase --version`.
-
-Start the local Supabase stack (from the repo root):
-```bash
-supabase start
-```
-
-Serve the telemetry edge function locally:
-```bash
-mise telemetry-serve
-```
-
-Stop the local Supabase stack:
-```bash
-supabase stop
-```
-
-Local Studio is at http://127.0.0.1:54323; inspect `public.telemetry_weather_fetch` there.
-For the local stack, set `TELEMETRY_ENDPOINT` in `.env` to the local URL in the
-[env var table](#environment-variables-env).
-
-### Migrations
-
-Never write `migrations/` files by hand. Edit `schemas/` and generate a migration from the changes:
-```bash
-supabase db diff -f <label>
-```
-
-### Deploy (hosted)
-
-`.github/workflows/supabase-deploy.yml` deploys on every push to `main` that touches
-`supabase/**`: it runs `supabase db push --yes` and a bare `supabase functions deploy`,
-which with no function name deploys all edge functions (telemetry-ingest, rainbow-nowcast
-and news). The commands below are for manual or local deploys.
-
-With Supabase's GitHub sync and branching (optional), Supabase applies migrations and deploys
-functions from `supabase/` when a branch or PR updates. Enable it in Supabase Dashboard >
-Project Settings > Integrations.
-
-Authenticate with Supabase:
-```bash
-supabase login
-```
-
-Link the repo to the hosted project:
-```bash
-supabase link --project-ref <project-ref>
-```
-
-Set a function secret (generate the value with `openssl rand -hex 32`):
-```bash
-supabase secrets set TELEMETRY_HASH_SECRET=<value>
-```
-
-Dry-run the database migration:
-```bash
-supabase db push --dry-run
-```
-
-Apply the database migration:
-```bash
-supabase db push
-```
-
-Deploy the telemetry edge function:
-```bash
-supabase functions deploy telemetry-ingest
-```
-
-telemetry-ingest never puts the account-token hash in a URL the gateway logs: its hourly rate
-check is the `telemetry_recent_insert_count` RPC in `supabase/schemas/telemetry.sql` (arguments in
-the POST body, service role only), and the insert carries both hashes in its row bodies. Its logs
-carry a fixed tag plus at most a Postgres/PostgREST code (`log.ts`). The function needs that RPC,
-so the migration goes out first (CI runs `db push` before `functions deploy`); until it exists,
-every post is a `500 rate_check_failed`, which the phone retries.
-
-Serve the rainbow-nowcast edge function locally:
-```bash
-supabase functions serve rainbow-nowcast --env-file .env
-```
-
-Set the Rainbow proxy secrets (hosted):
-```bash
-supabase secrets set RAINBOW_API_KEY=<key from https://developer.rainbow.ai/profile>
-supabase secrets set RAINBOW_MONTHLY_BUDGET=5000   # optional; default 5000 upstream calls per UTC month (raise to accept paid overage — no redeploy needed)
-supabase secrets set RAINBOW_IP_HOURLY_CAP=30      # optional; default 30 cache-miss requests per IP per hour
-supabase secrets set RAINBOW_IP_HASH_KEY=$(openssl rand -hex 32)   # optional; pepper for the stored keys (below), else the service-role key
-```
-
-The nowcast (the endpoint's root) takes a POST of `{"lat", "lon", "start"}` (sent as `text/plain`, a
-CORS simple request; the body is read whatever the content type) and answers `{"forecast": [...]}`.
-Coordinates are rounded to 3 decimals (~110 m) on the phone and again on the proxy, so no URL the
-gateway logs carries a position. A `GET ?lat&lon&start` is also accepted, for app versions that
-send it (remove once telemetry shows none). The proxy stores no place and no IP: the cache key and
-the per-IP hourly bucket are HMAC-SHA-256 under keys derived from the pepper (`keys.ts`), the cache
-read and both counters are RPCs (keys in the POST body), the cached payload is the forecast only,
-and function logs carry a fixed tag plus at most a Postgres/PostgREST code (`log.ts`).
-```bash
-curl -s -X POST --data '{"lat":52.52,"lon":13.405,"start":'$(( $(date +%s) / 300 * 300 ))'}' "$RAINBOW_PROXY_ENDPOINT"
-```
-
-Deploy the rainbow-nowcast edge function:
-```bash
-supabase functions deploy rainbow-nowcast
-```
-
-Key-check mode is on the endpoint's `/key-check` path. It backs the settings page's *Test*
-button beside the Rainbow API key, in the key dialog of *Rainbow (own key)* (Graphs tab › Rain
-radar). A POST of `{"key":"..."}` as `text/plain` makes one Rainbow call with that key at a fixed,
-always-covered point (Berlin) and answers HTTP 200 `{"status": <Rainbow status>}`. Any other
-HTTP status is the proxy's own error, never a key verdict: 400 (missing key, or not shaped like
-a Rainbow key), 413 (body over 1 KB), 429 (more than 5 checks per IP per minute) and 504
-(Rainbow didn't answer within 5 s). It touches no DB, cache or shared wallet, logs nothing, and
-costs one call on the tested key (none on the project's):
-```bash
-curl -s -X POST --data '{"key":"<your key>"}' "$RAINBOW_PROXY_ENDPOINT/key-check"
-```
-
-Accepted risk: `/key-check` is an unauthenticated relay. Anyone who knows the endpoint can have
-the project's egress make one Rainbow call per POST with a key of their choosing (probing keys,
-or wearing down the standing with Rainbow that the shared radar also runs on), and every POST
-costs an edge invocation. The only limit is a best-effort in-memory counter in `key-check.ts`: 5
-checks per IP per minute, per isolate, reset on every cold start and not shared across isolates,
-so a caller hitting several isolates gets more. If abuse shows in `function_edge_logs` (a run of
-POSTs to `rainbow-nowcast/key-check`), harden it in `key-check.ts`: either count key checks in
-the DB-backed hashed per-IP bucket the nowcast's hourly cap uses (`keys.ts` `ipHourKey` +
-`increment_rainbow_ip_usage`, under a separate key prefix so checks don't eat the radar's cap),
-or require a header only the settings page sends (it then preflights, so add the header to the
-CORS `Access-Control-Allow-Headers`).
-
-Deploy the news edge function:
-```bash
-supabase functions deploy news
-```
-
-The news function never puts the account-token hash in a URL the gateway logs: the list (items,
-seen watermark and the caller's votes in one call), the seen upsert and the vote rate-limit count
-are RPCs in `supabase/schemas/news.sql` (arguments in the POST body, service role only), and the
-vote upsert carries it in its row body. The function takes no messages. Its logs carry a fixed tag plus at most a
-Postgres/PostgREST code (`log.ts`). The function needs those RPCs, so the migration goes out first
-(CI runs `db push` before `functions deploy`).
 
 ## Upgrading pebble-tool
 
@@ -758,9 +593,6 @@ mise install
 | `fixtures/` | Deterministic emulator state files |
 | `scripts/` | Shell and JS helper scripts |
 | `src/pkjs/dev-config.js` | Local-only dev behavior switches |
-| `release-notifications.json` | "What's new" toast copy keyed by version |
-| `supabase/schemas/` | Declarative DB schemas (source of truth) |
-| `supabase/functions/` | Edge functions |
 | `plugins/` | Weather plugins for the Pebble app, released separately from the watchface |
 | `screenshot/<version>/raw/` | Raw platform screenshots (last capture run) |
 | `screenshot/<version>/store/` | Per-platform store screenshots (5 configs each) |

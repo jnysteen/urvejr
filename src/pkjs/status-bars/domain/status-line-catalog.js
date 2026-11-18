@@ -159,7 +159,7 @@
   // Bars 4 to 6 (Pebble Time 2, 3.0.0's New status bar: view-cycle.js EXTRA_BARS, whose prefixes they
   // take): their lines (STATUS_LINE_5..7_UINT8), every slot empty until New status bar writes its
   // starting set. Kept out of LINES, so every reader of the first four (the twelve selections,
-  // telemetry, the 2.6 migration) stays as it is; the bake (bakedLines) adds one while a
+  // the 2.6 migration) stays as it is; the bake (bakedLines) adds one while a
   // screen shows the bar, and a slot key's lookups walk ALL_LINES.
   var EXTRA_LINES = VC.EXTRA_BARS.map(function (b, i) {
     var slots = [b.prefix + 'Left', b.prefix + 'Mid', b.prefix + 'Right'];

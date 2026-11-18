@@ -3,7 +3,7 @@
 //
 // A small source family of its own (the radar-factory.js / air-quality.js shape),
 // independent of both the forecast provider and the rain-radar source, so more
-// sources can join later (a real lightning feed through the rainbow proxy, say).
+// sources can join later (a real lightning feed, say).
 // The first one is Open-Meteo's `minutely_15` product.
 //
 // What the rows mean. Open-Meteo's own two fields drew a sky that looked "way
@@ -38,8 +38,7 @@ var SLOT_SECONDS = 15 * 60;
 // The radar window, in seconds: 24 five-minute slots from slot 0. It reaches into nine
 // quarter hours when slot 0 is not itself on a quarter hour.
 var WINDOW_SECONDS = radarWire.NUM_BARS * radarWire.SLOT_SECONDS;
-// How often the phone asks for the sky: once per UTC half hour, the shared Rainbow
-// radar's cadence (radar-factory.js RADAR_MIN_REQUEST_INTERVAL_MS). The rows are
+// How often the phone asks for the sky: once per UTC half hour. The rows are
 // cloud and sun forecasts for the next two hours, which a quarter hour more or less
 // of age does not change; between two requests the watch draws the sky it holds.
 var REFRESH_SECONDS = 30 * 60;

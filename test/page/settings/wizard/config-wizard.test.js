@@ -42,9 +42,9 @@ test('mapCountry: providers + units + week-start + date format by country (US im
   assert.deepEqual(CD.mapCountry('DE'), { provider: 'dwd', radarProvider: 'dwd', temperatureUnits: 'c', windUnits: 'kph', distanceUnits: 'metric', weekStartDay: 'mon', dateSlotFullFormat: 'auto' });
   assert.deepEqual(CD.mapCountry('NO'), { provider: 'metno', radarProvider: 'metno', temperatureUnits: 'c', windUnits: 'kph', distanceUnits: 'metric', weekStartDay: 'mon', dateSlotFullFormat: 'auto' });
   assert.deepEqual(CD.mapCountry('SE'), { provider: 'metno', radarProvider: 'metno', temperatureUnits: 'c', windUnits: 'kph', distanceUnits: 'metric', weekStartDay: 'mon', dateSlotFullFormat: 'auto' });
-  assert.deepEqual(CD.mapCountry('US'), { provider: 'openmeteo', radarProvider: 'rainbow', temperatureUnits: 'f', windUnits: 'mph', distanceUnits: 'imperial', weekStartDay: 'sun', dateSlotFullFormat: 'slash' });
-  assert.deepEqual(CD.mapCountry('GB'), { provider: 'openmeteo', radarProvider: 'rainbow', temperatureUnits: 'c', windUnits: 'kph', distanceUnits: 'metric', weekStartDay: 'mon', dateSlotFullFormat: 'auto' });
-  assert.deepEqual(CD.mapCountry(null), { provider: 'openmeteo', radarProvider: 'rainbow', temperatureUnits: 'c', windUnits: 'kph', distanceUnits: 'metric', weekStartDay: 'mon', dateSlotFullFormat: 'auto' });
+  assert.deepEqual(CD.mapCountry('US'), { provider: 'openmeteo', radarProvider: 'off', temperatureUnits: 'f', windUnits: 'mph', distanceUnits: 'imperial', weekStartDay: 'sun', dateSlotFullFormat: 'slash' });
+  assert.deepEqual(CD.mapCountry('GB'), { provider: 'openmeteo', radarProvider: 'off', temperatureUnits: 'c', windUnits: 'kph', distanceUnits: 'metric', weekStartDay: 'mon', dateSlotFullFormat: 'auto' });
+  assert.deepEqual(CD.mapCountry(null), { provider: 'openmeteo', radarProvider: 'off', temperatureUnits: 'c', windUnits: 'kph', distanceUnits: 'metric', weekStartDay: 'mon', dateSlotFullFormat: 'auto' });
 });
 
 test('applyDerived sets wind/distance units, week-start and date format from the country', () => {
@@ -435,7 +435,7 @@ test('an undetected or unlisted country falls back to None, never to the German 
     assert.equal(S.holidayCountry, 'none', label);
     assert.equal(S.holidayRegion, 'all', label);
     assert.equal(S.provider, 'openmeteo', label);
-    assert.equal(S.radarProvider, 'rainbow', label);
+    assert.equal(S.radarEnabled, false, label + ': no keyless radar covers it');
   });
 });
 

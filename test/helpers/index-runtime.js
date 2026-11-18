@@ -73,9 +73,7 @@ function installIndexRuntime(opts) {
   global.Pebble = {
     addEventListener: (name, fn) => { h.listeners[name] = fn; },
     getActiveWatchInfo: () => h.watchInfo,
-    getAccountToken: () => 'test-token',
     getWatchToken: () => 'test-watch',
-    showSimpleNotificationOnPebble: () => {},
     openURL: () => {},
     sendAppMessage: (dict, ack, nack) => {
       const msg = { dict: dict, ack: ack, nack: nack, outcome: 'held' };
@@ -155,11 +153,10 @@ function installIndexRuntime(opts) {
   };
   /**
    * Pre-boot state that keeps the first ticks off the network: a fetch-success
-   * marker an hour ahead (no weather fetch) and a fresh update-check stamp.
+   * marker an hour ahead (no weather fetch).
    */
   h.quietNetwork = function () {
     store.lastFetchSuccess = JSON.stringify({ time: new RealDate(clock.now + 3600e3).toISOString() });
-    store.last_update_check = String(clock.now);
   };
   h.restore = function () {
     Object.keys(require.cache).forEach((k) => { if (k.indexOf(SRC) === 0) { delete require.cache[k]; } });

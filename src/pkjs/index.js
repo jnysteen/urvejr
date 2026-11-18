@@ -5,17 +5,13 @@ require('./lib/polyfills.js');
 
 var notices = require('./notices/adapter/notices.js');
 var WeatherProvider = require('./weather/adapter/provider.js');
-var createTelemetryClient = require('./telemetry/adapter/telemetry.js');
 var settings = require('./page/settings');
 var storageKeys = require('./settings/domain/storage-keys.js');
 var outbox = require('./wire/adapter/outbox.js');
 var authBackoff = require('./weather/adapter/auth-backoff.js');
-var devStats = require('./telemetry/adapter/dev-stats.js');
 var pkg = require('../../package.json');
 var activeFixture = require('./weather/adapter/active-fixture.generated.js');
 var pebbleColors = require('./theme/domain/pebble-colors.js');
-var releaseNotifications = require('./notices/domain/release-notifications.js');
-var updateCheckRunner = require('./notices/adapter/update-check-runner.js');
 var themeSchedule = require('./theme/domain/theme-schedule.js');
 var locationLib = require('./weather/adapter/location.js');
 var SunCalc = require('suncalc');
@@ -29,7 +25,6 @@ var effectiveHolidayCountry = require('./settings/domain/clay-payload.js').effec
 var holidayWindowOpts = require('./settings/domain/clay-payload.js').holidayWindowOpts;
 var providerFactory = require('./weather/adapter/provider-factory.js');
 var previewPalette = require('./theme/domain/preview-palette.js');
-var newsCache = require('./notices/adapter/news-cache.js');
 var weatherTabCache = require('./weather/adapter/weather-tab-cache.js');
 var createChannelScheduler = require('./wire/adapter/channel-scheduler.js');
 var createFetchCycle = require('./shell/fetch-cycle.js');
@@ -39,49 +34,16 @@ var renderSignature = require('./settings/domain/render-signature.js').renderSig
 var decideConfigClose = require('./settings/domain/config-close.js').decideConfigClose;
 var phoneBattery = require('./status-bars/adapter/phone-battery.js');
 var statusRebake = require('./status-bars/application/status-rebake.js');
-var notifyWatch = require('./notices/adapter/notify-watch.js').notifyWatch;
 
-/**
- * Full release-notification manifest (dev: force-show by version). Omitted from bundle if missing.
- *
- * @returns {Object|null} Parsed release-notifications.json or null.
- */
-function loadReleaseNotificationsManifest() {
-    try {
-        return require('../../release-notifications.json');
-    }
-    catch (ex) {
-        return null;
-    }
-}
-
-var releaseNotificationsManifest = loadReleaseNotificationsManifest();
 /**
  * @type {{
  *     settings?: Object,
- *     telemetry?: Object,
  *     provider?: Object,
  *     watchInfo?: Object,
  *     devConfig?: Object
  * }}
  */
 var app = {};  // Namespace for global app variables
-var KEY_MAX_NOTIFIED_VERSION = storageKeys.MAX_NOTIFIED_VERSION_KEY;
-var KEY_UPDATE_NOTIFIED_VERSION = storageKeys.UPDATE_NOTIFIED_VERSION_KEY;
-var KEY_LAST_UPDATE_CHECK = storageKeys.LAST_UPDATE_CHECK_KEY;
-// Public appstore APIs; latest version lives at data[0].latest_release.version.
-// Announce the min across stores so the target is installable from either one.
-// urvejr has no store listings yet: put its appstore ids here once it is listed.
-// A store with an empty id is left out; with none, the check never notifies.
-var UPDATE_CHECK_STORE_APIS = [
-    { api: 'https://appstore-api.repebble.com/api/v1/apps/id/', id: '' },
-    { api: 'https://appstore-api.rebble.io/api/v1/apps/id/', id: '' }
-];
-var UPDATE_CHECK_STORES = UPDATE_CHECK_STORE_APIS.filter(function (s) {
-    return Boolean(s.id);
-}).map(function (s) {
-    return s.api + s.id;
-});
 // Read here only for the settings page's userData; the fetch cycle owns them.
 var KEY_LAST_FETCH_SUCCESS = storageKeys.LAST_FETCH_SUCCESS_KEY;
 var KEY_LAST_FETCH_ATTEMPT = storageKeys.LAST_FETCH_ATTEMPT_KEY;
@@ -113,10 +75,8 @@ var fetchCycle = createFetchCycle({
     outbox: outbox,
     authBackoff: authBackoff,
     notices: notices,
-    trackWeatherFetch: maybeTrackWeatherFetch,
     env: {
-        waqiToken: (pkg.waqi && pkg.waqi.token) || '',
-        rainbowEndpoint: (pkg.rainbow && pkg.rainbow.endpoint) || ''
+        waqiToken: (pkg.waqi && pkg.waqi.token) || ''
     },
     now: function () { return new Date(); },
     getPhoneBattery: phoneBattery.bakeFacts,
@@ -131,7 +91,7 @@ var scheduler = createChannelScheduler({
     resendStatus: statusRebake.resendStatus,
     shouldFetchNow: fetchCycle.shouldFetchNow,
     refreshHolidays: refreshHolidays,
-    checkForUpdate: onSchedulerTick,
+    onTick: onSchedulerTick,
     clearClayCache: outbox.clearClayCache,
     clearWeatherCaches: outbox.clearWeatherCaches,
     clearNoticeOnWatch: function () { outbox.sendWeather({ NOTICE_TEXT: '' }); },
@@ -166,21 +126,6 @@ Pebble.addEventListener('appmessage', function(e) {
 });
 
 Pebble.addEventListener('showConfiguration', function(e) {
-    // Heal the news cache on settings OPEN (the reliable event — some phone apps
-    // never fire webviewclosed). The async refetch pulls the current server
-    // watermark for the NEXT open, so a read dot stops reappearing. The cache
-    // injected below is still this-open's snapshot; the refetch updates it after.
-    newsCache.refreshIfStale(newsCacheOpts());
-    // Build userData fresh here so it's actually up to date; the library computes
-    // env from the raw watchInfo we pass.
-    // The raw account token rides to the config page and on to the news edge
-    // function, which HMAC-hashes it server-side (same pattern as telemetry).
-    var newsAccountToken = '';
-    try {
-        newsAccountToken = Pebble.getAccountToken() || '';
-    } catch (err) {
-        console.log('news: getAccountToken failed: ' + err.message);
-    }
     var graphsSeed = buildGraphsSeed();
     var values = claySettings.read();
     var nowMs = Date.now();
@@ -205,23 +150,11 @@ Pebble.addEventListener('showConfiguration', function(e) {
         // the position), or null: the amber note under the Radar provider row while the
         // picked one cannot.
         radarCoverage: localStorage.getItem(KEY_RADAR_COVERAGE),
-        // Day totals + the newest events, never the raw 7-day log: that pushed the
-        // data: URL past Android's 2 MiB cap at short update intervals (dev-stats.js).
-        devStats: devStats.summarize(),
         palette: previewPalette.buildPreviewPalette(),
         // The holidays the phone has cached for the stored country around today
         // (nager-source.js forPage), or null: the Watchface tab's watch preview marks
         // them in its calendar while that country stays picked.
-        holidays: nagerSource.forPage(effectiveHolidayCountry(values), new Date(nowMs)),
-        newsEndpoint: (pkg.news && pkg.news.endpoint) || '',
-        // The Rainbow proxy endpoint: the key Test button POSTs to its '/key-check' path ('' = no
-        // endpoint in this build; the button then says the test isn't available).
-        rainbowEndpoint: (pkg.rainbow && pkg.rainbow.endpoint) || '',
-        appVersion: pkg.version || '',
-        accountToken: newsAccountToken,
-        // Raw cached `list` response (≤1h old at last refresh); the page
-        // renders the news pill from this instead of fetching the list itself.
-        newsCache: newsCache.readBody() || ''
+        holidays: nagerSource.forPage(effectiveHolidayCountry(values), new Date(nowMs))
     };
     // Logged, not just passed: false here silently OMITS both phone-battery slot
     // items from all twelve slot dropdowns, and nothing on the page says why. This
@@ -247,27 +180,13 @@ Pebble.addEventListener('showConfiguration', function(e) {
     // After the page is open: when the Weather tab is in use and the phone holds
     // nothing from today for the place it opens on, fetch it for the next opens.
     weatherTabCache.refreshIfStale(values, graphsSeed, nowMs);
-    // The first open of a UTC day sends the queued telemetry (telemetry.js).
-    if (app.telemetry) {
-        app.telemetry.onSettingsOpened({ settings: app.settings, watchInfo: app.watchInfo });
-    }
 });
 
 Pebble.addEventListener('webviewclosed', function(e) {
-    // Refetch the news cache so the next config open renders the pill instantly
-    // from fresh data: when it's an hour old, or whenever it still shows an
-    // unread dot. The unread case pulls the server watermark the page just
-    // advanced by opening the popup, so a read dot doesn't reappear next open.
-    // Runs on cancel too, hence before the empty-response early-out. NOTE: some
-    // phone apps never fire webviewclosed — showConfiguration also refreshes so
-    // the heal still happens there.
-    newsCache.refreshIfStale(newsCacheOpts());
     if (e && !e.response) {
         return;
     }
 
-    // The radar source: "Rainbow (limited)" ('rainbow') and "Rainbow (own key)"
-    // ('rainbowkey') are two radarProvider values.
     var oldRadarProvider = app.settings ? app.settings.radarProvider : undefined;
     var oldRadarMode = app.settings ? app.settings.radarMode : undefined;
     var oldRadarSky = app.settings ? app.settings.radarSky !== false : undefined;
@@ -317,15 +236,6 @@ Pebble.addEventListener('webviewclosed', function(e) {
         scheduler.onConfigClosed({ forceFetch: true, clearNotice: false });
         return;
     }
-    devStats.setEnabled(Boolean(app.settings.devStatsEnabled));
-    if (app.settings.devStatsClear === true) {
-        // The config page's "Clear connection stats" toggle sets this flag; wipe
-        // the log here. The page's onLoad hook re-zeroes the flag on the next open.
-        devStats.clear();
-    }
-    app.telemetry = createTelemetryClient(getRuntimeTelemetryConfig());
-    // A new install is counted on its first Save, not ~12 h later (telemetry.js).
-    app.telemetry.onSettingsSaved({ settings: app.settings, watchInfo: app.watchInfo });
     var providerOrLocationChanged = refreshProvider();
     var acked = app.settings.fetchNoticeAck === true;
     // Only an error notice puts text on the watch overlay; capture that BEFORE
@@ -368,35 +278,12 @@ Pebble.addEventListener('webviewclosed', function(e) {
     console.log('Closing clay: ' + JSON.stringify(claySettings.redactForLog(app.settings)));
 });
 
-/**
- * Common context for the phone-side news cache operations (see news-cache.js).
- *
- * @returns {{endpoint: string, accountToken: string, version: string}} Fetch context.
- */
-function newsCacheOpts() {
-    var token = '';
-    try {
-        token = Pebble.getAccountToken() || '';
-    } catch (err) {
-        console.log('news: getAccountToken failed: ' + err.message);
-    }
-    return {
-        endpoint: (pkg.news && pkg.news.endpoint) || '',
-        accountToken: token,
-        version: pkg.version || ''
-    };
-}
-
 // Listen for when the watchface is opened
 Pebble.addEventListener('ready',
     function (e) {
         app.devConfig = getDevConfig();
         maybeHandleDevStorageReset(app.devConfig);
         var hadExistingInstall = claySettings.hasStored();
-        maybeShowReleaseNotification(
-            hadExistingInstall,
-            app.devConfig.forceShowReleaseNotificationOnBoot
-        );
         claySettings.seedDefaults(DEFAULT_HOLIDAY_COLORS);
         var statusMigrationPlatform = 'basalt';
         var knownPlatform = '';
@@ -412,7 +299,7 @@ Pebble.addEventListener('ready',
             platform: statusMigrationPlatform,
             knownPlatform: knownPlatform,
             colors: DEFAULT_HOLIDAY_COLORS,
-            defaultRadarProvider: 'rainbow',
+            defaultRadarProvider: 'dwd',
             // Read BEFORE seedDefaults above: the onboarding migration's only way
             // to tell a fresh install (wizard auto-opens) from an existing one.
             hadExistingInstall: hadExistingInstall
@@ -421,7 +308,6 @@ Pebble.addEventListener('ready',
         claySettings.applyFixtureSettings(activeFixture, pebbleColors);
         console.log('PebbleKit JS ready!');
         app.settings = claySettings.read();
-        devStats.setEnabled(Boolean(app.settings.devStatsEnabled));
         try {
             app.watchInfo = Pebble.getActiveWatchInfo();
         }
@@ -429,7 +315,6 @@ Pebble.addEventListener('ready',
             app.watchInfo = null;
             console.log('Unable to read watch info: ' + ex.message);
         }
-        app.telemetry = createTelemetryClient(getRuntimeTelemetryConfig());
         // Phone battery: detect + subscribe once. Inert on iOS and in the
         // emulator (no battery API there at all), so this is safe to run before
         // the fixture branch below — which is deliberate, so the dev-config
@@ -454,21 +339,13 @@ Pebble.addEventListener('ready',
         outbox.setRideAlong(phoneBattery.statusRideAlong);
         refreshProvider();
         // 7-day localStorage cache GC: caches are re-derivable, so entries older
-        // than a week are dropped instead of building up (stale notices, the
-        // devStats log while recording is off, an abandoned news envelope).
+        // than a week are dropped instead of building up (stale notices).
         try {
-            var gcNow = Date.now();
-            devStats.gc(gcNow);
-            notices.gc(gcNow);
-            newsCache.gc(gcNow);
+            notices.gc(Date.now());
         }
         catch (ex2) {
             console.log('cache gc failed: ' + ex2.message);
         }
-        // Seed the news cache once (fetch only while nothing usable is cached)
-        // so the very first config open already has news; steady-state
-        // refreshes happen on config close.
-        newsCache.seedIfAbsent(newsCacheOpts());
         if (activeFixture) {
             var sendFixture = function () {
                 fixtureWeather.sendFixtureWeather(activeFixture, { settings: app.settings, watchInfo: app.watchInfo,
@@ -495,81 +372,11 @@ Pebble.addEventListener('ready',
 );
 
 /**
- * Build telemetry runtime config from package.json.
- *
- * @returns {{enabled: boolean, endpoint: string, appVersion: string, buildProfile: string}} Runtime telemetry config.
- */
-function getRuntimeTelemetryConfig() {
-    var telemetry = pkg.telemetry || {};
-    var endpoint = typeof telemetry.endpoint === 'string' ? telemetry.endpoint : '';
-    var telemetryEnabled = !app.settings || app.settings.telemetryEnabled !== false;
-
-    return {
-        enabled: telemetryEnabled,
-        endpoint: endpoint,
-        appVersion: pkg.version,
-        buildProfile: pkg.buildProfile
-    };
-}
-
-/**
- * Show the release notification exactly once for eligible upgrades, or every boot when dev forces a manifest version.
- *
- * @param {boolean} hadExistingInstall True when this launch is not first install.
- * @param {*} forceVersionSpec Dev: exact version key in release-notifications.json (e.g. "1.26.0"), or falsy.
- * @returns {void}
- */
-function maybeShowReleaseNotification(hadExistingInstall, forceVersionSpec) {
-    var maxNotified = localStorage.getItem(KEY_MAX_NOTIFIED_VERSION) || '0.0.0';
-    var decision = releaseNotifications.decideReleaseNotification({
-        pkg: pkg,
-        manifest: releaseNotificationsManifest,
-        hadExistingInstall: hadExistingInstall,
-        forceVersionSpec: forceVersionSpec,
-        maxNotified: maxNotified
-    });
-
-    if (decision.forceKey !== '' && !decision.shouldNotifyForce) {
-        console.log('[release-notification] force version ' + JSON.stringify(decision.forceKey) +
-            ' not found or invalid in release-notifications.json');
-    }
-    console.log(decision.logLine);
-
-    /**
-     * Record the newest version shown, as the decision names it. The decision owns the whole
-     * persist policy (release-notifications.js); this caller only performs the write.
-     * @returns {void}
-     */
-    function persist() {
-        if (decision.persistMaxNotified !== null) {
-            localStorage.setItem(KEY_MAX_NOTIFIED_VERSION, decision.persistMaxNotified);
-            console.log('[release-notification] set max_notified_version=' + decision.persistMaxNotified);
-        }
-    }
-    if (decision.shouldNotify) {
-        console.log('[release-notification] showing notification');
-        // Dropped while the phone asks for ShowNotifications (notify-watch.js): not
-        // persisted, so the next run shows it.
-        notifyWatch(decision.title, decision.body, function (decided) {
-            if (decided) { persist(); return; }
-            console.log('[release-notification] the phone asks for notifications first; next run');
-        });
-    }
-    else {
-        console.log('[release-notification] skip');
-        persist();
-    }
-}
-
-/**
  * Everything index.js owns that must happen on every 60 s scheduler tick.
  *
- * The scheduler calls this as its `checkForUpdate` dep, which it invokes once
- * per tick unconditionally — so it is the tick hook, and hanging the
+ * The scheduler calls this as its `onTick` dep once per tick, so hanging the
  * phone-battery post-saver-window push here keeps this at ONE timer instead of
- * arming a second one. The update check throttles itself to once a day
- * (update-check-runner.js — the XHR/notify half; update-check.js stays the
- * pure decision), so the extra work per tick is a flag test.
+ * arming a second one.
  *
  * It runs after the tick's fetch decision, so a fetch due this minute is in
  * flight by then: the push and the day/night re-bake wait for a tick without
@@ -581,13 +388,6 @@ function onSchedulerTick() {
     var fetching = fetchCycle.isInFlight();
     phoneBattery.onTick(fetching);
     statusRebake.onTick(fetching);
-    updateCheckRunner.runDailyUpdateCheck({
-        stores: UPDATE_CHECK_STORES,
-        appVersion: pkg.version,
-        devConfig: app.devConfig,
-        isWatchConnected: isWatchConnected,
-        notify: notifyWatch
-    });
 }
 
 /**
@@ -602,19 +402,10 @@ function maybeHandleDevStorageReset(devConfig) {
         devConfig &&
         devConfig.resetV134WeekendHolidayColorMigration
     );
-    var forcedMaxNotifiedVersion = devConfig &&
-        typeof devConfig.maxNotifiedVersion === 'string'
-        ? devConfig.maxNotifiedVersion.trim()
-        : '';
 
     if (shouldClear) {
         console.log('[dev] clearPkjsStorageOnBoot=true, clearing localStorage');
         localStorage.clear();
-    }
-
-    if (forcedMaxNotifiedVersion !== '') {
-        console.log('[dev] maxNotifiedVersion=' + forcedMaxNotifiedVersion + ', setting release notification marker');
-        localStorage.setItem(KEY_MAX_NOTIFIED_VERSION, forcedMaxNotifiedVersion);
     }
 
     if (shouldResetV134WeekendHolidayColorMigration) {
@@ -625,12 +416,6 @@ function maybeHandleDevStorageReset(devConfig) {
     if (Boolean(devConfig && devConfig.resetV140HolidayRegionKeyMigration)) {
         console.log('[dev] resetV140HolidayRegionKeyMigration=true, clearing migration marker');
         localStorage.removeItem(storageKeys.HOLIDAY_REGION_KEY_MIGRATION_KEY);
-    }
-
-    if (Boolean(devConfig && devConfig.resetUpdateNotifiedVersion)) {
-        console.log('[dev] resetUpdateNotifiedVersion=true, clearing update notification marker');
-        localStorage.removeItem(KEY_UPDATE_NOTIFIED_VERSION);
-        localStorage.removeItem(KEY_LAST_UPDATE_CHECK);
     }
 }
 
@@ -851,15 +636,3 @@ function isWatchConnected() {
     }
 }
 
-/**
- * Send a weather fetch telemetry event when telemetry is enabled.
- *
- * @param {Object} event Telemetry event details.
- * @returns {void}
- */
-function maybeTrackWeatherFetch(event) {
-    if (!app.telemetry || app.telemetry.enabled !== true) {
-        return;
-    }
-    app.telemetry.trackWeatherFetch(event || {});
-}

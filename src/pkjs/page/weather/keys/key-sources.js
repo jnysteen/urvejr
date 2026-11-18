@@ -1,7 +1,7 @@
 // src/pkjs/page/weather/keys/key-sources.js — ES5, PKJS + settings webview. The keyed sources: for
 // each picker whose options include sources that need the user's own API key (the Weather
 // provider's OpenWeatherMap, Tomorrow.io and Yandex Weather; the Radar provider's
-// "Rainbow (own key)" and Tomorrow.io), those sources and what goes missing without a
+// "Rainbow" and Tomorrow.io), those sources and what goes missing without a
 // working key. One table per picker, by the picker's messageKey:
 //   {outcome, sources: {<the picker's value>: source}}
 // It is the table every key-status resolver on the picker's rows reads (settings/
@@ -47,8 +47,8 @@
     };
 
     // The radar sources that need the user's own key, by their `radarProvider` value.
-    // "Rainbow (own key)": its key never rides a weather update, so its status comes from the
-    // Test button and the radar's answers to it (kept under 'rainbowkey'); its usage line is
+    // Rainbow: its key never rides a weather update, so its status comes from the radar's
+    // answers to it (kept under 'rainbowkey'); its usage line is
     // the monthly projection. Tomorrow.io: its key is the Tomorrow.io weather provider's, so
     // its entry IS that provider's (name, key field, Test, reasons, the daily usage line)
     // with only the sheet changed; the weather updates and the radar requests keep their
@@ -58,7 +58,7 @@
     // the Radar provider's key row and Save dialog open that one, and its summary and tab dot
     // read the Weather provider's state.
     var RADAR_SOURCES = {
-        rainbowkey: {name: 'Rainbow', sheetId: 'radarKeyRainbow', keyField: 'rainbowApiKey', test: true,
+        rainbowkey: {name: 'Rainbow', sheetId: 'radarKeyRainbow', keyField: 'rainbowApiKey', test: false,
             usage: 'rainbow'},
         tomorrowio: Object.assign({}, PROVIDER_SOURCES.tomorrowio, {sheetId: 'radarKeyTomorrowio',
             sharedSheet: {key: 'provider', eq: 'tomorrowio', sheetId: PROVIDER_SOURCES.tomorrowio.sheetId}})

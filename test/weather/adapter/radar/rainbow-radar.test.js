@@ -11,78 +11,22 @@ WeatherProvider.request = function(url, type, onSuccess, onError, headers, body)
 const rainbowRadar = require('../../../../src/pkjs/weather/adapter/radar/rainbow-radar.js');
 const radarWire = require('../../../../src/pkjs/weather/domain/radar/radar-wire.js');
 
-const ENDPOINT = 'https://xyz.supabase.co/functions/v1/rainbow-nowcast';
 const SLOT0 = 1700000100;   // 5-min aligned (1700000100 % 300 === 0)
 const SLOT = 300;
 const N = 24;
 
 function zeros() { return new Array(N).fill(0); }
 
+// A 200 for the keyed request, with the echo Rainbow sends unless the body has one.
 function respondWith(body) {
-  responder = function(url, type, onSuccess) { onSuccess(JSON.stringify(body)); };
+  const withEcho = Object.assign({ latitude: 52.5, longitude: 13.4 }, body);
+  responder = function(url, type, onSuccess) { onSuccess(JSON.stringify(withEcho)); };
 }
 
 function fetchTuples(cb) {
-  rainbowRadar.fetchRadarTuplesAt(ENDPOINT, 52.5, 13.4, SLOT0, cb);
+  rainbowRadar.resetKeyedStreak();
+  rainbowRadar.fetchRadarTuplesWithKey('KEY', 52.5, 13.4, SLOT0, cb);
 }
-
-/**
- * The one proxy request a fetch at (lat, lon) makes.
- * @param {*} lat Latitude as the fix gives it.
- * @param {*} lon Longitude as the fix gives it.
- * @returns {{url: string, type: string, headers: Object, body: string}} The request.
- */
-function proxyRequestFor(lat, lon) {
-  const seen = [];
-  responder = function(url, type, onSuccess, onError, headers, body) {
-    seen.push({ url: url, type: type, headers: headers, body: body });
-    onSuccess(JSON.stringify({ forecast: [] }));
-  };
-  rainbowRadar.fetchRadarTuplesAt(ENDPOINT, lat, lon, SLOT0, function() {});
-  assert.equal(seen.length, 1);
-  return seen[0];
-}
-
-test('POSTs {lat, lon, start} to the proxy endpoint itself: nothing in the URL', () => {
-  const req = proxyRequestFor(52.5, 13.4);
-  assert.equal(req.url, ENDPOINT, 'no query string');
-  assert.equal(req.type, 'POST');
-  assert.deepEqual(JSON.parse(req.body), { lat: 52.5, lon: 13.4, start: SLOT0 });
-  // text/plain keeps it a CORS simple request (no preflight), as the old GET was.
-  assert.deepEqual(req.headers, { 'Content-Type': 'text/plain;charset=UTF-8' });
-});
-
-test('the proxy gets the position rounded to 3 decimals, whether the fix gives numbers or strings', () => {
-  [
-    [52.5170365, 13.3888599, 52.517, 13.389],
-    ['52.5170365', '13.3888599', 52.517, 13.389],   // a manual location
-    ['+52.52', ' 13.40 ', 52.52, 13.4],
-    ['-.5', '-179.9995', -0.5, -179.999],
-    [-0.0004, 0.0005, 0, 0.001]
-  ].forEach(function(c) {
-    const body = JSON.parse(proxyRequestFor(c[0], c[1]).body);
-    assert.deepEqual([body.lat, body.lon], [c[2], c[3]], JSON.stringify(c));
-    assert.equal(Object.is(body.lat, -0), false);
-  });
-  const raw = proxyRequestFor(52.5170365, 13.3888599).body;
-  assert.equal(raw.indexOf('5170365'), -1, 'no full-precision digit leaves the phone');
-});
-
-test('a position that is no coordinate pair: the clear, no request, and no coordinate in the log', () => {
-  [[null, 13.4], ['', 13.4], [true, 13.4], [52.5, undefined], ['abc', 13.4], [95, 13.4], [52.5, 181], [NaN, 13.4]].forEach(function(c) {
-    let requested = 0;
-    responder = function() { requested += 1; };
-    let out = 'unset';
-    const logs = captureLogs(function() {
-      rainbowRadar.fetchRadarTuplesAt(ENDPOINT, c[0], c[1], SLOT0, function(t) { out = t; });
-    });
-    assert.deepEqual(out, radarWire.clearRadarTuples(), String(c));
-    assert.equal(requested, 0, String(c));
-    assert.equal(logs.length, 1);
-    assert.ok(logs[0].indexOf('not a usable coordinate pair') !== -1);
-    assert.equal(/\d{2}\.\d/.test(logs[0]), false, 'the log names no coordinate');
-  });
-});
 
 test('maps forecast intervals onto 5-min slots (mm/h ×10)', () => {
   // Interval covering slots 0-1 at 1.2 mm/h, an explicit dry interval for
@@ -157,84 +101,6 @@ test('area array is always 24 zeros (a point provider has no nearby signal)', ()
   fetchTuples(function(t) { out = t; });
   assert.deepEqual(out.RAIN_RADAR_TREND_AREA_UINT8, zeros());
 });
-
-test('empty endpoint → one warning + the radar CLEAR, no network', () => {
-  // An endpoint-less build can never answer. A null here would leave the watch
-  // self-advancing its last window into a made-up "No rain ahead"; the clear
-  // takes the radar off the watch instead (the outbox dedupe sends it once).
-  let requested = false;
-  responder = function() { requested = true; };
-  const logs = [];
-  const origLog = console.log;
-  console.log = function(m) { logs.push(m); };
-  let out = 'unset';
-  try {
-    rainbowRadar.fetchRadarTuplesAt('', 52.5, 13.4, SLOT0, function(t) { out = t; });
-  }
-  finally {
-    console.log = origLog;
-  }
-  assert.deepEqual(out, { RAIN_RADAR_TREND_UINT8: [], RAIN_RADAR_TREND_AREA_UINT8: [], RAIN_RADAR_START: 0 });
-  assert.equal(requested, false);
-  assert.equal(logs.length, 1, 'exactly one warning for this fetch (no persistent latch)');
-  assert.ok(logs[0].indexOf('proxy endpoint') >= 0, 'warns about the missing endpoint');
-});
-
-test('HTTP failure → callback(null) (transient: the watch keeps its window)', () => {
-  // 403 included: a proxy 403 is not proof the service is gone for good (unlike
-  // the keyed sources, where it is a key rejection and clears). 502 is also how
-  // today's proxy relays an upstream Rainbow 429.
-  ['status_500', 'status_502', 'status_503', 'status_504', 'status_403', 'network_error', 'timeout'].forEach(function(code) {
-    responder = function(url, type, onSuccess, onError) { onError({ code: code, detail: 'http_status' }); };
-    let out = 'unset';
-    fetchTuples(function(t) { out = t; });
-    assert.equal(out, null, code);
-  });
-});
-
-test('a proxy 404 or 405 (missing, or from before the POST) → the radar CLEAR, logged without URL or position', () => {
-  // The proxy answers Rainbow's out-of-coverage 404 with a 200 empty forecast, so a
-  // 404 here is the function itself missing, and a 405 is a proxy that predates the
-  // POST (rolled back or not yet deployed). Neither heals on the next cycle: a null
-  // would let the watch roll its last window into a made-up "No rain ahead" forever.
-  ['status_404', 'status_405'].forEach(function(code) {
-    responder = function(url, type, onSuccess, onError) { onError({ code: code, detail: 'http_status' }); };
-    let out = 'unset';
-    const logs = captureLogs(function() {
-      rainbowRadar.fetchRadarTuplesAt(ENDPOINT, 52.5170365, 13.3888599, SLOT0, function(t) { out = t; });
-    });
-    assert.deepEqual(out, radarWire.clearRadarTuples(), code);
-    assert.equal(logs.length, 1, code + ': one log line');
-    assert.ok(logs[0].indexOf('Rainbow radar: the proxy is missing or outdated (' + code + ')') !== -1, logs[0]);
-    assert.ok(logs[0].indexOf('clearing the watch radar') !== -1, logs[0]);
-    assert.equal(logs[0].indexOf('supabase'), -1, code + ': no endpoint in the log');
-    assert.equal(logs[0].indexOf('http'), -1, code + ': no URL in the log');
-    assert.equal(/\d{2}\.\d/.test(logs[0]), false, code + ': no coordinate in the log');
-  });
-});
-
-test('a proxy 429 → the limit notice, not a window, a clear or null', () => {
-  responder = function(url, type, onSuccess, onError) { onError({ code: 'status_429', detail: 'http_status' }); };
-  let out = 'unset';
-  const logs = [];
-  const orig = console.log;
-  console.log = function(m) { logs.push(String(m)); };
-  try { fetchTuples(function(t) { out = t; }); } finally { console.log = orig; }
-  assert.deepEqual(out, radarWire.limitedRadarTuples());
-  assert.equal(logs.filter(function(l) { return l.indexOf('Rainbow radar: request limit reached') !== -1; }).length, 1);
-});
-
-test('parse failure → callback(null)', () => {
-  responder = function(url, type, onSuccess) { onSuccess('not json'); };
-  let out = 'unset';
-  fetchTuples(function(t) { out = t; });
-  assert.equal(out, null);
-});
-
-// --- Rainbow (own key): the direct call on the user's key ---------------------
-//
-// The keyed path's failure streak is module state shared by this whole file, so
-// every keyed test starts from a fresh run (resetKeyedStreak).
 
 const DIRECT = 'https://api.rainbow.ai/nowcast/v1/precip-global/13.4/52.5';
 const CLEAR = radarWire.clearRadarTuples();
@@ -350,14 +216,13 @@ test('own key: a position that is no coordinate pair clears without a request an
   assert.equal(keyedOutcome(DOWN, SLOT0 + 6 * SLOT), null, 'the run ended: a fresh one, not 30 min on');
 });
 
-test('own key: an echo-valid 200 gives the same bytes as the proxy path for that forecast', () => {
+test('own key: an echo-valid 200 gives the resampled window for that forecast', () => {
   rainbowRadar.resetKeyedStreak();
-  respondWith({ forecast: THREE_INTERVALS });
-  let viaProxy;
-  fetchTuples(function(t) { viaProxy = t; });
   const out = keyedOutcome(echoBody(THREE_INTERVALS));
-  assert.ok(out && viaProxy);
-  assert.deepEqual(out, viaProxy);
+  const expected = zeros();
+  expected[0] = 12; expected[1] = 12;
+  for (let i = 4; i < N; i += 1) { expected[i] = 5; }
+  assert.deepEqual(out.RAIN_RADAR_TREND_UINT8, expected);
   assert.equal(out.RAIN_RADAR_START, SLOT0);
 });
 
@@ -416,7 +281,7 @@ test('own key: a 429 is the limit notice, logged once and without the key', () =
   let out = 'unset';
   const logs = captureLogs(function() { fetchWithKey(SECRET, function(t) { out = t; }); });
   assert.deepEqual(out, radarWire.limitedRadarTuples());
-  assert.equal(logs.filter(function(l) { return l.indexOf('Rainbow (own key) radar: request limit reached') !== -1; }).length, 1);
+  assert.equal(logs.filter(function(l) { return l.indexOf('Rainbow radar: request limit reached') !== -1; }).length, 1);
   assert.deepEqual(logs.filter(function(l) { return l.indexOf(SECRET) !== -1; }), []);
 });
 
@@ -555,7 +420,7 @@ test('own key streak: a step on another radar source (or radar off) ends the run
     rainbowRadar.resetKeyedStreak();
     const DOWN = { code: 'status_503' };
     assert.equal(keyedOutcome(DOWN, SLOT0), null, otherId + ': the first null');
-    radarFactory.createRadarSource(otherId, { rainbowEndpoint: '', tomorrowioApiKey: '' });
+    radarFactory.createRadarSource(otherId, { tomorrowioApiKey: '' });
     assert.equal(keyedOutcome(DOWN, SLOT0 + 72 * SLOT), null, otherId + ': 6 h later the run starts afresh');
     assert.deepEqual(keyedOutcome(DOWN, SLOT0 + 78 * SLOT), CLEAR, otherId + ': 30 min into the fresh run');
   });
@@ -567,7 +432,7 @@ test('own key streak: the keyed source\'s own steps keep the run going', () => {
   const outcomes = [];
   captureLogs(function() {
     [SLOT0, SLOT0 + 6 * SLOT].forEach(function(slotZero) {
-      radarFactory.createRadarSource('rainbowkey', { rainbowEndpoint: '', rainbowApiKey: 'KEY' })
+      radarFactory.createRadarSource('rainbowkey', { rainbowApiKey: 'KEY' })
         .fetchRadarTuplesAt(52.5, 13.4, slotZero, function(t) { outcomes.push(t); });
     });
   });

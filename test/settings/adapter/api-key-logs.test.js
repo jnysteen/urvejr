@@ -3,7 +3,7 @@
 // OpenWeatherMap provider logged its key -- so every PKJS log a user attached to a
 // bug report carried their OpenWeatherMap / Tomorrow.io / Yandex keys in plain text.
 // Loads the real index.js under the index-boot.test.js mocks and drives
-// ready -> Save -> reopen settings; the Rainbow (own key) radar key likewise, and
+// ready -> Save -> reopen settings; the Rainbow radar key likewise, and
 // through real radar cycles (test/helpers/index-harness.js).
 const test = require('node:test');
 const assert = require('node:assert/strict');
@@ -37,17 +37,14 @@ test('settings open/close and provider construction never log an API key', (t) =
     setItem: (k, v) => { store[k] = String(v); },
     removeItem: (k) => { delete store[k]; },
   };
-  // Same seeding as index-boot.test.js: no fetch and no update check on the first tick.
+  // Same seeding as index-boot.test.js: no fetch on the first tick.
   store.lastFetchSuccess = JSON.stringify({ time: new Date(Date.now() + 60 * 60 * 1000).toISOString() });
-  store.last_update_check = String(Date.now());
   const listeners = {};
   const opened = [];
   global.Pebble = {
     addEventListener: (name, fn) => { listeners[name] = fn; },
     getActiveWatchInfo: () => ({ platform: 'basalt', model: 'qemu_platform_basalt', language: 'en' }),
-    getAccountToken: () => 'test-token',
     sendAppMessage: (dict, ack) => { if (ack) { ack(); } },
-    showSimpleNotificationOnPebble: () => {},
     openURL: (url) => { opened.push(url); },
   };
   global.XMLHttpRequest = function () {
@@ -92,7 +89,7 @@ test('settings open/close and provider construction never log an API key', (t) =
     'the settings page still receives the real key');
 });
 
-test('a Rainbow (own key) radar cycle never logs the key', (t) => {
+test('a Rainbow radar cycle never logs the key', (t) => {
   // The boot above never runs a radar request (its XHR never answers and there is
   // no geolocation). This one does, down the three logging paths: a 401 key
   // rejection, a network error and an empty 200 (a parse error), then a Save.

@@ -36,19 +36,16 @@ test('settings open hands the page the key results and the last success as store
     setItem: (k, v) => { store[k] = String(v); },
     removeItem: (k) => { delete store[k]; },
   };
-  // Same seeding as index-boot.test.js: no fetch and no update check on the first tick.
+  // Same seeding as index-boot.test.js: no fetch on the first tick.
   const success = JSON.stringify({ time: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
     id: 'openweathermap', name: 'OpenWeatherMap' });
   store[KEYS.LAST_FETCH_SUCCESS_KEY] = success;
-  store.last_update_check = String(Date.now());
   const listeners = {};
   const opened = [];
   global.Pebble = {
     addEventListener: (name, fn) => { listeners[name] = fn; },
     getActiveWatchInfo: () => ({ platform: 'basalt', model: 'qemu_platform_basalt', language: 'en' }),
-    getAccountToken: () => 'test-token',
     sendAppMessage: (dict, ack) => { if (ack) { ack(); } },
-    showSimpleNotificationOnPebble: () => {},
     openURL: (url) => { opened.push(url); },
   };
   global.XMLHttpRequest = function () {

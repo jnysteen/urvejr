@@ -21,21 +21,17 @@ test('ready boots and the 60 s tick loop survives its first ticks', (t) => {
     removeItem: (k) => { delete store[k]; },
   };
   // Seed a fetch-success marker so the first tick walks the refresh-slot
-  // check instead of fetching, and a fresh update-check stamp so the daily
-  // update check stays throttled (no XHR). The marker sits an hour in the
+  // check instead of fetching. The marker sits an hour in the
   // FUTURE: seeded at real now, a UTC-aligned interval boundary falling into
   // the test's few-ms run window would flip needRefresh true and send a tick
   // down the real (geolocation-requiring) fetch path — a rare spurious red.
   store.lastFetchSuccess = JSON.stringify({ time: new Date(Date.now() + 60 * 60 * 1000).toISOString() });
-  store.last_update_check = String(Date.now());
 
   const listeners = {};
   global.Pebble = {
     addEventListener: (name, fn) => { listeners[name] = fn; },
     getActiveWatchInfo: () => ({ platform: 'basalt', model: 'qemu_platform_basalt', language: 'en' }),
-    getAccountToken: () => 'test-token',
     sendAppMessage: (dict, ack) => { if (ack) { ack(); } },
-    showSimpleNotificationOnPebble: () => {},
     openURL: () => {},
   };
   // Inert XHR: any path that still reaches for the network records nothing

@@ -3,11 +3,9 @@
 // One request per UTC-aligned slot of a source's own interval, wherever the watch is: the
 // throttle is purely time-based and keeps no position. The cycles in between re-serve the
 // slot's answer, kept on the slot's record in localStorage and read and written at call
-// time only (fetch-cycle.js loads with no globals installed). Two throttles use it:
-// - the radar's (radar-factory.js minRequestIntervalMs: the shared Rainbow proxy), whose
-//   failures and timeouts count, so a failing proxy is not hammered;
-// - the sky rows' (radar-sky-source.js minRequestIntervalMs), whose failures do not, so
-//   the next cycle asks again.
+// time only (fetch-cycle.js loads with no globals installed). The sky rows' throttle
+// (radar-sky-source.js minRequestIntervalMs) uses it with failures not counting, so the
+// next cycle asks again; failuresCount makes a request count before it answers.
 
 /**
  * Slot-boundary check: true when `nowMs` sits in a later interval slot than

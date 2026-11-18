@@ -15,11 +15,10 @@ function loadContext(store, platform) {
 }
 
 test('onLoad resets transient toggles to false', function () {
-    var store = { fetch: true, devStatsClear: true, reset: true, fetchNoticeAck: true };
+    var store = { fetch: true, reset: true, fetchNoticeAck: true };
     var ctx = { get: function (k) { return store[k]; }, set: function (k, v) { store[k] = v; }, getInitial: function (k) { return store[k]; } };
     OB.onLoad(ctx);
     assert.equal(store.fetch, false);
-    assert.equal(store.devStatsClear, false);
     // The destructive Reset toggle must never render pre-checked from a stale save.
     assert.equal(store.reset, false);
     // fetchNoticeAck is a one-shot dismiss signal; a stale true must never survive
@@ -152,7 +151,7 @@ test('onSubmit fits an interval the tomorrow.io budget no longer affords', funct
 });
 
 test('onSubmit leaves an interval alone when it fits, the guard is off, or no tomorrow.io call is made', function () {
-    var fits = budgetCtx({ radarProvider: 'rainbow' });   // 1 call/cycle: 288/day
+    var fits = budgetCtx({ radarProvider: 'metno' });   // 1 call/cycle: 288/day
     OB.onSubmit(fits.ctx);
     assert.equal(fits.store.fetchIntervalMin, '5');
 
@@ -170,7 +169,7 @@ test('onSubmit leaves an interval alone when it fits, the guard is off, or no to
 });
 
 // --- the own-key Rainbow budget guard at save time ------------------------------------
-// Same trap as tomorrow.io: "Rainbow (own key)" is picked on the Radar tab, the
+// Same trap as tomorrow.io: Rainbow is picked on the Radar tab, the
 // interval lives on General. 5000 calls/month over a 31-day month: 5 min needs an
 // 11 h pause.
 function rainbowCtx(over) {
@@ -204,9 +203,9 @@ test('onSubmit leaves the interval alone when the Rainbow guard is off, it fits,
     OB.onSubmit(radarOff.ctx);
     assert.equal(radarOff.store.fetchIntervalMin, '5', 'radar off: no Rainbow call is made');
 
-    var shared = rainbowCtx({ radarProvider: 'rainbow' });
+    var shared = rainbowCtx({ radarProvider: 'metno' });
     OB.onSubmit(shared.ctx);
-    assert.equal(shared.store.fetchIntervalMin, '5', '"Rainbow (limited)": the shared radar bills the user nothing');
+    assert.equal(shared.store.fetchIntervalMin, '5', 'a keyless radar bills the user nothing');
 });
 
 test('onSubmit fits to every active guard: the tomorrow.io toggle does not switch off Rainbow\'s', function () {

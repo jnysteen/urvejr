@@ -31,10 +31,7 @@ node scripts/build-config-page.js
 if [[ "${WW_SKIP_TESTS:-0}" == "1" ]]; then
   echo "build.sh: WW_SKIP_TESTS=1 — skipping node --test + host C tests"
 else
-  # Scoped to the two Node test trees explicitly: an unscoped `node --test`
-  # also recurses into supabase/functions/**/*_test.ts (Deno tests, e.g.
-  # rainbow-nowcast's handler_test.ts), which Node can't run (they import
-  # Deno's @std/assert) — those run separately via `deno test`.
+  # Scoped to the Node test trees explicitly.
   node --test 'test/**/*.test.js' 'src/pkjs/config-ui/test/**/*.test.js'
   # Host-compiled layout golden-rect tests (no Pebble SDK needed). Run them here so a
   # C geometry change can't build green and only surface later under `mise test`.

@@ -520,7 +520,7 @@ test('the graph-colour resolver and its deps reach the generated settings page',
 // block id renders nothing and only warns, so the block would silently vanish from a
 // real phone's settings page while every Node test still passed through require().
 const PREVIEW_BLOCK_FILES = ['page/forecast-graphs/preview-forecast.js', 'page/weather/preview-radar.js',
-  'page/telemetry/preview-diagnostics.js', 'page/layout/preview-watch.js', 'page/health/preview-health.js'];
+  'page/weather/last-fetch.js', 'page/layout/preview-watch.js', 'page/health/preview-health.js'];
 
 test('the graph-colour modules and the preview kit are bundled in dependency order', () => {
   const appFiles = require('../../../scripts/build-config-page.js').APP_FILES;
@@ -582,7 +582,7 @@ test('the night-tint display rule reaches the generated page, after line-style',
 
 test('every preview block reaches the generated settings page', () => {
   const src = page();
-  ['forecastPreview', 'radarPreview', 'devStats', 'lastFetch', 'watchPreview', 'statusBarsPreview',
+  ['forecastPreview', 'radarPreview', 'lastFetch', 'watchPreview', 'statusBarsPreview',
     'healthPreview']
     .forEach((id) => {
       assert.ok(src.indexOf("PConf.blocks.register('" + id + "'") !== -1,
@@ -758,22 +758,6 @@ test('the budget modules reach the generated page in dependency order, ahead of 
 // window.KeyTest WHILE ITS IIFE RUNS (a throw at page boot if key-test.js comes later), and
 // without the file in APP_FILES the Test button's action is simply never registered — the
 // button does nothing on a real phone while every Node test passes.
-test('the Rainbow key Test reaches the generated page after key-test.js', () => {
-  const appFiles = require('../../../scripts/build-config-page.js').APP_FILES;
-  const idx = (suffix) => {
-    const at = appFiles.findIndex((f) => f.endsWith('/' + suffix));
-    assert.notEqual(at, -1, suffix + ' is not in APP_FILES at all');
-    return at;
-  };
-  assert.ok(idx('page/weather/keys/key-test.js') < idx('page/weather/keys/rainbow-key-test.js'),
-    'key-test.js must precede rainbow-key-test.js, which reads window.KeyTest at IIFE time');
-  const src = page();
-  assert.ok(src.indexOf("action: 'testRainbowKey'") !== -1,
-    'rainbow-key-test.js does not register testRainbowKey in the page');
-  assert.ok(src.indexOf('window.KeyTest = api') < src.indexOf("action: 'testRainbowKey'"),
-    'the page must define window.KeyTest before rainbow-key-test.js runs');
-});
-
 // The threshold contract is bound ONCE, at load: preview-radar.js, blocks.js and
 // onbuild.js each read window.StatusThresholds while their own IIFE body runs (no lazy
 // lookup, no no-contract fallback), and the contract itself reads window.ResolveInk

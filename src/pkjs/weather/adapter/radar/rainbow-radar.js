@@ -8,27 +8,22 @@ var coords = require('../../domain/coords.js');
 var NUM_BARS = radarWire.NUM_BARS;         // shared wire invariant (24 frames)
 var SLOT_SECONDS = radarWire.SLOT_SECONDS; // shared wire invariant (300 s/slot)
 
-// This module holds both ways of calling Rainbow: through the shared
-// rainbow-nowcast proxy ('rainbow', fetchRadarTuplesAt) and directly on the
-// user's own key ('rainbowkey', fetchRadarTuplesWithKey). Both resample the
-// same forecast intervals (resampleForecast) into the same wire bytes, and both
-// send the position rounded to 3 decimals (~110 m, the proxy cache's precision;
-// coords.js): the proxy gets it in a POST body, never in a URL its gateway
-// logs, and Rainbow gets no more of it than the radar needs.
+// Rainbow called directly on the user's own key ('rainbowkey', fetchRadarTuplesWithKey).
+// The position goes rounded to 3 decimals (~110 m; coords.js), so Rainbow gets no more
+// of it than the radar needs.
 var DIRECT_BASE = 'https://api.rainbow.ai/nowcast/v1/precip-global';
 // The radar source id of Rainbow on the user's own key: the radarProvider value of
-// "Rainbow (own key)", the radar-factory.js entry that runs fetchRadarTuplesWithKey (it
+// "Rainbow", the radar-factory.js entry that runs fetchRadarTuplesWithKey (it
 // re-exports this as OWN_KEY_RADAR_ID; it lives here because radar-factory.js requires
 // this module), and the id each answer to the key is recorded under (key-result.js).
 var OWN_KEY_RADAR_ID = 'rainbowkey';
-// = rainbow-nowcast handler.ts ECHO_TOLERANCE_DEG: catches a lon/lat transposition,
-// tolerates Rainbow's grid snapping of the echoed point.
+// Catches a lon/lat transposition, tolerates Rainbow's grid snapping of the echoed point.
 var ECHO_TOLERANCE_DEG = 0.5;
 // How long the keyed path may keep answering null (transient) before it clears the watch
 // radar instead. null lets the watch roll its last window forward unverified; a failure
 // that never heals (Origin-adding runtime, failed preflight, clock skew) would roll it into
 // a made-up "No rain ahead". (A 429 is not one of these nulls: it answers the limit
-// notice.) 30 min = the unverified tail D5 already accepts for shared Rainbow. Measured
+// notice.) 30 min of an unverified tail is accepted. Measured
 // in slot-0 time, not attempts: the failure backoff retries after 1, 2 and 4 min, so an
 // attempt count would clear the radar inside a tunnel.
 var KEYED_FAILURE_CLEAR_AFTER_SEC = 30 * 60;
@@ -53,24 +48,7 @@ function resetKeyedStreak() {
 }
 
 /**
- * The rainbow-nowcast proxy request body. It goes to the proxy endpoint itself,
- * which the caller injects (index.js reads pkg.rainbow.endpoint) — this module
- * never requires package.json, keeping it testable and safe from the
- * wrong-depth require('../../../../package.json') → src/package.json trap.
- * (Older app versions, 1.7.0 until this change, send them as a GET query; the
- * proxy still answers that for them.)
- *
- * @param {number} lat Latitude, already rounded to 3 decimals.
- * @param {number} lon Longitude, already rounded to 3 decimals.
- * @param {number} slotZeroEpoch Slot-0 wall-clock epoch seconds (5-min aligned).
- * @returns {string} JSON body {"lat", "lon", "start"}.
- */
-function buildProxyBody(lat, lon, slotZeroEpoch) {
-    return JSON.stringify({ lat: lat, lon: lon, start: slotZeroEpoch });
-}
-
-/**
- * Rainbow's direct precip-global URL. Path order is /{lon}/{lat} (as the proxy, handler.ts);
+ * Rainbow's direct precip-global URL. Path order is /{lon}/{lat};
  * the key never goes in the URL — it rides the Ocp-Apim-Subscription-Key header.
  * @param {number} lat Latitude, already rounded to 3 decimals.
  * @param {number} lon Longitude, already rounded to 3 decimals.
@@ -85,8 +63,8 @@ function buildDirectUrl(lat, lon, slotZeroEpoch) {
 }
 
 /**
- * Whether Rainbow's echoed point is within ECHO_TOLERANCE_DEG of the request — the
- * proxy's transposition guard (handler.ts), applied on the direct path too.
+ * Whether Rainbow's echoed point is within ECHO_TOLERANCE_DEG of the request: a
+ * transposition guard.
  * @param {Object} body Parsed response.
  * @param {number} lat Requested (rounded) latitude.
  * @param {number} lon Requested (rounded) longitude.
@@ -147,112 +125,6 @@ function resampleForecast(forecast, slotZeroEpoch) {
 }
 
 /**
- * Whether a proxy transport error says the rainbow-nowcast proxy is not there
- * to answer this app: a 404 (the function missing, not yet deployed, or deleted:
- * the proxy itself answers Rainbow's out-of-coverage 404 with a 200 empty
- * forecast, so a 404 never means "no data here") or a 405 (a proxy from before
- * the POST, rolled back or not yet redeployed, refusing the method). Neither
- * heals on the next cycle, only with a deploy.
- * @param {Object} error Transport failure ({code: 'status_<http>', ...}).
- * @returns {boolean} True for a proxy 404 or 405.
- */
-function isProxyMissing(error) {
-    return Boolean(error) && (error.code === 'status_404' || error.code === 'status_405');
-}
-
-/**
- * Fetch 2-hour Rainbow.ai rain-radar tuples for pre-resolved coordinates via
- * the rainbow-nowcast proxy. Rainbow is a single-point nowcast, so the area
- * ("nearby") array is always 24 zeros — the watch renderer skips zero-area
- * runs and the dedupe comparator checks both arrays (see radar-dedupe.js).
- *
- * Failures split by whether they can heal on their own:
- * - PERMANENT (no endpoint in this build, a position that is no coordinate
- *   pair, or a proxy 404/405: the proxy missing, or one from before the POST,
- *   isProxyMissing): radarWire.clearRadarTuples(), which takes the radar off
- *   the watch. A null would leave the watch rolling its last window forward
- *   into a made-up "No rain ahead" for as long as the proxy stays missing. The
- *   outbox dedupe sends the clear once; the first window after it goes out.
- * - LIMITED (429, the proxy refusing this phone over a request limit):
- *   radarWire.limitedRadarTuples(), so the watch says "Radar limit reached"
- *   rather than rolling its window into a made-up "no rain". (The deployed
- *   proxy answers its per-IP and monthly caps with a 200 stale-or-empty
- *   forecast today, so this only fires once the proxy itself answers 429.)
- * - TRANSIENT (any other HTTP failure, 403 and 5xx included, network error,
- *   timeout, unparseable 200): null. A proxy 403 is not proof the service is
- *   gone for good, and 502 is how the proxy relays an upstream failure.
- *
- * The request is a POST of {lat, lon, start} to the endpoint, the position
- * rounded to 3 decimals. It goes as text/plain, so it stays a CORS simple
- * request (no preflight) exactly as the old GET was; the proxy reads the JSON
- * whatever the content type.
- *
- * @param {string} endpoint Proxy URL; '' (endpoint-less build) clears the
- *   watch's radar.
- * @param {number|string} lat Latitude in decimal degrees (a manual location's
- *   is a string); not a usable coordinate → the clear, with no request.
- * @param {number|string} lon Longitude in decimal degrees (likewise).
- * @param {number} slotZeroEpoch The 5-min pinned slot-0 epoch.
- * @param {Function} callback Receives the radar tuples object (a window, the
- *   clear or the limit notice), or null on a transient failure (the radar keys
- *   stay out of this send; the watch keeps and self-advances its last window).
- * @returns {void}
- */
-function fetchRadarTuplesAt(endpoint, lat, lon, slotZeroEpoch, callback) {
-    if (!endpoint) {
-        // Rainbow is selected but this build carries no proxy endpoint (a dev
-        // build or fork without RAINBOW_PROXY_ENDPOINT; production always sets
-        // it). That never heals within this build, so clear the watch's radar
-        // rather than callback(null): a null would leave the watch rolling its
-        // last window forward into a made-up "No rain ahead". The outbox
-        // dedupe sends the clear once. One log per fetch is fine; no latch.
-        console.log('[!] Rainbow radar selected but this build has no proxy endpoint (RAINBOW_PROXY_ENDPOINT unset) — clearing the watch radar');
-        callback(radarWire.clearRadarTuples());
-        return;
-    }
-    var point = coords.roundLatLon(lat, lon);
-    if (!point) {
-        // A position that is no coordinate pair (a malformed manual location)
-        // never heals without a settings change: clear, as for a missing
-        // endpoint. The log names no coordinates.
-        console.log('[!] Rainbow radar: the location is not a usable coordinate pair — clearing the watch radar');
-        callback(radarWire.clearRadarTuples());
-        return;
-    }
-    radarFetch.fetchRadarJson({
-        url: endpoint,
-        method: 'POST',
-        headers: { 'Content-Type': 'text/plain;charset=UTF-8' },
-        body: buildProxyBody(point.lat, point.lon, slotZeroEpoch),
-        label: 'Rainbow',
-        onTransportError: function (error, cb) {
-            if (radarFetch.isRateLimited(error)) {
-                console.log('[!] Rainbow radar: request limit reached (' + error.code + ')');
-                cb(radarWire.limitedRadarTuples());
-                return true;
-            }
-            if (isProxyMissing(error)) {
-                // Like the missing endpoint: a proxy that is not deployed (404) or
-                // predates the POST (405) never heals without a deploy, so clear
-                // rather than let the watch roll its window into "No rain ahead".
-                // The log names the status only: no endpoint, no position.
-                console.log('[!] Rainbow radar: the proxy is missing or outdated (' + error.code + ') — clearing the watch radar');
-                cb(radarWire.clearRadarTuples());
-                return true;
-            }
-            return false;
-        }
-    }, function (body) {
-        // An empty/missing forecast is the proxy's out-of-coverage clear —
-        // ship 24 zeros (flat signal), matching DWD's out-of-coverage
-        // semantics, rather than failing the fetch.
-        var forecast = (body && Array.isArray(body.forecast)) ? body.forecast : [];
-        return radarWire.pointRadarTuples(
-            resampleForecast(forecast, slotZeroEpoch), slotZeroEpoch);
-    }, callback);
-}
-
-/**
  * Hand the keyed path's outcome to the caller, turning a long run of transient nulls into
  * the clear (KEYED_FAILURE_CLEAR_AFTER_SEC). Any non-null answer (a window, flat zeros,
  * a clear, the limit notice) ends the run: a 429 is an honest, known state, so it never
@@ -269,7 +141,7 @@ function settleKeyed(tuples, slotZeroEpoch, callback) {
         // The run continues past the clear: later nulls keep answering it (the
         // outbox dedupe sends it once), and the first real window always goes
         // out (radar-dedupe.js sends a real window after a clear).
-        console.log('[!] Rainbow (own key) radar: no usable answer for 30 min — clearing the watch radar');
+        console.log('[!] Rainbow radar: no usable answer for 30 min — clearing the watch radar');
         callback(radarWire.clearRadarTuples());
         return;
     }
@@ -278,17 +150,16 @@ function settleKeyed(tuples, slotZeroEpoch, callback) {
 
 /**
  * Fetch 2-hour Rainbow.ai rain-radar tuples straight from Rainbow's API on the
- * user's own key ('rainbowkey'), bypassing the shared proxy. Same single-point
- * product and resampling as fetchRadarTuplesAt, so the area array is always 24
- * zeros. Failures split by whether they can heal on their own:
+ * user's own key ('rainbowkey'). Rainbow is a single-point nowcast, so the area
+ * array is always 24 zeros (the watch renderer skips zero-area runs). Failures split by whether they can heal on their own:
  * - PERMANENT (no key set, a position that is no coordinate pair, or a
  *   401/403 key rejection): clearRadarTuples(),
  *   which takes the radar off the watch (tomorrowio-radar.js does the same). A
  *   null would leave the watch rolling its last window forward into a
  *   confident "No rain ahead" nothing ever reported. The outbox dedupe sends
  *   the clear once; the first 200 after it sends a fresh window.
- * - OUT OF COVERAGE (404): flat zeros anchored at slot 0, not a clear — the
- *   proxy's 404 → empty forecast, and Met.no's 422.
+ * - OUT OF COVERAGE (404): flat zeros anchored at slot 0, not a clear, as
+ *   Met.no's 422.
  * - LIMITED (429, Rainbow refusing the key over a request limit):
  *   radarWire.limitedRadarTuples(). The watch keeps its window and, where it
  *   shows no rain, says "Radar limit reached". It ends a run of nulls.
@@ -319,7 +190,7 @@ function fetchRadarTuplesWithKey(apiKey, lat, lon, slotZeroEpoch, callback) {
         // Never heals without a settings change (which forces a fetch), so it
         // clears straight away rather than through the streak latch, and ends
         // any run: the key that comes back starts a fresh one.
-        console.log('[!] Rainbow (own key) radar selected but no API key is set — clearing the watch radar');
+        console.log('[!] Rainbow radar selected but no API key is set — clearing the watch radar');
         resetKeyedStreak();
         callback(radarWire.clearRadarTuples());
         return;
@@ -327,7 +198,7 @@ function fetchRadarTuplesWithKey(apiKey, lat, lon, slotZeroEpoch, callback) {
     var point = coords.roundLatLon(lat, lon);
     if (!point) {
         // Like the missing key: it never heals without a settings change.
-        console.log('[!] Rainbow (own key) radar: the location is not a usable coordinate pair — clearing the watch radar');
+        console.log('[!] Rainbow radar: the location is not a usable coordinate pair — clearing the watch radar');
         resetKeyedStreak();
         callback(radarWire.clearRadarTuples());
         return;
@@ -343,7 +214,7 @@ function fetchRadarTuplesWithKey(apiKey, lat, lon, slotZeroEpoch, callback) {
      */
     function interpret(body) {
         if (!isEchoNear(body, point.lat, point.lon)) {
-            console.log('[!] Rainbow (own key) radar: echoed location missing or far from the request');
+            console.log('[!] Rainbow radar: echoed location missing or far from the request');
             return null;
         }
         // An echo with no forecast is Rainbow seeing no rain data here: 24 zeros.
@@ -359,7 +230,7 @@ function fetchRadarTuplesWithKey(apiKey, lat, lon, slotZeroEpoch, callback) {
     function ask(withStart) {
         radarFetch.fetchRadarJson({
             url: withStart ? buildDirectUrl(point.lat, point.lon, slotZeroEpoch) : buildDirectUrl(point.lat, point.lon),
-            label: 'Rainbow (own key)',
+            label: 'Rainbow',
             headers: { 'Ocp-Apim-Subscription-Key': apiKey },
             // Each answer is the key's verdict for the settings page (key-result.js).
             keyResult: { id: OWN_KEY_RADAR_ID, apiKey: apiKey },
@@ -370,23 +241,22 @@ function fetchRadarTuplesWithKey(apiKey, lat, lon, slotZeroEpoch, callback) {
                     return true;
                 }
                 if (radarFetch.isRateLimited(error)) {
-                    console.log('[!] Rainbow (own key) radar: request limit reached (' + error.code + ')');
+                    console.log('[!] Rainbow radar: request limit reached (' + error.code + ')');
                     cb(radarWire.limitedRadarTuples());
                     return true;
                 }
                 if (radarFetch.isKeyRejection(error)) {
-                    console.log('[!] Rainbow (own key) radar: key rejected (' + error.code + ') — clearing the watch radar');
+                    console.log('[!] Rainbow radar: key rejected (' + error.code + ') — clearing the watch radar');
                     cb(radarWire.clearRadarTuples());
                     return true;
                 }
                 if (withStart && error && (error.code === 'status_400' || error.code === 'status_422')) {
-                    // Rainbow takes a start_timestamp only within the past 30 min. The
-                    // proxy clamps it server-side (handler.ts normalizeStart); this path
+                    // Rainbow takes a start_timestamp only within the past 30 min; this
                     // sends the phone's raw slot 0, so a skewed phone clock is refused.
                     // Without it Rainbow starts at "now", and resampleForecast gives the
                     // slots before forecast[0] that interval's rate, so the window is
                     // still anchored at slot 0. One retry only: ask(false) never retries.
-                    console.log('[!] Rainbow (own key) radar: start time refused (' + error.code + ') — retrying without it');
+                    console.log('[!] Rainbow radar: start time refused (' + error.code + ') — retrying without it');
                     ask(false);
                     return true;
                 }
@@ -400,7 +270,6 @@ function fetchRadarTuplesWithKey(apiKey, lat, lon, slotZeroEpoch, callback) {
 
 module.exports = {
     OWN_KEY_RADAR_ID: OWN_KEY_RADAR_ID,
-    fetchRadarTuplesAt: fetchRadarTuplesAt,
     fetchRadarTuplesWithKey: fetchRadarTuplesWithKey,
     resetKeyedStreak: resetKeyedStreak
 };

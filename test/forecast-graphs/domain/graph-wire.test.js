@@ -355,7 +355,7 @@ test('the night picks reach bytes 4..7', () => {
   assert.equal(bytes[7], rainTier.rgbToGColor8(derived.hatch));
 });
 
-// Telemetry's "did the user pick this?" must stay clear while the tint sits on its built-in,
+// "Did the user pick this?" must stay clear while the tint sits on its built-in,
 // including when that built-in is STORED, which is what every seeded install looks like.
 // Each polarity has its OWN built-in base, so the seeded value differs between the two arms.
 test('a night tint counts as a pick only when it differs from the built-in, in either polarity', () => {
@@ -418,7 +418,7 @@ test('a night tint deliberately picked EQUAL to its fill is a real pick, not a h
     assert.equal(bytes[6], rainTier.rgbToGColor8(lineStyle.nightAreaColorsFor('wind', pick).base),
       `${theme}: the same colour paints either way`);
     assert.equal(lineStyle.graphColorIsPicked(blob, 'wind', 'Night', sfx), true,
-      `${theme}: and telemetry reports it as a pick, not 'default'`);
+      `${theme}: and it reads as a pick, not the built-in`);
   });
 });
 

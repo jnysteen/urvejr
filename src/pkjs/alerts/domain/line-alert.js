@@ -2,7 +2,7 @@
 // wind gust and UV index lines (the graph metrics with Alert levels) can each be drawn
 // whole (All) or only where the value reaches the metric's warn level (Alert). THE one
 // reading of the setting and of the scale Alert puts the line on, for the bake
-// (forecast-series.js), the render signature, telemetry and the settings page (the
+// (forecast-series.js), the render signature and the settings page (the
 // row's hint, the scale hints, the forecast preview), so they can never disagree.
 //
 // Phone-side only, by design: a sample below the warn level ships as wire byte 0, which

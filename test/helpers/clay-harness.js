@@ -60,7 +60,7 @@ function bootUpgradedInstall(clayMigrations, createChannelScheduler, now, filter
     startFetch: function () {},
     shouldFetchNow: function () { return false; },
     refreshHolidays: function () {},
-    checkForUpdate: function () {},
+    onTick: function () {},
     clearClayCache: function () {},
     clearWeatherCaches: function () {},
     clearNoticeOnWatch: function () {},

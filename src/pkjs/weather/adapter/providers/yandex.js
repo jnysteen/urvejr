@@ -53,9 +53,8 @@ function buildQuery(lat, lon, hours, withoutCondition) {
         // from the same slot on any other provider.
         // No dew-point or wind-direction field either, and for a different reason:
         // this is GraphQL, so a field name that does not exist fails the ENTIRE
-        // query rather than returning null for that one field — and production
-        // telemetry shows Yandex has logged a single event in its lifetime, so the
-        // change cannot be verified against live traffic. Guessing wrong costs
+        // query rather than returning null for that one field — and Yandex has
+        // almost no users, so the change cannot be verified against live traffic. Guessing wrong costs
         // Yandex users their weather altogether to gain a reading for effectively
         // nobody. Both degrade exactly as pressure does: dewTrend/windDirTrend stay
         // empty, the dew slot shows '--' and the wind slots draw no arrow. Revisit
@@ -259,11 +258,9 @@ YandexProvider.prototype.withProviderData = function(lat, lon, force, onSuccess,
             return;
         }
         // Asked again without the condition field: if that loads, the field was the
-        // cause. The weather shows without the condition slot, and the fetch's
-        // telemetry carries the rejection once (recoveredFailure).
+        // cause. The weather shows without the condition slot.
         request(true, function(mapped) {
             conditionRejected = true;
-            self.recoveredFailure = failure('provider_data', 'yandex_condition_rejected');
             adopt(mapped);
         }, function() { onFailure(first); });
     });

@@ -2,7 +2,7 @@
 // span's label (Graphs > Forecast > a graph > Other > Forecast length, emery only).
 //
 // THE STORED OPTION (CHOICES, storedHours, option): '12', '24' or '48'. One reading for the
-// hours sent, the render signature and telemetry (forecast-span.js re-exports it), the Time
+// hours sent and the render signature (forecast-span.js re-exports it), the Time
 // span row's values (spanOptions) and the forecast preview's hour axis (preview-axis.js
 // axisCadence), here because the settings page cannot load forecast-span.js.
 //
@@ -10,7 +10,7 @@
 // graph's layout. "58 h" with a full feed at the default layout, "66 h" with the Left axis
 // values On graph or Off; "44 h" with OpenWeatherMap's or Weather Underground's short feed at
 // the default layout, "40 h" On graph or Off. Only the label moves: the option's stored value
-// stays '48' (CHOICES), so the wire, the fetch, telemetry and storage are unchanged.
+// stays '48' (CHOICES), so the wire, the fetch and storage are unchanged.
 //
 // THE COUNT is the watch's (src/c/appendix/forecast_span.h forecast_span_whole): the hours
 // whose bar is wholly on screen. The watch draws every bar and every gap one width (the
@@ -113,7 +113,7 @@
     }
 
     /**
-     * The option this watch draws, for telemetry: categorical, not the hours sent. The stored
+     * The option this watch draws: categorical, not the hours sent. The stored
      * 12 / 24 / 48 on a span watch (48 = the long span, whatever its label), else 24.
      * @param {?Object} settings Clay settings.
      * @param {?Object} env config-ui/lib/platform.js computeEnv() result.

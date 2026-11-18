@@ -384,7 +384,7 @@
 
   /**
    * A kind's warn look: the stored thresh<Kind>WarnLook when it is a known look,
-   * else warnLookDefault. The one resolution for the packer and the telemetry code.
+   * else warnLookDefault. The one resolution for the packer and the settings page.
    * @param {Object} settings Clay settings blob
    * @param {string} keyStem Kind key stem, e.g. 'Uv'.
    * @param {boolean} [isColor] Whether the watch has a colour display (see
@@ -485,7 +485,7 @@
   // alert is on while its item is ticked on an On demand side of any bar
   // (alertOn). THE alert vocabulary: which alerts exist, their order and how their
   // settings read live here alone. Every reader outside this module — the fetch
-  // gates, the render signature, telemetry, the settings page, the bake
+  // gates, the render signature, the settings page, the bake
   // (status-wire.js) — goes through alertOn / alertDays / alertNextDayMark or
   // enabledAlerts; all of them rest on alertOn. The order is also the bake's, so
   // the entries' 20-B cap drops Wind speed first. The settings page's
@@ -602,7 +602,7 @@
    * with how each reads: whether its Look prints the value, its Days and its
    * tomorrow mark (the mark only matters with Days 'tomorrow'). The rest is read
    * only for an alert that is on: one that is off bakes nothing, whatever its other
-   * settings. THE list the bake, the render signature and telemetry read.
+   * settings. THE list the bake and the render signature read.
    * @param {Object} settings Clay settings blob
    * @param {Object} [env] Platform env, passed to alertOn (omitted = a watch that
    *     draws On demand).

@@ -2,7 +2,7 @@
 // machinery (ranges, auto colors, the warn-look default, the two reset
 // actions, the sheet/badge resolvers) and the small option/default/recommend
 // resolvers. The BLOCK RENDERERS live one file per concern —
-// preview-forecast.js, preview-radar.js, preview-diagnostics.js and
+// preview-forecast.js, preview-radar.js, last-fetch.js and
 // preview-watch.js, over the shared preview-svg.js / preview-rain.js; under Node
 // this file requires the four registering ones, so requiring blocks.js registers
 // every block and not just its own (the webview concatenates every file instead —
@@ -19,7 +19,7 @@ var PConf = (typeof global !== 'undefined' && global.PConf) ? global.PConf
 if (typeof require !== 'undefined') {
     require('../forecast-graphs/preview-forecast.js');
     require('../weather/preview-radar.js');
-    require('../telemetry/preview-diagnostics.js');
+    require('../weather/last-fetch.js');
     require('../layout/preview-watch.js');
     require('./when-resolvers.js');
     require('../forecast-graphs/forecast-hints.js');
@@ -978,7 +978,7 @@ if (typeof require !== 'undefined') {
     if (keyStatus) { keyStatus.registerUsage('tomorrowio', tomorrowioUsageLine); }
 
     /**
-     * Monthly-usage info block under the Rainbow API key field ("Rainbow (own key)"'s key
+     * Monthly-usage info block under the Rainbow API key field ("Rainbow"'s key
      * sheet): the free plan's monthly ceiling, the user's projected month at the
      * current settings, a ✓/✗ verdict and the derived sleep->cadence unlock rule. Unlike tomorrow.io's block
      * there is no "with radar" qualifier (every Rainbow call is a radar call) and no
@@ -1010,7 +1010,7 @@ if (typeof require !== 'undefined') {
 
     /**
      * Rainbow's usage on the key status line under the Radar provider row (key-status.js,
-     * the "Rainbow (own key)" source's `usage`): the calls a month the current settings
+     * the "Rainbow" source's `usage`): the calls a month the current settings
      * come to, the read-out's own figure, against the free plan's monthly limit — "~2,976
      * of 5,000 calls a month". A projection: the phone does not count the calls it makes.
      * @param {Object} state Settings state.
@@ -1042,7 +1042,6 @@ if (typeof require !== 'undefined') {
     // "(Recommended)" markers on the weather + radar provider dropdowns: the option matching the
     // country-derived best pick (holidayCountry, the wizard's own source) is flagged. Same mapping
     // the wizard applies on a fresh install, so the dropdown hint and the wizard can't disagree.
-    // A country's Rainbow pick is 'rainbow', "Rainbow (limited)": the radar that needs no key.
     PConf.recommendResolvers.register('recommendedWeatherProvider', function (S) {
         return CD.mapCountry(S && S.holidayCountry).provider;
     });
