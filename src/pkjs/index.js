@@ -1,6 +1,6 @@
 
 // ES5-safe polyfills (Object.assign, Math.trunc, Array find/findIndex/includes) MUST load
-// before anything else so the aplite JavaScriptCore runtime can run the bundle.
+// before anything else, so a pre-ES6 runtime can run the bundle.
 require('./lib/polyfills.js');
 
 var notices = require('./notices/adapter/notices.js');

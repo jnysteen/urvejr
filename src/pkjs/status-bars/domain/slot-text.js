@@ -243,8 +243,7 @@
     }
 
     /**
-     * ISO-8601 week number (1..53) for a local date. Mirrors the watch-side iso_week()
-     * used on non-aplite so the phone-baked aplite week matches other platforms.
+     * ISO-8601 week number (1..53) for a local date. Mirrors the watch-side iso_week().
      * @param {Date} d local date
      * @returns {number}
      */
