@@ -714,8 +714,7 @@ var TOMORROWIO_CREDIT = 'Powered by <a target=\'_blank\' href=\'https://www.tomo
 var OPENMETEO_AQI_CREDIT = 'Data from Open-Meteo.com and the Copernicus Atmosphere Monitoring Service.';
 var WAQI_CREDIT = 'Data from the World Air Quality Index Project and the environmental agencies of its stations.';
 var PRIVACY_TEXT = '<b>Privacy</b><br>urvejr collects no usage data. Your location goes only to the weather, '
-    + 'radar and place services you use, to fetch the weather there; the shared Rainbow radar (Rainbow, limited) goes '
-    + 'through urvejr\'s own server, with the position rounded to about 100 m. Steps, sleep and heart rate stay on the watch.';
+    + 'radar and place services you use, to fetch the weather there. Steps, sleep and heart rate stay on the watch.';
 var CC_BY = '<a target=\'_blank\' href=\'https://creativecommons.org/licenses/by/4.0/\'>CC BY 4.0</a>';
 var DATA_SOURCES_TEXT = '<b>Data sources</b><br>'
     + 'Weather: Open-Meteo.com, MET Norway, Deutscher Wetterdienst (via Bright Sky), OpenWeather, Tomorrow.io, '
@@ -740,14 +739,12 @@ var PROVIDER_WHY = {
 // The radar picker's options in order. desc (3rd tuple slot) = the short "what it's best at"
 // tag under each name in the dropdown, mirroring the weather picker. DWD/Met.no are real
 // radar; Rainbow/Tomorrow.io are model nowcasts (Tomorrow.io is the precise, worldwide one).
-// Scope lives in the desc + "why" note, not the label (keeps the trigger short). Rainbow
-// comes twice, one option per radar source (weather/adapter/radar-factory.js): the shared proxy
-// everyone splits ('rainbow') and the user's own key ('rainbowkey').
+// Scope lives in the desc + "why" note, not the label (keeps the trigger short). Rainbow runs
+// on the user's own key (radarProvider 'rainbowkey').
 var RADAR_PROVIDER_OPTIONS = [
     ['DWD', 'dwd', {desc: 'Best radar in Germany · exact spot + nearby'}],
     ['Met.no', 'metno', {desc: 'Best radar in the Nordics · exact spot'}],
-    ['Rainbow (limited)', 'rainbow', {desc: 'Worldwide satellite + radar nowcast · no key, every 30 min'}],
-    ['Rainbow (own key)', 'rainbowkey', {desc: 'Worldwide satellite + radar nowcast · needs a free key'}],
+    ['Rainbow', 'rainbowkey', {desc: 'Worldwide satellite + radar nowcast · needs a free key'}],
     ['Tomorrow.io', 'tomorrowio', {desc: 'Precise ML rain nowcast, worldwide · uses your key'}]
 ];
 // The Weather and Radar providers' keyed sources (page/weather/keys/key-sources.js), which their
@@ -761,7 +758,7 @@ var RADAR_KEYS = KEY_SOURCES.radarProvider.sources;
 // Radar provider) while it is radar-only, so the key never sits with the weather
 // provider for a non-weather provider. Both sheets hold the same rows
 // (TOMORROWIO_KEY_ROWS) under the same messageKeys, gated apart (like the theme color/B&W
-// split). The radar-only gate also needs a running radar (as "Rainbow (own key)"'s sheet
+// split). The radar-only gate also needs a running radar (as Rainbow's sheet
 // does): with radar off no Tomorrow.io radar call is made and the picker is hidden.
 // The weather sheet's gate is the radar source's sharedSheet condition, and the radar-only
 // sheet's its negation, so the sheet the key row under the Radar provider opens while
@@ -770,26 +767,21 @@ var TOMORROWIO_SHARED = RADAR_KEYS.tomorrowio.sharedSheet;
 var TOMORROWIO_WEATHER_WHEN = {key: TOMORROWIO_SHARED.key, eq: TOMORROWIO_SHARED.eq};
 var TOMORROWIO_RADAR_ONLY_WHEN = {all: [{key: 'radarProvider', eq: 'tomorrowio'}, {key: 'radarEnabled', ne: false},
     {key: TOMORROWIO_SHARED.key, ne: TOMORROWIO_SHARED.eq}]};
-// "Rainbow (own key)" picked for a running radar: its key sheet's gate. The radarEnabled
+// Rainbow picked for a running radar: its key sheet's gate. The radarEnabled
 // clause keeps the sheet closed with the radar off (Setup › Data sources); while it is on, a
 // key can go in before a screen uses the radar. The Save dialog asks for the key only while a
 // Rainbow call is made (screens-page.js radarKeyAttention).
 var RAINBOW_OWN_KEY_WHEN = {all: [{key: 'radarProvider', eq: 'rainbowkey'}, {key: 'radarEnabled', ne: false}]};
 // Setup's Rain radar picker: each source's "why", shown with the picked one. Rainbow's
-// terms ask for a "Powered by Rainbow.ai" link wherever its data shows, so both Rainbow
-// hints end on it. Off says nothing more than its own line ("No rain radar and no rain
+// terms ask for a "Powered by Rainbow.ai" link wherever its data shows, so its hint ends
+// on it. Off says nothing more than its own line ("No rain radar and no rain
 // alert"), so it has none.
 var RAINBOW_LINK = 'Powered by <a target=\'_blank\' href=\'https://rainbow.ai\'>Rainbow.ai</a>.';
 var RADAR_SOURCE_HINTS = {
     dwd: 'Precise weather radar that shows rain at your exact spot and nearby (about 2 km). Germany only.',
     metno: 'Precise weather radar that shows rain at your exact spot. Nordics only.',
-    // "Rainbow (limited)": the calls every user shares are the developer's (the
-    // rainbow-nowcast proxy caps them at RAINBOW_MONTHLY_BUDGET upstream calls, DEV.md), so
-    // the shared radar refreshes at most every 30 minutes. "Rainbow (own key)" lifts it.
-    rainbow: 'Refreshes at most every 30 minutes. ' + RAINBOW_LINK,
-    // "Rainbow (own key)": the same nowcast on the user's own Rainbow account.
-    rainbowkey: 'A worldwide nowcast from satellite and radar data. It uses your own Rainbow key, so it refreshes at '
-        + 'every update. A key is free: Rainbow\'s free plan covers 5,000 calls a month. ' + RAINBOW_LINK,
+    rainbowkey: 'A worldwide nowcast from satellite and radar data, on your own Rainbow key. A key is free: '
+        + 'Rainbow\'s free plan covers 5,000 calls a month. ' + RAINBOW_LINK,
     // Without a key the amber note under the row says what goes missing, so the hint here
     // only says whose key and whose budget.
     tomorrowio: 'A precise rain nowcast from machine-learning models, worldwide. It uses your tomorrow.io API key '
@@ -975,7 +967,7 @@ var TOMORROWIO_KEY_ROWS = [{
 }];
 // Rainbow's terms (developer.rainbow.ai, checked 2026-09-25): signup takes payment details, the
 // Nowcast API's first 5,000 calls each calendar month are free, then $0.10 per 1,000.
-var RAINBOW_KEY_HINT = '<b>How to get a key:</b><br>1. <a target=\'_blank\' href=\'https://developer.rainbow.ai/signup/\'>Sign up at developer.rainbow.ai</a>. Rainbow asks for a credit card, but the first 5,000 calls each month are free.<br>2. Open your <a target=\'_blank\' href=\'https://developer.rainbow.ai/profile\'>profile page</a>' + copyBtn('https://developer.rainbow.ai/profile', 'Copy the profile page link') + ', copy the API key and paste it here.<br>3. Tap Test.<br>Keep "Fit update interval to rate limit" on and the watch stays within the free 5,000 calls.';
+var RAINBOW_KEY_HINT = '<b>How to get a key:</b><br>1. <a target=\'_blank\' href=\'https://developer.rainbow.ai/signup/\'>Sign up at developer.rainbow.ai</a>. Rainbow asks for a credit card, but the first 5,000 calls each month are free.<br>2. Open your <a target=\'_blank\' href=\'https://developer.rainbow.ai/profile\'>profile page</a>' + copyBtn('https://developer.rainbow.ai/profile', 'Copy the profile page link') + ', copy the API key and paste it here.<br>Keep "Fit update interval to rate limit" on and the watch stays within the free 5,000 calls.';
 var RAINBOW_BUDGET_HINT = 'Offers only the update intervals that fit the free 5,000 calls a month. Turn it off to pick any interval. Rainbow bills calls past 5,000 to your card at $0.10 per 1,000.';
 
 /**
@@ -2413,7 +2405,7 @@ module.exports = {
                 // (radarSource, page-only) writes it, and Off leaves it as it is.
                 type: 'hidden',
                 messageKey: 'radarProvider',
-                defaultValue: 'rainbow'
+                defaultValue: 'dwd'
             }, {
                 type: 'segmented',
                 messageKey: 'radarColor',
@@ -2599,7 +2591,7 @@ module.exports = {
                 uiOnly: true,
                 messageKey: 'radarSource',
                 label: 'Rain radar',
-                defaultValue: 'rainbow',
+                defaultValue: 'dwd',
                 initFrom: {resolver: 'radarSourceValue'},
                 onChange: 'radarSourcePicked',
                 recommendFrom: 'recommendedRadarProvider',
@@ -2609,7 +2601,7 @@ module.exports = {
                 showWhen: {env: 'radar'}
             }, {
                 // The own key's empty field, said where it cannot be missed: an amber note
-                // hugging the row while "Rainbow (own key)" or Tomorrow.io is picked with no
+                // hugging the row while Rainbow or Tomorrow.io is picked with no
                 // key. For DWD and Met.no the same note says when the last update's location
                 // lies outside the picked source's area, or (DWD) inside it with no radar
                 // data from DWD, naming one that covers it (radar-coverage.js; the phone's
@@ -2667,17 +2659,15 @@ module.exports = {
             defaultValue: '',
             hint: 'Register a Yandex Weather API key at <a href=\'https://yandex.com/dev/weather/\'>yandex.com/dev/weather</a> and paste it here.'
         }]),
-        // "Rainbow (own key)"'s key dialog, opened by its key row under the Rain radar picker
-        // (Data sources, above) and rendered nowhere else. The key, its trimming and refetch on Save
-        // (onbuild.js), its keeping through Reset (clay-settings.js PRESERVED_SETTING_KEYS)
-        // and the Test action are as before; the key never rides the watch wire.
+        // Rainbow's key dialog, opened by its key row under the Rain radar picker (Data sources,
+        // above) and rendered nowhere else. The key is trimmed and refetched on Save (onbuild.js)
+        // and kept through Reset (clay-settings.js PRESERVED_SETTING_KEYS); it never rides the
+        // watch wire. No Test button: the webview cannot reach Rainbow (Origin → empty 200).
         keySheetSection(RADAR_KEYS.rainbowkey, RAINBOW_OWN_KEY_WHEN, [{
             type: 'text',
             messageKey: 'rainbowApiKey',
             label: 'API key',
             defaultValue: '',
-            suffixAction: 'testRainbowKey',
-            suffixLabel: 'Test',
             hint: RAINBOW_KEY_HINT
         }, {
             type: 'toggle',

@@ -21,7 +21,7 @@ test("createRadarSource('dwd') routes to radar.fetchRadarTuplesAt with lat/lon/s
   const orig = radar.fetchRadarTuplesAt;
   radar.fetchRadarTuplesAt = function(lat, lon, slot, cb) { seen = { lat, lon, slot }; cb(fetched); };
   try {
-    const source = radarFactory.createRadarSource('dwd', { rainbowEndpoint: '' });
+    const source = radarFactory.createRadarSource('dwd', {});
     let result;
     source.fetchRadarTuplesAt(52.5, 13.4, 100, function(t) { result = t; });
     assert.deepEqual(seen, { lat: 52.5, lon: 13.4, slot: 100 });
@@ -37,7 +37,7 @@ test("createRadarSource('metno') routes to metnoRadar.fetchRadarTuplesAt with la
   const orig = metnoRadar.fetchRadarTuplesAt;
   metnoRadar.fetchRadarTuplesAt = function(lat, lon, slot, cb) { seen = { lat, lon, slot }; cb(fetched); };
   try {
-    const source = radarFactory.createRadarSource('metno', { rainbowEndpoint: '' });
+    const source = radarFactory.createRadarSource('metno', {});
     let result;
     source.fetchRadarTuplesAt(52.5, 13.4, 100, function(t) { result = t; });
     assert.deepEqual(seen, { lat: 52.5, lon: 13.4, slot: 100 });
@@ -47,43 +47,25 @@ test("createRadarSource('metno') routes to metnoRadar.fetchRadarTuplesAt with la
   }
 });
 
-test("createRadarSource('rainbow') binds cfg.rainbowEndpoint and routes to rainbowRadar.fetchRadarTuplesAt", () => {
-  let seen = null;
-  const fetched = { RAIN_RADAR_TREND_UINT8: [1], RAIN_RADAR_TREND_AREA_UINT8: [0], RAIN_RADAR_START: 100 };
-  const orig = rainbowRadar.fetchRadarTuplesAt;
-  rainbowRadar.fetchRadarTuplesAt = function(endpoint, lat, lon, slot, cb) {
-    seen = { endpoint, lat, lon, slot }; cb(fetched);
-  };
-  try {
-    const source = radarFactory.createRadarSource('rainbow', { rainbowEndpoint: 'https://proxy.example/rainbow-nowcast' });
-    let result;
-    source.fetchRadarTuplesAt(52.5, 13.4, 100, function(t) { result = t; });
-    assert.deepEqual(seen, { endpoint: 'https://proxy.example/rainbow-nowcast', lat: 52.5, lon: 13.4, slot: 100 });
-    assert.equal(result, fetched);
-  } finally {
-    rainbowRadar.fetchRadarTuplesAt = orig;
-  }
-});
-
 test("createRadarSource('disabled') yields clearing tuples without fetching", () => {
   const origDwd = radar.fetchRadarTuplesAt;
-  const origRainbow = rainbowRadar.fetchRadarTuplesAt;
+  const origRainbow = rainbowRadar.fetchRadarTuplesWithKey;
   radar.fetchRadarTuplesAt = function() { throw new Error('dwd must not be called'); };
-  rainbowRadar.fetchRadarTuplesAt = function() { throw new Error('rainbow must not be called'); };
+  rainbowRadar.fetchRadarTuplesWithKey = function() { throw new Error('rainbow must not be called'); };
   try {
-    const source = radarFactory.createRadarSource('disabled', { rainbowEndpoint: '' });
+    const source = radarFactory.createRadarSource('disabled', {});
     let result;
     source.fetchRadarTuplesAt(0, 0, 0, function(t) { result = t; });
     assert.deepEqual(result, CLEAR);
   } finally {
     radar.fetchRadarTuplesAt = origDwd;
-    rainbowRadar.fetchRadarTuplesAt = origRainbow;
+    rainbowRadar.fetchRadarTuplesWithKey = origRainbow;
   }
 });
 
 test('unknown and unset ids fall back to disabled (clearing tuples)', () => {
   [undefined, 'bogus'].forEach(function(id) {
-    const source = radarFactory.createRadarSource(id, { rainbowEndpoint: '' });
+    const source = radarFactory.createRadarSource(id, {});
     let result;
     source.fetchRadarTuplesAt(0, 0, 0, function(t) { result = t; });
     assert.deepEqual(result, CLEAR, 'id ' + String(id) + ' clears radar');
@@ -93,7 +75,8 @@ test('unknown and unset ids fall back to disabled (clearing tuples)', () => {
 test('isKnownRadarSource recognizes registered ids only', () => {
   assert.equal(radarFactory.isKnownRadarSource('dwd'), true);
   assert.equal(radarFactory.isKnownRadarSource('metno'), true);
-  assert.equal(radarFactory.isKnownRadarSource('rainbow'), true);
+  assert.equal(radarFactory.isKnownRadarSource('rainbowkey'), true);
+  assert.equal(radarFactory.isKnownRadarSource('rainbow'), false, 'the shared proxy source is gone');
   assert.equal(radarFactory.isKnownRadarSource('disabled'), true);
   assert.equal(radarFactory.isKnownRadarSource('bogus'), false);
   assert.equal(radarFactory.DEFAULT_RADAR_ID, 'disabled');
@@ -104,7 +87,7 @@ test('the Rain radar picker\'s sources are all registered factory ids; the regis
   // radar off and keeps the source (radarEnabled), but the factory registry keeps the id as
   // the fallback for unknown/unset ids (see radar-factory.js DEFAULT_RADAR_ID) and as the id
   // radar-fetch gating still routes to when radarMode is 'off'. "rainbowkey" is the picker
-  // option and stored value of "Rainbow (own key)" (OWN_KEY_RADAR_ID).
+  // option and stored value of "Rainbow" (OWN_KEY_RADAR_ID).
   const items = [];
   schema.tabs.forEach(function(t) {
     t.sections.forEach(function(sec) {
@@ -116,7 +99,7 @@ test('the Rain radar picker\'s sources are all registered factory ids; the regis
   assert.equal(radarItem.options[0][1], 'off', 'Off first, a page-only pick over radarEnabled');
   const schemaIds = radarPickerOptions(radarItem).map(function(o) { return o[1]; }).sort();
   const registryIds = Object.keys(radarFactory.RADAR_FACTORIES).sort();
-  assert.deepEqual(schemaIds, ['dwd', 'metno', 'rainbow', 'rainbowkey', 'tomorrowio'],
+  assert.deepEqual(schemaIds, ['dwd', 'metno', 'rainbowkey', 'tomorrowio'],
     'the picker offers every source but "disabled" (its Off keeps the source)');
   schemaIds.forEach(function(id) {
     assert.ok(registryIds.indexOf(id) >= 0, id + ' schema option must be a registered radar factory id');
@@ -127,7 +110,7 @@ test('the Rain radar picker\'s sources are all registered factory ids; the regis
   // radar-off clear.
   const reachable = schemaIds.concat(['disabled']).sort();
   assert.deepEqual(registryIds, reachable, 'no registered source is out of the settings\' reach');
-  assert.equal(radarFactory.OWN_KEY_RADAR_ID, 'rainbowkey', '"Rainbow (own key)"');
+  assert.equal(radarFactory.OWN_KEY_RADAR_ID, 'rainbowkey', 'Rainbow');
   assert.equal(radarFactory.OWN_KEY_RADAR_ID, rainbowRadar.OWN_KEY_RADAR_ID,
     'the id the keyed path records its answers under');
 });
@@ -140,7 +123,7 @@ test("createRadarSource('tomorrowio') binds cfg.tomorrowioApiKey and routes to t
     seen = { apiKey, lat, lon, slot }; cb(fetched);
   };
   try {
-    const source = radarFactory.createRadarSource('tomorrowio', { rainbowEndpoint: '', tomorrowioApiKey: 'tk-777' });
+    const source = radarFactory.createRadarSource('tomorrowio', { tomorrowioApiKey: 'tk-777' });
     let result;
     source.fetchRadarTuplesAt(52.5, 13.4, 100, function(t) { result = t; });
     assert.deepEqual(seen, { apiKey: 'tk-777', lat: 52.5, lon: 13.4, slot: 100 });
@@ -161,11 +144,10 @@ test('radar picker offers tomorrowio', () => {
 
 test('canAnswer: sources whose missing config clears the radar on every fetch can never answer', () => {
   const factory = require('../../../src/pkjs/weather/adapter/radar-factory.js');
-  const cfg = { rainbowEndpoint: 'https://proxy.example/rainbow', tomorrowioApiKey: 'KEY' };
+  const cfg = { tomorrowioApiKey: 'KEY' };
   assert.equal(factory.canAnswer('dwd', cfg), true);
   assert.equal(factory.canAnswer('metno', cfg), true);
-  assert.equal(factory.canAnswer('rainbow', cfg), true);
-  assert.equal(factory.canAnswer('rainbow', { rainbowEndpoint: '' }), false, 'no proxy endpoint in this build');
+  assert.equal(factory.canAnswer('rainbow', cfg), false, 'the removed shared source is unknown');
   assert.equal(factory.canAnswer('tomorrowio', cfg), true);
   assert.equal(factory.canAnswer('tomorrowio', { tomorrowioApiKey: '  ' }), false, 'a blank key');
   assert.equal(factory.canAnswer('disabled', cfg), false);
@@ -176,27 +158,23 @@ test("createRadarSource('rainbowkey') binds cfg.rainbowApiKey and routes to rain
   let seen = null;
   const fetched = { RAIN_RADAR_TREND_UINT8: [1], RAIN_RADAR_TREND_AREA_UINT8: [0], RAIN_RADAR_START: 100 };
   const orig = rainbowRadar.fetchRadarTuplesWithKey;
-  const origProxy = rainbowRadar.fetchRadarTuplesAt;
   rainbowRadar.fetchRadarTuplesWithKey = function(apiKey, lat, lon, slot, cb) {
     seen = { apiKey, lat, lon, slot }; cb(fetched);
   };
-  rainbowRadar.fetchRadarTuplesAt = function() { throw new Error('the proxy path must not be called'); };
   try {
-    const source = radarFactory.createRadarSource('rainbowkey', { rainbowApiKey: 'K', rainbowEndpoint: '' });
+    const source = radarFactory.createRadarSource('rainbowkey', { rainbowApiKey: 'K' });
     let result;
     source.fetchRadarTuplesAt(52.5, 13.4, 100, function(t) { result = t; });
     assert.deepEqual(seen, { apiKey: 'K', lat: 52.5, lon: 13.4, slot: 100 });
     assert.equal(result, fetched);
   } finally {
     rainbowRadar.fetchRadarTuplesWithKey = orig;
-    rainbowRadar.fetchRadarTuplesAt = origProxy;
   }
 });
 
-test('canAnswer: Rainbow (own key) needs a non-blank key, not the proxy endpoint', () => {
+test('canAnswer: Rainbow needs a non-blank key', () => {
   assert.equal(radarFactory.isKnownRadarSource('rainbowkey'), true);
-  assert.equal(radarFactory.canAnswer('rainbowkey', { rainbowApiKey: 'K', rainbowEndpoint: '' }), true,
-    'works in an endpoint-less build');
+  assert.equal(radarFactory.canAnswer('rainbowkey', { rainbowApiKey: 'K' }), true);
   assert.equal(radarFactory.canAnswer('rainbowkey', { rainbowApiKey: '  ' }), false, 'a blank key');
   assert.equal(radarFactory.canAnswer('rainbowkey', {}), false, 'no key');
   assert.equal(radarFactory.canAnswer('rainbowkey', undefined), false, 'no cfg');
@@ -205,12 +183,4 @@ test('canAnswer: Rainbow (own key) needs a non-blank key, not the proxy endpoint
   assert.equal(radarFactory.canAnswer('tomorrowio', { tomorrowioApiKey: '' }), false);
   assert.equal(radarFactory.canAnswer('tomorrowio', { rainbowApiKey: 'K' }), false, 'the other source\'s key does not count');
   assert.equal(radarFactory.canAnswer('tomorrowio', undefined), false);
-});
-
-test('minRequestIntervalMs: only the shared Rainbow proxy is throttled, to one request per 30 min', () => {
-  assert.equal(radarFactory.minRequestIntervalMs('rainbow'), 1800000);
-  ['rainbowkey', 'dwd', 'metno', 'tomorrowio', 'disabled', 'bogus'].forEach((id) => {
-    assert.equal(radarFactory.minRequestIntervalMs(id), 0, id + ' requests every cycle');
-  });
-  assert.equal(radarFactory.minRequestIntervalMs('hasOwnProperty'), 0, 'an Object.prototype name is not a table entry');
 });

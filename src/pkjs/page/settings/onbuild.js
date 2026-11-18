@@ -119,7 +119,7 @@ var PConf = (typeof global !== 'undefined' && global.PConf) ? global.PConf
      * fetchIntervalMin into its fetchIntervalBudget option list (blocks.js), but only when
      * that row RENDERS — and the row lives on the General tab while what it depends on
      * (the radar provider and the mode) is edited on the Radar tab. Picking a keyed radar
-     * (Tomorrow.io, "Rainbow (own key)") and saving without revisiting General used to
+     * (Tomorrow.io, "Rainbow") and saving without revisiting General used to
      * store an interval the added calls no longer afford, and the free tier ran out
      * every evening.
      * Same list as that snap and the same rule (interval-budget.js fitInterval, shared

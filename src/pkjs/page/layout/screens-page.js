@@ -2531,7 +2531,7 @@ var PConf = (typeof global !== 'undefined' && global.PConf) ? global.PConf
      * @returns {string}
      */
     function radarSourceValue(S) {
-        return (S && S.radarEnabled === false) ? 'off' : ((S && S.radarProvider) || 'rainbow');
+        return (S && S.radarEnabled === false) ? 'off' : ((S && S.radarProvider) || 'dwd');
     }
 
     /**

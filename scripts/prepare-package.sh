@@ -28,34 +28,12 @@ WW_BUILD_PROFILE="$profile" node -e "
 const fs = require('fs');
 const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
 
-// Rainbow nowcast proxy URL baked into the bundle. The config UI always offers
-// Rainbow radar (and defaults to it), and PKJS gates purely on endpoint !== ''
-// — an empty endpoint does NOT hide the option; it makes every 'rainbow'
-// selection fail soft (fetchRadarTuplesAt returns null → no radar reaches the
-// watch). On a release build that would silently break radar for every user, so
-// the guard below hard-fails instead. Dev/fork builds may ship empty on purpose.
-const rainbowEndpoint = typeof process.env.RAINBOW_PROXY_ENDPOINT === 'string' ? process.env.RAINBOW_PROXY_ENDPOINT.trim() : '';
-
 const buildProfile = process.env.WW_BUILD_PROFILE || 'dev';
-if (buildProfile === 'release' && rainbowEndpoint.length === 0) {
-  throw new Error(
-    'RAINBOW_PROXY_ENDPOINT is empty for a release build. Rainbow radar is the ' +
-    'default provider, so every release device would silently receive no radar ' +
-    '(fetchRadarTuplesAt fails soft on an empty endpoint). Set the ' +
-    'RAINBOW_PROXY_ENDPOINT_RELEASE GitHub Actions secret (or export ' +
-    'RAINBOW_PROXY_ENDPOINT locally) before building the release profile.'
-  );
-}
-
-pkg.rainbow = {
-  endpoint: rainbowEndpoint,
-};
 
 // WAQI (aqicn.org) shared token baked into the bundle. WAQI is the DEFAULT AQI
 // source, so an empty token would silently degrade every release user to
 // Open-Meteo (air-quality.js falls back on an empty token). On a release build
-// that is a silent feature downgrade, so hard-fail — mirroring the rainbow
-// guard above. Dev/fork builds may ship empty on purpose (they degrade to
+// that is a silent feature downgrade, so hard-fail. Dev/fork builds may ship empty on purpose (they degrade to
 // Open-Meteo).
 const aqicnToken = typeof process.env.AQICN_TOKEN === 'string' ? process.env.AQICN_TOKEN.trim() : '';
 
@@ -71,12 +49,6 @@ if (buildProfile === 'release' && aqicnToken.length === 0) {
 pkg.waqi = {
   token: aqicnToken,
 };
-
-// The phone app lets the app's PebbleKit JS reach only the domains usesPermissions lists
-// (manifest version 2). The template lists the API hosts; the Rainbow endpoint above is
-// known only now (scripts/lib/uses-permissions.js).
-require('./scripts/lib/uses-permissions.js').addEndpointHosts(pkg.pebble,
-  [rainbowEndpoint]);
 
 // WW_BUILD_PLATFORMS (space/comma-separated) narrows the build to a subset of the
 // template's targetPlatforms — screenshot captures that shoot a single platform set it

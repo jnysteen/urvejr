@@ -252,11 +252,10 @@ var APP_FILES = [
   path.join(ROOT, 'src/pkjs/page/settings/wizard/wizard-upsell.js'),
   path.join(ROOT, 'src/pkjs/page/settings/wizard/wizard.js'),
   path.join(ROOT, 'src/pkjs/page/settings/onbuild.js'),
-  // key-test.js must precede its three consumers (window.KeyTest factory).
+  // key-test.js must precede its two consumers (window.KeyTest factory).
   path.join(ROOT, 'src/pkjs/page/weather/keys/key-test.js'),
   path.join(ROOT, 'src/pkjs/page/weather/keys/owm-key-test.js'),
   path.join(ROOT, 'src/pkjs/page/weather/keys/tomorrowio-key-test.js'),
-  path.join(ROOT, 'src/pkjs/page/weather/keys/rainbow-key-test.js'),
   path.join(ROOT, 'src/pkjs/page/theme/theme-convert.js'),
   path.join(ROOT, 'src/pkjs/page/status-bars/reset-status-defaults.js'),
   path.join(ROOT, 'src/pkjs/page/notices/notices-panel.js'),

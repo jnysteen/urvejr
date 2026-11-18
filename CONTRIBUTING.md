@@ -1,6 +1,6 @@
 # Contributing
 
-CONTRIBUTING.md is the setup walkthrough for urvejr that takes you through building the watchface, running the Supabase backend (the Rainbow radar proxy) locally and in the cloud, installing builds, and the local dev config. The commands, config and their options are in [DEV.md](DEV.md).
+CONTRIBUTING.md is the setup walkthrough for urvejr that takes you through building the watchface, installing builds, and the local dev config. The commands, config and their options are in [DEV.md](DEV.md).
 
 ## Building
 
@@ -22,35 +22,7 @@ mise build release
 
 The build uses the Pebble SDK version pinned in `pebble-sdk-version`, which the repo scripts provision. The `.pbw` lands in `build/`.
 
-`mise build release` needs `RAINBOW_PROXY_ENDPOINT` in the environment; the release profile fails without it (see the env var table in [DEV.md](DEV.md#environment-variables-env)).
-
-## Supabase (Rainbow proxy)
-
-The Rainbow radar proxy runs on Supabase Edge Functions and Postgres. The commands and their
-details are in [DEV.md](DEV.md#supabase-rainbow-proxy).
-
-### Local stack and emulator testing
-
-1. Run `mise install`, which installs the Supabase CLI, and check it with `supabase --version`.
-2. Start the local Supabase stack from the repo root with `supabase start`.
-3. Copy `.env.example` to `.env`, uncomment `RAINBOW_PROXY_ENDPOINT` and keep its local URL.
-4. Serve the proxy from the repo root with
-   `supabase functions serve rainbow-nowcast --env-file .env`.
-5. Run `mise install-emulator --logs` with Rainbow as the radar source.
-
-### Hosted deployment (Supabase cloud)
-
-CI deploys `supabase/` on every push to `main`. For a manual deploy, follow
-[Deploy (hosted)](DEV.md#deploy-hosted) in DEV.md:
-
-1. Run `supabase login` and link the repo to your project with
-   `supabase link --project-ref <your-project-ref>`.
-2. Apply the migrations with `supabase db push --dry-run`, then `supabase db push`.
-3. Set the Rainbow secrets and deploy the proxy with `supabase functions deploy rainbow-nowcast`.
-4. Set the `RAINBOW_PROXY_ENDPOINT_RELEASE` and `RAINBOW_PROXY_ENDPOINT_PREVIEW` repository
-   secrets, which the CI workflows read.
-
-Supabase's GitHub integration is optional; [DEV.md](DEV.md#deploy-hosted) says what it does.
+`mise build release` needs `AQICN_TOKEN` in the environment; the release profile fails without it (see the env var table in [DEV.md](DEV.md#environment-variables-env)).
 
 ## Package profiles and installing builds
 

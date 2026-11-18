@@ -1,8 +1,8 @@
 # urvejr
 
 urvejr is a Pebble weather watchface: a C watchface (`src/c/`) driven by
-phone-side PebbleKit JS (`src/pkjs/`), with a Clay config UI and a Supabase
-backend for the Rainbow radar proxy. This file is its glossary: the canonical vocabulary, with pointers to
+phone-side PebbleKit JS (`src/pkjs/`), with a Clay config UI and no backend of its own.
+This file is its glossary: the canonical vocabulary, with pointers to
 where each term lives in the code.
 
 ## Context map
@@ -17,19 +17,19 @@ Its code sits in one folder per deployable, grouped by role inside (in the phone
 `src/pkjs/<context>/<role>/`).
 _Avoid_: module, feature (for the whole context).
 
-| Context | Watchface (C) | Phone app (PKJS) | Settings page | Edge functions |
-| --- | --- | --- | --- | --- |
-| Weather data | draws what it is sent | fetches, maps and bakes it | previews it | `rainbow-nowcast` (radar) |
-| Forecast graphs | draws the graphs | packs series and line styles | previews and edits styles | – |
-| Status bars | draws the bars, makes room | bakes each bar's line | previews and edits slots | – |
-| Alerts | draws them, replaces slots | decides when one fires | edits thresholds | – |
-| Screens and layout | lays out each view | compiles screens to view specs | edits screens | – |
-| Calendar | draws the calendar | packs the holiday mask | edits formats | – |
-| Theme | palettes, night light | theme schedule | previews colours | – |
-| Settings | reads the settings message | stores, migrates, sends them | the schema and pages | – |
-| Wire transport | AppMessage inbox, persist | outbox, change detector, scheduler, battery saver | – | – |
-| App notices | the notice line | fetch-error notices | notice panel | – |
-| Health | reads the watch's health data | – | previews it | – |
+| Context | Watchface (C) | Phone app (PKJS) | Settings page |
+| --- | --- | --- | --- |
+| Weather data | draws what it is sent | fetches, maps and bakes it | previews it |
+| Forecast graphs | draws the graphs | packs series and line styles | previews and edits styles |
+| Status bars | draws the bars, makes room | bakes each bar's line | previews and edits slots |
+| Alerts | draws them, replaces slots | decides when one fires | edits thresholds |
+| Screens and layout | lays out each view | compiles screens to view specs | edits screens |
+| Calendar | draws the calendar | packs the holiday mask | edits formats |
+| Theme | palettes, night light | theme schedule | previews colours |
+| Settings | reads the settings message | stores, migrates, sends them | the schema and pages |
+| Wire transport | AppMessage inbox, persist | outbox, change detector, scheduler, battery saver | – |
+| App notices | the notice line | fetch-error notices | notice panel |
+| Health | reads the watch's health data | – | previews it |
 
 **Outbox (phone app)**:
 The phone app's one sender to the watch. It bundles what changed into one message and counts it
@@ -288,18 +288,11 @@ weather provider: DWD (best radar in Germany, exact spot and nearby area), Met.n
 radar in the Nordics, exact spot), Rainbow (global satellite and radar nowcast, exact spot,
 worldwide) or Tomorrow.io (ML nowcast on the user's own key, exact spot, worldwide). Every
 source answers the same interface, and "off" is itself a source whose tuples clear the radar.
-Rainbow is two sources, and the Radar provider picker (Graphs tab › Rain radar) offers both.
-"Rainbow (limited)" (id `rainbow`) is shared Rainbow: it goes through the project's proxy
-on the project's key and its monthly allowance, so it refreshes at most every
-30 minutes. That is one request per UTC-aligned half-hour slot, wherever the watch is:
-after a move within the slot, the watch keeps the slot's answer until the next slot. "Rainbow
-(own key)" (id `rainbowkey`) fetches the same nowcast directly on the user's
-own key at every update. On that key the first 5,000 calls a month are free
-(Rainbow asks for a credit card and bills calls past that). Both ids are
-stored `radarProvider` values; a settings migration turns a stored `rainbow` plus a
-`rainbowOwnKey` switch into `rainbowkey`.
-Picked without a key, the own-key source clears the radar. Where the own key
-can't be set, Rainbow is the limited source.
+Rainbow (id `rainbowkey`) fetches the nowcast directly on the user's own key at every
+update. On that key the first 5,000 calls a month are free (Rainbow asks for a credit card
+and bills calls past that). Picked without a key, it clears the radar. A fresh install's
+radar is DWD in Germany, Met.no in the Nordics and off elsewhere (the setup wizard,
+country-defaults.js), since no keyless source covers the rest.
 _Avoid_: radar provider in prose (the wire key `radarProvider` keeps its name).
 
 **Radar tuples**:
@@ -309,8 +302,7 @@ the radar on the watch".
 
 **Radar limit notice**:
 The third radar answer, besides a window and the clear: the source is up but
-refuses us because a request limit is reached (HTTP 429 from the shared
-Rainbow proxy, Rainbow on the user's own key or Tomorrow.io). It is sent alone as
+refuses us because a request limit is reached (HTTP 429 from Rainbow or Tomorrow.io). It is sent alone as
 `RAIN_RADAR_LIMITED`, the phone's line ("Radar limit reached"), never with the
 radar tuples. The watch keeps its window and, where that window shows no rain,
 shows that line instead of the no-rain line. With no window yet (a fresh

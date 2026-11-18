@@ -2,11 +2,10 @@
 //
 // Child-process probe for test/shell/index-aplite-radar.test.js and
 // test/shell/index-radar-clear-on-failure.test.js: boots the REAL index.js on
-// fresh-install defaults (radarMode 'graph', radarProvider 'rainbow' — what an
-// install whose settings page was never saved still holds) for the platform
-// named in argv[2], lets the first fetch cycle run, and prints one JSON line:
-// how many Rainbow radar requests went out (to the proxy, or to Rainbow's own
-// API for 'rainbowkey'), and the radar tuples of every AppMessage that carried them; likewise how many Open-Meteo sky requests
+// fresh-install defaults (radarMode 'graph' — what an install whose settings page was
+// never saved still holds), on Rainbow with a key unless the settings name a radar
+// source, for the platform named in argv[2], lets the first fetch cycle run, and prints
+// one JSON line: how many Rainbow radar requests went out, and the radar tuples of every AppMessage that carried them; likewise how many Open-Meteo sky requests
 // (radar-sky.js) went out, and the length of every RADAR_SKY_UINT8 sent.
 //
 // argv[3] (optional JSON): {settings: {...}} seeds a partial settings blob the
@@ -30,14 +29,15 @@ global.localStorage = {
     setItem: function (k, v) { store[k] = String(v); },
     removeItem: function (k) { delete store[k]; }
 };
-if (opts.settings) { store['clay-settings'] = JSON.stringify(opts.settings); }
-
-// A production-style build: the Rainbow proxy endpoint is set.
-var pkg = require(path.join(ROOT, 'package.json'));
-pkg.rainbow = { endpoint: 'https://proxy.example/functions/v1/rainbow-nowcast' };
+var seeded = Object.assign({}, opts.settings || {});
+if (!Object.prototype.hasOwnProperty.call(seeded, 'radarProvider')) {
+    seeded.radarProvider = 'rainbowkey';
+    seeded.rainbowApiKey = 'K';
+}
+store['clay-settings'] = JSON.stringify(seeded);
 
 // Record every request through the shared provider transport. Answer the radar
-// with a dry forecast and the sky rows with an overcast, half-sunny, stormy
+// with a dry forecast (echoing the point, as Rainbow does) and the sky rows with an overcast, half-sunny, stormy
 // quarter-hour grid around now; never answer anything else (the forecast stays
 // pending).
 var radarRequests = 0;
@@ -45,15 +45,17 @@ var skyRequests = 0;
 var skyBeforeRadarAnswer = null;
 var WeatherProvider = require(path.join(ROOT, 'src/pkjs/weather/adapter/provider.js'));
 WeatherProvider.request = function (url, type, onSuccess) {
-    if (url.indexOf('rainbow-nowcast') !== -1 || url.indexOf('api.rainbow.ai') !== -1) {
+    if (url.indexOf('api.rainbow.ai') !== -1) {
         radarRequests += 1;
+        var point = /precip-global\/([^/?]+)\/([^/?]+)/.exec(url);
+        var dry = JSON.stringify({ longitude: Number(point[1]), latitude: Number(point[2]), forecast: [] });
         if (!opts.holdRadar) {
-            onSuccess(JSON.stringify({ forecast: [] }));
+            onSuccess(dry);
             return;
         }
         setTimeout(function () {
             if (skyBeforeRadarAnswer === null) { skyBeforeRadarAnswer = skyRequests > 0; }
-            onSuccess(JSON.stringify({ forecast: [] }));
+            onSuccess(dry);
         }, 20);
     } else if (url.indexOf('minutely_15') !== -1) {
         skyRequests += 1;

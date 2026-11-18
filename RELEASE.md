@@ -22,10 +22,6 @@ fix to `main`, then run *Release Please* by hand on `main` (Actions → Release 
 workflow) with the release's tag, e.g. `v2.6.0`. That run builds `main`, uploads its `.pbw` to
 that release, and stops if `main` is at another version.
 
-Supabase goes out before the app. The app POSTs to the rainbow-nowcast proxy, so any `supabase/`
-change a release depends on must be merged and deployed (the *Deploy Supabase* run on `main` green)
-before the `.pbw` is uploaded, whether by merging the release PR or to the appstore.
-
 ## Release notes
 
 A `Release-As: x.y.z` trailer pins the next version. Its commit has to change a file outside

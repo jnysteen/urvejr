@@ -123,12 +123,6 @@ module.exports = {
     // The settings page Weather tab's data for the place it opens on ({v, data}),
     // refreshed at most once a day on settings open (weather-tab-cache.js).
     WEATHER_TAB_CACHE_KEY: 'weatherTabCache',
-    // The last radar request of a throttled radar source ({id, at: epoch ms, tuples?}, no
-    // position; see radar-factory.js RADAR_MIN_REQUEST_INTERVAL_MS): the shared Rainbow proxy
-    // is asked at most once per 30-minute slot, wherever the watch is, and the throttled
-    // cycles of that slot re-serve its answer. Persisted so a PKJS relaunch doesn't reset
-    // it; a reset's localStorage.clear() drops it (the next fetch then requests).
-    RADAR_REQUEST_THROTTLE_KEY: 'radarRequestThrottle',
     // The last sky request of the radar's sky rows ({id, at: epoch ms, tuple}, no position;
     // radar-sky-source.js minRequestIntervalMs): Open-Meteo is asked at most once per UTC
     // half hour, and the cycles of that half hour re-serve its answer. Kept only once an
@@ -152,10 +146,5 @@ module.exports = {
     // true = outside its area; plus misses: {dwd: n}, DWD's 404s in a row from inside its
     // area; weather/domain/radar/radar-coverage.js), never the position itself. The settings page reads
     // it as userData.radarCoverage for the note under the Radar provider row.
-    RADAR_COVERAGE_KEY: 'radarCoverage',
-    // What removed features (telemetry, connection stats, news, the update check and the
-    // release toast) left in an installed phone's storage; index.js deletes it on boot.
-    RETIRED_KEYS: ['telemetryQueue', 'telemetryReported', 'telemetryOpenSendDay', 'telemetrySending',
-        'devStats', 'newsCache', 'update_notified_version', 'notify_asked', 'last_update_check',
-        'max_notified_version']
+    RADAR_COVERAGE_KEY: 'radarCoverage'
 };

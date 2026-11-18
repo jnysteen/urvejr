@@ -1683,9 +1683,9 @@ function bootWholeLedger(blob, marked, existing) {
   return { L, seeded, res, read: L.read() };
 }
 
-test('rainbow own key, upgrade paths: a fresh install opens on "Rainbow (limited)" and stores no switch', () => {
+test('rainbow own key, upgrade paths: a fresh install opens on DWD and stores no switch', () => {
   const { L, read } = bootWholeLedger(null, [], false);
-  assert.equal(read.radarProvider, 'rainbow');
+  assert.equal(read.radarProvider, 'dwd');
   assert.ok(!('rainbowOwnKey' in read), 'the seeded blob holds no rainbowOwnKey');
   assert.equal(L.store[RAINBOW_OWN_KEY], '1');
 });

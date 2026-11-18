@@ -52,20 +52,19 @@ test('with the guard off the page keeps the interval (it only warns)', async () 
   assert.equal(saved.fetchIntervalMin, '5');
 });
 
-// The same trap for "Rainbow (own key)", whose 5000 calls/month the radar alone spends: the
-// shared "Rainbow (limited)" radar at 5 min with no night pause costs the user nothing,
-// picking the own key does.
+// The same trap for Rainbow, whose 5000 calls/month the radar alone spends: Met.no at
+// 5 min with no night pause costs the user nothing, picking Rainbow does.
 const rainbowBudget = require('../../../src/pkjs/page/weather/budgets/rainbow-budget.js');
 const STORED_RB = {
-  provider: 'openmeteo', radarProvider: 'rainbow', radarMode: 'graph',
+  provider: 'openmeteo', radarProvider: 'metno', radarMode: 'graph',
   fetchIntervalMin: '5', sleepNightEnabled: false, rainbowFitBudget: true
 };
 
-test('the own key\'s rows live in its key sheet, opened by its key row once "Rainbow (own key)" is picked', () => {
+test('the own key\'s rows live in its key sheet, opened by its key row once Rainbow is picked', () => {
   const page = bootGeneratedPage(STORED_RB);
   openRadarPane(page);
   let tab = page.scroll.innerHTML;
-  assert.equal(tab.indexOf('data-edit-sheet="radarKeyRainbow"'), -1, 'no key row for the shared radar');
+  assert.equal(tab.indexOf('data-edit-sheet="radarKeyRainbow"'), -1, 'no key row for a keyless radar');
   assert.equal(tab.indexOf('data-k="rainbowApiKey"'), -1, 'no key field on the page');
   assert.equal(tab.indexOf('calls/month'), -1, 'and no monthly read-out');
 
@@ -78,15 +77,15 @@ test('the own key\'s rows live in its key sheet, opened by its key row once "Rai
   page.openEditSheet('radarKeyRainbow');
   const sheet = page.modal.innerHTML;
   assert.ok(sheet.indexOf('data-k="rainbowApiKey"') !== -1, 'the key field');
-  assert.ok(sheet.indexOf('data-action="testRainbowKey"') !== -1, 'its Test button');
+  assert.equal(sheet.indexOf('data-action="testRainbowKey"'), -1, 'no Test button: the webview cannot reach Rainbow');
   assert.ok(sheet.indexOf('data-copy="https://developer.rainbow.ai/profile"') !== -1, 'the hint\'s copy button');
   assert.ok(sheet.indexOf('calls/month') !== -1, 'the monthly read-out');
   assert.ok(sheet.indexOf('data-k="rainbowFitBudget"') !== -1, 'and the budget guard');
 });
 
-test('picking "Rainbow (own key)" in Setup and saving stays within the free plan', async () => {
+test('picking Rainbow in Setup and saving stays within the free plan', async () => {
   const page = bootGeneratedPage(STORED_RB);
-  assert.equal(page.S.fetchIntervalMin, '5', 'shared Rainbow: no guard, 5 min stays');
+  assert.equal(page.S.fetchIntervalMin, '5', 'Met.no: no guard, 5 min stays');
 
   openRadarPane(page);
   page.openSelect('radarSource');
@@ -105,10 +104,10 @@ test('picking "Rainbow (own key)" in Setup and saving stays within the free plan
   assert.ok(rainbowBudget.fits(saved, 15), 'the saved settings fit');
 });
 
-test('saving the shared Rainbow radar keeps it and leaves the interval alone', async () => {
+test('saving a keyless radar keeps it and leaves the interval alone', async () => {
   const page = bootGeneratedPage(STORED_RB);
   const saved = await page.save();
-  assert.equal(saved.radarProvider, 'rainbow', '"Rainbow (limited)" stays');
+  assert.equal(saved.radarProvider, 'metno', 'Met.no stays');
   assert.equal(saved.fetchIntervalMin, '5', 'no own-key budget in play');
 });
 

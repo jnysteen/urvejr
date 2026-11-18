@@ -29,9 +29,8 @@
  *
  * @param {Object} input Captured caller-side, in order:
  *   {boolean} providerOrLocationChanged refreshProvider()'s verdict.
- *   {boolean} radarProviderChanged radarProvider (the radar source: "Rainbow
- *     (limited)" and "Rainbow (own key)" are two of its values), radarMode or radarSky
- *     changed.
+ *   {boolean} radarProviderChanged radarProvider (the radar source), radarMode or
+ *     radarSky changed.
  *   {boolean} renderSettingsChanged renderSignature() differs across the save.
  *   {boolean} fetchToggle The one-shot "Force weather fetch" toggle.
  *   {boolean} acked The notice-ack flag rode the save.

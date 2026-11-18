@@ -1130,7 +1130,7 @@ test('the sheet swatch derives the same cascaded tint through the display hook',
 
 test('radarPreview (rainbow): no nearby outline bars and no "Nearby (2 km)" legend', () => {
   const dwd = RD.radarPreview({ radarProvider: 'dwd', radarColor: 'multicolor', rainCountdownHorizon: '0' }, { color: true });
-  const rainbow = RD.radarPreview({ radarProvider: 'rainbow', radarColor: 'multicolor', rainCountdownHorizon: '0' }, { color: true });
+  const rainbow = RD.radarPreview({ radarProvider: 'metno', radarColor: 'multicolor', rainCountdownHorizon: '0' }, { color: true });
   assert.ok(dwd.indexOf('>Nearby (2 km)<') >= 0, 'dwd keeps the nearby legend');
   assert.equal(rainbow.indexOf('>Nearby (2 km)<'), -1, 'rainbow drops the nearby legend');
   assert.ok(rainbow.indexOf('>Rain at your exact spot<') >= 0, 'exact-spot legend stays');
@@ -1139,19 +1139,19 @@ test('radarPreview (rainbow): no nearby outline bars and no "Nearby (2 km)" lege
 });
 
 test('radarPreview (rainbow) still renders exact bars and the countdown band', () => {
-  const svg = RD.radarPreview({ radarProvider: 'rainbow', radarColor: 'multicolor', rainCountdownHorizon: '60' }, { color: true });
+  const svg = RD.radarPreview({ radarProvider: 'metno', radarColor: 'multicolor', rainCountdownHorizon: '60' }, { color: true });
   assert.ok(/^<svg/.test(svg), 'renders an SVG, not the off message');
   assert.ok(svg.indexOf("Rain in 15'") >= 0, 'countdown band applies to rainbow too');
 });
 
 // Regression pin, not coverage: preview-radar.js branches on radarProvider === 'dwd' alone
-// (nearby hatching is DWD-only), so "Rainbow (own key)" ('rainbowkey') previews exactly
-// like the shared "Rainbow (limited)" radar.
-test('radarPreview (Rainbow on your own key) renders the same preview as shared Rainbow', () => {
+// (nearby hatching is DWD-only), so Rainbow ('rainbowkey') previews exactly like Met.no,
+// another point radar.
+test('radarPreview (Rainbow) renders the same preview as Met.no', () => {
   [{ color: true }, { color: false }].forEach((env) => {
     ['0', '60'].forEach((horizon) => {
       const state = { radarColor: 'multicolor', radarMode: 'graph', rainCountdownHorizon: horizon };
-      const shared = RD.radarPreview(Object.assign({ radarProvider: 'rainbow' }, state), env);
+      const shared = RD.radarPreview(Object.assign({ radarProvider: 'metno' }, state), env);
       const ownKey = RD.radarPreview(Object.assign({ radarProvider: 'rainbowkey' }, state), env);
       assert.equal(ownKey, shared, 'color=' + env.color + ' horizon=' + horizon);
     });
@@ -1284,7 +1284,7 @@ test('light colour theme: rain and radar bars carry the watch\'s black silhouett
 
 test('radarPreview (metno): point provider renders like rainbow — no nearby bars or legend', () => {
   const metno = RD.radarPreview({ radarProvider: 'metno', radarColor: 'multicolor', rainCountdownHorizon: '0' }, { color: true });
-  const rainbow = RD.radarPreview({ radarProvider: 'rainbow', radarColor: 'multicolor', rainCountdownHorizon: '0' }, { color: true });
+  const rainbow = RD.radarPreview({ radarProvider: 'metno', radarColor: 'multicolor', rainCountdownHorizon: '0' }, { color: true });
   assert.equal(metno, rainbow, 'metno and rainbow share the point-provider preview');
   assert.equal(metno.indexOf('>Nearby (2 km)<'), -1, 'metno drops the nearby legend');
 });
@@ -1338,7 +1338,7 @@ test('tomorrowioBudget block never claims radar is off when radar runs on anothe
   const block = global.PConf.blocks.get('tomorrowioBudget');
   // Weather on tomorrow.io, radar on the default Rainbow provider (radar IS on,
   // just not billed to tomorrow.io): the summary must not say "radar off".
-  const weatherOnly = block(budgetState({ radarProvider: 'rainbow' }), {});
+  const weatherOnly = block(budgetState({ radarProvider: 'metno' }), {});
   assert.doesNotMatch(weatherOnly, /radar off/i);
   assert.doesNotMatch(weatherOnly, /radar\b.*\bon\b/i, 'no blanket "radar on" claim either');
   // When tomorrow.io radar actually adds calls, say so explicitly.
@@ -1378,7 +1378,7 @@ test('fetchIntervalBudget resolver: filters when guard on, passes through when o
     ['5', '10', '15', '30', '60']);
 });
 
-// "Rainbow (own key)" (radarProvider 'rainbowkey'): radar on the user's key, weather
+// Rainbow (radarProvider 'rainbowkey'): radar on the user's key, weather
 // elsewhere, no night pause.
 function rainbowState(over) {
   return Object.assign({
@@ -1391,7 +1391,7 @@ function rainbowState(over) {
 test('rainbowBudget block: empty unless Rainbow on the user\'s own key drives a running radar', () => {
   const block = global.PConf.blocks.get('rainbowBudget');
   assert.equal(typeof block, 'function', 'the block is registered');
-  assert.equal(block(rainbowState({ radarProvider: 'rainbow' }), {}), '', 'shared Rainbow bills nothing to the user');
+  assert.equal(block(rainbowState({ radarProvider: 'metno' }), {}), '', 'a keyless radar bills nothing to the user');
   assert.equal(block(rainbowState({ radarProvider: 'dwd' }), {}), '', 'another radar source');
   assert.equal(block(rainbowState({ radarEnabled: false }), {}), '', 'radar off: no Rainbow call is made');
   // The read-out counts what Save will store, not a stored mode that lags: the rain alert on
@@ -1468,8 +1468,8 @@ test('fetchIntervalBudget resolver: the intersection of every active guard', () 
   const run = (s) => resolver(s, {}, {}).map((o) => o[1]);
   // Own-key Rainbow guard on: 5 min drops out.
   assert.deepEqual(run(rainbowState()), ['10', '15', '30', '60']);
-  // "Rainbow (limited)": the shared radar bills nothing, so the full ladder.
-  assert.deepEqual(run(rainbowState({ radarProvider: 'rainbow' })), ['5', '10', '15', '30', '60']);
+  // A keyless radar bills nothing, so the full ladder.
+  assert.deepEqual(run(rainbowState({ radarProvider: 'metno' })), ['5', '10', '15', '30', '60']);
   // ...off: the full ladder (the block shows the red warning instead).
   assert.deepEqual(run(rainbowState({ rainbowFitBudget: false })), ['5', '10', '15', '30', '60']);
   // Both guards in play (tomorrow.io weather + Rainbow key radar): the intersection.
@@ -1487,7 +1487,7 @@ test('fetchIntervalBudget resolver: the intersection of every active guard', () 
   assert.deepEqual(run(undefined), ['5', '10', '15', '30', '60']);
 });
 
-test('recommend resolvers: country-matched weather + radar providers (DE→dwd, Nordics→metno, else→openmeteo/rainbow)', () => {
+test('recommend resolvers: country-matched weather + radar providers (DE→dwd, Nordics→metno, else→openmeteo with the radar off)', () => {
   const wx = global.PConf.recommendResolvers.get('recommendedWeatherProvider');
   const rad = global.PConf.recommendResolvers.get('recommendedRadarProvider');
   assert.equal(typeof wx, 'function', 'weather recommend resolver registered');
@@ -1497,7 +1497,7 @@ test('recommend resolvers: country-matched weather + radar providers (DE→dwd, 
   assert.equal(wx({ holidayCountry: 'NO' }), 'metno');
   assert.equal(rad({ holidayCountry: 'SE' }), 'metno');
   assert.equal(wx({ holidayCountry: 'US' }), 'openmeteo');
-  assert.equal(rad({ holidayCountry: 'US' }), 'rainbow');
+  assert.equal(rad({ holidayCountry: 'US' }), 'off');
   // Robust to a missing/none country selection (won't throw).
   assert.equal(wx({}), 'openmeteo');
 });

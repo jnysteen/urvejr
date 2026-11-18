@@ -44,7 +44,7 @@ var KEY_LAST_IS_SLEEPING = storageKeys.LAST_IS_SLEEPING_KEY;
 var KEY_SERVER_STREAK = storageKeys.SERVER_FAILURE_STREAK_KEY;
 // How long an in-flight weather fetch may run before it is presumed lost. A
 // healthy chain is bounded by its own timeouts, step after step: the GPS fix
-// (10 s) or the address's geocode; the radar (twice for Rainbow (own key), which
+// (10 s) or the address's geocode; the radar (twice for Rainbow, which
 // retries without its start time; the sky rows ask alongside); the city; the
 // provider (up to three requests for DWD and Open-Meteo, five for Weather
 // Underground when it re-scrapes a refused key); AQI (twice when Auto falls back);
@@ -194,21 +194,11 @@ function watchMayShowForecast(now) {
     }
 }
 
-// --- request throttles ------------------------------------------------------
-// One request per UTC-aligned slot of a source's interval, the cycles in between
-// re-serving the slot's answer (request-throttle.js).
-// The radar's (radar-factory.js minRequestIntervalMs: the shared Rainbow proxy) records
-// its request before it goes out, so failures and timeouts count and a failing proxy is
-// not hammered. It keeps a real window, the limit notice (radarWire.limitedRadarTuples:
-// the source refused this slot, and the watch should say so until the next slot asks
-// again) and the clear (radarWire.clearRadarTuples; e.g. a proxy 404/405, the proxy
-// missing: without it a NACKed clear would leave the watch rolling its old window forward
-// until the next slot asks again).
-var radarThrottle = requestThrottle.createRequestThrottle({
-    key: storageKeys.RADAR_REQUEST_THROTTLE_KEY, answerField: 'tuples', failuresCount: true
-});
-// The sky rows' (radar-sky-source.js minRequestIntervalMs, with its accepted edge case)
-// keeps a request only with its answer, so a failed one asks again next cycle.
+// --- request throttle -------------------------------------------------------
+// One sky request per UTC-aligned slot of its interval, the cycles in between re-serving
+// the slot's answer (request-throttle.js; radar-sky-source.js minRequestIntervalMs, with
+// its accepted edge case). It keeps a request only with its answer, so a failed one asks
+// again next cycle.
 var skyThrottle = requestThrottle.createRequestThrottle({
     key: storageKeys.SKY_REQUEST_THROTTLE_KEY, answerField: 'tuple', failuresCount: false
 });
@@ -269,7 +259,7 @@ function runCycle(deps) {
  * @param {{sendWeather: Function, clearWeatherCaches: Function, clearNoticeCache: Function}} deps.outbox The deduping outbox.
  * @param {Object} deps.authBackoff The auth-backoff module (isAuthFailure/isActive/set/clear).
  * @param {Object} deps.notices The notices module (isServerFailure/noticeForFailure/add/watchText/clearErrors).
- * @param {{waqiToken: string, rainbowEndpoint: string}} deps.env Build-injected secrets (package.json's waqi.token and rainbow.endpoint; '' when absent).
+ * @param {{waqiToken: string}} deps.env Build-injected secrets (package.json's waqi.token; '' when absent).
  * @param {function():Date} deps.now Current-time supplier (same contract as the channel scheduler's deps.now).
  * @param {function():?Object} [deps.getPhoneBattery] The phone's battery facts for the bake
  *   (phone-battery.js bakeFacts); absent = a host that cannot read the phone's battery.
@@ -290,8 +280,8 @@ function createFetchCycle(deps) {
      * acquisition), with the radar's sky rows (radar-sky.js) merged in. A transient
      * radar failure leaves the radar keys out: the callback gets the sky answer
      * alone, or null when the sky had none either, and the weather payload still
-     * ships without radar tuples. A permanent one (missing key/endpoint, rejected
-     * key, a missing or outdated Rainbow proxy) calls back the clearing tuples, and
+     * ships without radar tuples. A permanent one (missing or rejected key) calls
+     * back the clearing tuples, and
      * a source refusing us over a request limit (HTTP 429) the limit notice
      * (radarWire.limitedRadarTuples), which rides the send in place of the three
      * radar arrays. A place outside a regional source's area (radar-coverage.js)
@@ -314,7 +304,7 @@ function createFetchCycle(deps) {
      *
      * @param {number} lat Latitude in decimal degrees.
      * @param {number} lon Longitude in decimal degrees.
-     * @param {boolean} force Whether this fetch was forced (bypasses the radar
+     * @param {boolean} force Whether this fetch was forced (bypasses the sky
      *   request throttle, see request-throttle.js).
      * @param {Function} callback Receives the radar and/or sky tuples, or null.
      * @returns {void}
@@ -336,16 +326,9 @@ function createFetchCycle(deps) {
         // at the clock edge, so the adapters stay deterministic (no clock injection).
         // radarMode 'off' clears the watch's radar via the 'disabled' clearing
         // adapter; any non-off mode fetches the full trend (countdown needs it).
-        // "Rainbow (own key)" is radarProvider 'rainbowkey', with its own (absent)
-        // throttle.
         var radarId = (settings.radarMode || 'graph') === 'off' ? 'disabled' : settings.radarProvider;
-        // '' when the build carried no RAINBOW_PROXY_ENDPOINT — the rainbow
-        // adapter then clears the watch's radar (it can never answer).
-        // tomorrowioApiKey is the user's key from settings; '' likewise
-        // clears in the adapter. rainbowApiKey (Rainbow on the user's own key,
-        // 'rainbowkey') likewise; '' clears in the adapter.
+        // The user's keys from settings; '' clears the watch's radar in the adapter.
         var radarCfg = {
-            rainbowEndpoint: deps.env.rainbowEndpoint,
             rainbowApiKey: (settings && settings.rainbowApiKey) || '',
             tomorrowioApiKey: (settings && settings.tomorrowioApiKey) || ''
         };
@@ -357,32 +340,11 @@ function createFetchCycle(deps) {
         var skySource = radarSkySource.createSkySource(skyId);
         var nowMs = +deps.now();
         var slotZeroEpoch = radarWire.slotZeroEpochFor(nowMs);
-        // A source that can never answer forgets its record (interval 0).
-        var radarIntervalMs = radarCanAnswer ? radarFactory.minRequestIntervalMs(radarId) : 0;
-        var slot = radarThrottle.take(radarId, radarIntervalMs, nowMs, force);
         var skySlot = skyThrottle.take(skyId, radarSkySource.minRequestIntervalMs(skyId), nowMs, force);
         // The sky request is independent of the radar's, so both go out at once and
         // the forecast waits for the slower one, not for one after the other.
         radarSky.joinRadarAndSky(function (cb) {
-            if (!slot.request) {
-                // The re-served window keeps its own RAIN_RADAR_START (the slot's
-                // request), which may be behind this cycle's slot 0: radar-dedupe.js
-                // aligns it by k, and the watch persists the start as-is and shifts
-                // it to the grid on its minute tick.
-                var reserved = !slot.answer ? 'the watch advances its window.'
-                    : radarWire.isLimitedRadarTuples(slot.answer) ? 're-serving this slot\'s limit notice.'
-                    : radarWire.isClearRadarTuples(slot.answer) ? 're-serving this slot\'s clear.'
-                    : 're-serving this slot\'s window.';
-                console.log('Radar request skipped: ' + radarId + ' is limited to one request per '
-                    + (slot.intervalMs / 60000) + ' min; ' + reserved);
-                // A limit notice an older build kept (the 1 it sent) goes out as today's line.
-                cb(radarWire.isLimitedRadarTuples(slot.answer) ? radarWire.limitedRadarTuples() : slot.answer);
-                return;
-            }
-            source.fetchRadarTuplesAt(lat, lon, slotZeroEpoch, function (tuples) {
-                radarThrottle.remember(slot, tuples);
-                cb(tuples);
-            });
+            source.fetchRadarTuplesAt(lat, lon, slotZeroEpoch, cb);
         }, function (cb) {
             if (!skySlot.request) {
                 console.log('Sky request skipped: asked once per ' + (skySlot.intervalMs / 60000)

@@ -228,15 +228,20 @@ var PConf = (typeof global !== 'undefined' && global.PConf) ? global.PConf
      * @param {Object} S Live settings.
      * @returns {void}
      */
-    function applyDerived(S) {
+    function applyDerived(S, env) {
         var m = CD.mapCountry(S.holidayCountry);
         var oldProvider = S.provider;
         S.provider = m.provider;
         PConf.onChange.get('clearPollenForProvider')(S, oldProvider, m.provider);
-        // The country's Rainbow pick is "Rainbow (limited)" ('rainbow'); a radar already on
-        // "Rainbow (own key)" ('rainbowkey') stays there.
-        var ownKey = S.radarProvider === 'rainbowkey' && m.radarProvider === 'rainbow';
-        S.radarProvider = ownKey ? 'rainbowkey' : m.radarProvider;
+        // No keyless radar covers the country: the radar goes off, unless a keyed source
+        // (Rainbow, Tomorrow.io) is already picked.
+        var keyed = S.radarProvider === 'rainbowkey' || S.radarProvider === 'tomorrowio';
+        if (m.radarProvider !== 'off') {
+            S.radarProvider = m.radarProvider;
+            SP.setRadarEnabled(S, true, env);
+        } else if (!keyed) {
+            SP.setRadarEnabled(S, false, env);
+        }
         S.temperatureUnits = m.temperatureUnits;
         S.windUnits = m.windUnits;
         S.distanceUnits = m.distanceUnits;
@@ -1102,7 +1107,7 @@ var PConf = (typeof global !== 'undefined' && global.PConf) ? global.PConf
             run.ctx.openSheet(sk, function () {
                 if (sk === 'holidayCountry' && run.ctx.S.holidayCountry !== before) {
                     run.ctx.S.holidayRegion = 'all';
-                    applyDerived(run.ctx.S);
+                    applyDerived(run.ctx.S, run.env);
                     // A key typed in this run keeps Tomorrow.io wherever the new country still offers it.
                     if (run.tioTyped && UPSELL.offered(run.ctx.S)) { onTomorrowioKey(run.ctx.S.tomorrowioApiKey); }
                 }
@@ -1217,12 +1222,12 @@ var PConf = (typeof global !== 'undefined' && global.PConf) ? global.PConf
             // An undetected country, or one the holiday list doesn't offer (IN, AE, …), is 'none', NOT
             // the schema default 'DE', which would derive Germany's DWD weather and radar and German
             // holidays as if detected. mapCountry('none') is the "everyone else" row: Open-Meteo and
-            // Rainbow, metric.
+            // the radar off, metric.
             var cc = CD.inferCountry();
             var country = FINISH.findItem(ctx.schema, 'holidayCountry');
             ctx.S.holidayCountry = (cc && labelFor(country.options, cc)) ? cc : 'none';
             ctx.S.holidayRegion = 'all';
-            applyDerived(ctx.S);
+            applyDerived(ctx.S, run.env);
         }
         if (run.steps.indexOf('forecast') !== -1) {
             refreshLooks();

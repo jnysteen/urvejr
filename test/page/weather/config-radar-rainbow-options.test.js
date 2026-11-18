@@ -1,11 +1,8 @@
-// test/page/weather/config-radar-rainbow-options.test.js — the Radar provider picker (Graphs tab, Rain radar
-// pane) offers Rainbow twice, one option per radar source: "Rainbow (limited)" ('rainbow', the
-// shared proxy) and "Rainbow (own key)" ('rainbowkey', the user's own key). The blob stores the
-// pick as radarProvider, the own key included; the 1.23.x pair ('rainbow' plus rainbowOwnKey) is
-// the boot migration's to fold in (settings/domain/migrations/radar.js, test/settings/adapter/clay-migrations.test.js), so the
-// page reads and saves radarProvider as it stands. Pinned here against the REAL generated page
-// for a fresh install, an install on either Rainbow, a 1.23.2 install booted through the
-// migrations, and for the setup wizard's country pick.
+// test/page/weather/config-radar-rainbow-options.test.js — the Rain radar picker (Setup › Data sources)
+// offers Rainbow once, on the user's own key ('rainbowkey'). The blob stores the pick as
+// radarProvider. Pinned here against the REAL generated page for a fresh install, an install
+// on Rainbow, a 1.23.2 install booted through the migrations, and for the setup wizard's
+// country pick, which turns the radar off where no keyless source covers the country.
 'use strict';
 const test = require('node:test');
 const assert = require('node:assert/strict');
@@ -24,8 +21,7 @@ const { loadLedger, COLORS } = require('../../helpers/clay-harness.js');
 const REGISTRY = require('../../../src/pkjs/settings/domain/migrations/registry.js');
 const KEYS = require('../../../src/pkjs/settings/domain/storage-keys');
 
-const LIMITED = 'Rainbow (limited)';
-const OWN = 'Rainbow (own key)';
+const OWN = 'Rainbow';
 
 /**
  * The open radar picker's option rows, keyed by value.
@@ -34,7 +30,7 @@ const OWN = 'Rainbow (own key)';
  */
 function openPickerRows(S) {
   const env = { color: true, radar: true, platform: 'basalt' };
-  const state = Object.assign({ radarMode: 'graph', radarProvider: 'rainbow' }, S);
+  const state = Object.assign({ radarMode: 'graph', radarProvider: 'dwd' }, S);
   const html = E.renderSelectModal(schema, {
     S: Object.assign({ radarSource: state.radarProvider }, state), ENV: env, openSelect: 'radarSource', selectQuery: '',
     evalCtx: Object.assign({}, state, { env })
@@ -80,71 +76,55 @@ function radarPage(stored, platform) {
 
 // --- the option list -----------------------------------------------------------------------
 
-test('the sheet lists both Rainbow options, each with its own desc', () => {
+test('the sheet lists Rainbow once, on the user\'s key', () => {
   const rows = openPickerRows({ holidayCountry: 'DE' });
-  assert.deepEqual(Object.keys(rows), ['off', 'dwd', 'metno', 'rainbow', 'rainbowkey', 'tomorrowio'],
+  assert.deepEqual(Object.keys(rows), ['off', 'dwd', 'metno', 'rainbowkey', 'tomorrowio'],
     'Off first, then the sources');
-  assert.match(rows.rainbow, /ssel-opt-name">Rainbow \(limited\)<\/span><span class="ssel-opt-desc">Worldwide satellite \+ radar nowcast · no key, every 30 min</);
-  assert.match(rows.rainbowkey, /ssel-opt-name">Rainbow \(own key\)<\/span><span class="ssel-opt-desc">Worldwide satellite \+ radar nowcast · needs a free key</);
+  assert.match(rows.rainbowkey, /ssel-opt-name">Rainbow<\/span><span class="ssel-opt-desc">Worldwide satellite \+ radar nowcast · needs a free key</);
 });
 
-test('recommended marker: a country\'s Rainbow pick is "Rainbow (limited)", the marker on its desc line', () => {
-  const rows = openPickerRows({ holidayCountry: 'US' });
-  assert.match(rows.rainbow, /<span class="ssel-opt-name">Rainbow \(limited\)<\/span>/, 'no "(Recommended)" after "(limited)"');
-  assert.match(rows.rainbow,
-    /<span class="ssel-opt-desc"><b class="ssel-rec">Recommended<\/b> · Worldwide satellite \+ radar nowcast · no key, every 30 min<\/span>/);
-  Object.keys(rows).filter((v) => v !== 'rainbow').forEach((v) => {
-    assert.doesNotMatch(rows[v], /ssel-rec/, v + ' carries no marker');
+test('recommended marker: Off where no keyless radar covers the country, DWD in Germany', () => {
+  const us = openPickerRows({ holidayCountry: 'US' });
+  assert.match(us.off, /ssel-rec/, 'Off is recommended outside Germany and the Nordics');
+  Object.keys(us).filter((v) => v !== 'off').forEach((v) => {
+    assert.doesNotMatch(us[v], /ssel-rec/, v + ' carries no marker');
   });
   const de = openPickerRows({ holidayCountry: 'DE' });
   assert.match(de.dwd, /<span class="ssel-opt-name">DWD <b class="ssel-rec">\(Recommended\)<\/b><\/span>/);
-  ['rainbow', 'rainbowkey'].forEach((v) => assert.doesNotMatch(de[v], /ssel-rec/, v));
+  assert.doesNotMatch(de.rainbowkey, /ssel-rec/);
 });
 
 // --- the page: what it opens on ------------------------------------------------------------
 
-test('a fresh install opens on "Rainbow (limited)": no key row, no key fields', () => {
+test('a fresh install opens on DWD: no key row, no key fields', () => {
   const page = bootGeneratedPage({ provider: 'openmeteo' });
   openRadarPane(page);
   const tab = page.scroll.innerHTML;
-  assert.deepEqual(trigger(tab), { label: LIMITED, aria: 'Rain radar: ' + LIMITED });
-  assert.equal(page.S.radarProvider, 'rainbow');
-  assert.ok(!('rainbowOwnKey' in page.S), 'no switch behind the picker');
+  assert.deepEqual(trigger(tab), { label: 'DWD', aria: 'Rain radar: DWD' });
+  assert.equal(page.S.radarProvider, 'dwd');
   assert.doesNotMatch(tab, /data-edit-sheet="radarKeyRainbow"/);
-  assert.doesNotMatch(tab, /API key<\/div>/, 'no key row');
-  assert.doesNotMatch(tab, /Needs an API key/);
-  assert.doesNotMatch(tab, /Use your own key/, 'the switch is gone as a control');
-  assert.doesNotMatch(tab, /data-k="rainbowApiKey"|data-k="rainbowOwnKey"|calls\/month/);
+  assert.doesNotMatch(tab, /data-k="rainbowApiKey"|calls\/month/);
 });
 
-test('an install on the own key opens on "Rainbow (own key)"', () => {
+test('an install on Rainbow opens on it, with its key row', () => {
   const page = radarPage({ radarProvider: 'rainbowkey', rainbowApiKey: 'saved-key-wxyz' });
   assert.equal(trigger(page.scroll.innerHTML).label, OWN);
   assert.equal(page.S.radarProvider, 'rainbowkey', 'the page holds the source');
   assert.match(page.scroll.innerHTML,
     /<div class="row nav indent" data-edit-sheet="radarKeyRainbow"[^>]*><div class="lft"><div class="lbl">Rainbow API key<\/div><div class="hint">Key ••••wxyz/,
-    'the own key\'s key row, naming the saved key');
-});
-
-test('the shared radar with a key kept from earlier stays "Rainbow (limited)": a key alone switches nothing', () => {
-  const page = radarPage({ radarProvider: 'rainbow', rainbowApiKey: 'kept' });
-  assert.equal(trigger(page.scroll.innerHTML).label, LIMITED);
-  assert.doesNotMatch(page.scroll.innerHTML, /data-edit-sheet="radarKeyRainbow"/);
+    'the key row, naming the saved key');
 });
 
 // --- Save stores the pick -----------------------------------------------------------------
 
-test('Save: every pick stores itself as radarProvider, with no switch beside it', async () => {
+test('Save: every pick stores itself as radarProvider', async () => {
   const cases = [
     // [stored, pick (or null), expected radarProvider, label]
-    [{}, null, 'rainbow', 'fresh install, untouched'],
-    [{ radarProvider: 'rainbowkey', rainbowApiKey: 'k' }, null, 'rainbowkey', 'own key, untouched'],
-    [{ radarProvider: 'rainbow' }, null, 'rainbow', 'limited, untouched'],
-    [{ radarProvider: 'rainbow', rainbowApiKey: 'k' }, 'rainbowkey', 'rainbowkey', 'limited -> own key'],
-    [{ radarProvider: 'rainbowkey', rainbowApiKey: 'k' }, 'rainbow', 'rainbow', 'own key -> limited'],
-    [{ radarProvider: 'rainbowkey', rainbowApiKey: 'k' }, 'dwd', 'dwd', 'own key -> DWD'],
-    [{ radarProvider: 'dwd' }, 'rainbow', 'rainbow', 'DWD -> limited'],
-    [{ radarProvider: 'tomorrowio', tomorrowioApiKey: 't' }, 'rainbowkey', 'rainbowkey', 'Tomorrow.io -> own key']
+    [{}, null, 'dwd', 'fresh install, untouched'],
+    [{ radarProvider: 'rainbowkey', rainbowApiKey: 'k' }, null, 'rainbowkey', 'Rainbow, untouched'],
+    [{ radarProvider: 'rainbowkey', rainbowApiKey: 'k' }, 'dwd', 'dwd', 'Rainbow -> DWD'],
+    [{ radarProvider: 'dwd' }, 'rainbowkey', 'rainbowkey', 'DWD -> Rainbow'],
+    [{ radarProvider: 'tomorrowio', tomorrowioApiKey: 't' }, 'rainbowkey', 'rainbowkey', 'Tomorrow.io -> Rainbow']
   ];
   for (const [stored, pick, provider, label] of cases) {
     const page = radarPage(stored);
@@ -155,24 +135,22 @@ test('Save: every pick stores itself as radarProvider, with no switch beside it'
     }
     const saved = await page.save();
     assert.equal(saved.radarProvider, provider, label + ': radarProvider');
-    assert.ok(!('rainbowOwnKey' in saved), label + ': no rainbowOwnKey');
   }
 });
 
-test('Save keeps the key of either Rainbow option', async () => {
+test('Save keeps the Rainbow key after a switch to another source', async () => {
   const page = radarPage({ radarProvider: 'rainbowkey', rainbowApiKey: 'keep-me' });
   page.openSelect('radarSource');
-  page.pickOption('radarSource', 'rainbow');
+  page.pickOption('radarSource', 'dwd');
   const saved = await page.save();
-  assert.equal(saved.rainbowApiKey, 'keep-me', 'limited keeps the key for a later switch back');
+  assert.equal(saved.rainbowApiKey, 'keep-me', 'kept for a later switch back');
 });
 
-test('aplite (no Rain radar pane, radar forced off) keeps a stored own key through a Save', async () => {
+test('aplite (no Rain radar pane, radar forced off) keeps a stored Rainbow key through a Save', async () => {
   const page = bootGeneratedPage({ provider: 'openmeteo', radarProvider: 'rainbowkey',
     rainbowApiKey: 'k' }, 'aplite');
   const saved = await page.save();
   assert.equal(saved.radarProvider, 'rainbowkey');
-  assert.ok(!('rainbowOwnKey' in saved));
 });
 
 // --- the hooks hold no radar dialect -----------------------------------------------------------
@@ -190,7 +168,7 @@ function hookCtx(store) {
 }
 
 test('onLoad and onSubmit pass radarProvider through as stored and write no rainbowOwnKey', () => {
-  ['rainbow', 'rainbowkey', 'dwd', 'tomorrowio'].forEach((radarProvider) => {
+  ['rainbowkey', 'dwd', 'tomorrowio'].forEach((radarProvider) => {
     const h = hookCtx({ radarProvider: radarProvider, radarMode: 'graph', fetchIntervalMin: '15' });
     OB.onLoad(h.ctx);
     assert.equal(h.store.radarProvider, radarProvider, radarProvider + ': open');
@@ -219,7 +197,7 @@ function upgradedRadarPage(stored, marked) {
   return page;
 }
 
-test('upgrade: a 1.23.2 install on its own key opens on "Rainbow (own key)" and saves it as itself', async () => {
+test('upgrade: a 1.23.2 install on its own key opens on Rainbow and saves it as itself', async () => {
   const at = REGISTRY.findIndex((e) => e.key === KEYS.ALERT_LEVELS_MIGRATION_KEY);
   const through123 = REGISTRY.slice(0, at).map((e) => e.key);
   const page = upgradedRadarPage({ provider: 'openmeteo', radarMode: 'graph', radarProvider: 'rainbow',
@@ -228,29 +206,23 @@ test('upgrade: a 1.23.2 install on its own key opens on "Rainbow (own key)" and 
   const saved = await page.save();
   assert.equal(saved.radarProvider, 'rainbowkey');
   assert.ok(!('rainbowOwnKey' in saved));
-  const limited = upgradedRadarPage({ provider: 'openmeteo', radarMode: 'graph', radarProvider: 'rainbow',
-    rainbowOwnKey: false, onboardingDone: true }, through123);
-  assert.equal(trigger(limited.scroll.innerHTML).label, LIMITED);
-});
-
-test('upgrade: the dev phone, every other marker set, opens on the Rainbow its pair ran', () => {
-  const others = REGISTRY.map((e) => e.key).filter((k) => k !== KEYS.RAINBOW_OWN_KEY_SOURCE_MIGRATION_KEY);
-  const page = upgradedRadarPage({ provider: 'openmeteo', radarMode: 'graph', radarProvider: 'rainbow',
-    rainbowOwnKey: true, rainbowApiKey: 'saved-key-wxyz', onboardingDone: true }, others);
-  assert.equal(trigger(page.scroll.innerHTML).label, OWN);
-  assert.equal(page.S.radarProvider, 'rainbowkey');
 });
 
 // --- the setup wizard -------------------------------------------------------------------------
 
-test('the wizard\'s country pick keeps "Rainbow (own key)" where the country\'s pick is Rainbow', () => {
-  const own = { holidayCountry: 'US', radarProvider: 'rainbowkey', provider: 'openmeteo' };
-  W.applyDerived(own);
-  assert.equal(own.radarProvider, 'rainbowkey', 'the own key stays, as it did as a switch');
-  const de = { holidayCountry: 'DE', radarProvider: 'rainbowkey', provider: 'openmeteo' };
-  W.applyDerived(de);
+const ENV = { color: true, radar: true, platform: 'basalt' };
+
+test('the wizard\'s country pick: DWD/Met.no where they cover, else the radar off unless a keyed source is picked', () => {
+  const de = { holidayCountry: 'DE', radarProvider: 'rainbowkey', provider: 'openmeteo', radarEnabled: false };
+  W.applyDerived(de, ENV);
   assert.equal(de.radarProvider, 'dwd', 'Germany\'s pick is DWD');
-  const fresh = { holidayCountry: 'US', radarProvider: 'dwd', provider: 'dwd' };
-  W.applyDerived(fresh);
-  assert.equal(fresh.radarProvider, 'rainbow', 'everyone else starts on "Rainbow (limited)"');
+  assert.equal(de.radarEnabled, true, 'and the radar is on');
+  const us = { holidayCountry: 'US', radarProvider: 'dwd', provider: 'dwd' };
+  W.applyDerived(us, ENV);
+  assert.equal(us.radarEnabled, false, 'no keyless radar covers the US: off');
+  assert.equal(us.radarSource, 'off');
+  const own = { holidayCountry: 'US', radarProvider: 'rainbowkey', provider: 'openmeteo' };
+  W.applyDerived(own, ENV);
+  assert.equal(own.radarProvider, 'rainbowkey', 'a keyed source stays');
+  assert.notEqual(own.radarEnabled, false, 'and stays on');
 });

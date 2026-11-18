@@ -459,7 +459,7 @@ test('a non-object parking slot is discarded, not laundered into junk keys', () 
     'only real credentials are parked — no laundered index keys');
 });
 
-test('reset keeps the Rainbow (own key) radar key, and a post-reset save fills it back', () => {
+test('reset keeps the Rainbow radar key, and a post-reset save fills it back', () => {
   // The radar key is a credential like the forecast keys: someone signed up for it.
   const store = installFakeStorage();
   delete require.cache[require.resolve('../../../src/pkjs/settings/adapter/clay-settings')];

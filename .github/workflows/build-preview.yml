@@ -40,7 +40,6 @@ jobs:
 
       - name: Build dev .pbw
         env:
-          RAINBOW_PROXY_ENDPOINT: ${{ secrets.RAINBOW_PROXY_ENDPOINT_PREVIEW }}
           AQICN_TOKEN: ${{ secrets.AQICN_TOKEN_PREVIEW }}
         shell: bash
         run: |

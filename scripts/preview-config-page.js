@@ -92,10 +92,7 @@ function run(opts) {
       // Weather-tab "Current" chip seed (Berlin). The graphs themselves fetch
       // live from the desktop browser — file:// pages get real CORS answers
       // from Open-Meteo/Brightsky, so the tab is fully reviewable here.
-      graphsSeed: { lat: 52.52, lon: 13.405, name: 'Berlin', gps: true },
-      // The Rainbow key Test button's proxy (key-check mode). Unset = the button says
-      // the test isn't available; point it at a local `supabase functions serve` stack.
-      rainbowEndpoint: process.env.RAINBOW_PROXY_ENDPOINT || ''
+      graphsSeed: { lat: 52.52, lon: 13.405, name: 'Berlin', gps: true }
     }, previewFailureData()),
     returnTo: '#'
   });

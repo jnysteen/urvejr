@@ -13,24 +13,7 @@
 // https://developer.repebble.com/guides/plugins/preview/ (Declaring).
 //
 // package.template.json lists every API host the code requests (test/repo/uses-permissions.test.js
-// keeps the list and the code in step); the host of the endpoint scripts/prepare-package.sh
-// injects from the build's environment (the Rainbow radar proxy, a Supabase function) is known
-// only at build time, so prepare-package.sh adds it, as an entry of its own, through
-// addEndpointHosts.
-
-// The injected endpoint's entry: the default radar outside Germany and the Nordics (the Rainbow
-// proxy). Required: a fresh install shows the radar, and the page's domains are fixed when it opens.
-const ENDPOINTS_REASON = 'urvejr server: rain radar';
-
-/**
- * The hostname of an http(s) URL.
- * @param {string} url A URL, or '' for an endpoint the build leaves empty.
- * @returns {?string} The lower-case hostname, or null for anything else.
- */
-function hostOf(url) {
-  const m = /^https?:\/\/([^/?#:]+)/i.exec(String(url || '').trim());
-  return m ? m[1].toLowerCase().replace(/\.$/, '') : null;
-}
+// keeps the list and the code in step).
 
 /**
  * Whether a declared domain covers a host: itself and its subdomains.
@@ -63,38 +46,4 @@ function declaredDomains(uses) {
   return internetEntries(uses).reduce((all, p) => all.concat((p.parameters && p.parameters.domains) || []), []);
 }
 
-/**
- * Declare the hosts of the build's endpoints, in place: an Internet entry of their own
- * (ENDPOINTS_REASON, required), after the last required Internet entry, for every host no
- * required entry covers yet, once each (an optional entry covering one would leave the app's
- * own backend to a question the user may decline). An empty endpoint (a dev build without it)
- * adds nothing, and with nothing to add no entry is made: an Internet entry without domains
- * would reach every site.
- * @param {Object} pebble package.json's "pebble" object, holding usesPermissions.
- * @param {string[]} endpoints The endpoint URLs.
- * @returns {string[]} The hosts added.
- */
-function addEndpointHosts(pebble, endpoints) {
-  const uses = pebble.usesPermissions || [];
-  const entries = internetEntries(uses);
-  if (!entries.length) {
-    throw new Error('package.template.json declares no Internet permission to add the endpoint hosts to');
-  }
-  const required = entries.filter((p) => p.required === true);
-  const requiredDomains = declaredDomains(required);
-  const added = [];
-  endpoints.map(hostOf).forEach((host) => {
-    if (host && !covered(host, requiredDomains.concat(added))) { added.push(host); }
-  });
-  if (!added.length) { return added; }
-  const after = uses.indexOf(required.length ? required[required.length - 1] : entries[entries.length - 1]);
-  uses.splice(after + 1, 0, {
-    name: 'Internet',
-    parameters: { domains: added.slice() },
-    reason: ENDPOINTS_REASON,
-    required: true
-  });
-  return added;
-}
-
-module.exports = { ENDPOINTS_REASON, hostOf, covered, internetEntries, declaredDomains, addEndpointHosts };
+module.exports = { covered, internetEntries, declaredDomains };

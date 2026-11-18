@@ -3,7 +3,7 @@
 // OpenWeatherMap provider logged its key -- so every PKJS log a user attached to a
 // bug report carried their OpenWeatherMap / Tomorrow.io / Yandex keys in plain text.
 // Loads the real index.js under the index-boot.test.js mocks and drives
-// ready -> Save -> reopen settings; the Rainbow (own key) radar key likewise, and
+// ready -> Save -> reopen settings; the Rainbow radar key likewise, and
 // through real radar cycles (test/helpers/index-harness.js).
 const test = require('node:test');
 const assert = require('node:assert/strict');
@@ -89,7 +89,7 @@ test('settings open/close and provider construction never log an API key', (t) =
     'the settings page still receives the real key');
 });
 
-test('a Rainbow (own key) radar cycle never logs the key', (t) => {
+test('a Rainbow radar cycle never logs the key', (t) => {
   // The boot above never runs a radar request (its XHR never answers and there is
   // no geolocation). This one does, down the three logging paths: a 401 key
   // rejection, a network error and an empty 200 (a parse error), then a Save.

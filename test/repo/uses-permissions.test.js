@@ -7,8 +7,7 @@
 // every host the code requests must be declared, and every URL in the code that is NOT a request (a
 // link in a hint, a source comment, a header value) is named below with why. A new URL fails
 // here until it is one or the other. (Buy Me a Coffee, only linked, is declared all the same: the
-// owner's, 2026-11-14.) scripts/lib/uses-permissions.js adds the build-injected
-// endpoint's host (the Rainbow proxy) at build time, as an entry of its own.
+// owner's, 2026-11-14.)
 const test = require('node:test');
 const assert = require('node:assert');
 const fs = require('fs');
@@ -139,8 +138,7 @@ test('every declared domain is one the code requests (or, Buy Me a Coffee, links
 
 // Required (the owner's, 2026-11-13 and 2026-11-14): every weather service the app can fetch
 // from (the forecast and radar services, keyed or not, air quality, DWD pollen), the town's name
-// and the settings' place search, the public holidays (Nager.Date), Buy Me a Coffee and the app's
-// own backend (the build adds its entry, required). Installing then waits for an answer on all of
+// and the settings' place search, the public holidays (Nager.Date) and Buy Me a Coffee. Installing then waits for an answer on all of
 // them, so switching services or opening settings never meets a first request that fails while
 // the phone asks; a "no" is an answer too, and the install goes on. Optional, asked about when
 // first used: LocationIQ (only a typed Manual location uses it) and Health.
@@ -185,35 +183,4 @@ test('Location is declared because the code uses it, ShowNotifications is not', 
   assert.ok(!uses.some((p) => p.name === 'ShowNotifications'), 'ShowNotifications is not declared');
   assert.match(code, /navigator\.geolocation/, 'premise: the code asks for the location');
   assert.ok(uses.some((p) => p.name === 'Location'), 'Location is declared');
-});
-
-test('the build adds the injected endpoint\'s host as a required entry of its own, once', () => {
-  const pkg = { usesPermissions: [{ name: 'Location', reason: 'To x', required: true },
-    { name: 'Internet', parameters: { domains: ['api.met.no'] }, reason: 'To a', required: true },
-    { name: 'Internet', parameters: { domains: ['date.nager.at'] }, reason: 'To b', required: false }] };
-  const added = perms.addEndpointHosts(pkg, ['https://abc.supabase.co/functions/v1/rainbow-nowcast',
-    'https://abc.supabase.co/functions/v1/other', '', 'https://api.met.no/x']);
-  assert.deepEqual(added, ['abc.supabase.co']);
-  assert.deepEqual(pkg.usesPermissions[2], { name: 'Internet', parameters: { domains: ['abc.supabase.co'] },
-    reason: perms.ENDPOINTS_REASON, required: true }, 'after the last required Internet entry');
-  assert.equal(pkg.usesPermissions.length, 4);
-  assert.deepEqual(perms.addEndpointHosts(pkg, ['https://abc.supabase.co/functions/v1/rainbow-nowcast']), [],
-    'a host already declared adds nothing');
-  // An optional entry covering the host leaves it to a question the user may decline: the app's
-  // own backend still gets its required entry.
-  const optional = { usesPermissions: [{ name: 'Internet', parameters: { domains: ['api.met.no'] }, reason: 'To a', required: true },
-    { name: 'Internet', parameters: { domains: ['supabase.co'] }, reason: 'To b', required: false }] };
-  assert.deepEqual(perms.addEndpointHosts(optional, ['https://abc.supabase.co/functions/v1/rainbow-nowcast']), ['abc.supabase.co']);
-  assert.equal(optional.usesPermissions[1].required, true, 'its own required entry, after the required one');
-  // A dev build without the endpoints adds no entry: one without domains would reach every site.
-  const dev = { usesPermissions: [{ name: 'Internet', parameters: { domains: ['api.met.no'] }, reason: 'To a', required: true }] };
-  assert.deepEqual(perms.addEndpointHosts(dev, ['']), []);
-  assert.equal(dev.usesPermissions.length, 1);
-  assert.throws(() => perms.addEndpointHosts({ usesPermissions: [{ name: 'Location' }] }, ['https://x.y']), /no Internet permission/);
-  assert.equal(perms.hostOf('HTTPS://Abc.Supabase.co:443/f'), 'abc.supabase.co');
-  assert.equal(perms.hostOf(''), null);
-  assert.match(perms.ENDPOINTS_REASON, /^urvejr server: /, 'the label names the server');
-  const script = fs.readFileSync(path.join(ROOT, 'scripts/prepare-package.sh'), 'utf8');
-  assert.match(script, /addEndpointHosts\(pkg\.pebble,\s*\[rainbowEndpoint\]\)/,
-    'prepare-package.sh passes the Rainbow endpoint');
 });

@@ -3,9 +3,8 @@
 // aplite (Pebble Classic/Steel) compiles the rain radar out (no WW_RAIN_RADAR)
 // and drops every RAIN_RADAR_* tuple, and its settings page hides the Radar tab.
 // An install whose settings were never saved still holds the seeded defaults
-// (radarMode 'graph', radarProvider 'rainbow'), so the phone used to spend a
-// Rainbow proxy request — and the shared monthly budget — on every fetch cycle
-// for a watch that throws the answer away. Boots the real index.js per platform
+// (radarMode 'graph'), so the phone used to spend a radar request on every fetch
+// cycle for a watch that throws the answer away (the probe runs Rainbow on a key). Boots the real index.js per platform
 // in a child process (see helpers/boot-radar-probe.js).
 const test = require('node:test');
 const assert = require('node:assert/strict');

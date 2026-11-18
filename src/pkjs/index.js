@@ -76,8 +76,7 @@ var fetchCycle = createFetchCycle({
     authBackoff: authBackoff,
     notices: notices,
     env: {
-        waqiToken: (pkg.waqi && pkg.waqi.token) || '',
-        rainbowEndpoint: (pkg.rainbow && pkg.rainbow.endpoint) || ''
+        waqiToken: (pkg.waqi && pkg.waqi.token) || ''
     },
     now: function () { return new Date(); },
     getPhoneBattery: phoneBattery.bakeFacts,
@@ -155,10 +154,7 @@ Pebble.addEventListener('showConfiguration', function(e) {
         // The holidays the phone has cached for the stored country around today
         // (nager-source.js forPage), or null: the Watchface tab's watch preview marks
         // them in its calendar while that country stays picked.
-        holidays: nagerSource.forPage(effectiveHolidayCountry(values), new Date(nowMs)),
-        // The Rainbow proxy endpoint: the key Test button POSTs to its '/key-check' path ('' = no
-        // endpoint in this build; the button then says the test isn't available).
-        rainbowEndpoint: (pkg.rainbow && pkg.rainbow.endpoint) || ''
+        holidays: nagerSource.forPage(effectiveHolidayCountry(values), new Date(nowMs))
     };
     // Logged, not just passed: false here silently OMITS both phone-battery slot
     // items from all twelve slot dropdowns, and nothing on the page says why. This
@@ -191,8 +187,6 @@ Pebble.addEventListener('webviewclosed', function(e) {
         return;
     }
 
-    // The radar source: "Rainbow (limited)" ('rainbow') and "Rainbow (own key)"
-    // ('rainbowkey') are two radarProvider values.
     var oldRadarProvider = app.settings ? app.settings.radarProvider : undefined;
     var oldRadarMode = app.settings ? app.settings.radarMode : undefined;
     var oldRadarSky = app.settings ? app.settings.radarSky !== false : undefined;
@@ -305,7 +299,7 @@ Pebble.addEventListener('ready',
             platform: statusMigrationPlatform,
             knownPlatform: knownPlatform,
             colors: DEFAULT_HOLIDAY_COLORS,
-            defaultRadarProvider: 'rainbow',
+            defaultRadarProvider: 'dwd',
             // Read BEFORE seedDefaults above: the onboarding migration's only way
             // to tell a fresh install (wizard auto-opens) from an existing one.
             hadExistingInstall: hadExistingInstall
@@ -348,7 +342,6 @@ Pebble.addEventListener('ready',
         // than a week are dropped instead of building up (stale notices).
         try {
             notices.gc(Date.now());
-            storageKeys.RETIRED_KEYS.forEach(function (key) { localStorage.removeItem(key); });
         }
         catch (ex2) {
             console.log('cache gc failed: ' + ex2.message);

@@ -1,7 +1,7 @@
 // test/shell/radar-permanent-failure.test.js
 //
 // End to end on the phone side: a radar source that can NEVER answer (no
-// tomorrow.io or Rainbow (own key) key, a 401/403 key rejection, an
+// tomorrow.io or Rainbow key, a 401/403 key rejection, an
 // endpoint-less Rainbow build) must take the radar off the watch, once. It used to call back null like a
 // transient failure: the radar keys stayed out of the send, and the watch —
 // which cannot tell that from a deduped dry skip — rolled its last window
@@ -93,8 +93,7 @@ const fetchCycle = createFetchCycle({
   outbox: outbox,
   authBackoff: authBackoff,
   notices: notices,
-  trackWeatherFetch: function() {},
-  env: { waqiToken: '', rainbowEndpoint: '' },
+  env: { waqiToken: '' },
   now: function() { return new Date(current.slotZero * 1000); },
   // The stub ACKs synchronously, so every cycle settles before start() returns;
   // the watchdog each start arms is dropped instead of left pending.
@@ -112,7 +111,6 @@ function cycle(radarId, cfg, slotZero, opts) {
   sent = [];
   forecastFails = Boolean(opts.forecastFails);
   current = { radarId: radarId, cfg: cfg, slotZero: slotZero, sky: Boolean(opts.sky) };
-  assert.equal(cfg.rainbowEndpoint, '', 'every case runs on an endpoint-less build (env.rainbowEndpoint)');
   assert.equal(fetchCycle.start(false), true, 'the cycle starts');
   var radarSends = sent.filter(function(m) { return 'RAIN_RADAR_TREND_UINT8' in m; });
   assert.ok(radarSends.length <= 1, 'at most one radar send per cycle');
@@ -121,9 +119,8 @@ function cycle(radarId, cfg, slotZero, opts) {
 
 const RAIN_AHEAD = function(i) { return i >= 12 ? 3 : 0; };
 const CLEAR = { RAIN_RADAR_TREND_UINT8: [], RAIN_RADAR_TREND_AREA_UINT8: [], RAIN_RADAR_START: 0 };
-const TIO = { rainbowEndpoint: '', tomorrowioApiKey: 'KEY' };
-// Rainbow (own key) calls Rainbow directly, so it runs on an endpoint-less build.
-const RBK = { rainbowEndpoint: '', rainbowApiKey: 'KEY' };
+const TIO = { tomorrowioApiKey: 'KEY' };
+const RBK = { rainbowApiKey: 'KEY' };
 
 function reset() {
   for (var k in store) { delete store[k]; }
@@ -152,7 +149,7 @@ test('switching the radar to tomorrow.io with no key clears the watch radar once
   outbox.clearWeatherCaches();
   var requests = 0;
   transport = function() { requests += 1; };
-  var noKey = { rainbowEndpoint: '', tomorrowioApiKey: '' };
+  var noKey = { tomorrowioApiKey: '' };
   var first = cycle('tomorrowio', noKey, T0 + 6 * SLOT);
   assert.ok(first, 'the switch sends radar keys (it used to send none, leaving the old window to roll)');
   assert.deepEqual(radarOf(first), CLEAR);
@@ -190,18 +187,7 @@ test('a transient failure (503) still sends no radar keys: the watch keeps its w
   assert.deepEqual(limitSends(), [], 'and no limit notice either');
 });
 
-test('Rainbow selected on an endpoint-less build clears the watch radar once', () => {
-  reset();
-  transport = function(url, onSuccess) { onSuccess(timelinesBody(T0, RAIN_AHEAD)); };
-  assert.ok(cycle('tomorrowio', TIO, T0), 'the previous source\'s window is on the watch');
-  outbox.clearWeatherCaches();
-  var first = cycle('rainbow', { rainbowEndpoint: '', tomorrowioApiKey: '' }, T0 + 6 * SLOT);
-  assert.ok(first);
-  assert.deepEqual(radarOf(first), CLEAR);
-  assert.equal(cycle('rainbow', { rainbowEndpoint: '', tomorrowioApiKey: '' }, T0 + 12 * SLOT), null);
-});
-
-test('switching the radar to Rainbow (own key) with no key clears the watch radar once', () => {
+test('switching the radar to Rainbow with no key clears the watch radar once', () => {
   reset();
   transport = function(url, onSuccess) { onSuccess(rainbowBody(T0, RAIN_AHEAD)); };
   assert.ok(cycle('rainbowkey', RBK, T0), 'a real window with rain reaches the watch first');
@@ -209,7 +195,7 @@ test('switching the radar to Rainbow (own key) with no key clears the watch rada
   outbox.clearWeatherCaches();
   var requests = 0;
   transport = function() { requests += 1; };
-  var noKey = { rainbowEndpoint: '', rainbowApiKey: '' };
+  var noKey = { rainbowApiKey: '' };
   var first = cycle('rainbowkey', noKey, T0 + 6 * SLOT);
   assert.ok(first, 'the switch sends radar keys');
   assert.deepEqual(radarOf(first), CLEAR);
@@ -218,7 +204,7 @@ test('switching the radar to Rainbow (own key) with no key clears the watch rada
   assert.equal(requests, 0, 'no HTTP request without a key');
 });
 
-test('Rainbow (own key): a 401 clears once, and the healed key\'s dry window still reaches the watch', () => {
+test('Rainbow: a 401 clears once, and the healed key\'s dry window still reaches the watch', () => {
   reset();
   transport = function(url, onSuccess) { onSuccess(rainbowBody(T0, RAIN_AHEAD)); };
   assert.ok(cycle('rainbowkey', RBK, T0));
@@ -236,7 +222,7 @@ test('Rainbow (own key): a 401 clears once, and the healed key\'s dry window sti
   assert.equal(healed.RAIN_RADAR_TREND_UINT8.length, N);
 });
 
-test('Rainbow (own key): a 200 without the echoed point sends no radar keys (the echo guard runs end to end)', () => {
+test('Rainbow: a 200 without the echoed point sends no radar keys (the echo guard runs end to end)', () => {
   reset();
   transport = function(url, onSuccess) { onSuccess(rainbowBody(T0, RAIN_AHEAD)); };
   assert.ok(cycle('rainbowkey', RBK, T0));
@@ -244,7 +230,7 @@ test('Rainbow (own key): a 200 without the echoed point sends no radar keys (the
   assert.equal(cycle('rainbowkey', RBK, T0 + 6 * SLOT), null);
 });
 
-test('Rainbow (own key): empty 200s roll the window for 30 min, then clear it once', () => {
+test('Rainbow: empty 200s roll the window for 30 min, then clear it once', () => {
   reset();
   transport = function(url, onSuccess) { onSuccess(''); };
   assert.equal(cycle('rainbowkey', RBK, T0), null, 'transient at first');
@@ -255,7 +241,7 @@ test('Rainbow (own key): empty 200s roll the window for 30 min, then clear it on
   assert.equal(cycle('rainbowkey', RBK, T0 + 7 * SLOT), null, 'the dedupe sends the clear once');
 });
 
-test('Rainbow (own key): an old null does not clear the window another source just put on the watch', () => {
+test('Rainbow: an old null does not clear the window another source just put on the watch', () => {
   reset();
   var down = function(url, onSuccess, onError) { onError({ code: 'status_503', detail: 'http_status' }); };
   transport = down;
@@ -323,7 +309,7 @@ test('tomorrow.io: a 429 sends the limit notice once, and the next equal dry win
   assert.equal(cycle('tomorrowio', TIO, T0 + 4 * SLOT), null, 'then the dedupe is back to aligning windows');
 });
 
-test('Rainbow (own key): a limit that lasts over 30 min sends the notice once and never the clear', () => {
+test('Rainbow: a limit that lasts over 30 min sends the notice once and never the clear', () => {
   reset();
   transport = function(url, onSuccess) { onSuccess(rainbowBody(T0, RAIN_AHEAD)); };
   assert.ok(cycle('rainbowkey', RBK, T0));
