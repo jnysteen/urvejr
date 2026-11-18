@@ -1250,8 +1250,8 @@ var PConf = (typeof global !== 'undefined' && global.PConf) ? global.PConf
         ensureStyle();
         var overlay = document.createElement('div');
         overlay.id = 'wizard';
-        // emery's screen is 200 px wide, the others 144: the CSS sizes each by its own width.
-        overlay.className = run.env.platform === 'emery' ? 'w200' : '';
+        // The screen is 200 px wide: the CSS sizes the pictures by it.
+        overlay.className = 'w200';
         overlay.setAttribute('role', 'dialog');
         overlay.setAttribute('aria-modal', 'true');
         overlay.setAttribute('aria-labelledby', 'wiz-title');

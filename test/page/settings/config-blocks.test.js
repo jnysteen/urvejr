@@ -789,12 +789,6 @@ test('radarPreview hides the countdown band while the Watch bar shows no rain', 
   assert.ok(unset.indexOf("Rain in 15'") >= 0, 'the default ticks show it');
 });
 
-test('radarPreview never shows the countdown band on aplite', () => {
-  const svg = RD.radarPreview({ radarProvider: 'dwd', radarColor: 'multicolor', rainCountdownHorizon: '60' }, { color: false, platform: 'aplite' });
-  assert.equal(svg.indexOf("Rain in 15'"), -1, 'no band on aplite even with a horizon set');
-  assert.ok(svg.indexOf('viewBox="0 0 200 81"') >= 0, 'aplite frame stays at the no-band height');
-});
-
 /**
  * The rain alert's icons in a preview, as the page draws them: the rain cloud (condition-icons.js
  * RAIN) in a group of its own (preview-radar.js rainIcon).
@@ -1232,13 +1226,9 @@ test('forecastPreview: bw rain bars draw above (after) the dithered metric-area 
 });
 
 test('radarPreview: radarColor=Solid in the light theme uses DarkGray, not black', () => {
-  // platform: 'aplite' — the countdown band's own text is theme_fg() (black in light
-  // polarity), unrelated to bar/legend fill; excluded here to isolate the bars. aplite is
-  // the only remaining band gate now that the horizon has no Off option.
-  const svg = RD.radarPreview({ radarProvider: 'dwd', radarColor: 'white', theme: 'light' }, { color: true, platform: 'aplite' });
-  assert.ok(svg.indexOf('width="200" height="81" fill="#FFFFFF"') >= 0, 'canvas background is white');
+  const svg = RD.radarPreview({ radarProvider: 'dwd', radarColor: 'white', theme: 'light' }, { color: true, platform: 'emery' });
+  assert.ok(/width="200" height="\d+" fill="#FFFFFF"/.test(svg), 'canvas background is white');
   assert.ok(svg.indexOf('fill="#555555"') >= 0, 'solid bars/legend render DarkGray');
-  assert.equal(svg.indexOf('fill="#000000"'), -1, 'never a plain black bar/legend fill in the light theme');
 });
 
 test('forecastPreview: rainBarColor=Solid in the light theme uses DarkGray, not black', () => {
@@ -1293,14 +1283,10 @@ test('statusSlotDefault resolver: env-aware slot default sourced from the catalo
   const fn = global.PConf.defaultsResolvers.get('statusSlotDefault');
   assert.equal(typeof fn, 'function', 'resolver registered');
   assert.equal(fn({ hr: true }, { slotKey: 'statusHealthRight' }), 'hr');
-  assert.equal(fn({ hr: false }, { slotKey: 'statusHealthRight' }), 'sleep');
   assert.equal(fn({}, { slotKey: 'statusForecastRight' }), 'sun');
-  // The top strip carries the other flavor: three readings on emery, air quality in its
-  // corner; on the narrower displays air quality, the date and the battery corner.
+  // The top strip: three readings, air quality in its corner.
   assert.equal(fn({ platform: 'emery' }, { slotKey: 'statusTopLeft' }), 'week');
   assert.equal(fn({ platform: 'emery' }, { slotKey: 'statusTopRight' }), 'aqi');
-  assert.equal(fn({ platform: 'basalt' }, { slotKey: 'statusTopLeft' }), 'aqi');
-  assert.equal(fn({ platform: 'basalt' }, { slotKey: 'statusTopRight' }), 'battery');
 });
 
 test('todayDate default resolver returns today in local YYYY-MM-DD form', () => {
@@ -1793,7 +1779,7 @@ test('forecastPreview: a top stripe puts the plot below its band, the temperatur
 // The radar's sky rows (Graphs › Rain radar -> Clouds, sun & lightning): the preview draws
 // rain_radar_layer.c's band — the cloud and sun rows as stripe cells, the bolts
 // over them — only when the toggle is on and the radar GRAPH is shown.
-test('radarPreview: the sky rows show with the toggle in graph mode, never on aplite', () => {
+test('radarPreview: the sky rows show with the toggle in graph mode', () => {
   const base = { radarProvider: 'dwd', radarColor: 'multicolor', radarMode: 'graph', theme: 'dark' };
   const env = { color: true, platform: 'basalt' };
   const on = RD.radarPreview(Object.assign({ radarSky: true }, base), env);
@@ -1804,10 +1790,8 @@ test('radarPreview: the sky rows show with the toggle in graph mode, never on ap
   assert.equal(off.indexOf('fill="#AAAAFF"'), -1, 'no rows with the toggle off');
   assert.equal(RD.radarPreview(Object.assign({ radarSky: true }, base, { radarMode: 'countdown' }), env)
     .indexOf('fill="#AAAAFF"'), -1, 'only the graph draws the rows');
-  assert.equal(RD.radarPreview(Object.assign({ radarSky: true }, base), { color: true, platform: 'aplite' })
-    .indexOf('fill="#AAAAFF"'), -1, 'aplite has no radar sky');
   // B&W dithers both rows.
-  const bw = RD.radarPreview(Object.assign({ radarSky: true }, base), { color: false, platform: 'diorite' });
+  const bw = RD.radarPreview(Object.assign({ radarSky: true }, base), { color: false, platform: 'emery' });
   assert.ok(bw.indexOf('<pattern id="rsd4"') >= 0 && bw.indexOf('url(#rsd') >= 0);
 });
 
@@ -1823,7 +1807,7 @@ const svgRects = (svg) => [...svg.matchAll(
   .map((m) => ({ x: +m[1], y: +m[2], w: +m[3], h: +m[4], fill: m[5] }));
 const near = (a, b) => Math.abs(a - b) < 1e-6;
 
-[['basalt', 6], ['emery', 8]].forEach(([platform, pitch]) => {
+[['emery', 8]].forEach(([platform, pitch]) => {
   test(`radarPreview (${platform}): the sky rows sit on the watch's pixel grid`, () => {
     const u = RADAR_STEP / pitch;
     const svg = RD.radarPreview({ radarProvider: 'dwd', radarColor: 'multicolor', radarMode: 'graph',
@@ -1863,7 +1847,7 @@ const near = (a, b) => Math.abs(a - b) < 1e-6;
 
 test('radarPreview: the bolts are drawn at watch scale where draw_radar_sky puts them', () => {
   // Light theme: the bolt (Orange) differs from the sun (ChromeYellow) there.
-  [['basalt', 6], ['emery', 8]].forEach(([platform, pitch]) => {
+  [['emery', 8]].forEach(([platform, pitch]) => {
     const u = RADAR_STEP / pitch;
     const rects = svgRects(RD.radarPreview({ radarProvider: 'dwd', radarColor: 'multicolor',
       radarMode: 'graph', theme: 'light', radarSky: true }, { color: true, platform }));

@@ -1,6 +1,6 @@
 
 // ES5-safe polyfills (Object.assign, Math.trunc, Array find/findIndex/includes) MUST load
-// before anything else so the aplite JavaScriptCore runtime can run the bundle.
+// before anything else, so a pre-ES6 runtime can run the bundle.
 require('./lib/polyfills.js');
 
 var notices = require('./notices/adapter/notices.js');
@@ -285,19 +285,10 @@ Pebble.addEventListener('ready',
         maybeHandleDevStorageReset(app.devConfig);
         var hadExistingInstall = claySettings.hasStored();
         claySettings.seedDefaults(DEFAULT_HOLIDAY_COLORS);
-        var statusMigrationPlatform = 'basalt';
-        var knownPlatform = '';
-        try {
-            var wi = Pebble.getActiveWatchInfo();
-            if (wi && wi.platform) { statusMigrationPlatform = knownPlatform = wi.platform; }
-        }
-        catch (ex) { /* keep the safe default */ }
         // Every marker-gated migration runs inside clay-migrations.runMigrations
         // (the ledger is settings/domain/migrations/registry.js); the ones marked 'ack' commit
         // their markers only on the Clay ACK below.
         var migrations = clayMigrations.runMigrations({
-            platform: statusMigrationPlatform,
-            knownPlatform: knownPlatform,
             colors: DEFAULT_HOLIDAY_COLORS,
             defaultRadarProvider: 'dwd',
             // Read BEFORE seedDefaults above: the onboarding migration's only way

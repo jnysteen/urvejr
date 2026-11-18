@@ -14,7 +14,7 @@ require('../../../src/pkjs/page/settings/blocks.js');
 const vc = require('../../../src/pkjs/layout/domain/view-cycle.js');
 const pw = require('../../../src/pkjs/page/layout/preview-watch.js');
 
-const BASALT = { platform: 'basalt', color: true };
+const BASALT = { platform: 'emery', color: true };
 const NOW = new Date(2026, 8, 7, 15, 0);
 
 /**
@@ -26,7 +26,7 @@ const NOW = new Date(2026, 8, 7, 15, 0);
  */
 function bands(spec, S, env) {
   const e = env || BASALT;
-  return pw.screenSvg(spec, 0, S || {}, e, {}, e.platform === 'emery' ? 1 : 0, NOW).label.split(', ');
+  return pw.screenSvg(spec, 0, S || {}, e, {}, 1, NOW).label.split(', ');
 }
 
 /**
@@ -102,7 +102,7 @@ test('the radar bar alone flicks to the forecast under a Radar bar row', () => {
   assert.ok(c[1].indexOf('Radar bar') >= 0 && c[1].indexOf('Forecast') >= 0);
 });
 
-test('custom: the preview draws the compiled per-view keys; aplite draws its compactCal fold', () => {
+test('custom: the preview draws the compiled per-view keys', () => {
   const CUSTOM = {
     layoutPreset: 'custom', healthMode: 'off', radarMode: 'off', viewCount: '2',
     viewTop0: 'cal2', viewBody0: 'forecast', viewUpper0: 'weather', viewLower0: 'off', viewOrder0: 'TACB',
@@ -111,9 +111,6 @@ test('custom: the preview draws the compiled per-view keys; aplite draws its com
   };
   assert.deepEqual(cycleBands(CUSTOM), vc.buildCustomCycle(CUSTOM).map((s) => bands(s, CUSTOM)));
   assert.deepEqual(cycleBands(CUSTOM)[1], ['Forecast'], 'a view of nothing but its graph');
-  const aplite = { platform: 'aplite', color: false, themePolarity: false };
-  assert.deepEqual(cycleBands(CUSTOM, aplite),
-    vc.buildViewCycle('compactCal', 'off', 'off', false).map((s) => bands(s, CUSTOM, aplite)));
 });
 
 test('custom flags: no clock, no top bar, a stacked order, a graph in the top area', () => {
@@ -140,30 +137,31 @@ test('custom flags: no clock, no top bar, a stacked order, a graph in the top ar
 
 test('Position moves a stack that fills nothing; the top bar never moves', () => {
   const lone = (align, extra) => pw.layoutView(Object.assign(vc.spec(vc.TIER_NONE, vc.TOP_EMPTY, vc.BODY_NONE,
-    vc.STATUS_SRC_NONE, vc.STATUS_SRC_NONE), { order: 1, align: align }, extra || {}), 0);
+    vc.STATUS_SRC_NONE, vc.STATUS_SRC_NONE), { order: 1, align: align }, extra || {}), 1);
   const top = lone(vc.ALIGN_TOP), mid = lone(vc.ALIGN_CENTER), bot = lone(vc.ALIGN_BOTTOM), clk = lone(vc.ALIGN_CLOCK);
   [top, mid, bot, clk].forEach((l) => assert.equal(l.strip, top.strip, 'the top bar stays put'));
-  const sc = pw.SCREEN[0], y = (l) => l.bands[0].y, h = top.bands[0].h;
+  const sc = pw.SCREEN[1], y = (l) => l.bands[0].y, h = top.bands[0].h;
   assert.ok(y(bot) > y(mid) && y(mid) > y(top), 'Bottom below Middle below Top');
   assert.equal(y(bot) - y(top), 2 * (y(mid) - y(top)) + ((y(bot) - y(top)) % 2), 'Middle splits the slack');
-  assert.ok(Math.abs(y(clk) + h / 2 - sc.h / 2) <= 1, 'Clock: the clock\'s middle on the screen\'s midline');
+  // Within the clock ink's 2 px centre offset (clock_ink.c).
+  assert.ok(Math.abs(y(clk) + h / 2 - sc.h / 2) <= 2, 'Clock: the clock\'s middle on the screen\'s midline');
   // Without a clock, Clock reads as Middle.
   const rowOnly = (align) => pw.layoutView(Object.assign(vc.spec(vc.TIER_NONE, vc.TOP_EMPTY, vc.BODY_NONE,
-    vc.STATUS_SRC_FORECAST, vc.STATUS_SRC_NONE), { order: 1, clockOff: true, align: align }), 0);
+    vc.STATUS_SRC_FORECAST, vc.STATUS_SRC_NONE), { order: 1, clockOff: true, align: align }), 1);
   assert.deepEqual(rowOnly(vc.ALIGN_CLOCK), rowOnly(vc.ALIGN_CENTER));
   // A view whose graph fills ignores the Position.
   const filled = (align) => pw.layoutView(Object.assign(vc.spec(vc.TIER_COMPACT, vc.TOP_CAL, vc.BODY_FC,
-    vc.STATUS_SRC_FORECAST, vc.STATUS_SRC_NONE), { align: align }), 0);
+    vc.STATUS_SRC_FORECAST, vc.STATUS_SRC_NONE), { align: align }), 1);
   assert.deepEqual(filled(vc.ALIGN_BOTTOM), filled(vc.ALIGN_TOP));
 });
 
 test('sizes: a sized radar takes 2, 3 or 4 rows; a forecast is never under 3', () => {
   const radarTop = (size) => pw.layoutView(Object.assign(vc.spec(vc.TIER_FULL, vc.TOP_RADAR, vc.BODY_FC,
-    vc.STATUS_SRC_NONE, vc.STATUS_SRC_NONE), { order: 1, topSize: size, bodySize: vc.SIZE_3 }), 0).bands[0].h;
+    vc.STATUS_SRC_NONE, vc.STATUS_SRC_NONE), { order: 1, topSize: size, bodySize: vc.SIZE_3 }), 1).bands[0].h;
   assert.ok(radarTop(vc.SIZE_2) < radarTop(vc.SIZE_3) && radarTop(vc.SIZE_3) < radarTop(vc.SIZE_4));
   const fcBody = (size) => {
     const l = pw.layoutView(Object.assign(vc.spec(vc.TIER_COMPACT, vc.TOP_CAL, vc.BODY_FC, vc.STATUS_SRC_NONE,
-      vc.STATUS_SRC_NONE), { order: 1, bodySize: size }), 0);
+      vc.STATUS_SRC_NONE), { order: 1, bodySize: size }), 1);
     return l.bands[l.bands.length - 1].h;
   };
   assert.equal(fcBody(vc.SIZE_2), fcBody(vc.SIZE_3), 'the watch draws a 2-row forecast as 3 rows');
@@ -172,10 +170,10 @@ test('sizes: a sized radar takes 2, 3 or 4 rows; a forecast is never under 3', (
 test('the screen follows the theme: white on black, black on white for both light themes', () => {
   ['light', 'bw-light'].forEach((theme) => {
     const html = pw.watchPreview({ layoutPreset: 'compactCal', healthMode: 'off', radarMode: 'off', theme: theme }, BASALT, {});
-    assert.ok(html.indexOf('<rect x="-9" y="-9" width="162" height="186" fill="#FFFFFF"></rect>') >= 0, theme);
+    assert.ok(html.indexOf('<rect x="-12" y="-12" width="224" height="252" fill="#FFFFFF"></rect>') >= 0, theme);
   });
   const dark = pw.watchPreview({ layoutPreset: 'compactCal', healthMode: 'off', radarMode: 'off', theme: 'dark' }, BASALT, {});
-  assert.ok(dark.indexOf('<rect x="-9" y="-9" width="162" height="186" fill="#000000"></rect>') >= 0);
+  assert.ok(dark.indexOf('<rect x="-12" y="-12" width="224" height="252" fill="#000000"></rect>') >= 0);
 });
 
 test('the custom layout editor\'s preview: one view on its own, or a blank screen for an empty slot', () => {
@@ -185,11 +183,10 @@ test('the custom layout editor\'s preview: one view on its own, or a blank scree
     viewClockOff1: true, viewStripOff1: true };
   const one = pw.viewScreen(S, BASALT, 1, {});
   assert.equal(one.label, 'Radar');
-  assert.match(one.svg, /^<svg class="wpv-scr" viewBox="-9 -9 162 186"/);
+  assert.match(one.svg, /^<svg class="wpv-scr" viewBox="-12 -12 224 252"/);
   const ids = (pw.viewScreen(S, BASALT, 0, {}).svg.match(/ id="[^"]*"/g) || []);
   assert.ok(ids.length > 0 && ids.every((m) => /-ve0-\d+"$/.test(m)), 'its graphs\' ids are its own: ' + ids.join(' '));
   const none = pw.viewScreen(S, BASALT, 2, {});
   assert.equal(none.label, 'Nothing to show');
   assert.match(none.svg, />Nothing to show<\/text><\/svg>$/);
-  assert.match(pw.viewScreen(S, { platform: 'emery', color: true }, 0, {}).svg, /viewBox="-12 -12 224 252"/);
 });

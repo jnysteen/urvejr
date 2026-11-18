@@ -2,8 +2,6 @@
 // graph > Other > Forecast length): how many hours the phone fetches, bakes and sends (14 / 24 / 68 for the 12 h,
 // 24 h and long options, and 26 for 24 h when the graph has no left axis); the watch fits its
 // grid to them (src/c/appendix/forecast_span.h) and shows as many as its plot's width holds.
-// Emery only (config-ui/lib/platform.js isForecastSpanPlatform, the env.forecastSpan fact):
-// every other watch, and an unknown one, gets today's 24 hours whatever the stored value says.
 //
 // THE SPAN IS THE DATA. The span rides the fetch options (fetch-options.js forecastHours),
 // the adapters map hourly-window.js windowHours() buckets, and getPayload sends
@@ -20,7 +18,7 @@ var spanHours = require('./forecast-span-hours.js');
 var CHOICES = spanHours.CHOICES;
 var storedHours = spanHours.storedHours;
 
-// The 24 h span: the only one off emery, and what an absent or unknown stored value reads as.
+// The 24 h span: what an absent or unknown stored value reads as.
 var DAY_HOURS = hourlyWindow.FORECAST_HOURS;
 // The 12 h span sends 14: the 13th column (partly on screen at most widths) and the vertex
 // past it carry data (forecast_span.h FORECAST_SPAN_HALF_SENT, lockstep).
@@ -41,11 +39,9 @@ var SENT_HOURS = {
 };
 
 /**
- * The hours the phone fetches and sends to this watch: on a span watch (emery) the hours of
- * its signature() token (14 / 24 / 68; 26 for 24 h with no left axis), else 24. So the hours
- * sent and the render signature cannot disagree. No platform test of its own: env.forecastSpan
- * names emery alone (platform.js FORECAST_SPAN_PLATFORMS), the one watch with the left axis
- * options; a span watch without them would be sent 26 for a stored numbers On graph or Off.
+ * The hours the phone fetches and sends to this watch: the hours of its signature() token
+ * (14 / 24 / 68; 26 for 24 h with no left axis), else 24 without env.forecastSpan. So the
+ * hours sent and the render signature cannot disagree.
  * @param {?Object} settings Clay settings.
  * @param {?Object} env config-ui/lib/platform.js computeEnv() result.
  * @returns {number} 14, 24, 26 or 68.

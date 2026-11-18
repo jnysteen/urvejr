@@ -37,7 +37,7 @@ test('an unknown stored code packs Auto, never NaN or -1', () => {
   assert.deepEqual(bytes, [0, 0]);
 });
 
-test('the Clay payload carries the tuple exactly for threshold-capable watches', () => {
+test('the Clay payload carries the tuple', () => {
   // Late require: clay-payload's dependency chain touches localStorage.
   global.localStorage = global.localStorage || {
     getItem: function () { return null; },
@@ -46,12 +46,7 @@ test('the Clay payload carries the tuple exactly for threshold-capable watches',
   };
   const { buildClayPayload } = require('../../../src/pkjs/settings/domain/clay-payload.js');
   const settings = { dateSlotMonthFormat: 'dots', dateSlotFullFormat: 'textyear' };
-  const capable = buildClayPayload(settings, { platform: 'basalt' },
+  const capable = buildClayPayload(settings, { platform: 'emery' },
     new Date('2026-09-07T00:00:00Z'));
   assert.deepEqual(capable.CLAY_DATE_FORMAT_UINT8, [2, 6]);
-  // aplite compiles the config fields out (config_wire.c) and never shows the
-  // pickers, so its bundle must not spend the 9 B.
-  const aplite = buildClayPayload(settings, { platform: 'aplite' },
-    new Date('2026-09-07T00:00:00Z'));
-  assert.equal(aplite.CLAY_DATE_FORMAT_UINT8, undefined);
 });

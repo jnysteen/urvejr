@@ -1,6 +1,6 @@
 // test/helpers/boot-radar-probe.js
 //
-// Child-process probe for test/shell/index-aplite-radar.test.js and
+// Child-process probe for
 // test/shell/index-radar-clear-on-failure.test.js: boots the REAL index.js on
 // fresh-install defaults (radarMode 'graph' — what an install whose settings page was
 // never saved still holds), on Rainbow with a key unless the settings name a radar
@@ -20,7 +20,7 @@
 'use strict';
 var path = require('path');
 var ROOT = path.join(__dirname, '..', '..');
-var platform = process.argv[2] || 'basalt';
+var platform = process.argv[2] || 'emery';
 var opts = process.argv[3] ? JSON.parse(process.argv[3]) : {};
 
 var store = {};

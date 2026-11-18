@@ -10,7 +10,7 @@ const SCHEMA = { appName: 'X', versionLabel: 'v0', tabs: [ { id: 't', label: 'T'
 const PAGE = '<html><script>var INJECTED_SCHEMA=null,INJECTED_CFG=null,INJECTED_ENV=null,INJECTED_USERDATA=null,INJECTED_RETURN=null;/*__PCONF_INJECT__*/\n/*__PCONF_CONCAT__*/</script></html>';
 
 test('re-exports pure helpers', () => {
-  assert.equal(configUi.isColorPlatform('flint'), false);
+  assert.equal(configUi.computeEnv().platform, 'emery');
   assert.equal(configUi.intToHex(0), '#000000');
 });
 

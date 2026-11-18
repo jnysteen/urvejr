@@ -7,7 +7,6 @@
 #include "c/appendix/chart.h"         // CHART_ABSENT
 #include "c/appendix/persist.h"       // persist_*_health_cache_*
 
-#if defined(PBL_HEALTH)
 
 #define N    MAX_BOTTOM_VIEW_ENTRIES
 #define STEP BOTTOM_VIEW_STEP_SECONDS
@@ -262,4 +261,3 @@ time_t health_cache_read(int16_t *steps_out, int16_t *hr_out,
     return s_end_hour;
 }
 
-#endif  // PBL_HEALTH

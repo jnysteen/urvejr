@@ -27,11 +27,7 @@ const schema = require('../../../src/pkjs/page/settings/schema.js');
 const { bootGeneratedPage } = require('../../helpers/page-harness.js');
 
 const PC = global.PConf;
-const BASALT = platform.computeEnv({ platform: 'basalt' });
-const EMERY = platform.computeEnv({ platform: 'emery' });
-const APLITE = platform.computeEnv({ platform: 'aplite' });
-const DIORITE = platform.computeEnv({ platform: 'diorite' });
-const FLINT = platform.computeEnv({ platform: 'flint' });
+const EMERY = platform.computeEnv();
 const b = (k, o) => Object.assign({ k }, o || {});
 // An upgraded install's three screens (compactCal, health all, radar graph): Default, the
 // Health screen, the Rain radar screen.
@@ -104,13 +100,13 @@ test('a screen\'s name: its own, else its place\'s; trimmed, 24 characters at mo
 });
 
 test('the names are the page\'s own: in the schema, never compiled', () => {
-  const S = withScreens(BASALT, [M.screensOf(fresh(BASALT), BASALT)[0], HEALTH]);
-  const before = words(S, BASALT);
+  const S = withScreens(EMERY, [M.screensOf(fresh(EMERY), EMERY)[0], HEALTH]);
+  const before = words(S, EMERY);
   S.viewName0 = 'Home';
   S.viewName1 = 'Steps';
-  assert.deepEqual(words(S, BASALT), before, 'the watch draws the same views');
+  assert.deepEqual(words(S, EMERY), before, 'the watch draws the same views');
   assert.equal(Object.keys(M.compileKeys(HEALTH, 1)).some((k) => /^viewName/.test(k)), false);
-  assert.deepEqual(names(S, BASALT), ['Home', 'Steps']);
+  assert.deepEqual(names(S, EMERY), ['Home', 'Steps']);
 });
 
 // --- moving a screen -------------------------------------------------------------------
@@ -141,34 +137,34 @@ test('a forecast screen moves with its graph', () => {
 
 test('a screen moved to the top gets the clock; one with no room for it stays, and says why', () => {
   const noClock = [b('strip'), b('healthbar'), b('health', { size: 'fill' })];
-  const S = withScreens(BASALT, [M.screensOf(fresh(BASALT), BASALT)[0], noClock]);
+  const S = withScreens(EMERY, [M.screensOf(fresh(EMERY), EMERY)[0], noClock]);
   assert.equal(S.viewClockOff1, true, 'premise: the flick screen has no clock');
-  assert.equal(SP.moveScreen(S, 1, 0, BASALT), '');
-  assert.deepEqual(M.screensOf(S, BASALT)[0], [b('strip'), b('clock'), b('healthbar'), b('health', { size: 'fill' })]);
+  assert.equal(SP.moveScreen(S, 1, 0, EMERY), '');
+  assert.deepEqual(M.screensOf(S, EMERY)[0], [b('strip'), b('clock'), b('healthbar'), b('health', { size: 'fill' })]);
   // A 3-row calendar, two bars and a graph: a flick screen without the clock fits, the
   // Default with it does not.
   const tall = [b('strip'), b('cal', { rows: '3' }), b('fcbar'), b('radarbar'), b('fc', { size: 'fill' })];
   assert.ok(M.fits(tall, 1, 'basalt') && !M.fits(M.add(tall, 'clock'), 0, 'basalt'), 'premise');
-  const T = withScreens(BASALT, [M.screensOf(fresh(BASALT), BASALT)[0], tall], { viewName1: 'Tall' });
+  const T = withScreens(EMERY, [M.screensOf(fresh(EMERY), EMERY)[0], tall], { viewName1: 'Tall' });
   const kept = JSON.stringify(T);
-  assert.equal(SP.moveScreen(T, 1, 0, BASALT), 'Tall' + SP.NO_ROOM_FOR_CLOCK);
+  assert.equal(SP.moveScreen(T, 1, 0, EMERY), 'Tall' + SP.NO_ROOM_FOR_CLOCK);
   assert.equal(JSON.stringify(T), kept, 'nothing moved');
 });
 
 test('a move with nowhere to go changes nothing', () => {
-  const S = withScreens(BASALT, [M.screensOf(fresh(BASALT), BASALT)[0], HEALTH]);
+  const S = withScreens(EMERY, [M.screensOf(fresh(EMERY), EMERY)[0], HEALTH]);
   const kept = JSON.stringify(S);
-  [[1, 1], [0, 2], [-1, 0], [2, 0]].forEach(([from, to]) => assert.equal(SP.moveScreen(S, from, to, BASALT), ''));
+  [[1, 1], [0, 2], [-1, 0], [2, 0]].forEach(([from, to]) => assert.equal(SP.moveScreen(S, from, to, EMERY), ''));
   assert.equal(JSON.stringify(S), kept);
 });
 
 test('a delete and an insert carry the names with their screens', () => {
-  const S = withScreens(BASALT, [M.screensOf(fresh(BASALT), BASALT)[0], HEALTH, RADAR],
+  const S = withScreens(EMERY, [M.screensOf(fresh(EMERY), EMERY)[0], HEALTH, RADAR],
     { viewName1: 'Steps', viewName2: 'Rain' });
-  assert.equal(SP.deleteScreen(S, 1, BASALT), true);
-  assert.deepEqual(names(S, BASALT), ['Default', 'Rain']);
-  assert.equal(SP.insertScreen(S, 1, M.copy(HEALTH), BASALT), true);
-  assert.deepEqual(names(S, BASALT), ['Default', 'Flick 1', 'Rain'], 'a screen put in starts with its place\'s name');
+  assert.equal(SP.deleteScreen(S, 1, EMERY), true);
+  assert.deepEqual(names(S, EMERY), ['Default', 'Rain']);
+  assert.equal(SP.insertScreen(S, 1, M.copy(HEALTH), EMERY), true);
+  assert.deepEqual(names(S, EMERY), ['Default', 'Flick 1', 'Rain'], 'a screen put in starts with its place\'s name');
 });
 
 // --- the screens Add a screen offers -----------------------------------------------------
@@ -187,9 +183,8 @@ const BUSY = { secondaryLine: 'precip_prob', secondaryLineStyle: 'line', thirdLi
 test('the kinds: Blank, the forecast screen, Health, Rain radar and two graphs on a screen; each watch the ones it can draw', () => {
   assert.deepEqual(P.KINDS.map((k) => k.name), ['Blank', 'Forecast', 'Health', 'Rain radar', 'Health + forecast',
     'Radar + forecast']);
-  [EMERY, BASALT, DIORITE, FLINT].forEach((env) => assert.deepEqual(P.offered(env).map((k) => k.id), KIND_IDS,
+  [EMERY].forEach((env) => assert.deepEqual(P.offered(env).map((k) => k.id), KIND_IDS,
     env.platform + ': every one'));
-  assert.deepEqual(P.offered(APLITE).map((k) => k.id), ['blank', 'forecast'], 'no health, no radar');
   assert.deepEqual(P.offered(null).map((k) => k.id), KIND_IDS, 'an unknown watch is capable');
   // The headings (the owner's, 2026-11-10: the layout first, then the graph; Blank still the first).
   assert.deepEqual(P.GROUPS.map((g) => [g.name, P.KINDS.filter((k) => k.group === g.id).map((k) => k.id)]), [
@@ -206,29 +201,25 @@ test('the kinds: Blank, the forecast screen, Health, Rain radar and two graphs o
   assert.equal(P.byId('nope'), null);
   assert.equal(P.byId('clean'), null, 'a template is a graph, not a screen');
   // Add a screen's cards: Blank, the forecast screen on None, Compact, Full and Dense, the others
-  // once (Health's and Rain radar's calendar picked after them): 9 on every watch, where the
-  // Pebble Time 2 had 66.
+  // once (Health's and Rain radar's calendar picked after them): 9.
   const ids = ['blank:', 'forecast:', 'forecast:2', 'forecast:3', 'forecast:dense', 'health:', 'radar:', 'healthfc:',
     'radarfc:'];
-  assert.deepEqual(P.cards(BASALT).map((c) => c.kind.id + ':' + c.cal), ids);
-  assert.deepEqual(P.cards(EMERY).map((c) => c.kind.id + ':' + c.cal), ids, 'the Pebble Time 2 the same');
-  assert.deepEqual(P.cards(Object.assign({}, BASALT, { radar: false })).map((c) => c.kind.id + ':' + c.cal),
+  assert.deepEqual(P.cards(EMERY).map((c) => c.kind.id + ':' + c.cal), ids);
+  assert.deepEqual(P.cards(Object.assign({}, EMERY, { radar: false })).map((c) => c.kind.id + ':' + c.cal),
     ['blank:', 'forecast:', 'forecast:2', 'forecast:3', 'health:', 'healthfc:'], 'no radar: no Dense, no radar screens');
-  assert.deepEqual(P.cards(BASALT).map((c) => P.cardName(c.kind, c.cal)), ['Blank', 'No calendar', 'Compact calendar',
+  assert.deepEqual(P.cards(EMERY).map((c) => P.cardName(c.kind, c.cal)), ['Blank', 'No calendar', 'Compact calendar',
     'Full calendar', 'Dense', 'Health', 'Rain radar', 'Health + forecast', 'Radar + forecast'],
   'the forecast screen by its calendar');
   assert.equal(P.cardName(P.byId('health'), '3'), 'Health', 'the others by their own, whatever calendar');
   assert.equal(P.cardSaid(P.byId('forecast'), P.DENSE), 'compact calendar and radar bar', 'Dense\'s calendar said in full');
   assert.deepEqual(['', '2', '3'].map((cal) => P.cardSaid(P.byId('forecast'), cal)), ['', '', ''], 'the others\' names say it');
   assert.equal(P.cardSaid(P.byId('health'), P.DENSE), '', 'a kind whose calendar is picked after its card');
-  // The templates a forecast graph can draw: the Graphs tab's, in its order, where the watch has
-  // graph styles (wizard-forecast.js LOOKS, their one definition).
+  // The templates a forecast graph can draw: the Graphs tab's, in its order
+  // (wizard-forecast.js LOOKS, their one definition).
   assert.deepEqual(P.templates(EMERY).map((look) => look.id), TEMPLATE_IDS);
   assert.deepEqual(TEMPLATE_IDS, WF.LOOKS.map((look) => look.id));
-  assert.deepEqual(P.templates(BASALT), [], 'a watch with one graph keeps it on every screen');
   assert.equal(P.templates(null).length, TEMPLATE_IDS.length, 'an unknown watch has graph styles');
   assert.equal(P.template('clean', EMERY).label, 'Clean');
-  assert.equal(P.template('clean', BASALT), null);
   assert.equal(P.template('nope', EMERY), null);
 });
 
@@ -261,7 +252,7 @@ test('a screen\'s rows: the Watch bar, its calendar, the clock, its bar and its 
   assert.deepEqual(P.screenOf(P.byId('radarfc'), CAL.dense), P.screenOf(P.byId('radarfc'), CAL.none), 'two graphs: no calendar');
   // Every kind with every calendar it can have keeps the rules and fits as a flick screen on
   // every watch that is offered it.
-  [EMERY, BASALT, DIORITE, FLINT].forEach((env) => P.offered(env).forEach((kind) => {
+  [EMERY].forEach((env) => P.offered(env).forEach((kind) => {
     (P.calendars(kind, env).length ? P.calendars(kind, env) : [['', '']]).forEach(([, cal]) => {
       const list = P.screenOf(kind, cal);
       assert.equal(M.problem(list), '', kind.id + cal + ' keeps the rules');
@@ -276,9 +267,8 @@ test('a screen\'s rows: the Watch bar, its calendar, the clock, its bar and its 
   assert.equal(P.graphOf([b('strip'), b('clock'), b('fc', { size: 'fill' })]), '', 'a screen of your own');
 });
 
-test('Forecast length: a template\'s lengths, on the Pebble Time 2 only', () => {
+test('Forecast length: a template\'s lengths', () => {
   assert.deepEqual(P.spanOptions('clean', EMERY, {}), [['12 h', '12'], ['24 h', '24'], ['66 h', '48']]);
-  assert.deepEqual(P.spanOptions('clean', BASALT, {}), [], 'no templates there');
   assert.deepEqual(P.spanOptions('nope', EMERY, {}), []);
 });
 
@@ -305,8 +295,8 @@ test('Add a screen\'s cards two a row, Blank across the top; the roll\'s graphs 
 });
 
 test('Add a screen\'s cards: Blank, the forecast screen on each calendar, the others; each with your graph', () => {
-  const S = fresh(BASALT);
-  const choices = SP.addChoices(S, BASALT);
+  const S = fresh(EMERY);
+  const choices = SP.addChoices(S, EMERY);
   assert.deepEqual(choices.map((c) => [c.id, c.cal, c.name, c.span]),
     [['blank', '', '', ''], ['forecast', '', 'Forecast', ''], ['forecast', '2', 'Forecast', ''], ['forecast', '3', 'Forecast', ''],
       ['forecast', 'dense', 'Forecast', ''], ['health', '', 'Health', ''], ['radar', '', 'Rain radar', ''],
@@ -314,7 +304,7 @@ test('Add a screen\'s cards: Blank, the forecast screen on each calendar, the ot
   assert.ok(choices.every((c) => c.kind === P.byId(c.id)), 'each with its kind');
   assert.ok(choices.every((c) => c.graph === null), 'your graph: no screen brings one');
   // Each card's picture settings hold the screen it adds, after the others, on its calendar.
-  choices.forEach((c) => assert.deepEqual(M.screensOf(c.W, BASALT)[1], c.list, c.id + '\'s picture'));
+  choices.forEach((c) => assert.deepEqual(M.screensOf(c.W, EMERY)[1], c.list, c.id + '\'s picture'));
   assert.deepEqual(choices[0].list, [b('strip'), b('clock')], 'Blank');
   assert.deepEqual(choices.slice(1, 5).map((c) => P.calOf(c.list)), ['', '2', '3', '2']);
   const card = (id, cal) => choices.find((c) => c.id === id && c.cal === cal);
@@ -324,50 +314,49 @@ test('Add a screen\'s cards: Blank, the forecast screen on each calendar, the ot
   assert.equal(card('radarfc', '').W.radarEnabled, true, 'so does Radar + forecast');
   assert.equal(card('forecast', 'dense').W.radarEnabled, true, 'and the Dense card, for its radar bar');
   assert.equal(card('forecast', '2').W.radarEnabled, S.radarEnabled, 'a card without the radar leaves it as it is');
-  assert.equal(JSON.stringify(S), JSON.stringify(fresh(BASALT)), 'reading the cards changes nothing');
+  assert.equal(JSON.stringify(S), JSON.stringify(fresh(EMERY)), 'reading the cards changes nothing');
   // On the Pebble Time 2 the same cards, each with your first graph: its graph is picked after it.
   const E = SP.addChoices(fresh(EMERY), EMERY);
   assert.deepEqual(E.map((c) => c.id + ':' + c.cal), choices.map((c) => c.id + ':' + c.cal));
   assert.deepEqual(E.map((c) => c.k), [-1, 0, 0, 0, 0, -1, -1, 0, 0], 'your first graph wherever a forecast graph is');
   assert.ok(E.every((c) => c.graph === null && !c.look));
   // Three screens: nothing to add.
-  assert.deepEqual(SP.addChoices(withScreens(BASALT, [M.screensOf(fresh(BASALT), BASALT)[0], HEALTH, RADAR]), BASALT), []);
+  assert.deepEqual(SP.addChoices(withScreens(EMERY, [M.screensOf(fresh(EMERY), EMERY)[0], HEALTH, RADAR]), EMERY), []);
 });
 
-test('the roll\'s graphs: yours first, by their names, then the templates; none on a watch with one graph', () => {
+test('the roll\'s graphs: yours first, by their names, then the templates', () => {
   const S = withScreens(EMERY, [M.screensOf(fresh(EMERY), EMERY)[0]], {
     graphStyles: JSON.stringify({ names: ['', 'Wind'], styles: [null, { forecastHours: '12', secondaryLine: 'wind' }] })
   });
   assert.deepEqual(SP.rollItems(GSP.asStored(S), EMERY).map((it) => [it.v, it.name, it.k, it.look]),
     [['1', 'Graph 1', 0, ''], ['2', 'Wind', 1, '']].concat(TEMPLATE_IDS.map((id) => [id, WF.lookOf(id).label, -1, id])));
-  assert.deepEqual(SP.rollItems(GSP.asStored(fresh(BASALT)), BASALT), []);
 });
 
 test('Change layout: the screen picked takes a screen\'s place, its name kept; three screens and the Default too', () => {
   // The owner's pick, 2026-11-10: the screen you have takes a layout (and a graph) as a new one does.
-  const S = fresh(BASALT);
+  const S = fresh(EMERY);
   const count = S.viewCount;
-  assert.equal(SP.addChosen(S, BASALT, 'health', CAL.none, undefined, undefined, 0), 0, 'the Default\'s place');
-  assert.deepEqual(M.screensOf(S, BASALT), [HEALTH], 'no screen added');
+  assert.equal(SP.addChosen(S, EMERY, 'health', CAL.none, undefined, undefined, 0), 0, 'the Default\'s place');
+  assert.deepEqual(M.screensOf(S, EMERY), [HEALTH], 'no screen added');
   assert.equal(S.viewCount, count);
   assert.equal(M.nameOf(S, 0), 'Default', 'its name kept');
   assert.equal(S.healthMode, 'all', 'the modes follow');
   // Three screens: no room to add one, but each can change its layout, its name kept.
-  const T = withScreens(BASALT, [M.screensOf(fresh(BASALT), BASALT)[0], HEALTH, RADAR], { viewName2: 'Rain' });
-  assert.deepEqual(SP.addChoices(T, BASALT), [], 'no room to add');
-  assert.equal(SP.addChoices(T, BASALT, 2).length, P.cards(BASALT).length, 'Change layout offers every card');
-  assert.ok(SP.addChoices(T, BASALT, 2).every((c) => c.n === 2), 'each in the place of the screen it replaces');
-  assert.equal(SP.addChosen(T, BASALT, 'blank', '', undefined, undefined, 2), 2);
-  assert.deepEqual(M.screensOf(T, BASALT)[2], [b('strip'), b('clock')]);
+  const T = withScreens(EMERY, [M.screensOf(fresh(EMERY), EMERY)[0], HEALTH, RADAR], { viewName2: 'Rain' });
+  assert.deepEqual(SP.addChoices(T, EMERY), [], 'no room to add');
+  assert.equal(SP.addChoices(T, EMERY, 2).length, P.cards(EMERY).length, 'Change layout offers every card');
+  assert.ok(SP.addChoices(T, EMERY, 2).every((c) => c.n === 2), 'each in the place of the screen it replaces');
+  assert.equal(SP.addChosen(T, EMERY, 'blank', '', undefined, undefined, 2), 2);
+  assert.deepEqual(M.screensOf(T, EMERY)[2], [b('strip'), b('clock')]);
   assert.equal(T.viewName2, 'Rain');
   assert.notEqual(T.radarMode, 'graph', 'no screen shows the radar graph now');
   // Every layout keeps the clock the Default always shows, so each can take its place.
-  P.cards(BASALT).forEach((card) => {
-    assert.ok(SP.addPreview(fresh(BASALT), BASALT, card.kind.id, card.cal, undefined, undefined, 0), card.kind.id + card.cal);
+  P.cards(EMERY).forEach((card) => {
+    assert.ok(SP.addPreview(fresh(EMERY), EMERY, card.kind.id, card.cal, undefined, undefined, 0), card.kind.id + card.cal);
   });
   // A place no screen has is no Change layout: the screen goes after the others, as Add a screen's.
-  const U = fresh(BASALT);
-  assert.equal(SP.addChosen(U, BASALT, 'health', CAL.none, undefined, undefined, 5), 1);
+  const U = fresh(EMERY);
+  assert.equal(SP.addChosen(U, EMERY, 'health', CAL.none, undefined, undefined, 5), 1);
 });
 
 test('Change layout on the Pebble Time 2: a template\'s graph only the screen drew goes, its slot free for the new one', () => {
@@ -408,61 +397,59 @@ test('Change layout in the editor: under the picture, Add a screen\'s cards for 
   assert.ok(page.editor(), 'still open');
   assert.match(body(), /data-se="relayout"/, 'the editor again');
   // A card, then Use this layout: the screen takes its place, its name kept, its editor next.
-  const before = JSON.stringify(M.screensOf(page.S, BASALT)[0]);
+  const before = JSON.stringify(M.screensOf(page.S, EMERY)[0]);
   page.tapEditor({ se: 'relayout' });
   page.tapEditor({ se: 'pick', id: 'radar', cal: '' });
   assert.ok(part(page.editor(), 'foot').indexOf('<button type="button" class="sa-add" data-se="addnow">Use this layout</button>')
     !== -1, 'its last button');
   page.tapEditor({ se: 'addnow' });
-  assert.equal(M.screensOf(page.S, BASALT).length, 3, 'no screen added');
-  assert.deepEqual(M.screensOf(page.S, BASALT)[1], P.listOf('radar', CAL.none));
-  assert.equal(JSON.stringify(M.screensOf(page.S, BASALT)[0]), before, 'the others as they were');
+  assert.equal(M.screensOf(page.S, EMERY).length, 3, 'no screen added');
+  assert.deepEqual(M.screensOf(page.S, EMERY)[1], P.listOf('radar', CAL.none));
+  assert.equal(JSON.stringify(M.screensOf(page.S, EMERY)[0]), before, 'the others as they were');
   assert.match(head(), new RegExp(M.nameOf(page.S, 1)), 'the screen\'s editor');
   assert.match(body(), /data-se="relayout"/);
 });
 
 test('adding a screen: its rows on the calendar picked, after the others, named after it; the same one twice; Blank', () => {
-  const S = fresh(BASALT);
-  assert.equal(SP.addChosen(S, BASALT, 'health', CAL.none), 1);
-  assert.deepEqual(M.screensOf(S, BASALT)[1], HEALTH);
+  const S = fresh(EMERY);
+  assert.equal(SP.addChosen(S, EMERY, 'health', CAL.none), 1);
+  assert.deepEqual(M.screensOf(S, EMERY)[1], HEALTH);
   assert.equal(S.viewName1, 'Health');
   assert.equal(S.healthMode, 'all', 'the modes follow');
-  assert.equal(SP.addChosen(S, BASALT, 'health', CAL.full), 2, 'the same screen again');
-  assert.deepEqual(M.screensOf(S, BASALT)[2], P.listOf('health', CAL.full));
+  assert.equal(SP.addChosen(S, EMERY, 'health', CAL.full), 2, 'the same screen again');
+  assert.deepEqual(M.screensOf(S, EMERY)[2], P.listOf('health', CAL.full));
   assert.equal(S.viewName2, 'Health 2', 'told apart by its name');
-  assert.equal(SP.addChosen(S, BASALT, 'radar'), -1, 'no fourth screen');
+  assert.equal(SP.addChosen(S, EMERY, 'radar'), -1, 'no fourth screen');
   // Without a calendar named, the Default's.
-  const T = fresh(BASALT);
-  assert.equal(SP.addChosen(T, BASALT, 'forecast'), 1);
-  assert.deepEqual(M.screensOf(T, BASALT)[1], P.listOf('fc', CAL.compact));
+  const T = fresh(EMERY);
+  assert.equal(SP.addChosen(T, EMERY, 'forecast'), 1);
+  assert.deepEqual(M.screensOf(T, EMERY)[1], P.listOf('fc', CAL.compact));
   assert.equal(T.viewName1, 'Forecast');
   // Blank: the Watch bar and the clock, named by its place.
-  const B = fresh(BASALT);
-  assert.equal(SP.addChosen(B, BASALT, 'blank'), 1);
-  assert.deepEqual(M.screensOf(B, BASALT)[1], [b('strip'), b('clock')]);
+  const B = fresh(EMERY);
+  assert.equal(SP.addChosen(B, EMERY, 'blank'), 1);
+  assert.deepEqual(M.screensOf(B, EMERY)[1], [b('strip'), b('clock')]);
   assert.equal(B.viewName1, '', 'no name of its own');
   assert.equal(M.nameOf(B, 1), 'Flick 1');
   // One that is not offered adds nothing.
-  const U = fresh(BASALT), kept = JSON.stringify(U);
-  assert.equal(SP.addChosen(U, BASALT, 'clean'), -1, 'a template is no kind');
-  assert.equal(SP.addChosen(U, BASALT, 'forecast', CAL.none, 'clean'), -1, 'nor drawn on a basalt');
-  assert.equal(SP.addChosen(U, BASALT, 'forecast', CAL.none, '2'), -1, 'no second graph on a basalt');
-  assert.equal(SP.addChosen(U, BASALT, 'nope'), -1);
-  assert.equal(SP.addChosen(U, Object.assign({}, BASALT, { radar: false }), 'forecast', CAL.dense), -1,
+  const U = fresh(EMERY), kept = JSON.stringify(U);
+  assert.equal(SP.addChosen(U, EMERY, 'clean'), -1, 'a template is no kind');
+  assert.equal(SP.addChosen(U, EMERY, 'nope'), -1);
+  assert.equal(SP.addChosen(U, Object.assign({}, EMERY, { radar: false }), 'forecast', CAL.dense), -1,
     'Dense needs the rain radar');
-  assert.equal(SP.addChosen(U, BASALT, 'healthfc', CAL.full), -1, 'two graphs have no calendar');
+  assert.equal(SP.addChosen(U, EMERY, 'healthfc', CAL.full), -1, 'two graphs have no calendar');
   assert.equal(JSON.stringify(U), kept);
   // A free name: the first number no other screen has; the screen's own slot never counts.
-  const named = withScreens(BASALT, [M.screensOf(fresh(BASALT), BASALT)[0], HEALTH, RADAR],
+  const named = withScreens(EMERY, [M.screensOf(fresh(EMERY), EMERY)[0], HEALTH, RADAR],
     { viewName0: 'Classic', viewName1: 'Classic 2', viewName2: 'Classic' });
-  assert.equal(SP.freeName(named, BASALT, 'Classic', 2), 'Classic 3');
-  assert.equal(SP.freeName(named, BASALT, 'Classic 2', 1), 'Classic 2', 'its own name');
-  assert.equal(SP.freeName(named, BASALT, 'Health', 2), 'Health');
+  assert.equal(SP.freeName(named, EMERY, 'Classic', 2), 'Classic 3');
+  assert.equal(SP.freeName(named, EMERY, 'Classic 2', 1), 'Classic 2', 'its own name');
+  assert.equal(SP.freeName(named, EMERY, 'Health', 2), 'Health');
 });
 
 test('a Rain radar screen turns the radar on, its source kept', () => {
-  const S = fresh(BASALT, { radarEnabled: false, radarProvider: 'dwd' });
-  assert.equal(SP.addChosen(S, BASALT, 'radar', CAL.none), 1);
+  const S = fresh(EMERY, { radarEnabled: false, radarProvider: 'dwd' });
+  assert.equal(SP.addChosen(S, EMERY, 'radar', CAL.none), 1);
   assert.equal(S.radarEnabled, true);
   assert.equal(S.radarProvider, 'dwd');
   assert.equal(S.radarMode, 'graph');
@@ -594,11 +581,11 @@ test('six graphs of yours stop no screen; a graph that would make too many metri
 });
 
 test('a watch with one graph: the Forecast screen brings its rows and keeps your graph', () => {
-  const S = fresh(BASALT, { secondaryLine: 'wind' });
-  assert.equal(SP.addChosen(S, BASALT, 'forecast', CAL.full), 1);
-  assert.deepEqual(M.screensOf(S, BASALT)[1], P.listOf('fc', CAL.full));
+  const S = fresh(EMERY, { secondaryLine: 'wind' });
+  assert.equal(SP.addChosen(S, EMERY, 'forecast', CAL.full), 1);
+  assert.deepEqual(M.screensOf(S, EMERY)[1], P.listOf('fc', CAL.full));
   assert.equal(S.secondaryLine, 'wind', 'the graph as it was');
-  assert.equal(S.graphStyles, fresh(BASALT).graphStyles, 'no graph made');
+  assert.equal(S.graphStyles, fresh(EMERY).graphStyles, 'no graph made');
   assert.equal(S.viewName1, 'Forecast');
 });
 
@@ -656,9 +643,9 @@ test('the Screens card: a ≡ on each screen with two or more, the line that say
   key(1, 'ArrowUp');
   assert.deepEqual(cardRows(page.scroll.innerHTML).map((r) => r.slice(0, 2)),
     [['Steps', 'Default'], ['Flick 1', ''], ['Flick 2', '']], 'Steps is the Default now; its pill says so');
-  assert.deepEqual(M.screensOf(page.S, BASALT).map((l) => l[l.length - 1].k), ['health', 'fc', 'radar']);
+  assert.deepEqual(M.screensOf(page.S, EMERY).map((l) => l[l.length - 1].k), ['health', 'fc', 'radar']);
   key(0, 'ArrowUp');
-  assert.deepEqual(M.screensOf(page.S, BASALT).map((l) => l[l.length - 1].k), ['health', 'fc', 'radar'],
+  assert.deepEqual(M.screensOf(page.S, EMERY).map((l) => l[l.length - 1].k), ['health', 'fc', 'radar'],
     'nowhere to go above the top');
   key(0, 'ArrowDown');
   assert.deepEqual(cardRows(page.scroll.innerHTML).map((r) => r[0]), ['Default', 'Steps', 'Flick 2']);
@@ -670,7 +657,7 @@ test('a drag on the card moves a screen; one with no room for the clock snaps ba
   t.mock.timers.enable({ apis: ['setTimeout'] });
   const tall = M.compileKeys([b('strip'), b('cal', { rows: '3' }), b('fcbar'), b('radarbar'), b('fc', { size: 'fill' })], 1);
   const page = bootGeneratedPage(Object.assign({ layoutPreset: 'custom', viewCount: '2', viewName1: 'Tall',
-    radarMode: 'status' }, M.compileKeys(M.screensOf(fresh(BASALT), BASALT)[0], 0), tall));
+    radarMode: 'status' }, M.compileKeys(M.screensOf(fresh(EMERY), EMERY)[0], 0), tall));
   const rows = [0, 1].map((j) => ({ style: {}, classList: { add() {}, remove() {} },
     getBoundingClientRect: () => ({ top: j * 60, height: 60 }) }));
   const list = { classList: { add() {}, remove() {} }, querySelectorAll: () => rows };
@@ -699,7 +686,7 @@ test('a drag on the card moves a screen; one with no room for the clock snaps ba
   ok.docDispatch('pointerdown', { target: g, clientY: 150, pointerId: 3, button: 0, preventDefault() {} });
   ok.docDispatch('pointermove', { clientY: 10, pointerId: 3 });
   ok.docDispatch('pointerup', { pointerId: 3 });
-  assert.deepEqual(M.screensOf(ok.S, BASALT).map((l) => l[l.length - 1].k), ['radar', 'fc', 'health']);
+  assert.deepEqual(M.screensOf(ok.S, EMERY).map((l) => l[l.length - 1].k), ['radar', 'fc', 'health']);
 });
 
 /**
@@ -1131,7 +1118,7 @@ test('the picked screen says what the weather service leaves out of its graph, u
   assert.ok(legend(page.editor()).every((r) => r.charAt(0) !== '!'), 'Yandex sends the wind and gusts');
 });
 
-test('a screen that cannot be added: its reason, Add screen off; a basalt keeps its graph', () => {
+test('a screen that cannot be added: its reason, Add screen off', () => {
   const page = bootGeneratedPage(Object.assign({ provider: 'dwd' }, BUSY), 'emery');
   page.tapAction('addScreen');
   page.tapEditor({ se: 'pick', id: 'forecast', cal: '2' });
@@ -1142,20 +1129,6 @@ test('a screen that cannot be added: its reason, Add screen off; a basalt keeps 
   assert.ok(foot.indexOf('<button type="button" class="sa-add" data-se="addnow" disabled>Add screen</button>') !== -1);
   page.tapEditor({ se: 'addnow', disabled: true });
   assert.equal(page.S.viewCount, '1', 'nothing added');
-  const basalt = bootGeneratedPage({ provider: 'dwd' });
-  basalt.tapAction('addScreen');
-  const body = basalt.editor().querySelector('[data-se-body]').innerHTML;
-  assert.deepEqual(sheetCards(body).map((c) => c[0] + ':' + c[1]), ['blank:', 'forecast:', 'forecast:2', 'forecast:3',
-    'forecast:dense', 'health:', 'radar:', 'healthfc:', 'radarfc:'], 'the same cards');
-  assert.ok(body.indexOf('A screen brings its rows. Your graph and your status bars stay as they are.') !== -1);
-  basalt.tapEditor({ se: 'pick', id: 'forecast', cal: '2' });
-  const ed = basalt.editor();
-  assert.deepEqual(pickShown(ed), [true, false], 'one graph: no roll');
-  assert.equal(graphName(ed), null);
-  assert.deepEqual(segments(part(ed, 'foot'), 'aspan'), [], 'nor a length: the watch has one');
-  assert.deepEqual(legend(ed), ['Temperature', 'Rain chance', 'Rain'], 'your graph');
-  basalt.tapEditor({ se: 'addnow' });
-  assert.equal(basalt.S.viewName1, 'Forecast');
 });
 
 test('Add a screen draws its cards once while it is open, anew each time it opens: they follow your graph', () => {
@@ -1184,10 +1157,9 @@ test('a screen of two graphs: no calendar, the health graph or the radar over th
   page.tapEditor({ se: 'pick', id: 'radarfc', cal: '' });
   assert.ok(ed.querySelector('[data-se-head]').innerHTML.indexOf('id="seTitle">Radar + forecast</span>') !== -1);
   assert.deepEqual(segments(part(ed, 'foot'), 'acal'), [], 'no calendar to pick');
-  assert.deepEqual(segments(part(ed, 'foot'), 'aspan'), [], 'your graph, at its length');
   assert.deepEqual(legend(ed), ['Rain radar', 'Temperature', 'Rain chance', 'Rain'], 'the radar in one row, then the forecast');
   page.tapEditor({ se: 'addnow' });
-  assert.deepEqual(M.screensOf(page.S, BASALT)[1], P.screenOf(P.byId('radarfc'), ''), 'its rows');
+  assert.deepEqual(M.screensOf(page.S, EMERY)[1], P.screenOf(P.byId('radarfc'), ''), 'its rows');
   assert.equal(page.S.viewName1, 'Radar + forecast');
   assert.equal(page.S.radarEnabled, true, 'the radar on for it');
   assert.equal(page.S.radarMode, 'graph', 'the modes follow');

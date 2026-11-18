@@ -39,9 +39,8 @@
 // Written for size — the app image comes out of the heap on every platform — so the
 // caller asks for one member at a time (status_short_member) and gets that one
 // computed, the transforms work in place, and the city finds its two rungs in one
-// pass over its words. NOT ON APLITE: the callers are On demand's
-// (layers/status_on_demand.c, behind WW_ON_DEMAND) and the host tests, so aplite never
-// compiles a body.
+// pass over its words. The callers are On demand's (layers/status_on_demand.c) and the
+// host tests.
 
 #include <stdbool.h>
 #include <stddef.h>

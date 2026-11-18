@@ -3,14 +3,13 @@
 // labels that name their extremes, beside the graph or (emery's left-axis options, THE NUMBERS
 // ON THE GRAPH at the end) on it: pure, SDK-free, so the host suite can pin every rule
 // (test/c/temp_axis_pad_test.c; the chart_flip.h pattern). forecast_layer.c is the one
-// caller, and only off aplite: aplite is the frozen fork, it has no stripes, its insets are
-// constants and its labels sit where they always did. The settings preview mirrors the rules
+// caller. The settings preview mirrors the rules
 // (preview-axis.js, preview-forecast.js, draw-from.js forecastAnchors), pinned by
 // test/page/forecast-graphs/config-temp-axis-pad.test.js.
 //
 // WHAT TAKES PART (owner, 2026-10-02). Only a series with at least one value above 0 in the
 // window the graph draws takes part in the layout: the hours whose column starts on screen
-// (temp_axis_drawn_entries; the phone sends 24, at most 19 fit on basalt and 23 on emery,
+// (temp_axis_drawn_entries; the phone sends 24, at most 23 fit on emery,
 // whose 12 h and long spans fill the width and clip the rest; the scale and the labels cover
 // the hours on screen there, forecast_layer.c fit_entries, forecast_span.h). On emery, but at
 // the 24 h grid's 8 px, the hours whose bar starts on screen (forecast_span.h
@@ -59,7 +58,7 @@
 
 // The curve: an anchored edge's margin is the plot height squared over this, so its share of
 // the plot is plot_h / TEMP_AXIS_PAD_SQ_DIV and grows with the graph: an eighth at 64 rows, a
-// quarter at 128 (basalt's no-calendar view, 77 rows: 11 px; emery's, 91 rows: 16 px). The
+// quarter at 128 (the no-calendar view, 91 rows: 16 px). The
 // flat eighth that came before is its floor, so the curve only ever adds room: below
 // TEMP_AXIS_PAD_SQ_DIV / 8 = 64 rows, where the curve's share is smaller, the margin is the
 // eighth, as before (never more than the 7 px inset there, so the calendar views keep their
@@ -193,7 +192,6 @@ static inline void temp_axis_range_widen(TempAxisRange *r, const int16_t *values
     }
 }
 
-#if defined(PBL_PLATFORM_EMERY)
 // emery: byte b of a temperature-axis line read back to whole degrees, on the straight line
 // through the global extremes g (every hour sent) and the phone's TEMP_MIN / TEMP_MAX (lo,
 // hi), rounded half up; the ends exact. The 12 h and long grids name the hours on screen
@@ -207,7 +205,6 @@ static inline int temp_axis_byte_temp(int b, TempAxisRange g, int lo, int hi) {
     const int span = g.hi - g.lo;
     return lo + (int)((unsigned)(2 * (b - g.lo) * (hi - lo) + span) / (unsigned)(2 * span));
 }
-#endif
 
 // The fit for one redraw (THE SCALE): the joint range's lowest byte `r.lo` lands on the bottom
 // margin's row, its highest `r.hi` on the top margin's, and every byte lies on the straight
@@ -261,22 +258,19 @@ static inline void temp_axis_rows(int16_t *values, int n, TempAxisFit f, bool ga
 // two keep at least TEMP_LABEL_MIN_INK_GAP blank rows between their ink. When they cannot
 // (a small graph, a crowded strip, a flat temperature curve) both keep today's place. On an
 // edge that is not anchored and has no stripe band, the curve reaches today's inset row
-// there, which lies outward of today's label ink centre (rows 7 against 9, basalt; 7 against
-// 14, emery), so that label stays put while the temperature's own extreme lands on the margin
+// there, which lies outward of today's label ink centre (rows 7 against
+// 14), so that label stays put while the temperature's own extreme lands on the margin
 // row (THE SCALE). The curve stops short of that row only where a feels-like peak or a dew
 // point trough beyond the temperature takes it (the label follows the curve in once the
 // curve passes its ink centre) or where the temperature is flat (both labels keep today's
 // place, above). Under a top stripe band the curve's top is its inset row below the band's
-// foot, while the hi label stays fixed to the top of the graph: on basalt that row lies below
-// the label's ink centre under any band (one stripe in the default view: 6 + 7 = 13 against
-// 9), so the label follows the curve down even with nothing anchored; on emery one stripe's
-// row in the calendar views does not (13 and 14 against 14), the no-calendar view's (15) and
-// two stripes' do.
+// foot, while the hi label stays fixed to the top of the graph: one stripe's row in the
+// calendar views does not lie below the label's ink centre (13 and 14 against 14), the
+// no-calendar view's (15) and two stripes' do.
 //
 // Today's minimum: the smallest gap the labels leave in any preset's view, emery's 68 px band
-// (fullCal, compactDense) at GOTHIC_24 (forecast_layer.c draw_left_axis). basalt's tightest,
-// the 51 px fullCal band, leaves 13 at GOTHIC_18; the default compactCal views leave 27
-// (basalt) and 25 (emery, GOTHIC_24).
+// (fullCal, compactDense) at GOTHIC_24 (forecast_layer.c draw_left_axis); the default
+// compactCal views leave 25.
 #define TEMP_LABEL_MIN_INK_GAP 11
 
 // In: *hi_y / *lo_y are today's box tops, h the boxes' content height (both labels are
@@ -310,7 +304,7 @@ static inline void temp_labels_align_to_curve(int *hi_y, int *lo_y, int h,
     temp_labels_align(hi_y, lo_y, h, zero_y - r.hi, zero_y - r.lo);
 }
 
-// THE NUMBERS ON THE GRAPH (owner, 2026-10-09; emery only: config.h GRAPH_OPT_*). The
+// THE NUMBERS ON THE GRAPH (owner, 2026-10-09; config.h GRAPH_OPT_*). The
 // left axis's options can take the hi/lo numbers off the label strip: "On graph" puts the hi
 // number under the point it names and the lo number over its point, "Off" draws none, and
 // either way the left axis goes: no strip, no axis line, and the plot starts at the screen's

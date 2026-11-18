@@ -1,7 +1,7 @@
 /**
  * Bakes the four packed status-line snapshots into the weather payload.
  * Pure: reads only the payload + settings + watchInfo passed in -- never
- * mutable provider instance fields. ES5 only (aplite PKJS).
+ * mutable provider instance fields. ES5 only (AGENTS.md).
  */
 var catalog = require('./status-line-catalog.js');
 var platformLib = require('../../config-ui/lib/platform.js');
@@ -126,7 +126,7 @@ var isoWeek = slotText.isoWeek;
  * The bake's environment besides the watch's: the time and the phone's battery, read
  * once per bake so every slot judges the same instant and the same reading.
  * @typedef {Object} BakeEnv
- * @property {Date} now The current time (countdown, aplite's ISO week).
+ * @property {Date} now The current time (the countdown).
  * @property {number} nowSec The same instant in epoch seconds (day or night now).
  * @property {?{available: boolean, level: (number|null), charging: boolean}} phone The
  *   phone's battery reading, read once by buildStatusLines and only when a bar it bakes
@@ -161,7 +161,6 @@ function bakeEnv(now, phone) {
  *   (status-pair.js mergeAlert). Absent = none.
  * @param {Object} [env] Platform environment: a wind or gust slot keeps a byte free
  *   for the direction arrow only where packLine will draw one (arrowSector).
- *   Absent = a watch with the arrow (not aplite).
  * @param {BakeEnv} bake The time and the phone's battery (bakeEnv). Required: the
  *   countdown, the weather condition and the phone-battery items read it, and a call
  *   without it throws on those.
@@ -215,7 +214,7 @@ function formatValue(code, payload, settings, slotKey, cap, dayMax, alert, env, 
     if (!shown && merged === null) { return '--'; }
     // The unit gives way to the direction arrow (packLine appends it after the
     // text, only into a free byte): '12/30' + arrow, never '12/30kph' without one.
-    // Only to an arrow packLine will draw -- none on aplite or without a bearing.
+    // Only to an arrow packLine will draw -- none without a bearing.
     return slotText.dayMaxText(code, shown, merged, settings, cap,
       arrowSector(code, payload, settings, env || {}, shown) !== 0);
   }
@@ -345,9 +344,7 @@ function directionSentinel(code, payload, settings, env, text, dayMax) {
  * @returns {number} 0x01..0x10, or 0
  */
 function arrowSector(code, payload, settings, env, dayMax) {
-  // Never on aplite: its lean status-row twin has no arrow and would draw the
-  // control byte as a glyph box.
-  if (!settings || !env || env.platform === 'aplite') { return 0; }
+  if (!settings || !env) { return 0; }
   if (code !== 'wind' && code !== 'gust') { return 0; }
   var on = code === 'wind' ? settings.windSlotDirection : settings.gustSlotDirection;
   if (!on) { return 0; }
@@ -396,13 +393,13 @@ function iconFor(code, item, payload, settings, env, bake) {
   }
   // The city with the current weather's glyph before its name (citySlotIcon): the glyph's id
   // with the city's bit, which keeps the slot the city's on the watch. No glyph while no
-  // condition is known, nor on aplite.
+  // condition is known.
   if (code === 'city') {
     var cw = slotText.cityIcon(settings, env) ? conditionNow(payload, bake.nowSec) : null;
     return cw ? (catalog.ICONS[condition.glyph(cw.id, cw.night)] | catalog.CITY_GLYPH) : item.icon;
   }
   // The weather condition's glyph; the text-only id while none is known and in the Text
-  // look (aplite's too).
+  // look.
   if (code === 'condition') {
     var cn = conditionNow(payload, bake.nowSec);
     return cn && slotText.conditionLook(settings, env) !== 'text'
@@ -452,9 +449,7 @@ function slotCode(line, s, settings, env) {
   // slotDefault, not line.defaults: an install that never opened the settings page
   // has NOTHING stored for these (config-ui/lib/defaults.js deliberately does not
   // seed defaultFrom items), so this fallback IS the layout such a watch renders —
-  // and it has to be the same one the page would have shown it. Reading the flat
-  // table skipped every per-platform flavor, so an emery watch baked the narrow
-  // top row and an HR watch baked the non-HR health row.
+  // and it has to be the same one the page would have shown it.
   return catalog.resolveSelection(stored || catalog.slotDefault(key, env), settings,
                                   env, { slotKey: key, position: POSITIONS[s] });
 }
@@ -507,13 +502,7 @@ function packLine(line, payload, settings, env, alerts, bake) {
     // Likewise resolved per bake rather than read straight off the entry: the charging
     // phone-battery glyph and the weather condition's (see iconFor).
     var icon = iconFor(code, item, payload, settings, env, bake);
-    if (env.platform === 'aplite' && item.kind === catalog.KINDS.LIVE_WEEK) {
-      // aplite has no watch-side iso_week() (reaped for image budget), so the
-      // phone bakes the ISO week as an ordinary TEXT slot instead.
-      var weekBytes = utf8Truncate(utf8Encode('W' + isoWeek(bake.now)), textCap(s));
-      bytes.push(catalog.KINDS.TEXT, icon, weekBytes.length);
-      for (var wb = 0; wb < weekBytes.length; wb++) { bytes.push(weekBytes[wb]); }
-    } else if (item.kind === catalog.KINDS.TEXT) {
+    if (item.kind === catalog.KINDS.TEXT) {
       // A day-max kind's pick (null for every other kind), read once: the text
       // and the wind arrow below must judge the same peak.
       var dayMax = wireUnits.dayMaxShown(code, payload, settings);
@@ -530,10 +519,8 @@ function packLine(line, payload, settings, env, alerts, bake) {
       // An edge slot's city walks the watch's word ladder before the cap cuts it: the
       // first form that fits ('B. Soden', not 'Bad Sode'), whose words the watch can
       // still shorten from there. A name no form fits whole is cut as before ('New
-      // York', never 'N. Y. Ci'). Not on a known aplite: it has no On demand, and its
-      // bake stays byte for byte what it was.
-      if (code === 'city' && textCap(s) === catalog.CAPS.EDGE_TEXT_MAX
-          && env.platform !== 'aplite') {
+      // York', never 'N. Y. Ci').
+      if (code === 'city' && textCap(s) === catalog.CAPS.EDGE_TEXT_MAX) {
         text = cityLadder.fit(text, textCap(s));
       }
       var valueBytes = utf8Truncate(utf8Encode(text), textCap(s));
@@ -548,9 +535,8 @@ function packLine(line, payload, settings, env, alerts, bake) {
       bytes.push(item.kind, icon, valueBytes.length);
       for (var b = 0; b < valueBytes.length; b++) { bytes.push(valueBytes[b]); }
       // An edge slot's weather condition at the middle's room: its name with the short form
-      // after it (slot-text.js conditionText). Not on a known aplite, whose lean row reads one
-      // form in an edge's 8 bytes.
-      if (code === 'condition' && s !== 1 && env.platform !== 'aplite') {
+      // after it (slot-text.js conditionText).
+      if (code === 'condition' && s !== 1) {
         var wideBytes = utf8Truncate(utf8Encode(formatValue(code, payload, settings, key,
           catalog.CAPS.EDGE_COND_TEXT_MAX, dayMax, alert, env, bake)), catalog.CAPS.EDGE_COND_TEXT_MAX);
         if (wideBytes.join() !== valueBytes.join()) { wide[s] = wideBytes; }
@@ -593,8 +579,7 @@ function widenEdgeConditions(bytes, starts, wide) {
  * @param {Object} payload weather payload (mutated)
  * @param {Object} settings Clay settings blob
  * @param {Object|null} watchInfo Pebble.getActiveWatchInfo() result
- * @param {Date} now The current time: the countdown, aplite's ISO week and whether it is
- *   night now read it, one instant for the whole bake.
+ * @param {Date} now The current time: the countdown and whether it is night now read it, one instant for the whole bake.
  * @param {?PhoneBattery} [phone] The phone's battery facts (phone-battery.js bakeFacts);
  *   absent = a host that cannot read the phone's battery.
  * @returns {Object} the same payload
@@ -602,9 +587,8 @@ function widenEdgeConditions(bytes, starts, wide) {
 function buildStatusLines(payload, settings, watchInfo, now, phone) {
   var env = platformLib.computeEnv(watchInfo);
   // The weather alerts' entries, judged before the lines: a slot showing an alert's
-  // metric on the alert's side merges it (packLine). Only for a watch they ride to
-  // (see below); null elsewhere, so aplite's lines bake exactly as before.
-  var alerts = env.thresholds ? statusWire.bakedAlerts(payload, settings, env) : null;
+  // metric on the alert's side merges it (packLine).
+  var alerts = statusWire.bakedAlerts(payload, settings, env);
   // computeEnv derives WATCH facts from watchInfo and nothing else, but the two
   // phone-battery items are gated on a PHONE fact: whether this PKJS host
   // exposes the Battery Status API (Android's Chromium WebView only). The flag
@@ -628,22 +612,13 @@ function buildStatusLines(payload, settings, watchInfo, now, phone) {
   }
   // Packed weather-kind threshold levels: computed here because the raw
   // AQI/pollen/wind/gust values exist only phone-side (the watch gets text).
-  // Skipped for a watch that compiles the highlight out (aplite — no
-  // WW_THRESHOLD_HIGHLIGHT, so its inbox handler for this tuple is gone too):
-  // sending it would only spend BLE bytes and inbox budget on a tuple that is
-  // read and discarded. The 'status' category still carries the Watch bar's line
-  // (always baked), so the change detector is unaffected.
-  if (env.thresholds) {
-    payload.STATUS_LEVELS_UINT8 = statusWire.packWeatherLevels(payload, settings);
-    // The weather alerts' metric entries, judged here for the same reason. Its own
-    // tuple in the 'status' category, so it rides (and is change-detected) with
-    // the lines; [] when nothing is alerting, which clears the watch's stored
-    // entries. The rain alert is not in here: the watch resolves it from its own
-    // radar cache. On demand is compiled out on exactly the platforms the highlight
-    // is (WW_ON_DEMAND and WW_THRESHOLD_HIGHLIGHT: every platform but aplite), so
-    // this gate is the right one, and aplite's inbox never budgets for the tuple.
-    payload.ALERT_ENTRIES_UINT8 = statusWire.packAlerts(alerts);
-  }
+  payload.STATUS_LEVELS_UINT8 = statusWire.packWeatherLevels(payload, settings);
+  // The weather alerts' metric entries, judged here for the same reason. Its own
+  // tuple in the 'status' category, so it rides (and is change-detected) with
+  // the lines; [] when nothing is alerting, which clears the watch's stored
+  // entries. The rain alert is not in here: the watch resolves it from its own
+  // radar cache.
+  payload.ALERT_ENTRIES_UINT8 = statusWire.packAlerts(alerts);
   return payload;
 }
 

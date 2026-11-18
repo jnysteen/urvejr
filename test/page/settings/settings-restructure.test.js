@@ -42,7 +42,7 @@ test('page-only keys are never stored: the Night hours, Separate hours and the R
 });
 
 test('the info text shows by default; Misc\'s Hide info text puts it behind ? buttons, page-only', async () => {
-  const p = bootGeneratedPage({ provider: 'dwd' }, 'basalt');
+  const p = bootGeneratedPage({ provider: 'dwd' }, 'emery');
   p.clickTab('setup');
   let html = p.scroll.innerHTML;
   assert.equal(html.indexOf('info-q'), -1, 'no ? by default');
@@ -56,7 +56,7 @@ test('the info text shows by default; Misc\'s Hide info text puts it behind ? bu
   assert.ok(p.scroll.innerHTML.indexOf('Open this settings page on the Weather tab instead of Watchface.') !== -1);
   const blob = await p.save();
   assert.equal(blob.hideInfoText, true, 'the choice is kept with the page\'s settings');
-  const again = bootGeneratedPage({ provider: 'dwd', hideInfoText: true }, 'basalt');
+  const again = bootGeneratedPage({ provider: 'dwd', hideInfoText: true }, 'emery');
   again.clickTab('setup');
   assert.ok(again.scroll.innerHTML.indexOf('data-info="k:startOnWeatherTab"') !== -1, 'and the page reopens that way');
 });
@@ -70,9 +70,8 @@ test('Separate hours reads the pairs the night features use, ignoring the ones t
   assert.equal(nightHours.nightHoursSeparate(E.hydrate(schema, { sleepStartHour: '23' }, emery), emery), true);
   assert.equal(nightHours.nightHoursSeparate(E.hydrate(schema, { sleepStartHour: '23', sleepNightEnabled: false }, emery),
     emery), false, 'a feature that is off does not count');
-  const basalt = platformLib.computeEnv({ platform: 'basalt' });
-  assert.equal(nightHours.nightHoursSeparate(E.hydrate(schema, { backlightDimStartHour: '23' }, basalt), basalt), false,
-    'Dim backlight is not on this watch');
+  assert.equal(nightHours.nightHoursSeparate(E.hydrate(schema, { backlightDimStartHour: '23', backlightDim: false },
+    emery), emery), false, 'Dim backlight off does not count');
 });
 
 test('shared Night hours: one pick writes all three pairs; the page shows one row', async () => {
@@ -106,8 +105,8 @@ test('opened and saved untouched, the shared mode writes no hour', async () => {
 
 test('a night feature switched on in shared mode takes the Night hours on Save', async () => {
   // The theme's own hours are its defaults (20–7): nothing the user set, so it joins.
-  const p = bootGeneratedPage({ provider: 'dwd', sleepStartHour: '22', sleepEndHour: '6', themeAutoMode: 'manual' },
-    'basalt');
+  const p = bootGeneratedPage({ provider: 'dwd', sleepStartHour: '22', sleepEndHour: '6', themeAutoMode: 'manual',
+    backlightDim: false }, 'emery');
   p.clickTab('watchface');
   assert.equal(p.S.nightHoursFrom, '22', 'the Night hours open on the saver\'s hours');
   p.clickToggle('themeAuto');
@@ -119,7 +118,7 @@ test('a night feature switched on in shared mode takes the Night hours on Save',
 
 test('a feature that is off keeps its own stored hours, whatever the Night hours do', async () => {
   // The Night theme is on but follows the sun: its custom hours are not in use.
-  const p = bootGeneratedPage({ provider: 'dwd', themeAuto: true }, 'basalt');
+  const p = bootGeneratedPage({ provider: 'dwd', themeAuto: true }, 'emery');
   p.clickTab('watchface');
   p.openSelect('nightHoursFrom');
   p.pickOption('nightHoursFrom', '22');
@@ -133,7 +132,7 @@ test('a feature that is off keeps its own stored hours, whatever the Night hours
 
 test('a feature switched on with hours the user set keeps them: Separate hours turns on', async () => {
   const p = bootGeneratedPage({ provider: 'dwd', themeAuto: false, themeAutoMode: 'manual', themeAutoStartHour: '22',
-    themeAutoEndHour: '6' }, 'basalt');
+    themeAutoEndHour: '6' }, 'emery');
   p.clickTab('watchface');
   assert.equal(p.S.nightHoursSeparate, false, 'the theme is off, so one shared row (the saver\'s 0–7)');
   p.clickToggle('themeAuto');
@@ -148,7 +147,7 @@ test('a feature switched on with hours the user set keeps them: Separate hours t
 
 test('Separate hours: on at load when the pairs differ, a From–To per feature; off copies one into all', () => {
   const p = bootGeneratedPage({ provider: 'dwd', themeAuto: true, themeAutoMode: 'manual', themeAutoStartHour: '21',
-    themeAutoEndHour: '6', sleepStartHour: '0', sleepEndHour: '7' }, 'basalt');
+    themeAutoEndHour: '6', sleepStartHour: '0', sleepEndHour: '7', backlightDim: false }, 'emery');
   p.clickTab('watchface');
   assert.equal(p.S.nightHoursSeparate, true);
   const html = p.scroll.innerHTML;
@@ -167,7 +166,7 @@ test('Separate hours: on at load when the pairs differ, a From–To per feature;
 
 test('a forecast line that picks a later line\'s metric clears it, though the two sit in different dialogs', async () => {
   const p = bootGeneratedPage({ provider: 'dwd', secondaryLine: 'precip_prob', thirdLine: 'wind', fourthLine: 'gust' },
-    'basalt');
+    'emery');
   p.clickTab('graphs');
   p.openEditSheet('lineMain');
   const pick = { getAttribute: n => (n === 'data-k' ? 'secondaryLine' : (n === 'data-select-pick' ? 'gust' : null)),
@@ -182,7 +181,7 @@ test('a forecast line that picks a later line\'s metric clears it, though the tw
 });
 
 test('a dialog\'s × puts back everything it changed, nested dialogs included; Done keeps', () => {
-  const p = bootGeneratedPage({ provider: 'dwd' }, 'basalt');
+  const p = bootGeneratedPage({ provider: 'dwd' }, 'emery');
   p.clickTab('graphs');
   const before = { fill: p.S.secondaryLineFill, line: p.S.gcPrecipLineDark };
   p.openEditSheet('lineMain');
@@ -208,7 +207,7 @@ test('a dialog\'s × puts back everything it changed, nested dialogs included; D
 });
 
 test('a slot dialog opens its alert\'s levels on top of it, and ‹ comes back', () => {
-  const p = bootGeneratedPage({ provider: 'dwd', statusForecastRight: 'uv' }, 'basalt');
+  const p = bootGeneratedPage({ provider: 'dwd', statusForecastRight: 'uv' }, 'emery');
   p.clickTab('watch');
   p.openEditSheet('threshUv');
   // The harness's tap has no card around it, so the kicker falls back to the tab's label
@@ -223,7 +222,7 @@ test('a slot dialog opens its alert\'s levels on top of it, and ‹ comes back',
 });
 
 test('the page saves the same values however much of it was opened', async () => {
-  for (const plat of ['basalt', 'emery', 'aplite']) {
+  for (const plat of ['emery']) {
     const cfg = { provider: 'dwd', themeAuto: true, themeAutoMode: 'manual', windSlotDisplay: 'both',
       statusBoldAll: 'all', firstWeek: 'curr', secondaryLine: 'wind', fourthLine: 'pressure' };
     const quick = await bootGeneratedPage(cfg, plat).save();
@@ -243,31 +242,9 @@ test('the page saves the same values however much of it was opened', async () =>
   }
 });
 
-test('a choice made on another watch survives a save it was not drawn in, as on the old page', async () => {
-  // The phone keeps one settings blob for every watch it pairs with: a heart-rate slot
-  // set on a Time 2 is not offered on a Time, a feels-like line not on a Classic.
-  const basalt = await bootGeneratedPage({ provider: 'dwd', statusTopLeft: 'hr' }, 'basalt').save();
-  assert.equal(basalt.statusTopLeft, 'hr', 'untouched, the slot keeps it');
-  const p = bootGeneratedPage({ provider: 'dwd', statusTopLeft: 'hr' }, 'basalt');
-  p.clickTab('setup');
-  p.clickToggle('startOnWeatherTab');
-  assert.equal((await p.save()).statusTopLeft, 'hr', 'an unrelated change keeps it too');
-  const aplite = await bootGeneratedPage({ provider: 'dwd', thirdLine: 'feels' }, 'aplite').save();
-  assert.equal(aplite.thirdLine, 'feels');
-  // Drawn, the row shows what this watch can do and saves that — the old page's rule. The
-  // slot's row is in the Watch bar's dialog.
-  const shown = bootGeneratedPage({ provider: 'dwd', statusTopLeft: 'hr' }, 'basalt');
-  shown.clickTab('watch');
-  assert.equal((await shown.save()).statusTopLeft, 'hr', 'the tab alone draws no slot row');
-  const opened = bootGeneratedPage({ provider: 'dwd', statusTopLeft: 'hr' }, 'basalt');
-  opened.clickTab('watch');
-  opened.openEditSheet('bar-top');
-  opened.doneDialog();
-  assert.notEqual((await opened.save()).statusTopLeft, 'hr');
-});
-
 test('with no night feature in use there is no Night hours row to pick in', () => {
-  const p = bootGeneratedPage({ provider: 'dwd', sleepNightEnabled: false, themeAuto: false }, 'basalt');
+  const p = bootGeneratedPage({ provider: 'dwd', sleepNightEnabled: false, themeAuto: false, backlightDim: false },
+    'emery');
   p.clickTab('watchface');
   assert.equal(p.scroll.innerHTML.indexOf('data-select="nightHoursFrom"'), -1, 'nothing reads the hours');
   assert.equal(p.scroll.innerHTML.indexOf('data-k="nightHoursSeparate"'), -1, 'nor Separate hours');
@@ -277,7 +254,7 @@ test('with no night feature in use there is no Night hours row to pick in', () =
 
 test('the one feature switched on brings its own hours: the Night hours become them', async () => {
   const p = bootGeneratedPage({ provider: 'dwd', sleepNightEnabled: false, themeAuto: false, themeAutoMode: 'manual',
-    themeAutoStartHour: '22', themeAutoEndHour: '6' }, 'basalt');
+    themeAutoStartHour: '22', themeAutoEndHour: '6', backlightDim: false }, 'emery');
   p.clickTab('watchface');
   p.clickToggle('themeAuto');
   assert.equal(p.S.nightHoursSeparate, false, 'nothing else uses hours: no need to split');
@@ -314,14 +291,14 @@ test('Separate hours off and straight back on gives every feature its own hours 
 test('More options stays folded for colours the light theme set and alert colours the page filled in', async () => {
   // Pick Light (the theme conversion rewrites the time colour and the rain bars), save,
   // save once more (the page writes the alerts' automatic colours back), reopen.
-  const p = bootGeneratedPage({ provider: 'dwd' }, 'basalt');
+  const p = bootGeneratedPage({ provider: 'dwd' }, 'emery');
   p.clickTab('watchface');
   p.openSelect('theme');
   p.pickOption('theme', 'light');
   const once = await p.save();
   assert.equal(once.colorTime, '#000000', 'the theme conversion ran');
-  const twice = await bootGeneratedPage(once, 'basalt').save();
-  const r = bootGeneratedPage(twice, 'basalt');
+  const twice = await bootGeneratedPage(once, 'emery').save();
+  const r = bootGeneratedPage(twice, 'emery');
   r.clickTab('watchface');
   assert.ok(r.scroll.innerHTML.indexOf('data-more="watchface:time/0#more" aria-expanded="false"') !== -1, 'Time');
   r.clickTab('graphs');
@@ -332,7 +309,7 @@ test('More options stays folded for colours the light theme set and alert colour
   r.openEditSheet('alertGust');
   assert.ok(/data-more="dlg:alertGust\/\d+#more" aria-expanded="false"/.test(r.modal.innerHTML), 'the gust alert');
   // A colour the user picked still opens them.
-  const own = bootGeneratedPage(Object.assign({}, twice, { colorTime: '#FF0000' }), 'basalt');
+  const own = bootGeneratedPage(Object.assign({}, twice, { colorTime: '#FF0000' }), 'emery');
   own.clickTab('watchface');
   assert.ok(own.scroll.innerHTML.indexOf('data-more="watchface:time/0#more" aria-expanded="true"') !== -1);
 });

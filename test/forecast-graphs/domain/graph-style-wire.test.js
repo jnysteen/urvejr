@@ -87,10 +87,7 @@ test('the record layout is graph_style.h\'s', () => {
   assert.equal(forecastAxis.BIT.SCALE & ~cDefine('GS_FLAG_AXIS_MASK'), 0);
 });
 
-test('no records off emery; three empty tuples while only the first style shows', () => {
-  const S = styled(['1', '2'], LONG);
-  [{ platform: 'basalt' }, { platform: 'aplite' }, null].forEach((w) =>
-    assert.deepEqual(wire.buildStyleTuples(S, w), {}, JSON.stringify(w)));
+test('three empty tuples while only the first style shows', () => {
   const one = styled(['1', '1'], LONG);
   assert.deepEqual(wire.buildStyleTuples(one, EMERY),
     { CLAY_GRAPH_STYLE_1_UINT8: [], CLAY_GRAPH_STYLE_2_UINT8: [], CLAY_GRAPH_STYLE_3_UINT8: [] });
@@ -166,7 +163,6 @@ test('the scale rows: every feels-like and dew point row, while the scale option
 test('the bake\'s settings: the union\'s rows, the bars while one style draws them, the longest length', () => {
   const S = styled(['1', '2'], LONG);
   assert.equal(wire.weatherSettings(styled(['1', '1'], LONG), EMERY).graphStyleSlots, undefined);
-  assert.equal(wire.weatherSettings(S, { platform: 'basalt' }), S, 'basalt: the settings themselves');
   const W = wire.weatherSettings(S, EMERY);
   assert.deepEqual([W.secondaryLine, W.thirdLine, W.fourthLine, W.fifthLine], ['precip_prob', 'uv', 'cloud', 'off']);
   assert.deepEqual([W.secondaryLineStyle, W.thirdLineStyle, W.fourthLineStyle], ['line', 'line', 'stripeTop']);
@@ -233,9 +229,7 @@ test('the fetch and the render signature read the shown styles\' union', () => {
   const opts = fetchOptions.build(S, EMERY);
   assert.equal(opts.forecastHours, 68, 'the longest style');
   assert.equal(opts.fetchFeels, true, 'style 2 draws feels-like');
-  assert.equal(fetchOptions.build(S, { platform: 'basalt' }).forecastHours, 24);
   const base = renderSignature(S, EMERY);
-  assert.notEqual(base, renderSignature(S), 'the union signs');
   const recolored = styled(['1', '2'], Object.assign({}, LONG, { fourthLine: 'feels', gcCloudLineDark: 0xFF0000 }));
   assert.equal(renderSignature(recolored, EMERY), base, 'a colour rides the Clay message');
   const relined = styled(['1', '2'], Object.assign({}, LONG, { fourthLine: 'dew' }));
@@ -286,10 +280,10 @@ test('the spare row: a fifth series bakes into SPARE_LINE_TREND_UINT8, a union o
   assert.ok(striped.SPARE_LINE_TREND_UINT8.every((b) => stripeLevels.LEVEL_BYTES.includes(b)), 'levels');
   assert.notDeepEqual(striped.SPARE_LINE_TREND_UINT8, payload.SPARE_LINE_TREND_UINT8);
   // Four series between the styles: no spare, so the key is left out (the watch deletes its
-  // spare trend), as it is with one style shown and on every other watch.
+  // spare trend), as it is with one style shown.
   const four = styled(['1', '2'], Object.assign({}, FIFTH, { fourthLine: 'off' }), null, FOUR_LINES);
   assert.equal(wire.weatherSettings(four, EMERY).spareLine, undefined);
-  [[four, EMERY], [styled(['1', '1'], FIFTH, null, FOUR_LINES), EMERY], [S, { platform: 'basalt' }], [S, null]]
+  [[four, EMERY], [styled(['1', '1'], FIFTH, null, FOUR_LINES), EMERY]]
     .forEach(([settings, watch], i) => assert.equal(
       Object.prototype.hasOwnProperty.call(bake(settings, watch), 'SPARE_LINE_TREND_UINT8'), false, 'case ' + i));
 });

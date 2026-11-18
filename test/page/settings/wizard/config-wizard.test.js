@@ -103,14 +103,10 @@ test('buildSteps: Welcome, Forecast, Layout, Screens, Theme, Done; each gated by
   // No Health step any more: a Health screen is one the Screens step adds.
   assert.deepEqual(W.buildSteps({ radar: true, health: false, themePolarity: true }),
     ['welcome', 'layout', 'screens', 'theme', 'done']);
-  // aplite: one screen, nothing to flick to, AND no theme polarity to choose (WW_THEME_POLARITY
-  // compiled out) nor line styles — the wizard skips all three steps.
+  // No radar, no health, no theme polarity nor line styles: the wizard skips all three steps.
   assert.deepEqual(W.buildSteps({ radar: false, health: false, themePolarity: false }), ['welcome', 'layout', 'done']);
-  ['basalt', 'diorite', 'emery', 'flint'].forEach((p) => {
-    assert.deepEqual(W.buildSteps(platform.computeEnv({ platform: p })),
-      ['welcome', 'forecast', 'layout', 'screens', 'theme', 'done'], p);
-  });
-  assert.deepEqual(W.buildSteps(platform.computeEnv({ platform: 'aplite' })), ['welcome', 'layout', 'done']);
+  assert.deepEqual(W.buildSteps(platform.computeEnv({ platform: 'emery' })),
+    ['welcome', 'forecast', 'layout', 'screens', 'theme', 'done']);
 });
 
 test('shouldShow: gated on onboardingDone, not on an empty config', () => {
@@ -165,21 +161,6 @@ test('finishing the wizard on emery hands AQI a warn signal, moves no slot and l
   assert.deepEqual(Object.keys(written), ['threshAqiOn'], 'the report names exactly the keys it wrote');
 });
 
-test('finishing the wizard on a narrow watch moves no slot and leaves Bold alone', () => {
-  // The strip beside the clock ships air quality, the date and the battery corner here.
-  const ctx = wizCtx();
-  const before = {};
-  BOLD_KEYS.forEach((k) => { before[k] = ctx.S[k]; });
-
-  const written = FINISH.applyWizardDefaults(ctx, 'save');
-
-  BOLD_KEYS.forEach((k) => assert.equal(ctx.S[k], before[k], k + ' keeps its own default'));
-  assert.equal(ctx.S.statusTopLeft, 'aqi');
-  assert.equal(ctx.S.statusTopRight, 'battery', 'the battery keeps its corner');
-  assert.equal(ctx.S.statusHealthLeft, 'steps');
-  assert.deepEqual(Object.keys(written), ['threshAqiOn'], 'the report names exactly the keys it wrote');
-});
-
 test('the wizard\'s AQI highlight == a hand flip: the switch alone, the pair left blank', () => {
   const thresholds = require('../../../../src/pkjs/alerts/domain/status-thresholds.js');
   const ctx = wizCtx();
@@ -211,23 +192,12 @@ test('the wizard\'s AQI highlight == a hand flip: the switch alone, the pair lef
 
 test('no health mode moves a status slot: steps stays in the Health bar (the owner\'s, 2026-11-09)', () => {
   ['all', 'status', 'slot', 'off'].forEach((mode) => {
-    const ctx = wizCtx({ saved: { healthMode: mode } });
-    FINISH.applyWizardDefaults(ctx, 'save');
-    assert.equal(ctx.S.statusTopLeft, 'aqi', mode);
-    assert.equal(ctx.S.statusHealthLeft, 'steps', mode);
-    assert.equal(ctx.S.threshAqiOn, true, 'the AQI rule applies: ' + mode);
-
     const emery = wizCtx({ platform: 'emery', saved: { healthMode: mode } });
     FINISH.applyWizardDefaults(emery, 'save');
     assert.equal(emery.S.statusTopRight, 'aqi', 'emery: ' + mode);
     assert.equal(emery.S.statusHealthLeft, 'steps', 'emery: ' + mode);
+    assert.equal(emery.S.threshAqiOn, true, 'the AQI rule applies: ' + mode);
   });
-
-  // aplite has no health at all; the AQI key is still written (inert there by design).
-  const aplite = wizCtx({ platform: 'aplite' });
-  FINISH.applyWizardDefaults(aplite, 'save');
-  assert.equal(aplite.S.statusHealthLeft, 'steps');
-  assert.equal(aplite.S.threshAqiOn, true);
 });
 
 test('"Keep customizing" (nav tweak) finishes the wizard too — Skip and the step buttons do not', () => {
@@ -282,22 +252,17 @@ test('opening the wizard never rewrites a stored preset; a layout pick makes the
   assert.deepEqual(after.slice(1), flicks, 'the flick screens are the Screens step\'s');
   assert.equal(VC.packWire(VC.resolveViewCycle(ctx.S, env)[0]),
     VC.packWire(VC.buildViewCycle('fullCal', 'off', 'off', true)[0]), 'byte for byte the preset\'s Default');
-  // aplite has no screens: its pick is the preset.
-  const aplite = openSetup({ platform: 'aplite', saved: { layoutPreset: 'compactCal' } });
-  aplite.dom.nav('next');
-  aplite.dom.pick('layoutPreset', 'noCal');
-  assert.equal(aplite.ctx.S.layoutPreset, 'noCal');
 });
 
 test('the Screens step\'s screens: a second forecast, Health and Rain radar where the watch draws them, in that order', () => {
-  const basalt = platform.computeEnv({ platform: 'basalt' });
-  assert.deepEqual(SCREENS.offered(basalt).map((t) => t.id), ['health', 'radar']);
-  assert.deepEqual(SCREENS.offered(platform.computeEnv({ platform: 'emery' })).map((t) => t.id), ['forecast2', 'health', 'radar'],
-    'the Pebble Time 2 adds a second graph over the other length');
+  const basalt = platform.computeEnv({ platform: 'emery' });
+  assert.deepEqual(SCREENS.offered(basalt).map((t) => t.id), ['forecast2', 'health', 'radar'],
+    'a second graph over the other length, Health and Rain radar');
+  assert.deepEqual(SCREENS.offered(Object.assign({}, basalt, { graphStyles: false })).map((t) => t.id),
+    ['health', 'radar'], 'one graph look: no second graph');
   // The other length than the Default graph's (the owner's ask, 2026-11-15), named for it.
   assert.deepEqual(['12', '24', '48'].map(SCREENS.otherSpan), ['48', '48', '24']);
   assert.deepEqual(['24', '48'].map(SCREENS.forecastName), ['24 h forecast', 'Long forecast']);
-  assert.deepEqual(SCREENS.offered(platform.computeEnv({ platform: 'aplite' })), []);
   const b = (k, o) => Object.assign({ k }, o || {});
   assert.deepEqual(SCREENS.listOf(SCREENS.byId('health'), ''),
     [b('strip'), b('clock'), b('healthbar'), b('health', { size: 'fill' })]);
@@ -332,7 +297,7 @@ test('the Screens step\'s screens: a second forecast, Health and Rain radar wher
 test('finishing setup without a Health screen leaves the slots to the screens: a new install\'s health is off', () => {
   const ctx = wizCtx({ saved: { healthMode: 'off' } });
   FINISH.applyWizardDefaults(ctx, 'save');
-  assert.equal(ctx.S.statusTopLeft, 'aqi', 'the Watch bar keeps its default');
+  assert.equal(ctx.S.statusTopRight, 'aqi', 'the Watch bar keeps its default');
   assert.equal(ctx.S.threshAqiOn, true, 'the AQI rule still applies');
 });
 

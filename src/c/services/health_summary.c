@@ -2,7 +2,6 @@
 
 #include "c/services/health.h"
 
-#if defined(PBL_HEALTH)
 
 #include <limits.h>
 
@@ -70,4 +69,3 @@ int health_summary_distance_m(void) {
 int health_summary_sleep_seconds(void) { return s_sleep_sec; }
 int health_summary_hr_bpm(void)        { return s_hr; }
 
-#endif  // PBL_HEALTH

@@ -10,8 +10,7 @@
 // (graph-wire.js), plus its hours and the row each of its lines reads. A slot no shown style
 // takes gets an empty tuple, which clears it on the watch; with only the first style shown
 // all three are empty, and the watch draws the flat tuples' look on every screen, as before
-// graph styles. Known emery only (env.graphStyles): an unknown watch could be an aplite,
-// whose 536 B inbox has no room for them. Layout in lockstep with src/c/appendix/graph_style.h,
+// graph styles. Layout in lockstep with src/c/appendix/graph_style.h,
 // pinned by test/forecast-graphs/domain/graph-style-wire.test.js and test/c/graph_style_test.c:
 //   [0]      hours: the hours the style draws (forecast-span.js hours)
 //   [1]      flags: bit 0 Day / night shading; the Left axis bits (forecast-axis.js wireBits)

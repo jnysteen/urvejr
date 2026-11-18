@@ -42,15 +42,13 @@ test('PERSIST GRAPH_STYLE_1..3 are appended after RADAR_NOTICE (59..61)', () => 
   assert.equal(names[63], 'STATUS_LINE_5');
 });
 
-test('the spare row: its key appended after the style keys, received and stored on emery only', () => {
+test('the spare row: its key appended after the style keys, received and stored', () => {
   const keys = template.pebble.messageKeys;
   assert.equal(keys.indexOf('SPARE_LINE_TREND_UINT8'), keys.indexOf('CLAY_GRAPH_STYLE_3_UINT8') + 1);
   // Bars 4 to 6's keys come after it (test/status-bars/domain/extra-bars-contract.test.js).
   assert.equal(keys[keys.indexOf('SPARE_LINE_TREND_UINT8') + 1], 'STATUS_LINE_5_UINT8');
   const entry = appMessageC.indexOf('{ SERIES_SPARE,  MESSAGE_KEY_SPARE_LINE_TREND_UINT8');
   assert.ok(entry !== -1, 'the trend table receives it');
-  const guard = appMessageC.lastIndexOf('#if defined(PBL_PLATFORM_EMERY)', entry);
-  assert.ok(guard !== -1 && appMessageC.indexOf('#endif', guard) > entry, 'behind PBL_PLATFORM_EMERY');
   ['persist_series_present', 'persist_series_trend', 'persist_series_set_trend'].forEach((fn) => {
     const start = persistC.indexOf(fn + '(SeriesId id');
     const body = persistC.slice(start, persistC.indexOf('\n}\n', start));
@@ -58,16 +56,13 @@ test('the spare row: its key appended after the style keys, received and stored 
   });
 });
 
-test('the watch checks a record before persisting it, on emery only', () => {
+test('the watch checks a record before persisting it', () => {
   const start = appMessageC.indexOf('static bool handle_graph_styles');
   assert.ok(start !== -1, 'handle_graph_styles missing');
   const body = appMessageC.slice(start, appMessageC.indexOf('\n}\n', start));
   assert.ok(body.indexOf('graph_style_valid') !== -1, 'validated');
   assert.ok(body.indexOf('persist_set_graph_style') > body.indexOf('graph_style_valid'),
     'validated before the write');
-  const guard = appMessageC.lastIndexOf('#if defined(PBL_PLATFORM_EMERY)', start);
-  assert.ok(guard !== -1 && appMessageC.indexOf('#endif', guard) > start,
-    'the handler sits behind PBL_PLATFORM_EMERY');
 });
 
 test('the watch reads the style from ext bits 9-10, where packExt puts it', () => {

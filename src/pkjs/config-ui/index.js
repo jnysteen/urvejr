@@ -1,6 +1,6 @@
 // src/pkjs/config-ui/index.js (library entry)
 var color    = require('../lib/color.js');     // intToHex, hexToInt, PALETTE
-var platform = require('../config-ui/lib/platform.js');  // isColorPlatform, computeEnv
+var platform = require('../config-ui/lib/platform.js');  // computeEnv
 var defaults = require('./lib/defaults.js');  // deriveDefaults(schema), deriveColorKeys(schema)
 require('../lib/polyfills.js');                    // Object.assign / Array.find on aplite
 
@@ -120,12 +120,7 @@ function createConfig(cfg) {
 
 module.exports = {                                        // factory + reusable pure helpers
   createConfig: createConfig,
-  isColorPlatform: platform.isColorPlatform, computeEnv: platform.computeEnv,
-  isThemePolarityPlatform: platform.isThemePolarityPlatform,
-  isColorBacklightPlatform: platform.isColorBacklightPlatform,
-  // forecast-series.js gates the fourth-line trend key on this: aplite has no
-  // SERIES_FOURTH (WW_LINE_STYLE).
-  isLineStylePlatform: platform.isLineStylePlatform,
+  computeEnv: platform.computeEnv,
   intToHex: color.intToHex, hexToInt: color.hexToInt,
   deriveDefaults: defaults.deriveDefaults, deriveColorKeys: defaults.deriveColorKeys,
   // scripts/build-page.js previewPage fills the same markers for the dev preview.

@@ -32,7 +32,7 @@
 // eyeball: fixtures/ampm-{roboto,leco,bitham}.json are the three faces in 12h with the label on
 // at the WIDEST string ("12:34 PM", the one that fills the band), and ampm-roboto-941.json is
 // the 4-glyph string the default leading-zero-off setting actually shows most of the day. Shoot
-// with PLATFORMS="basalt emery" scripts/capture-screenshots.sh <label> <fixture> and row-scan
+// with PLATFORMS=emery scripts/capture-screenshots.sh <label> <fixture> and row-scan
 // the clock band: the label's first inked row must equal the digits' first inked row. MEASURED
 // 2026-08-26, 8 of 8 combinations, all exact bar 144px Bitham on a digit set with no 0 and no 8
 // — which is the ink-table caveat recorded in clock_ink.h, not this seating.
@@ -50,9 +50,7 @@
 // nominal size (verified on device at 14/18/24 — see status_content_h in layer_util.h), and
 // status_ink_top() gives the blank rows such a line leaves above its capitals: 7 at Gothic 18.
 // It is written as an expression rather than a literal and constant-folds because its argument
-// is one — the same shape as layout_aplite.c's STATUS_LARGE_BAND_H, and for the same reason:
-// aplite compiles this file, and its image is measured against a hard launch ceiling on every
-// build (scripts/check-aplite-size.sh).
+// is one.
 //
 // It is not a coincidence that AM_PM_INK_TOP comes out at 7, the value the retired hand-tuned
 // MT_AM_PM carried: that constant was measuring this same blank leading. What it got wrong was
@@ -89,7 +87,6 @@ static TextLayer *s_time_layer;
 static TextLayer *s_am_pm_layer;
 static char s_time_text[8];
 
-#if defined(PBL_COLOR)
 // The anti-aliased digits (clock_glyphs.h), for the faces that have them, are painted by the
 // container's own update proc: the container already IS the band — main_window re-frames it per
 // view, it clips to it, and it draws before its children, so the glyphs land under the AM/PM
@@ -105,29 +102,17 @@ static void container_update(Layer *layer, GContext *ctx) {
                           theme_pick(config_get()->color_time, theme_fg()));
     }
 }
-#endif
 
 // The active time font's measured ink — where its digits sit inside their line box, which is
 // what both the band solver and the AM/PM label are seated against.
 static ClockInk time_layer_ink(void) {
-#if defined(WW_CLOCK_INK)
     return clock_ink_for(config_get()->time_font);
-#else
-    // aplite links no ink table (WW_CLOCK_INK, see wscript), so it answers with the Roboto row
-    // of clock_ink.c's 144px arm inlined as a literal: its default font, and the one every
-    // anchor on that platform is already tuned to. Its other two fonts want -15 (leco) and -17
-    // (bitham) for centre_off - ink_h/2 against Roboto's -17, so the label lands within 2 rows
-    // on those — the same Roboto-tuned trade layout_aplite.c makes for the clock band itself.
-    return (ClockInk){ 0, 35 };
-#endif
 }
 
 void time_layer_create(Layer* parent_layer, GRect frame) {
     s_container_layer = layer_create(frame);
-#if defined(PBL_COLOR)
     s_glyphs = false;   // the text layer draws until the first time_layer_refresh() picks
     layer_set_update_proc(s_container_layer, container_update);
-#endif
     s_time_layer = text_layer_create(GRect(0, 0, frame.size.w, frame.size.h));
     s_am_pm_layer = text_layer_create(GRect(0, 0, AM_PM_BOX_W, frame.size.h));
 
@@ -177,7 +162,6 @@ void time_layer_tick() {
     int am_pm_w = show_am_pm ? am_pm_size.w : 0;
     int text_left, digits_w;
 
-#if defined(PBL_COLOR)
     if (s_glyphs) {
         // The glyphs carry their own metrics, so the digits are seated from the model directly:
         // the pen advance centres them exactly as the text layer's content width does below, and
@@ -189,7 +173,6 @@ void time_layer_tick() {
         s_glyph_origin = GPoint(text_left, clock_ink_top_in_band(bounds.size.h, time_layer_ink()));
         layer_mark_dirty(s_container_layer);
     } else
-#endif
     {
         text_layer_move_frame(s_time_layer, GRect(0, 0, bounds.size.w, bounds.size.h)); // Reset for size calculation
         GSize time_size = text_layer_get_content_size(s_time_layer);
@@ -227,11 +210,9 @@ void time_layer_tick() {
 
 void time_layer_refresh() {
     text_layer_set_font(s_time_layer, config_time_font());
-#if defined(PBL_COLOR)
     // Every font change arrives here (main_window_refresh) before the next redraw.
     s_glyphs = clock_glyphs_face(config_get()->time_font);
     layer_set_hidden(text_layer_get_layer(s_time_layer), s_glyphs);
-#endif
     text_layer_set_text_color(s_time_layer, theme_pick(config_get()->color_time, theme_fg()));
     text_layer_set_text_color(s_am_pm_layer, theme_fg());  // re-apply: create-time value goes stale on a live theme flip
     time_layer_tick();  // Update main time text and layer positions

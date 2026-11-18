@@ -10,12 +10,8 @@ void top_status_layer_create(Layer* parent_layer, GRect frame);
 // calls store it for the first paint; changes forward into the row and refresh.
 void top_status_layer_set_full_date(bool full_date);
 
-#if defined(WW_VIEW_CYCLE)
-// The strip's root layer, for per-view hiding (custom stripless views). Guarded on the
-// custom-layout feature so the aplite twin — which can never receive a stripless view
-// (the wire bit is masked there) — neither declares nor pays for it.
+// The strip's root layer, for per-view hiding (custom stripless views).
 Layer *top_status_layer_get_root(void);
-#endif
 
 void top_status_layer_tick();
 
@@ -23,8 +19,6 @@ void top_status_layer_refresh();
 
 void top_status_layer_destroy();
 
-#if defined(PBL_HEALTH)
 // The health readings the strip's active packed line shows (services/health_summary.h
-// HEALTH_SUMMARY_*), 0 for none. Health watches only: aplite's lean twin has no health.
+// HEALTH_SUMMARY_*), 0 for none.
 uint8_t top_status_layer_live_health(void);
-#endif

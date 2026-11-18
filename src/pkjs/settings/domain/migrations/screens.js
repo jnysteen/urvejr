@@ -12,18 +12,14 @@
 //   - The layout: a preset becomes the custom keys of its own cycle (view-cycle.js
 //     specToKeys, which compiles back byte for byte); a custom layout is rewritten to the
 //     views 2.5 drew (legacyCycle), so a seat its modes folded away does not come back once
-//     the modes follow the screens. aplite keeps its layout as it is: it folds a custom layout
-//     to Compact calendar (view-cycle.js resolveViewCycle) and draws no health. A watch that
-//     did not say what it is might be an aplite, so it keeps a preset (the settings page reads
-//     a preset as screens all the same, screens.js screensOf, and its Save stores them); its
-//     custom layout, whose keys aplite never reads, is rewritten all the same.
-//   - The modes, derived from the screens as 2.6.0 derived them (modesOf26; not on an unknown
-//     watch: its page's Save works them out). Where the screens cannot tell two modes apart
+//     the modes follow the screens.
+//   - The modes, derived from the screens as 2.6.0 derived them (modesOf26). Where the
+//     screens cannot tell two modes apart
 //     (nothing on them shows a health item, or the rain alert), the install keeps the one it
 //     had: 'slot' rather than 'off', 'countdown' rather than 'off'.
 //   - With healthMode 'off', 2.5 drew a health item in a status slot as an empty slot
 //     (status-line-catalog.js itemAvailable); such a slot on a bar 2.5 drew is stored as
-//     Empty, so the derived modes do not bring it back, on an unknown watch too.
+//     Empty, so the derived modes do not bring it back.
 
 var VC = require('../../../layout/domain/view-cycle.js');
 var screens = require('../../../layout/domain/screens.js');
@@ -136,32 +132,20 @@ function wireOf(S, env) {
 /**
  * The 2.6.0 move onto screens (see the file header).
  * @param {Object} blob Stored settings, mutated in place.
- * @param {{knownPlatform: string}} ctx Runner context: the watch's platform, '' when the
- *   watch did not say.
  * @returns {{changed: boolean, send: boolean}}
  */
-function migrateToScreens(blob, ctx) {
+function migrateToScreens(blob) {
     var oldRadar = blob.radarMode || 'graph';
     var oldHealth = blob.healthMode || 'off';
     var before = JSON.stringify(blob);
     // seedDefaults has already backfilled the new key's default (on); this sets it once.
     blob.radarEnabled = oldRadar !== 'off';
-    var platform = (ctx && ctx.knownPlatform) || '';
-    if (platform === 'aplite') {
-        return { changed: JSON.stringify(blob) !== before, send: false };
-    }
-    // A watch that did not say reads capable (platform.js computeEnv).
-    var env = platformLib.computeEnv({ platform: platform });
+    var env = platformLib.computeEnv();
     var wireBefore = wireOf(blob, env);
     var custom = blob.layoutPreset === 'custom';
     // The views 2.5 drew: a custom layout as its modes folded it, a preset as its cycle.
     var cycle = custom ? legacyCycle(blob) : VC.resolveViewCycle(blob, env);
     if (oldHealth === 'off') { emptyHealthSlots(blob, VC.barsIn(cycle), env); }
-    if (!platform) {
-        // It might be an aplite: a preset stays one, and the modes stay too (see the header).
-        if (custom) { Object.assign(blob, keysOf(cycle, blob)); }
-        return { changed: JSON.stringify(blob) !== before, send: wireOf(blob, env) !== wireBefore };
-    }
     Object.assign(blob, keysOf(cycle, blob));
     blob.layoutPreset = 'custom';
     blob.customLayoutSeeded = true;

@@ -17,7 +17,6 @@ const WL = require('../../../src/pkjs/page/layout/watch-layout.js');
 const plat = require('../../../src/pkjs/config-ui/lib/platform.js');
 const schema = require('../../../src/pkjs/page/settings/schema.js');
 const pw = require('../../../src/pkjs/page/layout/preview-watch.js');
-const onbuild = require('../../../src/pkjs/page/settings/onbuild.js');
 
 /**
  * Settings as a fresh install holds them, with overrides.
@@ -51,8 +50,8 @@ function labels(html) {
 test('every preset\'s views sit where the watch places them, the filling graph running to the screen\'s foot', () => {
   // page/layout/watch-layout.js stackLayout is the watch's placement: scripts/check-fit-lockstep.js holds it
   // to layout.c for every shape, data state and Position.
-  ['basalt', 'emery'].forEach((platform) => {
-    const f = platform === 'emery' ? 1 : 0, sc = pw.SCREEN[f];
+  ['emery'].forEach((platform) => {
+    const f = 1, sc = pw.SCREEN[f];
     ['fullCal', 'compactCal', 'compactDense', 'noCal', 'weatherOnly'].forEach((preset) => {
       const c = cycle(settings({ layoutPreset: preset, radarMode: 'graph', healthMode: 'all' }), platform);
       c.views.forEach((spec, i) => {
@@ -79,7 +78,7 @@ test('the Dense screen: the bar above the clock as far under the calendar as the
   const S = settings({ layoutPreset: 'custom', viewCount: '1', viewTop0: 'cal', viewTopSize0: '2',
     viewUpper0: 'radar', viewLower0: 'weather', viewBody0: 'forecast', viewBodySize0: 'fill', viewOrder0: 'TACB',
     viewAlign0: 'clock', radarMode: 'graph' });
-  [['emery', 1, 24, 18, [8, 8, 8]], ['basalt', 0, 18, 14, [5, 6, 6]]].forEach((p) => {
+  [['emery', 1, 24, 18, [8, 8, 8]]].forEach((p) => {
     const env = plat.computeEnv({ platform: p[0] }), f = p[1], large = p[2], ch = p[3];
     const spec = VC.resolveViewCycle(S, env)[0], ink = pw.clockInk(S, f, false);
     const at = {};
@@ -97,7 +96,7 @@ test('the Dense screen: the bar above the clock as far under the calendar as the
 
 test('each screen is named and spoken band by band, and a tap opens its editor', () => {
   const S = settings({ layoutPreset: 'compactCal', radarMode: 'graph', healthMode: 'all' });
-  const env = plat.computeEnv({ platform: 'basalt' });
+  const env = plat.computeEnv({ platform: 'emery' });
   const html = pw.watchPreview(S, env, {});
   assert.deepEqual(labels(html), [
     'Edit Default: Watch bar, Calendar (2 rows), Clock, Forecast bar, Forecast',
@@ -111,16 +110,10 @@ test('each screen is named and spoken band by band, and a tap opens its editor',
   assert.deepEqual(labels(pw.watchPreview(settings({ layoutPreset: 'fullCal', radarMode: 'off', healthMode: 'off' }), env, {})),
     ['Edit Default: Watch bar, Calendar (3 rows), Clock, Forecast bar, Forecast'], 'one view, one screen');
   assert.match(html, /^<div class="wpv n3" role="group" aria-label="Your watch">/);
-  // aplite has no screen editor: its one screen is a picture.
-  const aplite = plat.computeEnv({ platform: 'aplite' });
-  const one = pw.watchPreview(settings({ layoutPreset: 'fullCal', radarMode: 'off', healthMode: 'off' }), aplite, {});
-  assert.equal(one.indexOf('data-action="openScreen"'), -1);
-  assert.equal(one.indexOf('wpv-tap'), -1);
-  assert.match(one, /class="wpv-v" role="img" aria-label="Default: /);
 });
 
 test('each view is a card of its own, the screen edge to edge on its own background, pinned bare', () => {
-  const env = plat.computeEnv({ platform: 'basalt' });
+  const env = plat.computeEnv({ platform: 'emery' });
   const cards = (S) => pw.watchPreview(S, env, {}).match(/<div class="wpv-card" style="background:([^"]*)"><svg class="wpv-scr"/g) || [];
   const dark = cards(settings({ layoutPreset: 'compactCal', radarMode: 'graph', healthMode: 'all' }));
   assert.equal(dark.length, 3, 'three cards');
@@ -133,28 +126,19 @@ test('each view is a card of its own, the screen edge to edge on its own backgro
   assert.match(body, /<div class="pin-blk bare"><div class="wpv /);
 });
 
-test('aplite draws a single Default view; emery its own 200×228 screen', () => {
+test('the watch draws its 200×228 screen', () => {
   const S = settings({ layoutPreset: 'compactDense', radarMode: 'graph', healthMode: 'all' });
-  // The page's load normalises what aplite cannot draw, as it does before any block renders.
-  const apliteEnv = plat.computeEnv({ platform: 'aplite' });
-  const onAplite = Object.assign({}, S);
-  onbuild.onLoad({ env: apliteEnv, get: (k) => onAplite[k], set: (k, v) => { onAplite[k] = v; },
-    getInitial: (k) => onAplite[k] });
-  const aplite = pw.watchPreview(onAplite, apliteEnv, {});
-  assert.equal(labels(aplite).length, 1);
-  assert.match(labels(aplite)[0], /^Default: /);
-  assert.match(aplite, /viewBox="-9 -9 162 186"/);
   assert.match(pw.watchPreview(S, plat.computeEnv({ platform: 'emery' }), {}), /viewBox="-12 -12 224 252"/);
 });
 
 test('the calendar: its week as Start week on says, today in its cell, Auto taking the weekday\'s colour', () => {
-  const env = plat.computeEnv({ platform: 'basalt' });
-  const c = cycle(settings({ layoutPreset: 'compactCal', radarMode: 'off', healthMode: 'off' }), 'basalt');
+  const env = plat.computeEnv({ platform: 'emery' });
+  const c = cycle(settings({ layoutPreset: 'compactCal', radarMode: 'off', healthMode: 'off' }), 'emery');
   const friday = new Date(2026, 10, 6), sunday = new Date(2026, 10, 8);
-  // The strip's left slot emptied (its air quality is a number too): the first numbers drawn are
+  // The strip's air quality emptied (it is a number too): the first numbers drawn are
   // the calendar's.
   const draw = (over, now) => pw.screenSvg(c.views[0], 0,
-    settings(Object.assign({ layoutPreset: 'compactCal', statusTopLeft: 'empty' }, over)), env, {}, 0, now).svg;
+    settings(Object.assign({ layoutPreset: 'compactCal', statusTopLeft: 'empty', statusTopRight: 'empty' }, over)), env, {}, 1, now).svg;
   // Today's cell: the watch's fill_rect with corner radius 1 (calendar_layer.c), its date on it.
   const todayCell = (svg) => /<rect x="[^"]*" y="[^"]*" width="[^"]*" height="[^"]*" rx="1" fill="([^"]*)"><\/rect><text[^>]*fill="([^"]*)"[^>]*>(\d+)</.exec(svg);
   // A Monday start puts Friday the 6th fifth in its row; a Sunday start sixth.
@@ -169,16 +153,12 @@ test('the calendar: its week as Start week on says, today in its cell, Auto taki
   assert.equal(cell[1], '#E25874', 'Auto on a Sunday: the Sunday colour');
   cell = todayCell(draw({ colorToday: '#00AAFF' }, friday));
   assert.equal(cell[1], '#4CB4DB', 'a picked colour');
-  const bw = pw.screenSvg(c.views[0], 0, settings({ layoutPreset: 'compactCal', colorToday: '#00AAFF', colorSunday: '#FF0055' }),
-    plat.computeEnv({ platform: 'diorite' }), {}, 0, sunday).svg;
-  assert.equal(todayCell(bw)[1], '#FFFFFF', 'a black-and-white watch draws today in its ink');
-  assert.doesNotMatch(bw, /#FF0055|#E25874/, 'and no weekday colours');
 });
 
 test('the clock: the samples\' 15:00 in the time colour and the picked face\'s weight', () => {
-  const env = plat.computeEnv({ platform: 'basalt' });
-  const c = cycle(settings({ layoutPreset: 'noCal', radarMode: 'off', healthMode: 'off' }), 'basalt');
-  const svg = (over) => pw.screenSvg(c.views[0], 0, settings(Object.assign({ layoutPreset: 'noCal' }, over)), env, {}, 0, new Date()).svg;
+  const env = plat.computeEnv({ platform: 'emery' });
+  const c = cycle(settings({ layoutPreset: 'noCal', radarMode: 'off', healthMode: 'off' }), 'emery');
+  const svg = (over) => pw.screenSvg(c.views[0], 0, settings(Object.assign({ layoutPreset: 'noCal' }, over)), env, {}, 1, new Date()).svg;
   // Roboto and Bitham: the watch's glyph images, tinted (test/page/layout/clock-glyphs-page.test.js has the
   // seating) in the colour as the screen shows it: #FFAA00 as #F1AA86 (displayColors).
   const tint = (over) => (/<feFlood flood-color="([^"]*)">/.exec(svg(over)) || [])[1];
@@ -192,13 +172,13 @@ test('the clock: the samples\' 15:00 in the time colour and the picked face\'s w
 });
 
 test('a light theme draws black on white, the status rows print the Status bars tab\'s slots', () => {
-  const env = plat.computeEnv({ platform: 'basalt' });
+  const env = plat.computeEnv({ platform: 'emery' });
   const S = settings({ layoutPreset: 'compactCal', radarMode: 'off', healthMode: 'off', theme: 'light',
     statusForecastLeft: 'city', statusForecastMid: 'empty', statusForecastRight: 'empty' });
   const html = pw.watchPreview(S, env, {});
-  assert.match(html, /<rect x="-9" y="-9" width="162" height="186" fill="#FFFFFF"><\/rect>/);
-  // In the watch's Gothic 18, regular as status_row.c row_font draws a slot under no threshold.
-  assert.match(html, /fill="#000000" font-family="WatchGothic18[^"]*" font-weight="400">Berlin<\/text>/, 'the city in the left slot');
+  assert.match(html, /<rect x="-12" y="-12" width="224" height="252" fill="#FFFFFF"><\/rect>/);
+  // In the watch's Gothic 24, regular as status_row.c row_font draws a slot under no threshold.
+  assert.match(html, /fill="#000000" font-family="WatchGothic24[^"]*" font-weight="400">Berlin<\/text>/, 'the city in the left slot');
 });
 
 // The owner's, 2026-11-14: a side slot's weather condition shows its whole name beside an empty
@@ -210,15 +190,12 @@ test('a side slot\'s weather condition: the whole name beside an empty middle, t
     citySlotIcon: true }),
   plat.computeEnv({ platform: platform }), {});
   const shows = (html, text) => html.indexOf('>' + text + '</text>') !== -1;
-  ['basalt', 'emery'].forEach((platform) => {
+  ['emery'].forEach((platform) => {
     assert.ok(shows(draw(platform, 'empty'), 'Partly cloudy'), platform + ': the whole name beside an empty middle');
     assert.ok(!shows(draw(platform, 'empty'), 'PCLDY'), platform);
     assert.ok(shows(draw(platform, 'temp'), 'Partly cloudy'), platform + ': and beside a short one');
   });
-  // Beside the city's name the 144 px watches have no room for both: the condition gives way,
-  // the city stays whole. The Pebble Time 2 holds both.
-  const basalt = draw('basalt', 'city');
-  assert.ok(shows(basalt, 'PCLDY') && shows(basalt, 'Berlin') && !shows(basalt, 'Partly cloudy'), 'basalt: PCLDY and Berlin');
+  // Beside the city's name the Pebble Time 2 holds both.
   const emery = draw('emery', 'city');
   assert.ok(shows(emery, 'Partly cloudy') && shows(emery, 'Berlin'), 'emery: both whole');
 });
@@ -233,17 +210,13 @@ test('the Status bars tab\'s bar pictures print the short form where the watch d
     const env = plat.computeEnv({ platform: platform });
     return [sbp.barPicture(S, env, 'forecast', { big: true }), sbp.statusBarsPreview(S, env)];
   };
-  pictures('basalt').forEach((html) => {
-    assert.ok(html.indexOf('PCLDY') !== -1 && html.indexOf('Berlin') !== -1, 'basalt: PCLDY and Berlin');
-    assert.equal(html.indexOf('Partly cloudy'), -1, 'basalt: not the whole name');
-  });
   pictures('emery').forEach((html) => {
     assert.ok(html.indexOf('Partly cloudy') !== -1 && html.indexOf('Berlin') !== -1, 'emery: both whole');
   });
 });
 
 test('a graph\'s pattern and clip ids carry its band\'s suffix, so two graphs never share one', () => {
-  const env = plat.computeEnv({ platform: 'basalt' });
+  const env = plat.computeEnv({ platform: 'emery' });
   const html = pw.watchPreview(settings({ layoutPreset: 'compactCal', radarMode: 'graph', healthMode: 'all',
     dayNightShading: true }), env, {});
   const ids = (html.match(/ id="[^"]*"/g) || []).map((m) => m.slice(5, -1));
@@ -253,43 +226,14 @@ test('a graph\'s pattern and clip ids carry its band\'s suffix, so two graphs ne
   (html.match(/url\(#[^)]*\)/g) || []).forEach((u) => assert.ok(ids.indexOf(u.slice(5, -1)) !== -1, u + ' points at a defined id'));
 });
 
-/**
- * The tab body the engine renders for the Watchface tab.
- * @param {Object} S Settings.
- * @param {!Object} env Platform env.
- * @returns {string} HTML.
- */
-function watchfaceBody(S, env) {
-  onbuild.onLoad({ env: env, get: (k) => S[k], set: (k, v) => { S[k] = v; }, getInitial: (k) => S[k] });
-  return eng.renderBody(schema, 'watchface', { S: S, ENV: env, USERDATA: {}, collapsed: {},
-    evalCtx: Object.assign({}, S, { env: env }) });
-}
-
-// The Layout card's preset row is a list of names (the owner, 2026-11-06): the pinned watch at
-// the top of the tab already draws the views the picked preset gives. Only aplite has the card
-// now; every other watch edits its screens.
-test('only aplite has a Layout card: its three calendars by name, with no pictures', () => {
-  [['basalt', 0], ['emery', 0], ['diorite', 0], ['aplite', 3]].forEach((p) => {
-    const env = plat.computeEnv({ platform: p[0] });
-    const html = watchfaceBody(settings({ layoutPreset: 'fullCal', radarMode: 'graph', healthMode: 'all' }), env);
-    const opts = html.match(/data-k="layoutPreset" data-v="[^"]*"/g) || [];
-    assert.equal(opts.length, p[1], p[0] + ': one option per offered preset');
-    assert.ok(!/class="pic( on)?" role="radio" aria-checked="(true|false)" data-k="layoutPreset"/.test(html),
-      p[0] + ': no picture cards for the presets');
-    assert.ok(/class="pic( on)?" role="radio" aria-checked="(true|false)" data-k="timeFont"/.test(html),
-      p[0] + ': the Clock font row keeps its pictures');
-  });
-  assert.equal(global.PConf.pictureResolvers.get('layoutPresetPicture'), undefined, 'no preset picture resolver');
-});
-
 test('the calendar marks the holidays the phone holds for the picked country, in the holiday colour', () => {
-  const env = plat.computeEnv({ platform: 'basalt' });
+  const env = plat.computeEnv({ platform: 'emery' });
   const now = new Date(2026, 10, 6);   // a Friday
   const holidays = { country: 'DE', years: { 2026: [['11-03', null], ['11-11', ['DE-BY']]] } };
   const cal = (over, ud) => {
     const S = settings(Object.assign({ layoutPreset: 'fullCal', radarMode: 'off', healthMode: 'off',
       holidayCountry: 'DE', holidayRegion: 'all', weekStartDay: 'mon', colorUSFederal: '#0055FF' }, over));
-    return pw.screenSvg(VC.resolveViewCycle(S, env)[0], 0, S, env, ud === undefined ? { holidays: holidays } : ud, 0, now).svg;
+    return pw.screenSvg(VC.resolveViewCycle(S, env)[0], 0, S, env, ud === undefined ? { holidays: holidays } : ud, 1, now).svg;
   };
   const day = (svg, n) => (new RegExp('fill="([^"]*)" font-family="[^"]*" font-weight="(\\d+)">' + n + '</text>').exec(svg) || []).slice(1);
   // #0055FF as the screen shows it (displayColors).
@@ -305,51 +249,43 @@ test('the calendar marks the holidays the phone holds for the picked country, in
 test('each screen sits in a margin of its own ground, so a card\'s round corners clip nothing on it', () => {
   // The owner, 2026-11-06: the corners cut the top bar's edge slots (W45, 19:14). The ground
   // runs on round the screen, about 6 % of its width, and the card is that colour throughout.
-  [['basalt', 144, 168, 9], ['emery', 200, 228, 12]].forEach((p) => {
+  [['emery', 200, 228, 12]].forEach((p) => {
     const env = plat.computeEnv({ platform: p[0] });
     const S = settings({ layoutPreset: 'compactCal', radarMode: 'off', healthMode: 'off', theme: 'light' });
-    const svg = pw.screenSvg(VC.resolveViewCycle(S, env)[0], 0, S, env, {}, p[0] === 'emery' ? 1 : 0, new Date()).svg;
+    const svg = pw.screenSvg(VC.resolveViewCycle(S, env)[0], 0, S, env, {}, 1, new Date()).svg;
     const m = p[3], vb = [-m, -m, p[1] + 2 * m, p[2] + 2 * m].join(' ');
     assert.ok(svg.indexOf('<svg class="wpv-scr" viewBox="' + vb + '"') === 0, p[0] + ': ' + svg.slice(0, 70));
     assert.ok(svg.indexOf('<rect x="' + (-m) + '" y="' + (-m) + '" width="' + (p[1] + 2 * m) + '" height="'
       + (p[2] + 2 * m) + '" fill="#FFFFFF"></rect>') > 0, p[0] + ': the ground fills the margin');
     assert.ok(m / p[1] >= 0.06, p[0] + ': a card 90 px wide keeps over 5 px of it, past a 12 px corner\'s reach');
   });
-  const html = pw.watchPreview(settings({ theme: 'light' }), plat.computeEnv({ platform: 'basalt' }), {});
+  const html = pw.watchPreview(settings({ theme: 'light' }), plat.computeEnv({ platform: 'emery' }), {});
   assert.match(html, /<div class="wpv-card" style="background:#FFFFFF">/, 'the card is the screen\'s white');
 });
 
 // The status icons in the pictures are the watch's own drawings (status-pixels.generated.js), at
 // the box the bar's icon height paints, placed as the watch places them: the box's middle row on
-// the text's cap centre (status_icon_size.h status_icon_top_y), the Pebble Classic's masks a row
-// lower (status_row_aplite.c). The seat is drawn into the box, so moving it in the icon creator
+// the text's cap centre (status_icon_size.h status_icon_top_y). The seat is drawn into the box, so moving it in the icon creator
 // moves the picture.
-test('a status slot\'s icon is the family\'s drawing for the bar\'s box, a bit mask on the Classic', () => {
-  const PixelIcon = require('../../../src/pkjs/page/weather/pixel-icon.js');
-  const uv = PixelIcon.pixels.icons.UV;
-  assert.equal(pw._drawingAt('UV', 12, 'basalt'), uv['basalt-13'], 'an even height paints a row more');
-  assert.equal(pw._drawingAt('UV', 11, 'basalt'), uv['basalt-13'], 'an odd one two more');
-  assert.equal(pw._drawingAt('UV', 10, 'basalt'), uv['basalt-11']);
-  assert.equal(pw._drawingAt('UV', 14, 'emery'), uv['emery-15']);
-  assert.equal(pw._drawingAt('UV', 20, 'emery'), uv['emery-17'], 'the tallest box below, past the last');
-  assert.equal(pw._drawingAt('UV', 12, 'aplite'), uv.A, 'the Classic draws its mask at every height');
-  assert.equal(pw._drawingAt(null, 12, 'basalt'), null);
-});
-
-test('a drawing sits as the watch seats it: its box\'s middle row on the cap centre', () => {
+test('a status slot\'s icon is the drawing for the bar\'s box', () => {
   const fs = require('node:fs');
   const path = require('node:path');
-  const C = (f) => fs.readFileSync(path.join(__dirname, '..', '..', '..', 'src', 'c', 'layers', f), 'utf8');
+  const PixelIcon = require('../../../src/pkjs/page/weather/pixel-icon.js');
+  const uv = PixelIcon.pixels.icons.UV;
+  assert.equal(pw._drawingAt('UV', 12, 'emery'), uv['emery-13'], 'an even height paints a row more');
+  assert.equal(pw._drawingAt('UV', 13, 'emery'), uv['emery-15'], 'an odd one two more');
+  assert.equal(pw._drawingAt('UV', 14, 'emery'), uv['emery-15']);
+  assert.equal(pw._drawingAt('UV', 20, 'emery'), uv['emery-17'], 'the tallest box below, past the last');
+  assert.equal(pw._drawingAt(null, 12, 'emery'), null);
   // The rules the picture follows, as the watch has them: a PDC's bounds are its box less a row.
+  const C = (f) => fs.readFileSync(path.join(__dirname, '..', '..', '..', 'src', 'c', 'layers', f), 'utf8');
   assert.match(C('status_icon_size.h'), /status_icon_painted_rows\(int h\) \{ return \(h & 1\) \? h \+ 2 : h \+ 1; \}/);
   assert.match(C('status_icon_size.h'), /status_icon_top_y\(int cap_cy, int bounds_h\) \{ return cap_cy - bounds_h \/ 2; \}/);
-  assert.match(C('status_row_aplite.c'), /int y0 = cy - m->n \/ 2 \+ 1;/);
   const top = (svg) => Number(/translate\(\S+ (-?\d+)\)/.exec(svg)[1]);
   const box = (n) => ({ w: 1, rows: Array(n).fill(1) });
-  assert.equal(top(pw._drawingOnRow(box(13), 0, 20, '#fff', false)), 20 - 6, '13 rows: row 6 on the cap centre');
-  assert.equal(top(pw._drawingOnRow(box(11), 0, 20, '#fff', false)), 20 - 5);
-  assert.equal(top(pw._drawingOnRow(box(9), 0, 20, '#fff', true)), 20 + 1 - 4, 'a mask of 9 rows');
-  assert.ok(pw._drawingOnRow({ w: 2, rows: [0, 3, 0] }, 5, 20, '#fff', false).indexOf('d="M0 1h2v1h-2z"') !== -1,
+  assert.equal(top(pw._drawingOnRow(box(13), 0, 20, '#fff')), 20 - 6, '13 rows: row 6 on the cap centre');
+  assert.equal(top(pw._drawingOnRow(box(11), 0, 20, '#fff')), 20 - 5);
+  assert.ok(pw._drawingOnRow({ w: 2, rows: [0, 3, 0] }, 5, 20, '#fff').indexOf('d="M0 1h2v1h-2z"') !== -1,
     'the blank rows that seat it stay blank');
 });
 
@@ -362,15 +298,14 @@ test('the pictures draw a slot\'s drawing, its seat with it, and set the text of
     return (html.match(/<path transform="translate\(\S+ \S+\)" fill="[^"]*" d="[^"]*"/g) || []);
   };
   const uv = PixelIcon.pixels.icons.UV;
-  const fam = { basalt: ['basalt-11', 'basalt-13'], diorite: ['basalt-11', 'basalt-13'],
-    emery: ['emery-13', 'emery-15', 'emery-17'], aplite: ['A'] };
+  const fam = { emery: ['emery-13', 'emery-15', 'emery-17'] };
   Object.keys(fam).forEach((platform) => {
     const ds = fam[platform].map((size) => 'd="' + PixelIcon.path(uv[size]) + '"');
     assert.ok(drawn(platform).some((p) => ds.some((d) => p.endsWith(d))), platform + ': one of its family\'s UV drawings');
   });
   // Drawings of the family's boxes in its place: a seat a pixel higher keeps the box where it is
   // and lights its ink a row up inside it; a wider drawing sets the text off by its width.
-  const orig = { 'basalt-11': uv['basalt-11'], 'basalt-13': uv['basalt-13'] };
+  const orig = { 'emery-13': uv['emery-13'], 'emery-15': uv['emery-15'], 'emery-17': uv['emery-17'] };
   const seated = (w, seat) => Object.keys(orig).forEach((size) => {
     const n = orig[size].rows.length, rows = Array(n).fill(0);
     rows[(n - 1) / 2 - seat] = (1 << w) - 1;
@@ -378,10 +313,9 @@ test('the pictures draw a slot\'s drawing, its seat with it, and set the text of
   });
   const placed = (w, seat) => {
     seated(w, seat);
-    const html = pw.watchPreview(S, plat.computeEnv({ platform: 'basalt' }), {});
-    const d = 'd="M0 ' + ((uv['basalt-13'].rows.length - 1) / 2 - seat) + 'h' + w + 'v1h-' + w + 'z"';
-    const d11 = 'd="M0 ' + ((uv['basalt-11'].rows.length - 1) / 2 - seat) + 'h' + w + 'v1h-' + w + 'z"';
-    const m = new RegExp('translate\\((\\S+) (\\S+)\\)" fill="[^"]*" (' + d + '|' + d11 + ')'
+    const html = pw.watchPreview(S, plat.computeEnv({ platform: 'emery' }), {});
+    const ds = Object.keys(orig).map((size) => 'd="M0 ' + ((uv[size].rows.length - 1) / 2 - seat) + 'h' + w + 'v1h-' + w + 'z"');
+    const m = new RegExp('translate\\((\\S+) (\\S+)\\)" fill="[^"]*" (' + ds.join('|') + ')'
       + ' shape-rendering="crispEdges"></path><text x="(\\d+)"').exec(html);
     assert.ok(m, 'w ' + w + ', seat ' + seat + ': the drawing, then its text');
     return { x: Number(m[1]), y: Number(m[2]), d: m[3], textX: Number(m[4]) };

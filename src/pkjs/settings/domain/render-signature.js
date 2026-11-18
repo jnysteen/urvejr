@@ -121,9 +121,9 @@ function signSlots(parts, settings, keys) {
  *
  * @param {Object} settings Clay settings.
  * @param {?Object} [watchInfo] The watch the data is baked for: while its screens show several
- *   graph styles (emery), the graph's part signs the bake's settings, the shown styles' union
+ *   graph styles, the graph's part signs the bake's settings, the shown styles' union
  *   (forecast-graphs/domain/graph-style-wire.js weatherSettings), so another style's metric, line or length
- *   re-fetches as the first style's does. Omitted: the settings as they are.
+ *   re-fetches as the first style's does.
  * @returns {string} Pipe-joined signature, or '' when settings is falsy.
  */
 function renderSignature(settings, watchInfo) {

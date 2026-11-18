@@ -109,9 +109,7 @@ function defaults(overrides) {
  *
  * Every settings input here is in renderSignature, so flipping a selection
  * forces a refetch and the options are rebuilt immediately; the forecast's time
- * span is too (forecastSpan.signature). watchInfo (an aplite watch never draws the
- * feels line, nor an On demand alert; only an emery takes a 12 h or long span) is
- * fixed per session.
+ * span is too (forecastSpan.signature).
  *
  * @param {?Object} settings Clay settings, or null when none are stored.
  * @param {?Object} [watchInfo] getActiveWatchInfo() result, or null/undefined.
@@ -126,8 +124,7 @@ function build(settings, watchInfo, env) {
     return defaults({
         // Whether UV is wanted: DWD/Open-Meteo spend a request on it; every
         // adapter adopts it only when this is on (adoptMapped).
-        // A placed alert asks for its metric too, but only on a watch that draws On
-        // demand: a known aplite never fetches for alerts (watchInfo).
+        // A placed alert asks for its metric too.
         fetchUv: forecastSeries.needsUv(graph, watchInfo),
         fetchAqi: forecastSeries.needsAqi(settings, watchInfo),
         fetchPollen: forecastSeries.needsPollen(settings, watchInfo),

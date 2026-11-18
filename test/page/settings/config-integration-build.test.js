@@ -151,8 +151,8 @@ function openSheet(page, key) {
 // that drops blocks.js, a schema arg that re-bans temperature-axis metrics, or a resolver
 // regression all fail here. aplite has no curve inset and no Third/Fourth line at all: its
 // rows stay hidden, and even the Main/Second sheets never offer feels or dew.
-test('generated page offers feels and dew on the Third and Fourth metric pickers off aplite, never on aplite', function () {
-    ['basalt', 'emery'].forEach(function (platform) {
+test('generated page offers feels and dew on the Third and Fourth metric pickers', function () {
+    ['emery'].forEach(function (platform) {
         var page = loadDevicePage(platform);
         assert.equal(page.INJECTED_ENV.platform, platform, 'env computed for ' + platform);
         ['fourthLine', 'fifthLine'].forEach(function (key) {
@@ -161,15 +161,5 @@ test('generated page offers feels and dew on the Third and Fourth metric pickers
             assert.ok(sheet.picks.indexOf('feels') !== -1, key + ' offers feels on ' + platform);
             assert.ok(sheet.picks.indexOf('dew') !== -1, key + ' offers dew on ' + platform);
         });
-    });
-    var aplite = loadDevicePage('aplite');
-    assert.equal(aplite.INJECTED_ENV.platform, 'aplite', 'env computed for aplite');
-    ['fourthLine', 'fifthLine'].forEach(function (key) {
-        assert.equal(openSheet(aplite, key).visible, false, key + ' row hidden on aplite');
-    });
-    ['secondaryLine', 'thirdLine', 'fourthLine', 'fifthLine'].forEach(function (key) {
-        var picks = openSheet(aplite, key).picks;
-        assert.equal(picks.indexOf('feels'), -1, key + ' never offers feels on aplite');
-        assert.equal(picks.indexOf('dew'), -1, key + ' never offers dew on aplite');
     });
 });

@@ -3,7 +3,6 @@
 #include "persist_store.h"
 #include "forecast_span.h"   // FORECAST_MAX_ENTRIES
 
-#if defined(PBL_PLATFORM_EMERY)
 // emery: what each key's first read found, while the arena has room: its bytes, that it
 // is not stored, or that it is stored with its bytes left in flash (a value past
 // STORE_VALUE_MAX, or one the arena had no room for). Only this module calls the SDK's
@@ -155,8 +154,3 @@ status_t store_delete(uint32_t key) {
 void store_cache_drop(void) {
     s_store.used = 0;
 }
-#else
-// Every other watch forwards each call to the SDK (persist_store.h). Keep the translation
-// unit non-empty so a -pedantic build never warns on an empty TU.
-typedef int persist_store_forwards_only;
-#endif  // PBL_PLATFORM_EMERY

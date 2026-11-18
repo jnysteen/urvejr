@@ -14,9 +14,9 @@ var statusWire = require('../../alerts/domain/status-wire.js');
 var platformLib = require('../../config-ui/lib/platform.js');
 var dateFormat = require('../../calendar/domain/date-format.js');
 var nightLight = require('../../theme/domain/night-light.js');
-// The forecast's left axis options (emery): bits of the CLAY_LARGE_GRAPH_FONT word.
+// The forecast's left axis options: bits of the CLAY_LARGE_GRAPH_FONT word.
 var forecastAxis = require('../../forecast-graphs/domain/forecast-axis.js');
-// Graph styles (emery): each view's style as the watch draws it, and the styles' records.
+// Graph styles: each view's style as the watch draws it, and the styles' records.
 var graphStyles = require('../../forecast-graphs/domain/graph-styles.js');
 var graphStyleWire = require('../../forecast-graphs/domain/graph-style-wire.js');
 
@@ -82,7 +82,7 @@ function holidayWindowOptsForCycle(settings, cycle) {
  * previous year the top row still showed.
  *
  * @param {Object} settings Clay settings (the layout keys; the theme is irrelevant).
- * @param {Object|null} watchInfo Active watch info (null = unknown platform, custom-capable).
+ * @param {Object|null} watchInfo Active watch info; unused.
  * @returns {{startMon: boolean, prevWeek: boolean}} holidayMask window options.
  */
 function holidayWindowOpts(settings, watchInfo) {
@@ -97,34 +97,28 @@ var VIEW_RESET_MINUTES_MASK = 0xFF;
 var VIEW_RESET_DOUBLE_FLICK = 0x100;
 
 /**
- * The CLAY_VIEW_RESET_MIN word: the auto-return minutes plus the Double flick bit.
- * Masked to the bare minutes for a known aplite (no flick at all), so its payload never
- * changes with the switch; an unknown platform is treated as capable. The minutes mask
- * stops any input (e.g. '-1') from spilling into the flag bit.
+ * The CLAY_VIEW_RESET_MIN word: the auto-return minutes plus the Double flick bit. The
+ * minutes mask stops any input (e.g. '-1') from spilling into the flag bit.
  * @param {Object} settings Clay settings.
- * @param {Object} env platformLib.computeEnv() result.
  * @returns {number} Non-negative int, at most 0x1FF.
  */
-function packViewReset(settings, env) {
+function packViewReset(settings) {
     var word = (parseInt(settings.viewResetMin, 10) || 0) & VIEW_RESET_MINUTES_MASK;
     // Absent reads as off, which is the toggle's default.
-    if (env.platform !== 'aplite' && settings.doubleFlick) {
+    if (settings.doubleFlick) {
         word = word | VIEW_RESET_DOUBLE_FLICK;
     }
     return word;
 }
 
 /**
- * The CLAY_LARGE_GRAPH_FONT tuple, emery's graph-options word (src/c/appendix/config.h
+ * The CLAY_LARGE_GRAPH_FONT tuple, the graph-options word (src/c/appendix/config.h
  * GRAPH_OPT_*): bit 0 Larger graph fonts, bits 2, 3 and 5 the forecast's left axis options
  * (forecast-axis.js wireBits; bits 1 and 4 are retired). While every axis option draws
- * today's graph (those bits all 0, as always for a KNOWN non-emery watch, whose C never reads
- * the key) it is today's bare boolean,
- * so a payload with the defaults is exactly what it always was on every platform and an
- * upgrade resends nothing; otherwise the number. Emery and an unknown platform carry the bits,
- * so a watchInfo hiccup cannot reset an emery's options. Either way one int tuple: the boolean
- * travels as a 4-byte int too, and emery's C reads its low half (config_wire.c), so `true`
- * is bit 0 alone.
+ * today's graph (those bits all 0) it is today's bare boolean, so a payload with the defaults
+ * is exactly what it always was and an upgrade resends nothing; otherwise the number. Either
+ * way one int tuple: the boolean travels as a 4-byte int too, and the C reads its low half
+ * (config_wire.c), so `true` is bit 0 alone.
  * @param {Object} settings Clay settings.
  * @param {Object} env platformLib.computeEnv() result.
  * @returns {(boolean|number)} The boolean while the axis bits are 0, else a word 0x04..0x2D.
@@ -146,7 +140,7 @@ function noHoliday() {
 /**
  * Build the Clay settings AppMessage payload.
  * @param {Object} settings Clay settings (claySettings.read() shape).
- * @param {Object|null} watchInfo Active watch info (platform read for palette packing).
+ * @param {Object|null} watchInfo Active watch info.
  * @param {Date} now Reference time for the holiday window (the caller's clock).
  * @param {function(string, string, Date): boolean} [isHoliday] Whether a day is a public holiday
  *   (calendar/adapter/nager-source.js isHoliday); absent, no day is marked, as for a phone
@@ -156,17 +150,14 @@ function noHoliday() {
 function buildClayPayload(settings, watchInfo, now, isHoliday) {
     var theme = settings.theme || 'dark';
 
-    // Platform env up front: the custom-layout branch below folds for aplite, and the
-    // capability-gated tuples further down reuse it. Unknown platform ('' when
-    // watchInfo is missing) is treated as capable throughout, custom included — the
-    // aplite watch is protected by its own wire masking either way.
+    // The watch's facts (config-ui/lib/platform.js), read by the tuples below.
     var env = platformLib.computeEnv(watchInfo);
 
     // Resolve the packed view cycle up front (view-cycle.js, the reading the Layout
     // preview shows) — the holiday mask below anchors on it (holidayWindowOptsForCycle,
     // the same rule index.js's prefetch uses).
-    // Each view's graph style survives only on a watch with styles where the style exists
-    // (graph-styles.js wireCycle), so every other watch's view words are today's.
+    // Each view's graph style survives only where the style exists (graph-styles.js
+    // wireCycle).
     var cycle = graphStyles.wireCycle(settings, env, viewCycle.resolveViewCycle(settings, env));
     var defaultIsFull = cycle[0].tier === viewCycle.TIER_FULL;   // slot 0 is the 3-row calendar
     // CLAY_TOP_VIEW_MODE (TopViewMode enum: 0=full,1=compact,2=none) is a boot-time hint the
@@ -186,7 +177,6 @@ function buildClayPayload(settings, watchInfo, now, isHoliday) {
         "CLAY_TOP_VIEW_MODE": topViewIdx,
         "CLAY_THEME": ['dark', 'light', 'bw', 'bw-light'].indexOf(theme),
         "CLAY_TIME_FONT": ['roboto', 'leco', 'bitham'].indexOf(settings.timeFont),
-        "CLAY_SHOW_QT": settings.showQt,
         "CLAY_SHOW_BT": settings.btIcons === "connected" || settings.btIcons === "both",
         "CLAY_SHOW_BT_DISCONNECT": settings.btIcons === "disconnected" || settings.btIcons === "both",
         "CLAY_VIBE": settings.vibe,
@@ -232,15 +222,6 @@ function buildClayPayload(settings, watchInfo, now, isHoliday) {
             return lo | (hi << 8);
         })()
     };
-    // The low-battery takeover of the right slot is aplite's alone: every other watch
-    // shows the battery as the On demand Battery item instead and ignores the key. Sent
-    // only to a KNOWN aplite, so the 11 B stay out of every other Clay bundle, an
-    // unknown platform's included (test/repo/inbox-size.test.js). The watch treats the key
-    // as optional (config_wire.c); an aplite whose platform the phone cannot read
-    // reads the takeover as off for that session.
-    if (env.platform === 'aplite') {
-        payload.CLAY_BATTERY_LOW_ONLY = Boolean(settings.batteryLowOnly);
-    }
     // The graph's three tuples: the forecast's and the radar's bar palettes (each with
     // its Bars from flag) and the line styling (colours, fill and night flags, the style
     // bytes with their Draw from bits). The layout and why none of it is platform-gated
@@ -254,94 +235,54 @@ function buildClayPayload(settings, watchInfo, now, isHoliday) {
     // and needs no enabled flag. Settings-derived (the Nighttime card's toggle, mode,
     // hours and colour), so it rides the Clay message; the full layout and the
     // resolution rules live on buildNightLightBytes (night-light.js).
-    //
-    // Deliberately NOT platform-gated, for the reason CLAY_LARGE_GRAPH_FONT above is
-    // not: the LED is emery-only, but computeEnv reports colorBacklight FALSE for an
-    // unknown platform (a missing watchInfo), so gating on it would starve a real
-    // emery watch of the setting over a watchInfo hiccup. Sending it everywhere is
-    // harmless — the watch skips the key, and light_set_color_rgb888() is a documented
-    // no-op on every board without the LED — and costs 12 B of a Clay bundle that has
-    // the headroom for it (test/repo/inbox-size.test.js).
     payload.CLAY_NIGHT_LIGHT_UINT8 = nightLight.buildNightLightBytes(settings);
 
     // Threshold-highlight settings (enabled bits + colors + health-kind
     // thresholds + warn looks, whose default follows env.color) — settings-derived,
-    // so they ride the Clay message. Omitted for a
-    // watch that compiles the highlight out (aplite): its settings screen hides the
-    // whole threshold card and its inbox handler for this tuple is gone, so the
-    // 34 B (27 blob + tuple header) stay out of its Clay bundle. An unknown platform
-    // is treated as capable (computeEnv), so a missing watchInfo never drops it.
-    // (env computed at the top of this function, beside the cycle branch.)
-    if (env.thresholds) {
-        payload.CLAY_THRESHOLDS_UINT8 = statusWire.buildSettingsBlob(settings, env);
-        // Bars 4 to 6's On demand cells (Pebble Time 2, status-wire.js buildExtraCells): the
-        // blob's cell bytes have no room for them. Known emery only, like the graph styles'
-        // records below; zeros while no made bar shows.
-        if (env.extraBars) { payload.CLAY_OD_EXTRA_UINT8 = statusWire.buildExtraCells(settings, env); }
-        // Date-slot formats [monthYear, fullDate] — settings-derived, so they ride
-        // the Clay message. Gated with the threshold blob: the pickers live on the
-        // Date slot's edit sheet, which shares this env gate, and an aplite watch
-        // keeps its frozen twin's hardcoded formats and compiles the config fields
-        // out (config_wire.c), so the 9 B stay out of its Clay bundle.
-        payload.CLAY_DATE_FORMAT_UINT8 = dateFormat.buildDateFormatBytes(settings);
-    }
+    // so they ride the Clay message.
+    payload.CLAY_THRESHOLDS_UINT8 = statusWire.buildSettingsBlob(settings, env);
+    // Bars 4 to 6's On demand cells (status-wire.js buildExtraCells): the blob's cell bytes
+    // have no room for them. Zeros while no made bar shows.
+    payload.CLAY_OD_EXTRA_UINT8 = statusWire.buildExtraCells(settings, env);
+    // Date-slot formats [monthYear, fullDate] — settings-derived, so they ride the Clay
+    // message.
+    payload.CLAY_DATE_FORMAT_UINT8 = dateFormat.buildDateFormatBytes(settings);
 
     // Custom radar empty-state text — settings-derived, so it rides the Clay
     // message. Trimmed, then truncated to 24 UTF-8 BYTES (the watch persists it
     // in a 25 B buffer incl. NUL). An empty text rides the wire as such: the user
     // cleared the message and the watch draws no line. A blob without the key
     // (never seeded) sends the built-in text, as the page shows it.
-    // Omitted for a watch that compiles the radar out (aplite): its inbox
-    // handler for this tuple is gone (WW_RAIN_RADAR), so the bytes stay out of
-    // its Clay bundle. An unknown platform is treated as radar-capable
-    // (computeEnv), so a missing watchInfo never drops it.
-    if (env.radar) {
-        var noRainText = settings.radarNoRainText;
-        if (noRainText === undefined || noRainText === null) { noRainText = DEFAULT_NORAIN_TEXT; }
-        payload.CLAY_NORAIN_TEXT = truncateUtf8Bytes(String(noRainText).trim(), 24);
-    }
+    var noRainText = settings.radarNoRainText;
+    if (noRainText === undefined || noRainText === null) { noRainText = DEFAULT_NORAIN_TEXT; }
+    payload.CLAY_NORAIN_TEXT = truncateUtf8Bytes(String(noRainText).trim(), 24);
 
     // Per-series vertical insets for the forecast graph's value-mapped lines,
     // render-ready in px (graph-wire.js buildCurveInsetBytes: feels-like and dew
-    // point share the temp curve's offset). Settings-derived, so
-    // it rides the Clay message. Omitted for a watch that compiles the
-    // configurable inset out (aplite, no WW_CURVE_INSET): its inbox handler for
-    // this tuple is gone and it keeps the frozen 7/0/0 constants, so the 12 B
-    // stay out of its Clay bundle. An unknown platform is treated as capable
-    // (computeEnv's platform is '' then), so a missing watchInfo never drops it.
-    if (env.platform !== 'aplite') {
-        payload.CLAY_CURVE_INSET_UINT8 = graphWire.buildCurveInsetBytes(settings);
-    }
+    // point share the temp curve's offset). Settings-derived, so it rides the Clay message.
+    payload.CLAY_CURVE_INSET_UINT8 = graphWire.buildCurveInsetBytes(settings);
 
     // Pack the cycle into the three view words (unused slots → 0 = disabled). Each is
     // a 32-bit int: packSpec in the low half, the custom ext word (sizes, top-graph
     // kind, Position) in the high half — PKJS sends every number as 4 bytes anyway, so
-    // the ext costs no Clay bytes. It is 0 for every preset and for an aplite watch
-    // (folded to compactCal above), whose config_wire.c keeps reading only the int16.
+    // the ext costs no Clay bytes. It is 0 for every preset.
     payload.CLAY_VIEW_0 = viewCycle.packWire(cycle[0] || null);
     payload.CLAY_VIEW_1 = viewCycle.packWire(cycle[1] || null);
     payload.CLAY_VIEW_2 = viewCycle.packWire(cycle[2] || null);
-    payload.CLAY_VIEW_RESET_MIN = packViewReset(settings, env);
+    payload.CLAY_VIEW_RESET_MIN = packViewReset(settings);
 
-    // emery's graph-options word (graphOptionsWord): the axis-font step-up (Layout tab) in
+    // The graph-options word (graphOptionsWord): the axis-font step-up (Layout tab) in
     // bit 0, the forecast's left axis options above it. The simple Boolean() on
     // largeGraphFont is provably safe: engine.js seeds toggles from defaultValue and flips
     // them with !S[key], so a stored value is a strict boolean or absent -- and absent
     // collapsing to false IS the default. A default-TRUE toggle would need the
-    // hasOwnProperty ternary dayNightShading uses above. Deliberately NOT platform-gated (unlike the
-    // threshold blob / no-rain text / curve insets, which are omitted for watches that
-    // compile the feature out): the tuple is 11 B, every non-emery Clay bundle has ample
-    // headroom, and sending it unconditionally means an emery watch can't be starved of the
-    // setting by a watchInfo hiccup. The WATCH does the skipping -- config_wire.c only
-    // spends a dict_find on it under PBL_PLATFORM_EMERY (config.h's fields carry the same
-    // guard). With every axis option at its default (always, for a known non-emery watch) it
-    // is the bare boolean it always was.
+    // hasOwnProperty ternary dayNightShading uses above. With every axis option at its
+    // default it is the bare boolean it always was.
     payload.CLAY_LARGE_GRAPH_FONT = graphOptionsWord(settings, env);
 
-    // The graph styles' records (emery): while a screen shows a style other than the first,
-    // each shown style's look, hours and line-to-row map; empty tuples otherwise, which clear
-    // the watch's. Known emery only (graph-style-wire.js buildStyleTuples): up to 3 x 48 B,
-    // which emery's 1024 B inbox has room for and an aplite's 536 B has not.
+    // The graph styles' records: while a screen shows a style other than the first, each
+    // shown style's look, hours and line-to-row map; empty tuples otherwise, which clear the
+    // watch's (graph-style-wire.js buildStyleTuples): up to 3 x 48 B.
     Object.assign(payload, graphStyleWire.buildStyleTuples(settings, watchInfo));
 
     return payload;

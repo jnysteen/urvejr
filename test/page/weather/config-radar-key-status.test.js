@@ -223,7 +223,7 @@ test('the resolvers answer for Rainbow and Tomorrow.io only', () => {
 // --- the real page ----------------------------------------------------------------------------
 
 test('page: Rainbow without a key — the key row reads "No key", the amber note, a dot on the Setup tab', () => {
-  const page = bootGeneratedPage(STORED_OWN, 'basalt', { dialog: true });
+  const page = bootGeneratedPage(STORED_OWN, 'emery', { dialog: true });
   openRadarPane(page);
   const body = page.scroll.innerHTML;
   assert.equal(keyRowHtml(page, 'radarKeyRainbow'), '<div class="row nav indent" data-edit-sheet="radarKeyRainbow" ' +
@@ -240,7 +240,7 @@ test('page: Rainbow without a key — the key row reads "No key", the amber note
 });
 
 test('page: picking Rainbow with no key brings the note and the dot at once; DWD takes them away', () => {
-  const page = bootGeneratedPage({ provider: 'openmeteo', radarMode: 'graph' }, 'basalt');
+  const page = bootGeneratedPage({ provider: 'openmeteo', radarMode: 'graph' }, 'emery');
   openRadarPane(page);
   assert.doesNotMatch(page.tabs.innerHTML, /tab-dot/);
   page.openSelect('radarSource');
@@ -256,7 +256,7 @@ test('page: picking Rainbow with no key brings the note and the dot at once; DWD
 });
 
 test('page: Save with no key opens the dialog; "Add key" opens the key sheet on the Setup tab and saves nothing', async () => {
-  const page = bootGeneratedPage(STORED_OWN, 'basalt', { dialog: true });
+  const page = bootGeneratedPage(STORED_OWN, 'emery', { dialog: true });
   page.tapSave();
   const dlg = page.modal.innerHTML;
   assert.ok(page.modal.open, 'the native dialog opened');
@@ -276,7 +276,7 @@ test('page: Save with no key opens the dialog; "Add key" opens the key sheet on 
 // belongs to" (engine.js confirmChoice). The Rain radar picker lives in the Setup tab's Data
 // sources card, so the Setup tab has to be the one under the sheet.
 test('page: the Save dialog\'s fix opens over the Setup tab, so Done lands on the key row', () => {
-  const page = bootGeneratedPage(STORED_OWN, 'basalt', { dialog: true });
+  const page = bootGeneratedPage(STORED_OWN, 'emery', { dialog: true });
   page.tapSave();
   tapInModal(page, '[data-confirm]', 'data-confirm', 'action');
   assert.match(tabButton(page, 'setup'), /class="tab on"/, 'over the Setup tab, which holds the row the fix is for');
@@ -286,7 +286,7 @@ test('page: the Save dialog\'s fix opens over the Setup tab, so Done lands on th
 });
 
 test('page: a key typed into the sheet needs no dialog and saves as the own key', async () => {
-  const page = bootGeneratedPage(STORED_OWN, 'basalt', { dialog: true });
+  const page = bootGeneratedPage(STORED_OWN, 'emery', { dialog: true });
   openRadarPane(page);
   page.openEditSheet('radarKeyRainbow');
   const inp = { value: RBW_KEY, getAttribute: (n) => (n === 'data-k' ? 'rainbowApiKey' : null),
@@ -304,7 +304,7 @@ test('page: a key typed into the sheet needs no dialog and saves as the own key'
 });
 
 test('page: "Save anyway" saves the own key without a key, as before', async () => {
-  const page = bootGeneratedPage(STORED_OWN, 'basalt', { dialog: true });
+  const page = bootGeneratedPage(STORED_OWN, 'emery', { dialog: true });
   page.tapSave();
   tapInModal(page, '[data-confirm]', 'data-confirm', 'save');
   const blob = await page.saved();
@@ -314,7 +314,7 @@ test('page: "Save anyway" saves the own key without a key, as before', async () 
 
 test('page: a key the radar was last refused with — the summary, the dot and the "rejected" dialog', () => {
   const userData = { keyResults: radarRecord(RBW_KEY, 403) };
-  const page = bootGeneratedPage(Object.assign({ rainbowApiKey: RBW_KEY }, STORED_OWN), 'basalt', { userData, dialog: true });
+  const page = bootGeneratedPage(Object.assign({ rainbowApiKey: RBW_KEY }, STORED_OWN), 'emery', { userData, dialog: true });
   openRadarPane(page);
   assert.match(keyRowHtml(page, 'radarKeyRainbow'),
     /<div class="lbl">Rainbow API key<\/div><div class="hint">Key ••••wxyz · ✗ rejected: no access \(403\)<\/div>/,
@@ -328,7 +328,7 @@ test('page: a key the radar was last refused with — the summary, the dot and t
 
 test('page: a key the radar last went through with reads "✓ works" and saves without a dialog', async () => {
   const userData = { keyResults: radarRecord(RBW_KEY, 200) };
-  const page = bootGeneratedPage(Object.assign({ rainbowApiKey: RBW_KEY }, STORED_OWN), 'basalt', { userData, dialog: true });
+  const page = bootGeneratedPage(Object.assign({ rainbowApiKey: RBW_KEY }, STORED_OWN), 'emery', { userData, dialog: true });
   openRadarPane(page);
   assert.match(keyRowHtml(page, 'radarKeyRainbow'), /<div class="hint">Key ••••wxyz · ✓ works · ~2,976 of 5,000 calls a month<\/div>/);
   assert.doesNotMatch(page.tabs.innerHTML, /tab-dot/);
@@ -338,7 +338,7 @@ test('page: a key the radar last went through with reads "✓ works" and saves w
 });
 
 test('page: radar off — no note, no dot, no dialog, whatever the own key\'s state', async () => {
-  const page = bootGeneratedPage(Object.assign({}, STORED_OWN, { radarEnabled: false }), 'basalt', { dialog: true });
+  const page = bootGeneratedPage(Object.assign({}, STORED_OWN, { radarEnabled: false }), 'emery', { dialog: true });
   openRadarPane(page);
   assert.equal(page.S.radarSource, 'off', 'premise: the Rain radar picker reads Off');
   assert.doesNotMatch(page.scroll.innerHTML, /Needs an API key|data-edit-sheet="radarKeyRainbow"/);
@@ -351,23 +351,13 @@ test('page: radar off — no note, no dot, no dialog, whatever the own key\'s st
 
 test('page: a missing weather key and a missing radar key dot the Setup tab; the dialog asks for the first', () => {
   const page = bootGeneratedPage(Object.assign({}, STORED_OWN, { provider: 'openweathermap', owmApiKey: '' }),
-    'basalt', { dialog: true });
+    'emery', { dialog: true });
   assert.match(tabButton(page, 'setup'), /tab-dot/);
   assert.doesNotMatch(tabButton(page, 'graphs'), /tab-dot/);
   page.tapSave();
   assert.ok(page.modal.innerHTML.indexOf('OpenWeatherMap has no API key') !== -1,
     'Weather comes first: it precedes Rain radar in the Data sources card');
   assert.equal(page.modal.innerHTML.indexOf('Rainbow has no API key'), -1, 'one dialog, one question');
-});
-
-test('page: aplite has no Rain radar picker — no dot and no dialog for a stored own key without a key', async () => {
-  const page = bootGeneratedPage(STORED_OWN, 'aplite', { dialog: true });
-  page.clickTab('setup');
-  assert.doesNotMatch(page.scroll.innerHTML, /data-select="radarSource"/, 'premise: no Rain radar picker');
-  assert.doesNotMatch(page.tabs.innerHTML, /tab-dot/);
-  page.tapSave();
-  assert.equal(page.modal.innerHTML, '');
-  assert.equal((await page.saved()).radarProvider, 'rainbowkey');
 });
 
 // --- Tomorrow.io on the radar picker ----------------------------------------------------------
@@ -465,7 +455,7 @@ test('Tomorrow.io: the radar\'s answer to the key is its verdict on the Weather 
 
 test('page: radar-only Tomorrow.io refused by the radar — the summary, the dot and the "rejected" dialog', () => {
   const userData = { keyResults: radarRecord(TIO_KEY, 403, 'tomorrowio') };
-  const page = bootGeneratedPage(Object.assign({ tomorrowioApiKey: TIO_KEY }, TIO_RADAR_ONLY), 'basalt',
+  const page = bootGeneratedPage(Object.assign({ tomorrowioApiKey: TIO_KEY }, TIO_RADAR_ONLY), 'emery',
     { userData, dialog: true });
   openRadarPane(page);
   assert.match(keyRowHtml(page, 'radarKeyTomorrowio'),
@@ -476,7 +466,7 @@ test('page: radar-only Tomorrow.io refused by the radar — the summary, the dot
 });
 
 test('page: radar-only Tomorrow.io without a key — the key row reads "No key", the amber note, a dot on the Setup tab only', () => {
-  const page = bootGeneratedPage(TIO_RADAR_ONLY, 'basalt', { dialog: true });
+  const page = bootGeneratedPage(TIO_RADAR_ONLY, 'emery', { dialog: true });
   page.clickTab('setup');
   assert.ok(page.scroll.innerHTML.indexOf('data-select="provider"') !== -1, 'premise: the Weather provider row\'s tab');
   const weatherPart = page.scroll.innerHTML.slice(0, page.scroll.innerHTML.indexOf('data-select="radarSource"'));
@@ -495,7 +485,7 @@ test('page: radar-only Tomorrow.io without a key — the key row reads "No key",
 });
 
 test('page: picking Tomorrow.io with no key brings the note and the dot at once; Met.no takes them away', () => {
-  const page = bootGeneratedPage({ provider: 'openmeteo', radarMode: 'graph' }, 'basalt');
+  const page = bootGeneratedPage({ provider: 'openmeteo', radarMode: 'graph' }, 'emery');
   openRadarPane(page);
   page.openSelect('radarSource');
   page.pickOption('radarSource', 'tomorrowio');
@@ -509,7 +499,7 @@ test('page: picking Tomorrow.io with no key brings the note and the dot at once;
 });
 
 test('page: radar-only Tomorrow.io — Save asks; "Add key" opens its sheet on the Setup tab and saves nothing', async () => {
-  const page = bootGeneratedPage(TIO_RADAR_ONLY, 'basalt', { dialog: true });
+  const page = bootGeneratedPage(TIO_RADAR_ONLY, 'emery', { dialog: true });
   page.tapSave();
   const dlg = page.modal.innerHTML;
   assert.ok(page.modal.open, 'the native dialog opened');
@@ -525,7 +515,7 @@ test('page: radar-only Tomorrow.io — Save asks; "Add key" opens its sheet on t
 });
 
 test('page: radar-only Tomorrow.io — "Save anyway" saves without a key, as before', async () => {
-  const page = bootGeneratedPage(TIO_RADAR_ONLY, 'basalt', { dialog: true });
+  const page = bootGeneratedPage(TIO_RADAR_ONLY, 'emery', { dialog: true });
   page.tapSave();
   tapInModal(page, '[data-confirm]', 'data-confirm', 'save');
   const blob = await page.saved();
@@ -535,7 +525,7 @@ test('page: radar-only Tomorrow.io — "Save anyway" saves without a key, as bef
 });
 
 test('page: a key typed into the Rain radar pane\'s Tomorrow.io sheet is untested, needs no dialog and saves trimmed', async () => {
-  const page = bootGeneratedPage(TIO_RADAR_ONLY, 'basalt', { dialog: true });
+  const page = bootGeneratedPage(TIO_RADAR_ONLY, 'emery', { dialog: true });
   openRadarPane(page);
   page.openEditSheet('radarKeyTomorrowio');
   typeTioKey(page, '  ' + TIO_KEY + ' ');
@@ -552,7 +542,7 @@ test('page: a key typed into the Rain radar pane\'s Tomorrow.io sheet is unteste
 });
 
 test('page: the Test button in the Rain radar pane\'s Tomorrow.io sheet reaches the summary and the dot', () => {
-  const page = bootGeneratedPage(Object.assign({ tomorrowioApiKey: TIO_KEY }, TIO_RADAR_ONLY), 'basalt');
+  const page = bootGeneratedPage(Object.assign({ tomorrowioApiKey: TIO_KEY }, TIO_RADAR_ONLY), 'emery');
   openRadarPane(page);
   assert.match(keyRowHtml(page, 'radarKeyTomorrowio'), /<div class="hint">Key ••••wxyz · not tested yet/);
   const xhrs = [];
@@ -577,7 +567,7 @@ test('page: the Test button in the Rain radar pane\'s Tomorrow.io sheet reaches 
 });
 
 test('page: Tomorrow.io as weather provider AND radar — one key in the Setup tab\'s sheet, both rows agree', () => {
-  const page = bootGeneratedPage(TIO_BOTH, 'basalt', { dialog: true });
+  const page = bootGeneratedPage(TIO_BOTH, 'emery', { dialog: true });
   // No key: both rows say so, both tabs carry the dot, and both key rows open ONE sheet.
   const noKey = /<div class="lbl">Tomorrow\.io API key<\/div><div class="hint"><span class="hint-faint">No key<\/span><\/div>/;
   page.clickTab('setup');
@@ -606,7 +596,7 @@ test('page: Tomorrow.io as weather provider AND radar — one key in the Setup t
 });
 
 test('page: both — Save asks once, for the first row in order (Weather), and "Add key" opens the one sheet', async () => {
-  const page = bootGeneratedPage(TIO_BOTH, 'basalt', { dialog: true });
+  const page = bootGeneratedPage(TIO_BOTH, 'emery', { dialog: true });
   page.clickTab('setup');
   page.tapSave();
   assert.ok(page.modal.innerHTML.indexOf('id="cfm-ttl">Tomorrow.io has no API key</span>') !== -1);
@@ -621,7 +611,7 @@ test('page: both — Save asks once, for the first row in order (Weather), and "
 
 test('page: both — a refusal on record reads the same on both rows and dots the Setup tab', () => {
   const userData = { keyResults: radarRecord(TIO_KEY, 403, 'tomorrowio') };
-  const page = bootGeneratedPage(Object.assign({ tomorrowioApiKey: TIO_KEY }, TIO_BOTH), 'basalt', { userData });
+  const page = bootGeneratedPage(Object.assign({ tomorrowioApiKey: TIO_KEY }, TIO_BOTH), 'emery', { userData });
   const line = '<div class="hint">Key ••••wxyz · ✗ rejected: no access to this data (403)</div>';
   page.clickTab('setup');
   assert.ok(keyRowHtml(page, 'providerKeyTomorrowio').indexOf(line) !== -1, 'the Weather provider\'s key row');
@@ -631,7 +621,7 @@ test('page: both — a refusal on record reads the same on both rows and dots th
 });
 
 test('page: radar off — no Tomorrow.io key row, note, dot or dialog under the Rain radar picker', async () => {
-  const page = bootGeneratedPage(Object.assign({}, TIO_RADAR_ONLY, { radarEnabled: false }), 'basalt', { dialog: true });
+  const page = bootGeneratedPage(Object.assign({}, TIO_RADAR_ONLY, { radarEnabled: false }), 'emery', { dialog: true });
   openRadarPane(page);
   assert.equal(page.S.radarSource, 'off', 'premise: the Rain radar picker reads Off');
   assert.doesNotMatch(page.scroll.innerHTML,
@@ -642,19 +632,11 @@ test('page: radar off — no Tomorrow.io key row, note, dot or dialog under the 
   assert.equal((await page.saved()).radarProvider, 'tomorrowio', 'the pick itself is kept');
 });
 
-test('page: aplite has no Rain radar pane — no dot and no dialog for a radar-only Tomorrow.io without a key', async () => {
-  const page = bootGeneratedPage(TIO_RADAR_ONLY, 'aplite', { dialog: true });
-  assert.doesNotMatch(page.tabs.innerHTML, /tab-dot/);
-  page.tapSave();
-  assert.equal(page.modal.innerHTML, '');
-  assert.equal((await page.saved()).radarProvider, 'tomorrowio');
-});
-
 // --- the note under the Radar provider row: a regional source that cannot see the place ---
 
 test('page: DWD picked while the last update\'s location lies outside its area — the amber note under the row', () => {
   const userData = { radarCoverage: JSON.stringify({ dwd: true, metno: true }) };
-  const page = bootGeneratedPage({ provider: 'openmeteo', radarMode: 'graph', radarProvider: 'dwd' }, 'basalt', { userData });
+  const page = bootGeneratedPage({ provider: 'openmeteo', radarMode: 'graph', radarProvider: 'dwd' }, 'emery', { userData });
   openRadarPane(page);
   const note = '<div class="static join info"><div class="info-box">DWD radar only covers Germany, and your location '
     + 'is outside it. Rainbow covers the whole world.</div></div>';
@@ -669,7 +651,7 @@ test('page: DWD picked while the last update\'s location lies outside its area �
 
 test('page: DWD picked while it sends no radar data for the place (its second 404 in a row) — the general note', () => {
   const userData = { radarCoverage: JSON.stringify({ dwd: false, metno: true, misses: { dwd: 2 } }) };
-  const page = bootGeneratedPage({ provider: 'openmeteo', radarMode: 'graph', radarProvider: 'dwd' }, 'basalt', { userData });
+  const page = bootGeneratedPage({ provider: 'openmeteo', radarMode: 'graph', radarProvider: 'dwd' }, 'emery', { userData });
   openRadarPane(page);
   const note = '<div class="static join info"><div class="info-box">DWD sends no radar data for your location '
     + 'right now. Rainbow covers the whole world.</div></div>';
@@ -682,7 +664,7 @@ test('page: DWD picked while it sends no radar data for the place (its second 40
 
 test('page: one 404 alone puts no note under the DWD row', () => {
   const userData = { radarCoverage: JSON.stringify({ dwd: false, metno: true, misses: { dwd: 1 } }) };
-  const page = bootGeneratedPage({ provider: 'openmeteo', radarMode: 'graph', radarProvider: 'dwd' }, 'basalt', { userData });
+  const page = bootGeneratedPage({ provider: 'openmeteo', radarMode: 'graph', radarProvider: 'dwd' }, 'emery', { userData });
   openRadarPane(page);
   assert.ok(page.scroll.innerHTML.indexOf('data-select="radarSource"') !== -1, 'premise: the Radar provider row is drawn');
   assert.doesNotMatch(page.scroll.innerHTML, /sends no radar data|only covers/);
@@ -693,7 +675,7 @@ test('page: no note while the place is inside, with no record yet, or with radar
   const dwd = { provider: 'openmeteo', radarMode: 'graph', radarProvider: 'dwd' };
   [[dwd, inside], [dwd, {}], [Object.assign({}, dwd, { radarEnabled: false }), { radarCoverage: JSON.stringify({ dwd: true }) }]]
     .forEach(([cfg, userData]) => {
-      const page = bootGeneratedPage(cfg, 'basalt', { userData });
+      const page = bootGeneratedPage(cfg, 'emery', { userData });
       openRadarPane(page);
       assert.doesNotMatch(page.scroll.innerHTML, /only covers/, JSON.stringify([cfg, userData]));
     });

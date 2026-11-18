@@ -15,21 +15,12 @@
 #include "status_on_demand.h"
 #include "status_sig.h"
 #include "paint_scratch.h"
-#if defined(PBL_HEALTH)
 #include "../services/health_summary.h"
 #include "../services/health.h"
-#endif
 #include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
-// Never compiled on aplite — wscript builds status_row_aplite.c in its place — and
-// every other platform has both features, so nothing below is guarded on them, nor
-// on PBL_PLATFORM_APLITE.
-#if !defined(WW_ON_DEMAND) || !defined(WW_THRESHOLD_HIGHLIGHT)
-#error "status_row.c needs WW_ON_DEMAND and WW_THRESHOLD_HIGHLIGHT; aplite builds its twin"
-#endif
 
 #define STATUS_ROW_MARGIN 2
 // Icon height as a fraction of the status text's content height. Bumped 5/9 -> 6/9
@@ -43,21 +34,12 @@
 #define TOP_ICON_RATIO_DEN 9
 #define ICON_BAND_MARGIN 2
 
-#ifdef PBL_PLATFORM_EMERY
 #define COMPACT_ROW_FONT_KEY FONT_KEY_GOTHIC_24
 #define NONE_ROW_FONT_KEY FONT_KEY_GOTHIC_24
 #define ARROW_H 10
 #define ARROW_HEAD_H 4
 #define ARROW_HEAD_W 3
 #define ARROW_W 8
-#else
-#define COMPACT_ROW_FONT_KEY FONT_KEY_GOTHIC_18
-#define NONE_ROW_FONT_KEY FONT_KEY_GOTHIC_18
-#define ARROW_H 8
-#define ARROW_HEAD_H 3
-#define ARROW_HEAD_W 2
-#define ARROW_W 6
-#endif
 
 struct StatusRow {
     uint8_t line_id;
@@ -103,7 +85,6 @@ static int s_levels_word;
 
 // The sunrise/sunset arrow, turned for the wind-direction arrow too: one GPath every
 // row shares, created with the first row and destroyed with the last (s_row_count).
-// (The aplite twin draws its sun arrow from primitive lines instead.)
 static GPath *s_arrow_path;
 static const GPathInfo ARROW_PATH_INFO = {
     .num_points = 6,
@@ -130,8 +111,7 @@ uint16_t sig_fold(uint16_t sig, const uint8_t *data, size_t len) {
 // strip, which rides STATUS_TOP_STRIP_LIFT rows higher inside an unchanged band — its top edge
 // is the screen edge, so the air above the line is invisible while the gap below, down to the
 // calendar, is what reads. Line-id-keyed like row_font() just below, for the same reason.
-// One seat, minus STATUS_TOP_STRIP_LIFT for the strip: a single measure-and-seat body, which
-// keeps the image small on aplite.
+// One seat, minus STATUS_TOP_STRIP_LIFT for the strip: a single measure-and-seat body.
 static int row_text_y(const StatusRow *row, GFont font) {
     int y = status_text_y(row->bounds.size.h, font);
     return (row->line_id == STATUS_LINE_TOP) ? y - STATUS_TOP_STRIP_LIFT : y;
@@ -161,26 +141,14 @@ static GFont row_font(uint8_t tier, uint8_t line_id) {
 // crossed slot must measure with the same font it draws.
 static GFont row_font_bold(uint8_t tier, uint8_t line_id) {
     if (line_id == STATUS_LINE_TOP) {
-#ifdef PBL_PLATFORM_EMERY
         return fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD);
-#else
-        return fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD);
-#endif
     }
     switch (tier) {
         case LAYOUT_TIER_NONE:
         case LAYOUT_TIER_COMPACT:
-#ifdef PBL_PLATFORM_EMERY
             return fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD);
-#else
-            return fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD);
-#endif
         default:
-#ifdef PBL_PLATFORM_EMERY
             return fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD);
-#else
-            return fonts_get_system_font(FONT_KEY_GOTHIC_14_BOLD);
-#endif
     }
 }
 
@@ -201,7 +169,6 @@ static void format_status_date(bool full_date, char *buf, size_t cap) {
                      cfg && cfg->date_month_first);
 }
 
-#if defined(PBL_HEALTH)
 // Shared walked-distance formatter for both distance slot kinds. Integer-only
 // (no FP): km = metres/100 tenths, mi = metres*10/1609 tenths, each clamped to
 // 999 tenths (99.9). The unit comes from the packed slot kind the phone chose
@@ -219,7 +186,6 @@ static void format_distance_value(char *buf, size_t cap, bool imperial) {
     }
     snprintf(buf, cap, "%d.%d%s", tenths / 10, tenths % 10, imperial ? "mi" : "km");
 }
-#endif
 
 static void format_live_value(const StatusRow *row, uint8_t kind, char *buf, size_t cap) {
     switch (kind) {
@@ -237,7 +203,6 @@ static void format_live_value(const StatusRow *row, uint8_t kind, char *buf, siz
         case SLOT_LIVE_BATTERY_PCT:
             snprintf(buf, cap, "%d%%", watch_services_battery_state().charge_percent);
             return;
-#if defined(PBL_HEALTH)
         case SLOT_LIVE_STEPS: {
             int steps = health_summary_steps();
             if (steps < 0) { steps = 0; }
@@ -280,7 +245,6 @@ static void format_live_value(const StatusRow *row, uint8_t kind, char *buf, siz
         case SLOT_LIVE_DISTANCE_MI:
             format_distance_value(buf, cap, true);
             return;
-#endif
         default:
             snprintf(buf, cap, "--");
             return;
@@ -358,12 +322,8 @@ static int8_t resolve_slot_text(const StatusRow *row, const StatusSlotView *slot
 // How many bytes of the scratch a row of `line_id` reads, and so signs: the blob, plus on
 // emery bars 4 to 6's cells behind it for those bars' rows.
 static size_t thresh_bytes_of(uint8_t line_id) {
-#if defined(PBL_PLATFORM_EMERY)
     // emery: only bars 4 to 6 read the cells behind the blob.
     if (status_threshold_bar_of_line(line_id) >= THRESH_BAR_4) { return THRESH_SCRATCH_BYTES; }
-#else
-    (void)line_id;
-#endif
     return THRESH_SETTINGS_BYTES;
 }
 
@@ -372,7 +332,6 @@ static void load_thresholds(uint8_t line_id) {
     // all read the normalized full layout.
     status_threshold_normalize(s_thresh_scratch,
         persist_get_threshold_settings(s_thresh_scratch, THRESH_SETTINGS_BYTES));
-#if defined(PBL_PLATFORM_EMERY)
     // emery: bars 4 to 6's On demand cells, right behind the blob (THRESH_SCRATCH_BYTES),
     // zeros (nothing ticked) for any byte not stored. Only their rows read them, so the
     // other rows skip the flash read.
@@ -381,9 +340,6 @@ static void load_thresholds(uint8_t line_id) {
         const int n = persist_get_od_extra_cells(extra, THRESH_OD_EXTRA_BYTES);
         memset(extra + n, 0, THRESH_OD_EXTRA_BYTES - n);
     }
-#else
-    (void)line_id;
-#endif
     s_levels_word = persist_get_status_levels();
 }
 
@@ -418,14 +374,10 @@ static int load_pass(uint8_t line_id, StatusSlotView out[STATUS_SLOT_COUNT]) {
 // the slot's level that needs health_summary, which the host-compiled
 // status_threshold_slot_level() must not call.
 static int slot_health_value(int kind) {
-#if defined(PBL_HEALTH)
     if (status_threshold_is_health_kind(kind)) {
         return status_threshold_health_value(kind, health_summary_steps(),
             health_summary_sleep_seconds(), health_summary_distance_m());
     }
-#else
-    (void)kind;
-#endif
     return -1;
 }
 
@@ -545,11 +497,9 @@ void status_row_set_full_date(StatusRow *row, bool full_date) {
     if (row) { row->full_date = full_date; }
 }
 
-#if defined(PBL_HEALTH)
 uint8_t status_row_live_health(const StatusRow *row) {
     return row ? row->live_health : 0;
 }
-#endif
 
 bool status_row_uses_on_demand(const StatusRow *row) {
     return row && row->od.assigned;
@@ -564,7 +514,6 @@ bool status_row_uses_on_demand(const StatusRow *row) {
 // health-enabled user. A health slot's threshold is judged on its own reading
 // (status_threshold_kind_for_slot), so these bits cover that too.
 static uint8_t live_health_bit(uint8_t kind) {
-#if defined(PBL_HEALTH)
     switch (kind) {
         case SLOT_LIVE_STEPS:       return HEALTH_SUMMARY_STEPS;
         case SLOT_LIVE_HR:          return HEALTH_SUMMARY_HR;
@@ -573,10 +522,6 @@ static uint8_t live_health_bit(uint8_t kind) {
         case SLOT_LIVE_DISTANCE_MI: return HEALTH_SUMMARY_DISTANCE;
         default:                    return 0;
     }
-#else
-    (void) kind;
-    return 0;
-#endif
 }
 
 bool status_row_refresh(StatusRow *row) {
@@ -680,7 +625,6 @@ static int16_t icon_target_h(const StatusRow *row, int content_h) {
 // `views` are the caller's already-walked slots (load_pass filled them);
 // glyph_icons[] tracks the PACKED icon.
 static void ensure_glyphs(StatusRow *row, const StatusSlotView *views, int content_h) {
-    bool top = (row->line_id == STATUS_LINE_TOP);
     int16_t target_h = icon_target_h(row, content_h);
 
     GColor fg = theme_fg();

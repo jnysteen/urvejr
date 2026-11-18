@@ -18,21 +18,12 @@
 #include <stdio.h>
 #include "c/windows/layout.h"
 
-#ifdef PBL_PLATFORM_EMERY
 #define FAMILY 1
 #define BOUNDS GRect(0, 0, 200, 228)
 #define START_STRIP 22
 #define START_NOSTRIP 2
 #define FLOOR 224
 #define ROW 20
-#else
-#define FAMILY 0
-#define BOUNDS GRect(0, 0, 144, 168)
-#define START_STRIP 13
-#define START_NOSTRIP 0
-#define FLOOR 168
-#define ROW 15
-#endif
 
 // One band's placed rows, or "-" when the view does not show it.
 static void print_rect(GRect r, bool shown) {
@@ -75,11 +66,7 @@ int main(void) {
     const int rows[][2] = { { 0, 0 }, { 1, 0 }, { 0, 2 }, { 3, 2 } };
     LayoutMetrics m = {
         20,   // the DEVICE fc_band_h on both families (the fit table's statusFull)
-#ifdef PBL_PLATFORM_EMERY
         { 2, 46 }
-#else
-        { 0, 35 }
-#endif
     };
     for (unsigned t = 0; t < sizeof(tops) / sizeof(tops[0]); t++) {
         bool sized = tops[t].top >= 2;

@@ -1,6 +1,5 @@
 #include "quick_view.h"
 
-#if defined(WW_QUICK_VIEW)
 
 static void (*s_on_change)(void);
 
@@ -33,8 +32,3 @@ GRect quick_view_unobstructed_bounds(Layer *root) {
     return layer_get_unobstructed_bounds(root);
 }
 
-#else
-// aplite: Timeline Quick View is compiled out (WW_QUICK_VIEW undefined). Keep the
-// translation unit non-empty so a -pedantic build never warns on an empty TU.
-typedef int quick_view_disabled_on_aplite;
-#endif  // WW_QUICK_VIEW

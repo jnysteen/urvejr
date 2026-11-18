@@ -5,8 +5,8 @@
 // on card (one row per status bar the watch can draw, a Left and a Right tick writing that
 // side's list through its writer, a bar no screen shows inert), checked against
 // on-demand.js tickOn / untickFrom; each bar's Alerts nav row, last in the bar's dialog (the
-// placed items' icons per side; a tap brings the Alerts tab); the rain notes, the resets,
-// and the aplite page, which has none of it. The schema shape itself is pinned in
+// placed items' icons per side; a tap brings the Alerts tab); the rain notes and the resets.
+// The schema shape itself is pinned in
 // test/page/settings/config-schema.test.js; this file checks what the page renders and does.
 const test = require('node:test');
 const assert = require('node:assert/strict');
@@ -33,7 +33,7 @@ const THREE_SCREENS = { radarMode: 'graph', healthMode: 'all' };
  * Boot the page on one tab.
  * @param {string} tab the tab's id
  * @param {Object} [cfg] stored settings (provider dwd and three screens unless given)
- * @param {string} [platformName] Pebble platform (default basalt)
+ * @param {string} [platformName] Pebble platform (default emery)
  * @returns {Object} the page-harness handle
  */
 function onTab(tab, cfg, platformName) {
@@ -500,7 +500,7 @@ test('the grid lists every bar the watch draws, live exactly where a screen show
   const args = { code: 'uv' };
   // Why a bar the watch can draw is not drawn (alerts-page.js barOffReason), by its name.
   const reason = (bar) => 'No screen shows ' + BAR_NAMES[bar];
-  ['basalt', 'emery', 'diorite', 'flint'].forEach((p) => {
+  ['emery'].forEach((p) => {
     const env = platform.computeEnv({ platform: p });
     // The hardware's own gate: a watch without the radar view or Health never draws that bar.
     const canDraw = { top: true, forecast: true, radar: env.radar !== false, health: env.health !== false };
@@ -526,7 +526,7 @@ test('the grid lists every bar the watch draws, live exactly where a screen show
   });
   // Like those rows, the grid follows the screens: 'Weather only' with the radar on Graph
   // draws its radar graph on top and no Radar bar, so neither offers it.
-  const env = platform.computeEnv({ platform: 'basalt' });
+  const env = platform.computeEnv();
   const S = { layoutPreset: 'weatherOnly', radarMode: 'graph', healthMode: 'off', provider: 'dwd' };
   assert.deepEqual(bars(S, env, args).find((o) => o[1] === 'radar')[2], { keys: [OD.itemsKey('radar', 'left'),
     OD.itemsKey('radar', 'right')], disabled: true, desc: 'No screen shows Radar bar' }, 'the Radar row goes inert');
@@ -618,9 +618,7 @@ test('the Alerts tab rows: each opens its item\'s dialog, with an icon, a live t
     assert.equal(r.indexOf('<span>Edit</span>'), -1, label + ': no Edit button');
     return r;
   };
-  // basalt's default top-right slot is the Watch battery glyph, so the item stands in.
-  row('odBattery', 'battery', 'Battery', 'At 10% or below · Hidden while a battery slot shows the charge'
-    + ' · Watch bar, right');
+  row('odBattery', 'battery', 'Battery', 'At 10% or below · Watch bar, right');
   // Vibrate on disconnect ships on (2.2.0), so the row names it.
   row('odBluetooth', 'bluetooth', 'Bluetooth', 'When disconnected · Vibrates on disconnect · Watch bar, left');
   // Quiet time and Sleep have a dialog that places them (the owner, 2026-10-02).
@@ -670,7 +668,7 @@ test('the Quiet time and Sleep dialogs: their intro, then the Shows on card alon
 
 // --- the live texts, resolver by resolver -------------------------------------------
 const hint = (id) => PC.hintResolvers.get(id);
-const ENV = { basalt: platform.computeEnv({ platform: 'basalt' }), emery: platform.computeEnv({ platform: 'emery' }) };
+const ENV = { emery: platform.computeEnv() };
 // A state as the page holds it: every On demand key hydrated with its default.
 const state = (S) => Object.assign({}, OD.DEFAULTS, S);
 
@@ -681,16 +679,12 @@ const TOP_LEFT = ' · Watch bar, left';
 test('Battery: the warn level on the watch\'s step, the Look, where it shows, and "Not in any status bar"', () => {
   const t = hint('onDemandBatteryText');
   const empty = { statusTopRight: 'sun' };
-  assert.equal(t(state(empty), ENV.basalt), 'At 10% or below' + TOP_RIGHT);
-  assert.equal(t(state(Object.assign({ batteryLowDisplay: 'value' }, empty)), ENV.basalt),
+  assert.equal(t(state(empty), ENV.emery), 'At 10% or below' + TOP_RIGHT);
+  assert.equal(t(state(Object.assign({ batteryLowDisplay: 'value' }, empty)), ENV.emery),
     'At 10% or below · Icon + value' + TOP_RIGHT);
-  assert.equal(t(state(Object.assign({ batteryLowLevel: '15' }, empty)), ENV.basalt), 'At 20% or below' + TOP_RIGHT,
-    'a stored 15 reads as the next 10 % step off emery');
   assert.equal(t(state(Object.assign({ batteryLowLevel: '15' }, empty)), ENV.emery), 'At 15% or below' + TOP_RIGHT);
-  assert.equal(t(state(Object.assign({ batteryLowLevel: '25' }, empty)), platform.computeEnv(null)),
-    'At 30% or below' + TOP_RIGHT, 'an unknown watch reads the 10 % steps');
-  assert.equal(t(state(Object.assign({ statusTopOnDemandRightItems: 'rain' }, empty)), ENV.basalt), 'Not in any status bar');
-  assert.equal(t(state(Object.assign({ statusForecastOnDemandRightItems: 'battery' }, empty)), ENV.basalt),
+  assert.equal(t(state(Object.assign({ statusTopOnDemandRightItems: 'rain' }, empty)), ENV.emery), 'Not in any status bar');
+  assert.equal(t(state(Object.assign({ statusForecastOnDemandRightItems: 'battery' }, empty)), ENV.emery),
     'At 10% or below · Watch bar, right · Forecast bar, right', 'every bar edge it sits on, in the page\'s order');
 });
 
@@ -702,42 +696,42 @@ test('Battery: "Hidden while a battery slot shows the charge" only where the ite
   ['battery', 'batteryPct'].forEach((slot) => ['icon', 'value'].forEach((look) => {
     const S = state({ statusTopRight: slot, batteryLowDisplay: look });
     const want = 'At 10% or below' + (look === 'value' ? ' · Icon + value' : '') + SUFFIX + TOP_RIGHT;
-    assert.equal(t(S, ENV.basalt), want, slot + ' / ' + look);
+    assert.equal(t(S, ENV.emery), want, slot + ' / ' + look);
     assert.equal(t(S, ENV.emery), want, slot + ' / ' + look + ' on emery');
   }));
   // The phone battery is not the watch battery.
-  const phone = Object.assign({ phoneBattery: true }, ENV.basalt);
+  const phone = Object.assign({ phoneBattery: true }, ENV.emery);
   assert.equal(t(state({ statusTopRight: 'phoneBattery' }), phone), 'At 10% or below' + TOP_RIGHT);
   // The item placed on another bar than the battery slot's: nothing to hide it.
   const elsewhere = state({ statusTopRight: 'battery', statusTopOnDemandRightItems: 'rain',
     statusForecastOnDemandLeftItems: 'battery' });
-  assert.equal(t(elsewhere, ENV.basalt), 'At 10% or below · Forecast bar, left');
+  assert.equal(t(elsewhere, ENV.emery), 'At 10% or below · Forecast bar, left');
   // A battery slot the catalog cannot place (the glyph is the top-right corner's alone)
   // resolves to Empty, so it silences nothing.
-  assert.equal(t(state({ statusTopRight: 'sun', statusTopLeft: 'battery' }), ENV.basalt),
+  assert.equal(t(state({ statusTopRight: 'sun', statusTopLeft: 'battery' }), ENV.emery),
     'At 10% or below' + TOP_RIGHT);
   // The item on both bars: the top bar's slot silences it.
-  assert.equal(t(Object.assign({}, elsewhere, { statusTopOnDemandRightItems: 'battery' }), ENV.basalt),
+  assert.equal(t(Object.assign({}, elsewhere, { statusTopOnDemandRightItems: 'battery' }), ENV.emery),
     'At 10% or below' + SUFFIX + TOP_RIGHT + ' · Forecast bar, left');
 });
 
 test('Bluetooth, Quiet time and Sleep: their rules, the vibration, the Battery saver', () => {
   const bt = hint('onDemandBluetoothText');
   [['disconnected', 'When disconnected'], ['connected', 'When connected'], ['both', 'Always'], ['none', 'Never']]
-    .forEach(([v, text]) => assert.equal(bt(state({ btIcons: v }), ENV.basalt), text + TOP_LEFT, v));
-  assert.equal(bt(state({ vibe: true }), ENV.basalt), 'When disconnected · Vibrates on disconnect' + TOP_LEFT);
-  assert.equal(bt(state({ vibe: true, statusTopOnDemandLeftItems: 'qt' }), ENV.basalt),
+    .forEach(([v, text]) => assert.equal(bt(state({ btIcons: v }), ENV.emery), text + TOP_LEFT, v));
+  assert.equal(bt(state({ vibe: true }), ENV.emery), 'When disconnected · Vibrates on disconnect' + TOP_LEFT);
+  assert.equal(bt(state({ vibe: true, statusTopOnDemandLeftItems: 'qt' }), ENV.emery),
     'Not in any status bar · Vibrates on disconnect', 'the vibration does not depend on the placement');
   const qt = hint('onDemandPlainText');
   const args = { code: 'qt', text: 'While Quiet Time is on' };
-  assert.equal(qt(state({}), ENV.basalt, args), 'While Quiet Time is on' + TOP_LEFT);
-  assert.equal(qt(state({ statusTopOnDemandLeftItems: 'bt' }), ENV.basalt, args), 'Not in any status bar');
+  assert.equal(qt(state({}), ENV.emery, args), 'While Quiet Time is on' + TOP_LEFT);
+  assert.equal(qt(state({ statusTopOnDemandLeftItems: 'bt' }), ENV.emery, args), 'Not in any status bar');
   const sleep = hint('onDemandSleepText');
-  assert.equal(sleep(state({ sleepNightEnabled: true, sleepStartHour: '22', sleepEndHour: '6' }), ENV.basalt),
+  assert.equal(sleep(state({ sleepNightEnabled: true, sleepStartHour: '22', sleepEndHour: '6' }), ENV.emery),
     'During the Battery saver hours, 22:00–6:00' + TOP_LEFT);
-  assert.equal(sleep(state({ sleepNightEnabled: false }), ENV.basalt),
+  assert.equal(sleep(state({ sleepNightEnabled: false }), ENV.emery),
     'Battery saver is off (Watchface › Theme & night)');
-  assert.equal(sleep(state({ statusTopOnDemandLeftItems: 'bt' }), ENV.basalt), 'Not in any status bar');
+  assert.equal(sleep(state({ statusTopOnDemandLeftItems: 'bt' }), ENV.emery), 'Not in any status bar');
 });
 
 test('the Alerts row\'s icons, resolver by resolver', () => {
@@ -745,38 +739,34 @@ test('the Alerts row\'s icons, resolver by resolver', () => {
   const args = { bar: 'top', where: NONE };
   const right = (list, cfg) => state(Object.assign({ statusTopOnDemandLeftItems: '', statusTopOnDemandRightItems: list },
     cfg || {}));
-  assert.equal(icons(state({}), ENV.basalt, args), TOP_HINT, 'the defaults');
-  assert.equal(icons(right('pollen,wind', { provider: 'dwd' }), ENV.basalt, args),
+  assert.equal(icons(state({}), ENV.emery, args), TOP_HINT, 'the defaults');
+  assert.equal(icons(right('pollen,wind', { provider: 'dwd' }), ENV.emery, args),
     iconRun('right', ['pollen', 'wind']));
-  assert.equal(icons(right('pollen,wind', { provider: 'metno' }), ENV.basalt, args),
+  assert.equal(icons(right('pollen,wind', { provider: 'metno' }), ENV.emery, args),
     iconRun('right', ['wind']), 'Pollen left out off DWD');
-  assert.equal(icons(right('rain', { radarEnabled: false }), ENV.basalt, args),
+  assert.equal(icons(right('rain', { radarEnabled: false }), ENV.emery, args),
     'None of the alerts placed here can show.', 'placed, but nothing that can show');
-  assert.equal(icons(right('rain,pollen', { radarEnabled: false, provider: 'metno' }), ENV.basalt, args),
+  assert.equal(icons(right('rain,pollen', { radarEnabled: false, provider: 'metno' }), ENV.emery, args),
     'None of the alerts placed here can show.', 'every item blocked');
   assert.equal(icons(state({ statusTopOnDemandLeftItems: 'rain', statusTopOnDemandRightItems: 'uv',
-    radarEnabled: false }), ENV.basalt, args), iconRun('right', ['uv']), 'a side with nothing to show drops out');
+    radarEnabled: false }), ENV.emery, args), iconRun('right', ['uv']), 'a side with nothing to show drops out');
   assert.equal(icons(state({ statusTopOnDemandLeftItems: 'snooze,bt', statusTopOnDemandRightItems: '' }),
-    ENV.basalt, args), iconRun('left', ['bt', 'snooze']), 'the priority order');
-  assert.equal(icons(right(''), ENV.basalt, args), NONE, 'nothing placed: the schema\'s word for it');
-  assert.equal(icons(state({ statusForecastOnDemandRightItems: 'aqi' }), ENV.basalt, { bar: 'forecast', where: NONE }),
+    ENV.emery, args), iconRun('left', ['bt', 'snooze']), 'the priority order');
+  assert.equal(icons(right(''), ENV.emery, args), NONE, 'nothing placed: the schema\'s word for it');
+  assert.equal(icons(state({ statusForecastOnDemandRightItems: 'aqi' }), ENV.emery, { bar: 'forecast', where: NONE }),
     iconRun('right', ['aqi']), 'each bar reads its own lists');
 });
 
-test('the Battery sheet renders one Warn level slider per platform, a stored 15 at the watch\'s step', () => {
+test('the Battery sheet renders one Warn level slider, a stored 15 at the watch\'s 5 % step', () => {
   const at = (platformName) => {
     const page = alertsTab({ batteryLowLevel: '15' }, platformName);
     page.openEditSheet('odBattery');
     assert.equal(page.S.batteryLowLevel, '15', platformName + ': shown at its step, not written back');
     return page.modal.innerHTML;
   };
-  const basalt = at('basalt');
-  assert.equal((basalt.match(/data-range="batteryLowLevel"/g) || []).length, 1, 'one slider');
-  assert.match(basalt, /class="rng single" data-range="batteryLowLevel" data-v="20"/, '15 shows as 20');
-  assert.match(basalt, /<div class="rng-ends"><span>10%<\/span><span>30%<\/span><\/div>/);
-  assert.ok(basalt.indexOf('aria-label="Shows on"') < basalt.indexOf('data-range="batteryLowLevel"'),
-    'under the Shows on grid');
   const emery = at('emery');
+  assert.ok(emery.indexOf('aria-label="Shows on"') < emery.indexOf('data-range="batteryLowLevel"'),
+    'under the Shows on grid');
   assert.equal((emery.match(/data-range="batteryLowLevel"/g) || []).length, 1, 'one slider');
   assert.match(emery, /class="rng single" data-range="batteryLowLevel" data-v="15"/, 'emery keeps 15');
   assert.match(emery, /<div class="rng-ends"><span>5%<\/span><span>30%<\/span><\/div>/);
@@ -805,14 +795,13 @@ test('moving the Warn level thumb stores one plain integer on the watch\'s step'
   // The write the snap-up display defers: a moved thumb stores the level as a bare
   // integer string (what on-demand.js batteryLevel parses), on the step of the slider the
   // platform shows — never the dual range's "lo-hi" shape, never an off-grid value.
-  [['basalt', '20', 20], ['emery', '15', 15]].forEach(([platformName, nudged, dragged]) => {
+  [['emery', '15', 15]].forEach(([platformName, nudged, dragged]) => {
     const page = alertsTab({ batteryLowLevel: '10' }, platformName);
     page.openEditSheet('odBattery');
     const s = warnLevelSlider(10);
     page.modal.dispatch('keydown', { target: s.thumb, key: 'ArrowRight', preventDefault() {} });
     assert.strictEqual(page.S.batteryLowLevel, nudged, platformName + ': one step up from 10');
-    // A drag lands between steps: 48 % of the track is a raw 19.6 on 10..30 and a raw 17
-    // on 5..30, which snap to the nearest step, 20 and 15.
+    // A drag lands between steps: 48 % of the track is a raw 17 on 5..30, which snaps to 15.
     page.S.batteryLowLevel = '30';
     const d = warnLevelSlider(30);
     const off = { closest: () => null };
@@ -822,65 +811,6 @@ test('moving the Warn level thumb stores one plain integer on the watch\'s step'
     assert.strictEqual(page.S.batteryLowLevel, String(dragged), platformName + ': a drag snaps to the step');
     assert.equal(d.root.getAttribute('data-v'), String(dragged), platformName + ': the thumb shows it');
   });
-});
-
-test('aplite: no Alerts tab, card, rows, links or sheets — the Watch bar keeps its own rows', () => {
-  const page = watchTab({}, 'aplite');
-  const tab = page.scroll.innerHTML;
-  const top = barDialogHtml(page, 'Watch bar');
-  const html = tab + top;
-  assert.equal(page.tabs.innerHTML.indexOf('data-tab="alerts"'), -1, 'no Alerts tab');
-  assert.equal(html.indexOf('<div class="lbl">Alerts</div>'), -1, 'no Alerts rows');
-  assert.equal(html.indexOf('data-goto-tab'), -1, 'no link to a tab it lacks');
-  assert.equal(html.indexOf('OnDemand'), -1, 'no side lists');
-  // Nor anywhere else, behind every More options too.
-  ['weather', 'watchface', 'graphs', 'setup'].forEach((tab) => {
-    const other = onTab(tab, {}, 'aplite');
-    other.openAllMore('scroll');
-    const h = other.scroll.innerHTML;
-    assert.equal(h.indexOf('About alerts'), -1, tab + ': no card');
-    assert.equal(h.indexOf('resetOnDemand'), -1, tab + ': no card reset');
-    assert.equal(h.indexOf('data-goto-tab="alerts"'), -1, tab + ': no link to the Alerts tab');
-  });
-  assert.ok(onTab('setup', {}, 'aplite').scroll.innerHTML.indexOf('data-k="locationMode"') !== -1,
-    'the Setup tab renders its Location card');
-  ['batteryLowOnly', 'showQt', 'vibe'].forEach((k) =>
-    assert.ok(top.indexOf('data-k="' + k + '" data-toggle="1"') !== -1, k + ': a row in the Watch bar\'s dialog'));
-  assert.ok(top.indexOf('data-select="btIcons"') !== -1, 'btIcons row');
-  // A sheet opened anyway renders nothing (its section gate).
-  ['alertUv', 'odQuiet', 'odBattery', 'odLists'].forEach((id) => {
-    const t = { getAttribute: n => (n === 'data-edit-sheet' ? id : null), closest: sel => (sel === '[data-edit-sheet]' ? t : null) };
-    page.scroll.dispatch('click', { target: t });
-    assert.equal(page.modal.innerHTML, '', id + ': nothing');
-  });
-  // A link to the Alerts tab changes nothing there.
-  followTabLink(page.scroll, 'alerts');
-  assert.equal(activeTab(page), 'watch', 'the tab stays put');
-  const basaltPage = watchTab();
-  const basalt = basaltPage.scroll.innerHTML + barDialogHtml(basaltPage, 'Watch bar');
-  ['batteryLowOnly', 'showQt'].forEach((k) =>
-    assert.equal(basalt.indexOf('data-k="' + k + '"'), -1, k + ': not on a watch with Alerts'));
-});
-
-test('aplite: the Watch bar\'s bluetooth picker keeps its own title, not the Bluetooth sheet\'s', () => {
-  // The Bluetooth sheet's btIcons/vibe copies are gated at item level, so the engine's
-  // "shown copy of a key" lookup (the picker title, a trigger relabel) never lands on them
-  // on aplite, whose sheet section is hidden.
-  const page = watchTab({}, 'aplite');
-  page.openEditSheet('bar-top');
-  const t = { getAttribute: n => (n === 'data-select' ? 'btIcons' : null), closest: sel => (sel === '[data-select]' ? t : null) };
-  page.modal.dispatch('click', { target: t });
-  assert.ok(page.modal.innerHTML.indexOf('<button type="button" class="sel-wrap" data-select="btIcons"'
-    + ' aria-label="Show icon for bluetooth: Disconnected"') !== -1, 'the picker reads by its own label');
-  assert.ok(page.modal.innerHTML.indexOf('aria-label="Show icon for bluetooth options"') !== -1, 'the list label');
-  // The evalCtx shape: the settings with env beside them.
-  const ctx = (platformName) => ({ provider: 'dwd', env: platform.computeEnv({ platform: platformName }) });
-  const labels = {
-    aplite: { btIcons: 'Show icon for bluetooth', vibe: 'Vibrate on bluetooth disconnect' },
-    basalt: { btIcons: 'Show', vibe: 'Vibrate on disconnect' }
-  };
-  Object.keys(labels).forEach((p) => ['btIcons', 'vibe'].forEach((k) =>
-    assert.equal(PC.engine.findShownItem(SCHEMA, k, ctx(p)).label, labels[p][k], k + ' on ' + p)));
 });
 
 /**
@@ -1037,7 +967,7 @@ test('the page heals the side lists on open: canonical order, unknown codes out,
   const S = { statusTopOnDemandLeftItems: 'snooze,bt,zzz,bt', statusTopOnDemandRightItems: 'bt,battery,rain',
     statusForecastOnDemandLeftItems: 7, statusForecastOnDemandRightItems: '' };
   const writes = [];
-  onbuild.onLoad({ env: ENV.basalt, get: (k) => S[k], set: (k, v) => { writes.push(k); S[k] = v; } });
+  onbuild.onLoad({ env: ENV.emery, get: (k) => S[k], set: (k, v) => { writes.push(k); S[k] = v; } });
   assert.equal(S.statusTopOnDemandLeftItems, 'bt,snooze');
   assert.equal(S.statusTopOnDemandRightItems, 'battery,rain', 'Bluetooth stays on the left');
   assert.equal(S.statusForecastOnDemandLeftItems, '', 'a non-string list reads its default');

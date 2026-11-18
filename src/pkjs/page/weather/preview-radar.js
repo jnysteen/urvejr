@@ -188,7 +188,7 @@ var PConf = (typeof global !== 'undefined' && global.PConf && global.PConf.block
      * @returns {boolean}
      */
     function skyOn(state, env) {
-        return Boolean(state.radarSky) && (state.radarMode || 'graph') === 'graph' && !(env && env.platform === 'aplite');
+        return Boolean(state.radarSky) && (state.radarMode || 'graph') === 'graph';
     }
 
     /**
@@ -242,23 +242,22 @@ var PConf = (typeof global !== 'undefined' && global.PConf && global.PConf.block
         }
         var local = [0, 0, 0, 0.2, 0.6, 1.5, 3, 7, 14, 10, 5, 2, 0.8, 0.3, 0.1, 0, 0.3, 1, 3, 8, 12, 6, 2, 0.5];
         var add = [0.4, 0.5, 0.7, 1, 1.5, 2, 3, 4, 3, 2, 1.5, 1, 0.8, 0.5, 0.4, 0.3, 0.5, 1.5, 3, 4, 3, 2, 1, 0.5];
-        var isAplite = Boolean(env && env.platform === 'aplite');
         // The sky rows (Radar tab -> Clouds, sun & lightning) take a band under the
         // axis ticks, and the bars keep the rest — rain_radar_layer.c's sky band. The
         // sample is a received radar window with a received sky over it, so the
         // watch's gates (a sky blob, a radar start, the two overlapping —
         // radar_sky_in_window) hold by construction. Like the bars, the preview draws
         // a roomy plot (40 px and up: 4 px stripes). A shorter one gets 3 px stripes
-        // and leaves the bars less room, which the preview does not model: the 144 px
-        // watches' radar top band, and on either size a body under a tall stack of
-        // calendar and status rows (a 3-row calendar with both status rows is one).
+        // and leaves the bars less room, which the preview does not model: a body under a
+        // tall stack of calendar and status rows (a 3-row calendar with both status rows
+        // is one).
         var sky = skyOn(state, env);
         var n = local.length, PX0 = 11, PX1 = 196;
         var step = (PX1 - PX0) / n, bw = step - 1.6;
-        // The watch's pixel grid, for the sky rows: its 24 slots of RADAR_DEF's pitch
-        // (6 px, 8 on emery's 200 px bucket) span PX0..PX1, watch x 0 (the stripe
+        // The watch's pixel grid, for the sky rows: its 24 slots of RADAR_DEF's 8 px pitch
+        // span PX0..PX1, watch x 0 (the stripe
         // lines' anchor) at PX0 — so one watch pixel is `unit` preview units.
-        var WATCH_PITCH = (env && env.platform === 'emery') ? 8 : 6, SKY_H = 4;
+        var WATCH_PITCH = 8, SKY_H = 4;
         var unit = step / WATCH_PITCH, topY = AXIS_Y;
         var skyBand = sky ? (2 * SKY_H + 2) * unit : 0;
         // The plot keeps its height with the sky rows on: they and their legend row grow
@@ -373,7 +372,7 @@ var PConf = (typeof global !== 'undefined' && global.PConf && global.PConf.block
         // aplite (which lacks the feature). The icon and the text draw in the theme's
         // foreground, like every icon of the bars (the watch gives the rain alert no
         // colour of its own).
-        var side = isAplite ? null : onDemand.sideOf(state, 'top', 'rain', env);
+        var side = onDemand.sideOf(state, 'top', 'rain', env);
         var rain = thresholds.rainAlert(state);
         if (side === null) {
             return svgFrame(e, frameH);

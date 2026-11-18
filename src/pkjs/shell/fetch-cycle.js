@@ -310,16 +310,6 @@ function createFetchCycle(deps) {
      * @returns {void}
      */
     function withRainRadarTuplesAt(lat, lon, force, callback) {
-        if (!platformLib.computeEnv(deps.getWatchInfo()).radar) {
-            // The watch compiles the radar out (aplite: no WW_RAIN_RADAR) and drops
-            // every RAIN_RADAR_* tuple, so skip the request and leave the keys out
-            // of the send. The Radar settings tab is hidden there, so an install
-            // whose settings were never saved still holds the 'graph' default — the
-            // gate has to live here, not in the stored radarMode. An unknown
-            // platform (no watchInfo) stays radar-capable, as in computeEnv.
-            callback(null);
-            return;
-        }
         var settings = deps.getSettings();
         // Radar source is configured independently of the forecast provider. The
         // 5-min pinned slot-0 epoch (RAIN_RADAR_START on the wire) is computed here

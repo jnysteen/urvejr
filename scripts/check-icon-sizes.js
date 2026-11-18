@@ -42,8 +42,7 @@ function watchSizes(text, idToKey) {
 
 /**
  * The drawn sizes, by watch family and drawing: every size of the drawings file, keyed
- * <family>-<box>. The Pebble Classic and Steel masks (size A) are left out: they are no drawings
- * the tables look up.
+ * emery-<box>.
  * @param {{icons: !Object<string, {sizes: !Object<string, !Object>}>}} doc resources/pixel-icons.json.
  * @returns {!Object<string, !Object<string, !Set<number>>>} family -> key -> box rows.
  */

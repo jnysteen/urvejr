@@ -2,13 +2,11 @@
 
 #include <pebble.h>
 
-// The Bluetooth disconnect vibe, shared by the strip and its aplite twin
-// (layers/top_status_layer.c, layers/top_status_layer_aplite.c).
+// The Bluetooth disconnect vibe, used by the strip (layers/top_status_layer.c).
 //
 // A drop buzzes while the vibe setting is on and Quiet Time is off: the SDK asks apps to
 // keep quiet while quiet_time_is_active() (pebble.h, Preferences), and the firmware does
-// not mute an app's vibes for it. aplite's SDK reports Quiet Time as always off, so there
-// the gate compiles away.
+// not mute an app's vibes for it.
 //
 // No delay of our own: the firmware already holds a drop back from apps for 25 s (its
 // debounced connection service, DISCONNECT_HIDE_DURATION_SECS), so a drop that heals within

@@ -26,14 +26,6 @@ test('the settings page names the same eight graph metrics the colour keys are s
   });
 });
 
-test('aplite folds a light theme back to dark polarity (no black-on-black)', () => {
-  const light = resolve(
-    { secondaryLine: 'wind', thirdLine: 'off', theme: 'light' }, { platform: 'aplite' });
-  const dark = resolve(
-    { secondaryLine: 'wind', thirdLine: 'off', theme: 'dark' }, { platform: 'aplite' });
-  assert.equal(light.secondary, dark.secondary);
-});
-
 test('a third colour is always resolved, even when the third line is off', () => {
   const off = resolve(
     { secondaryLine: 'wind', thirdLine: 'off', theme: 'dark' }, emery);
@@ -49,32 +41,16 @@ test('a third colour is always resolved, even when the third line is off', () =>
 const renderContext = (settings, watchInfo) => lineStyle.renderContextFor(settings, platform.computeEnv(watchInfo));
 
 test('renderContextFor folds the theme, tests the display, and names the polarity', () => {
-  assert.deepEqual(renderContext({ theme: 'dark' }, { platform: 'basalt' }),
+  assert.deepEqual(renderContext({ theme: 'dark' }, { platform: 'emery' }),
     { theme: 'dark', isColor: true, suffix: 'Dark' });
-  assert.deepEqual(renderContext({ theme: 'light' }, { platform: 'basalt' }),
+  assert.deepEqual(renderContext({ theme: 'light' }, { platform: 'emery' }),
     { theme: 'light', isColor: true, suffix: 'Light' });
-  // B&W hardware: colour-capable theme, no colour display.
-  assert.deepEqual(renderContext({ theme: 'dark' }, { platform: 'diorite' }),
-    { theme: 'dark', isColor: false, suffix: 'Dark' });
-  // aplite also has the light polarity compiled out, so a light install folds to dark.
-  assert.deepEqual(renderContext({ theme: 'light' }, { platform: 'aplite' }),
-    { theme: 'dark', isColor: false, suffix: 'Dark' });
   // A bw theme on colour hardware renders the B&W model.
-  assert.deepEqual(renderContext({ theme: 'bw-light' }, { platform: 'basalt' }),
+  assert.deepEqual(renderContext({ theme: 'bw-light' }, { platform: 'emery' }),
     { theme: 'bw-light', isColor: false, suffix: 'Light' });
   // No watchInfo, no theme: an unknown watch reads colour, on the dark default.
   assert.deepEqual(renderContext({}, null),
     { theme: 'dark', isColor: true, suffix: 'Dark' });
-});
-
-test('a B&W display resolves every line pick away, whatever the theme says', () => {
-  const settings = { secondaryLine: 'wind', thirdLine: 'off', theme: 'dark',
-                     gcWindLineDark: '#FF0000' };
-  assert.equal(resolve(settings, { platform: 'basalt' }).secondary, 0xFF0000);
-  ['diorite', 'aplite'].forEach((platform) => {
-    assert.equal(resolve(settings, { platform }).secondary, COLORS.GColorWhite,
-      `${platform} has no colour display, so the pick cannot reach the wire`);
-  });
 });
 
 // --- The night colours (wire bytes 4..9) -------------------------------------
@@ -193,7 +169,7 @@ test('the light-polarity built-in is black; on B&W the flip still does that work
   const light = { secondaryLine: 'gust', thirdLine: 'off', theme: 'light' };
   assert.equal(resolve(light, emery).secondary, COLORS.GColorBlack,
     "gust's light built-in IS black — no flip involved");
-  assert.equal(resolve(light, { platform: 'diorite' }).secondary,
+  assert.equal(resolve(Object.assign({}, light, { theme: 'bw-light' }), emery).secondary,
     resolveInk(COLORS.GColorWhite, 'light'),
     'B&W resolves white through the flip instead of reading a key');
   const picked = resolve(
@@ -331,27 +307,24 @@ test('the style-byte encoding matches the C headers, decoded with their own cons
   assert.equal(byteFor('x'), KIND.x, "and 'x' packs to exactly that byte");
 });
 
-test('a stripe-styled main line never fills, unless the watch ignores the styles', () => {
+test('a stripe-styled main line never fills, unless the styles are ignored', () => {
   const base = { secondaryLine: 'cloud', secondaryLineFill: true, thirdLine: 'off', theme: 'dark' };
   ['stripeTop', 'stripeBottom'].forEach((st) => {
     const s = Object.assign({ secondaryLineStyle: st }, base);
-    assert.equal(resolve(s, { platform: 'basalt' }).fillOn, false, st + ' on basalt');
-    assert.equal(graphWire.buildLineStyleBytes(s, { platform: 'basalt' })[3] & 0x01, 0,
+    assert.equal(resolve(s, { platform: 'emery' }).fillOn, false, st + ' on emery');
+    assert.equal(graphWire.buildLineStyleBytes(s, { platform: 'emery' })[3] & 0x01, 0,
       st + ': the wire fill flag is clear');
-    // aplite has no selectable styles (WW_LINE_STYLE): a stripe picked on a colour
-    // watch paired to the same phone must not switch its fill off.
-    assert.equal(resolve(s, { platform: 'aplite' }).fillOn, true, st + ' on aplite');
     assert.equal(lineStyle.resolveGraphColors(s, { color: true, themePolarity: true, lineStyles: false }).fillOn,
       true, st + ' with lineStyles: false');
   });
   // A stripe on another line leaves the main line's fill alone.
   assert.equal(resolve(Object.assign({ thirdLineStyle: 'stripeTop' }, base),
-    { platform: 'basalt' }).fillOn, true);
+    { platform: 'emery' }).fillOn, true);
   assert.equal(lineStyle.isStripeStyle({ fourthLine: 'uv', fourthLineStyle: 'stripeBottom' }, 'fourthLineStyle'), true);
   assert.equal(lineStyle.isStripeStyle({}, 'fourthLineStyle'), false, 'the default x is not a stripe');
   // Pressure cannot be a stripe: a stored one draws as a line, which fills.
   const pressure = Object.assign({}, base, { secondaryLine: 'pressure', secondaryLineStyle: 'stripeTop' });
-  assert.equal(resolve(pressure, { platform: 'basalt' }).fillOn, true, 'pressure fills');
+  assert.equal(resolve(pressure, { platform: 'emery' }).fillOn, true, 'pressure fills');
 });
 
 // Stripes read as intensity (how MUCH rain chance, cloud, UV, wind), so only those
@@ -426,10 +399,10 @@ test('a stored stripe on a metric that cannot be one resolves to the line\'s non
 
 test('cloud cover resolves its own line and fill colours, like every graph metric', () => {
   const s = { secondaryLine: 'cloud', thirdLine: 'off', theme: 'dark' };
-  const dark = resolve(s, { platform: 'basalt' });
+  const dark = resolve(s, { platform: 'emery' });
   assert.equal(dark.secondary, COLORS.GColorBabyBlueEyes);
   assert.equal(dark.fill, COLORS.GColorLiberty);
-  const light = resolve(Object.assign({}, s, { theme: 'light' }), { platform: 'basalt' });
+  const light = resolve(Object.assign({}, s, { theme: 'light' }), { platform: 'emery' });
   assert.equal(light.secondary, COLORS.GColorLiberty);
   assert.deepEqual(lineStyle.nightAreaColorsFor('cloud', null, 'dark'),
     { base: COLORS.GColorOxfordBlue, hatch: COLORS.GColorLiberty });

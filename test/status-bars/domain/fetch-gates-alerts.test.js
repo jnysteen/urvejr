@@ -4,8 +4,7 @@
 // to what the lines and slots show: an alert placed on an On demand side of a
 // bar that exists (on-demand.js placedAnywhere, read through status-thresholds'
 // alertOn) fetches its metric, and a day-max kind's alert keeps its day peaks. Read for
-// THIS watch: a known aplite has no On demand, so it never fetches for an alert; a
-// missing watchInfo counts as capable. Over a truth table of placements, provider, line,
+// THIS watch. Over a truth table of placements, provider, line,
 // slot, day-max-mode settings and watches, every gate answers the reference below.
 const test = require('node:test');
 const assert = require('node:assert/strict');
@@ -67,7 +66,7 @@ const PLACEMENTS = [
   Object.assign(placeOn(Object.assign({}, NOTHING_PLACED), 'radar', 'right', 'uv,aqi,pollen,gust'), { radarMode: 'off' }),
   Object.assign(placeOn(Object.assign({}, NOTHING_PLACED), 'health', 'left', 'wind,aqi'), { healthMode: 'status' })
 ];
-const WATCHES = [null, { platform: 'basalt' }, { platform: 'aplite' }];
+const WATCHES = [null, { platform: 'emery' }];
 const PROVIDERS = [undefined, 'dwd', 'openmeteo'];
 const LINES = [
   {},                                                   // the line defaults
@@ -124,7 +123,7 @@ test('no stored settings fetch nothing and keep no day record', () => {
 
 // The table is only a proof if the placements actually flip gates in it: each alert
 // must be the deciding input somewhere, and the watch too.
-test('the table exercises every alert and the watch as deciding inputs', () => {
+test('the table exercises every alert as a deciding input', () => {
   const base = Object.assign(slots({}), { secondaryLine: 'wind', thirdLine: 'off', provider: 'dwd' },
     NOTHING_PLACED);
   const with_ = (codes) => placeOn(Object.assign({}, base), 'top', 'right', codes);
@@ -133,12 +132,6 @@ test('the table exercises every alert and the watch as deciding inputs', () => {
   assert.equal(forecastSeries.needsAqi(with_('aqi')), true);
   assert.equal(forecastSeries.needsPollen(with_('pollen')), true);
   assert.deepEqual(forecastSeries.dayPeakCodes(with_('wind,gust')), ['wind', 'gust']);
-  // A known aplite has no On demand: its alerts ask for nothing.
-  const aplite = { platform: 'aplite' };
-  assert.equal(forecastSeries.needsUv(with_('uv'), aplite), false);
-  assert.equal(forecastSeries.needsAqi(with_('aqi'), aplite), false);
-  assert.equal(forecastSeries.needsPollen(with_('pollen'), aplite), false);
-  assert.deepEqual(forecastSeries.dayPeakCodes(with_('wind,gust'), aplite), []);
   // A slot-less partial blob reads the default ticks (Wind gusts, UV index, Air quality
   // and Wind speed on the Watch Status Bar), so it fetches UV and AQI and keeps the four
   // day records — on purpose: the owner switched those alerts on for every install.

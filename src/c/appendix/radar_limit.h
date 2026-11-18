@@ -10,9 +10,7 @@
 // (test/c/radar_limit_test.c) pins them; their callers, app_message.c's
 // handle_rain_radar, rain_radar_layer.c's radar_update_proc and main_window.c's
 // main_window_radar_has_data, need the whole SDK surface and cannot be
-// host-compiled. Nothing here needs a platform guard: aplite never compiles the
-// handler, never references the radar layer, and keeps its constant-false radar
-// predicate.
+// host-compiled.
 
 #include <stdbool.h>
 #include <stddef.h>

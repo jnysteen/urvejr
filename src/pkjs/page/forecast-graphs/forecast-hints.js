@@ -66,8 +66,6 @@ var PConf = (typeof global !== 'undefined' && global.PConf) ? global.PConf
         var out = a.off ? [['Off', 'off']] : [];
         for (var i = 0; i < FORECAST_METRICS.length; i += 1) {
             var opt = FORECAST_METRICS[i];
-            if (lineStyle.isTempAxisMetric(opt[1])
-                && env && env.platform === 'aplite') { continue; }
             var taken = false;
             for (var j = 0; j < exclude.length; j += 1) {
                 if (S && opt[1] === S[exclude[j]]) { taken = true; break; }

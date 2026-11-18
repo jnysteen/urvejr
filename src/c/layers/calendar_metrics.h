@@ -21,13 +21,7 @@
 // Frame top of the date text inside a cell of height `cell_h` starting at row `cell_y`, for a
 // font whose measured content height is `content_h`. Mirrors calendar_layer.c's text rect.
 static inline int calendar_text_top(int cell_y, int cell_h, int content_h) {
-#ifdef PBL_PLATFORM_EMERY
     return cell_y + (cell_h - content_h) / 2 - CALENDAR_TEXT_SHIFT_Y;
-#else
-    (void) cell_h;
-    (void) content_h;
-    return cell_y - CALENDAR_FONT_OFFSET;
-#endif
 }
 
 // Last inked row of the calendar's FINAL row of digits, for a band of `cal_h` at `cal_y` split

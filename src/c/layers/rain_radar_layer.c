@@ -7,7 +7,6 @@
 #include "c/appendix/hatch.h"
 #include "c/appendix/memory_log.h"
 #include "c/appendix/slot_geometry.h"
-#include "c/appendix/display_width.h"
 #include "c/appendix/chart.h"
 #include "c/appendix/theme.h"
 #include "c/appendix/chart_stripe.h"
@@ -26,8 +25,7 @@
 // tier lifts the box by exactly its content-height step (14 -> 18 px) — out of the strip
 // and into whatever sits above the radar, which in the compact views is a status row.
 // Adding the same step back keeps the label's clearance identical at both tiers, at the
-// cost of 4 px of plot height on emery's large tier. config_large_graph_font() is
-// constant false off emery, so every other platform folds this to the plain 12.
+// cost of 4 px of plot height on the large tier.
 #define RADAR_AXIS_H_BASE       12
 #define RADAR_AXIS_H_LARGE_STEP 4
 
@@ -44,13 +42,8 @@ static inline int radar_axis_h(void) {
 // pitch = tick_w + 2*pad + bar_w
 //   144-bucket: 1 + 2 + 3 = 6 → 24*6 + 1 = 145 px (overflows 144 by 1 → 1 px clip)
 //   200-bucket: 1 + 2 + 5 = 8 → 24*8 + 1 = 193 px (fits emery's 196)
-#if defined(DISPLAY_WIDTH_200)
     #define RADAR_BAR_W 5
     #define RADAR_PAD   1
-#elif defined(DISPLAY_WIDTH_144)
-    #define RADAR_BAR_W 3
-    #define RADAR_PAD   1
-#endif
 
 // Hatch line spacing for the 1km background bars: same base + height scaling as the
 // forecast night hatch (see hatch.h), but NOT the same stride at a given band height —
@@ -142,12 +135,10 @@ static GColor border_color_for_slot(uint8_t exact_t, uint8_t area_t) {
 // B&W devices (hardware or the color-build Black & White theme); fall back
 // to a solid line on effectively-color devices.
 static void nearby_border_h_line(GContext *ctx, int16_t x0, int16_t x1, int16_t y) {
-#ifdef PBL_COLOR
     if (!theme_is_bw()) {
         graphics_draw_line(ctx, GPoint(x0, y), GPoint(x1, y));
         return;
     }
-#endif
     graphics_context_set_stroke_color(ctx, theme_fg());
     if (x0 > x1) { int16_t t = x0; x0 = x1; x1 = t; }
     for (int16_t x = x0; x <= x1; x += 2) {
@@ -156,12 +147,10 @@ static void nearby_border_h_line(GContext *ctx, int16_t x0, int16_t x1, int16_t 
 }
 
 static void nearby_border_v_line(GContext *ctx, int16_t x, int16_t y0, int16_t y1) {
-#ifdef PBL_COLOR
     if (!theme_is_bw()) {
         graphics_draw_line(ctx, GPoint(x, y0), GPoint(x, y1));
         return;
     }
-#endif
     graphics_context_set_stroke_color(ctx, theme_fg());
     if (y0 > y1) { int16_t t = y0; y0 = y1; y1 = t; }
     for (int16_t y = y0; y <= y1; y += 2) {
@@ -272,7 +261,6 @@ static void radar_area_bars_layer(const ChartRender *r, void *user) {
                          c->area_tenths, c->exact_tenths, CHART_ZERO(r), CHART_DIR(r));
 }
 
-#if defined(WW_RAIN_RADAR)
 // The sky rows' colours: fixed per polarity (they are not user-pickable).
 // Cloud matches the forecast's cloud-cover built-in, sun is yellow, and the
 // lightning bolt is yellow/orange over a background halo. B&W: the stripes
@@ -355,7 +343,6 @@ static void draw_radar_sky(GContext *ctx, GRect band, int plot_h, const uint8_t 
         }
     }
 }
-#endif
 
 static void radar_update_proc(Layer *layer, GContext *ctx) {
     MEMORY_LOG_HEAP("radar_update:enter");
@@ -378,7 +365,6 @@ static void radar_update_proc(Layer *layer, GContext *ctx) {
     // keep the rest of the plot. Only while a sky slot overlaps the received
     // radar window: no sky, a cleared radar (start 0) or a sky the window has
     // slid past = no band, the plain radar (outer == axis_outer).
-#if defined(WW_RAIN_RADAR)
     uint8_t *const sky = g_paint_scratch.radar.sky;
     const int sky_n = radar_sky_count(sky, persist_get_radar_sky(sky,
                                                                  sizeof(g_paint_scratch.radar.sky)));
@@ -386,12 +372,9 @@ static void radar_update_proc(Layer *layer, GContext *ctx) {
         radar_sky_in_window(sky, sky_n, (int32_t)radar_start,
                             RADAR_NUM_SLOTS * RADAR_SLOT_SECONDS),
         axis_outer.size.h);
-#else
-    const int sky_band = 0;
-#endif
 
-    // The shared paint scratch (paint_scratch.h), not stack: aplite's small app stack
-    // overflows otherwise (PC=0/LR=0). Both are recomputed before each use (exact_pm
+    // The shared paint scratch (paint_scratch.h), not stack: keeps nested drawing calls
+    // headroom (an overflow shows as PC=0/LR=0). Both are recomputed before each use (exact_pm
     // only on a redraw with rain), as is the sky blob above.
     int16_t *const exact_pm = g_paint_scratch.radar.exact_pm;
     ChartAxisSlot *const axis_slots = g_paint_scratch.radar.axis_slots;
@@ -410,14 +393,12 @@ static void radar_update_proc(Layer *layer, GContext *ctx) {
         };
         chart_draw(ctx, &RADAR_DEF, axis_outer, axis_layers, 1);
     }
-#if defined(WW_RAIN_RADAR)
     if (sky_band > 0) {
         draw_radar_sky(ctx, GRect(axis_outer.origin.x, axis_outer.origin.y,
                                   axis_outer.size.w, sky_band),
                        axis_outer.size.h, sky, sky_n, radar_start,
                        axis_outer.origin.x, chart_def_pitch(&RADAR_DEF));
     }
-#endif
     bool any_rain = false;
     for (int i = 0; i < RADAR_NUM_SLOTS; i++) {
         if (exact_tenths[i] > 0 || area_tenths[i] > 0) { any_rain = true; break; }
@@ -477,27 +458,17 @@ static void radar_update_proc(Layer *layer, GContext *ctx) {
     char notice[RADAR_NOTICE_BUF_BYTES];
     const bool limited = persist_get_radar_notice(notice, sizeof(notice)) > 0;
     if (radar_has_view(radar_start > 0, limited)) {
-#ifdef PBL_PLATFORM_EMERY
         // emery: the taller plot swallows 18px text — step up a font tier.
         GFont font = fonts_get_system_font(FONT_KEY_GOTHIC_24);
         int text_h = 24;
-#else
-        GFont font = fonts_get_system_font(FONT_KEY_GOTHIC_18);
-        int text_h = 18;
-#endif
         // Under the sky band, bars shorter than one line of that font take the
         // next tier down (on the 144 px watches a quick-view peek, or a body under
         // a 3-row calendar and both status rows: ~11 px): the smaller line fits
         // there with a margin and room for descenders.
         if (sky_band > 0 && outer.size.h < text_h) {
-#ifdef PBL_PLATFORM_EMERY
             // emery: one tier down from its step-up is the 18 px default.
             font = fonts_get_system_font(FONT_KEY_GOTHIC_18);
             text_h = 18;
-#else
-            font = fonts_get_system_font(FONT_KEY_GOTHIC_14);
-            text_h = 14;
-#endif
         }
         // The notice beats any no-rain text. Otherwise a configured text
         // (CLAY_NORAIN_TEXT, Radar settings) replaces the built-in line; an empty

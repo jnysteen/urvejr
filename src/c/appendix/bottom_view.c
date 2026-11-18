@@ -1,11 +1,7 @@
 #include "c/appendix/bottom_view.h"
 #include "c/appendix/config.h"
 
-#ifdef PBL_PLATFORM_EMERY
 #define BV_TICK_SMALL_COLOR GColorDarkGray
-#else
-#define BV_TICK_SMALL_COLOR GColorLightGray
-#endif
 
 // theme_furniture() flattens the gray to black in the (non-bw) light theme;
 // theme_pick() swaps to theme_fg() outright in bw/bw-light. See bottom_view.h

@@ -117,7 +117,6 @@ static NightSegments compute_night_segments(time_t graph_start, time_t graph_end
         {
             continue;
         }
-#if defined(PBL_PLATFORM_EMERY)
         // emery: only the nights the graph shows take one of the FORECAST_NIGHTS_MAX slots. A
         // 68 h window meets at most four (night k + 4 starts 96 h after night k: a real night
         // is under a day long); the repeats outside it would otherwise crowd one out.
@@ -127,11 +126,9 @@ static NightSegments compute_night_segments(time_t graph_start, time_t graph_end
         {
             continue;
         }
-#endif
 
         night_segments_add(&night_segments, event_start.timestamp, event_end.timestamp);
     }
-#if defined(PBL_PLATFORM_EMERY)
     // emery: a graph running on past the last sunset listed is still in that night: the next
     // sunrise (the pair's, a further day on) lies past any graph's end (start + 68 h;
     // sun-events.js keeps a polar pair's far event 5 days out for the long span). At 12 h and
@@ -141,12 +138,10 @@ static NightSegments compute_night_segments(time_t graph_start, time_t graph_end
     {
         night_segments_add(&night_segments, events[event_count - 1].timestamp, graph_end);
     }
-#endif
 
     return night_segments;
 }
 
-#if defined(PBL_PLATFORM_EMERY)
 // emery: a time's column through the grid's one mapping (slot_x.h slot_time_x): hour i lands on
 // slot i's tick at any pitch, so the night bands meet the
 // columns the bars, the lines and the hour ticks use. Clamped to [slot 0's tick, slot n's]:
@@ -182,48 +177,3 @@ static int build_night_bands(ChartBand *out, int max, const NightSegments *seg,
     }
     return n;
 }
-#else
-static int16_t graph_x_for_time(time_t timestamp, time_t graph_start, time_t graph_end, GRect graph_plot_rect)
-{
-    const int16_t graph_left = graph_plot_rect.origin.x;
-    const int16_t graph_right = graph_plot_rect.origin.x + graph_plot_rect.size.w;
-
-    if (timestamp <= graph_start)
-    {
-        return graph_left;
-    }
-    if (timestamp >= graph_end)
-    {
-        return graph_right;
-    }
-
-    // After the guards above, graph_start < timestamp < graph_end, so
-    // 0 < elapsed < total. total is the forecast span (23 h for 24 entries), so
-    // elapsed * size.w stays far below INT32_MAX — 32-bit math is exact here and
-    // avoids pulling in the 64-bit soft-divide routine (__udivmoddi4, ~754 B).
-    const int32_t elapsed = (int32_t)(timestamp - graph_start);
-    const int32_t total   = (int32_t)(graph_end - graph_start);
-    return graph_left + (int16_t)((elapsed * graph_plot_rect.size.w) / total);
-}
-
-// Convert night time-segments into absolute plot-x bands. Clamps x to the
-// plot like the old draw_night_* loops.
-static int build_night_bands(ChartBand *out, int max,
-                             const NightSegments *seg, GRect plot_rect,
-                             time_t gstart, time_t gend) {
-    if (!seg) return 0;
-    const int16_t gl = plot_rect.origin.x;
-    const int16_t gr = plot_rect.origin.x + plot_rect.size.w;
-    int n = 0;
-    for (int i = 0; i < seg->count && n < max; ++i) {
-        int16_t x0 = graph_x_for_time(seg->segments[i].start, gstart, gend, plot_rect);
-        int16_t x1 = graph_x_for_time(seg->segments[i].end,   gstart, gend, plot_rect);
-        if (x0 < gl) x0 = gl;
-        if (x1 > gr) x1 = gr;
-        out[n].x0 = x0;
-        out[n].x1 = x1;
-        ++n;
-    }
-    return n;
-}
-#endif

@@ -7,9 +7,6 @@
 // follow the tiers. Its body is the slot's (battery_body_draw), `h` high and about
 // 1.7 h wide, with the same nub and level fill; while charging, a 7 px bolt lane
 // stands in front of it.
-//
-// NOT LINKED ON APLITE: On demand is aplite-absent (WW_ON_DEMAND in wscript), so the
-// .c body sits behind the macro and compiles to an empty object there.
 
 #define BATTERY_ITEM_BOLT_W 7
 #define BATTERY_ITEM_BOLT_GAP 2

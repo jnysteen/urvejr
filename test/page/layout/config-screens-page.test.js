@@ -24,8 +24,7 @@ const { blankBar, slotsOf } = require('../../helpers/status-slots.js');
 const { editorRows, editorAddChips, editorAddGroups, editorRow, sheetTitle, sheetOptions } = require('../../helpers/page-rows.js');
 
 const PC = global.PConf;
-const BASALT = platform.computeEnv({ platform: 'basalt' });
-const APLITE = platform.computeEnv({ platform: 'aplite' });
+const EMERY = platform.computeEnv();
 const b = (k, o) => Object.assign({ k }, o || {});
 // An upgraded install's three screens (compactCal, health all, radar graph, swap on): a new
 // install starts on the Default screen alone.
@@ -52,7 +51,7 @@ function preset(over) {
  * @returns {number[]}
  */
 function words(S) {
-  return VC.resolveViewCycle(S, BASALT).map((v) => VC.packWire(v || null));
+  return VC.resolveViewCycle(S, EMERY).map((v) => VC.packWire(v || null));
 }
 
 /**
@@ -87,14 +86,14 @@ function editorOf(page) {
 test('a first edit turns a preset custom through its own keys: the other screens keep what they draw', () => {
   const S = preset();
   const before = words(S);
-  assert.deepEqual(M.screensOf(S, BASALT), DEFAULT_SCREENS, 'premise: the preset\'s screens');
-  SP.writeScreen(S, 2, M.remove(DEFAULT_SCREENS[2], 2), BASALT);   // the Radar bar off Flick 2
+  assert.deepEqual(M.screensOf(S, EMERY), DEFAULT_SCREENS, 'premise: the preset\'s screens');
+  SP.writeScreen(S, 2, M.remove(DEFAULT_SCREENS[2], 2), EMERY);   // the Radar bar off Flick 2
   assert.equal(S.layoutPreset, 'custom');
   assert.equal(S.customLayoutSeeded, true);
   const after = words(S);
   assert.deepEqual(after.slice(0, 2), before.slice(0, 2), 'Default and Flick 1 byte for byte');
   assert.notDeepEqual(after[2], before[2], 'Flick 2 changed');
-  assert.deepEqual(M.screensOf(S, BASALT)[2], [b('strip'), b('clock'), b('radar', { size: 'fill' })]);
+  assert.deepEqual(M.screensOf(S, EMERY)[2], [b('strip'), b('clock'), b('radar', { size: 'fill' })]);
   assert.deepEqual([S.radarMode, S.healthMode], ['graph', 'all'], 'the modes the screens need');
 });
 
@@ -107,91 +106,69 @@ const ONE = { radarMode: 'off', healthMode: 'off' };
 
 test('a bar an edit brings onto the screens with nothing to show takes its default slots', () => {
   const S = preset(Object.assign({}, ONE, BLANK_HEALTH, BLANK_RADAR));
-  SP.writeScreen(S, SP.addChosen(S, BASALT, 'blank'), M.add(M.add(P.BLANK, 'healthbar'), 'radarbar'), BASALT);
-  assert.deepEqual(slotsOf(S, 'health'), ['steps', 'empty', 'sleep'], 'a new install\'s, no heart rate on a basalt');
+  SP.writeScreen(S, SP.addChosen(S, EMERY, 'blank'), M.add(M.add(P.BLANK, 'healthbar'), 'radarbar'), EMERY);
+  assert.deepEqual(slotsOf(S, 'health'), ['steps', 'sleep', 'hr'], 'a new install\'s');
   assert.deepEqual(slotsOf(S, 'radar'), ['uv', 'wind', 'gust']);
   // The modes follow what the shown bars hold (3.0.0): the Health bar's steps and sleep need
   // health; the Radar bar's UV, wind and gusts need no radar (the rain alert on the Watch
   // bar does).
   assert.deepEqual([S.radarMode, S.healthMode], ['countdown', 'slot'], 'the modes follow what the bars hold');
-  // The watch's own defaults: emery's heart rate.
-  const EMERY = platform.computeEnv({ platform: 'emery' });
-  const E = preset(Object.assign({}, ONE, BLANK_HEALTH));
-  SP.writeScreen(E, SP.addChosen(E, EMERY, 'blank'), M.add(P.BLANK, 'healthbar'), EMERY);
-  assert.deepEqual(slotsOf(E, 'health'), ['steps', 'sleep', 'hr']);
-  // An item this watch cannot show is nothing to show either: heart rate on a basalt.
-  const hr = preset(Object.assign({}, ONE, BLANK_HEALTH, { statusHealthRight: 'hr' }));
-  SP.writeScreen(hr, SP.addChosen(hr, BASALT, 'blank'), M.add(P.BLANK, 'healthbar'), BASALT);
-  assert.deepEqual(slotsOf(hr, 'health'), ['steps', 'empty', 'sleep']);
 });
 
 test('a bar with a reading of its own, or one a screen shows already, keeps its slots', () => {
   const own = preset(Object.assign({}, ONE, BLANK_HEALTH, { statusHealthMid: 'distance' }));
-  SP.writeScreen(own, SP.addChosen(own, BASALT, 'blank'), M.add(P.BLANK, 'healthbar'), BASALT);
+  SP.writeScreen(own, SP.addChosen(own, EMERY, 'blank'), M.add(P.BLANK, 'healthbar'), EMERY);
   assert.deepEqual(slotsOf(own, 'health'), ['empty', 'distance', 'empty']);
   // The Default screen shows the Forecast bar Empty: a second screen with it changes nothing there.
   const shown = preset(Object.assign({}, ONE, BLANK_FORECAST));
-  assert.ok(M.idxOf(M.screensOf(shown, BASALT)[0], 'fcbar') >= 0, 'premise: the Default screen shows the bar');
-  SP.writeScreen(shown, SP.addChosen(shown, BASALT, 'blank'), M.add(P.BLANK, 'fcbar'), BASALT);
+  assert.ok(M.idxOf(M.screensOf(shown, EMERY)[0], 'fcbar') >= 0, 'premise: the Default screen shows the bar');
+  SP.writeScreen(shown, SP.addChosen(shown, EMERY, 'blank'), M.add(P.BLANK, 'fcbar'), EMERY);
   assert.deepEqual(slotsOf(shown, 'forecast'), ['empty', 'empty', 'empty']);
   // A move or an option on a screen already showing the bar fills nothing either.
   const three = preset(BLANK_HEALTH);
-  SP.writeScreen(three, 1, M.move(DEFAULT_SCREENS[1], 2, 1), BASALT);
+  SP.writeScreen(three, 1, M.move(DEFAULT_SCREENS[1], 2, 1), EMERY);
   assert.deepEqual(slotsOf(three, 'health'), ['empty', 'empty', 'empty']);
 });
 
 test('a screen put in where a deleted one\'s keys still lie fills the bar it brings', () => {
   // Flick 2 (the Rain radar screen) deleted: its keys stay in the slot past the last screen.
   const S = preset(BLANK_RADAR);
-  assert.equal(SP.deleteScreen(S, 2, BASALT), true);
+  assert.equal(SP.deleteScreen(S, 2, EMERY), true);
   assert.equal(S.viewLower2, 'radar', 'premise: the deleted screen\'s Radar bar still in its keys');
-  assert.equal(SP.insertScreen(S, 2, M.copy(DEFAULT_SCREENS[2]), BASALT), true);
+  assert.equal(SP.insertScreen(S, 2, M.copy(DEFAULT_SCREENS[2]), EMERY), true);
   assert.deepEqual(slotsOf(S, 'radar'), ['uv', 'wind', 'gust']);
 });
 
 test('Delete a flick screen: the ones after it move up, and Undo puts every key back', () => {
   const S = preset();
-  SP.ensureCustom(S, BASALT);
+  SP.ensureCustom(S, EMERY);
   const snap = SP.snapshot(S);
   const kept = JSON.stringify(S);
-  assert.equal(SP.deleteScreen(S, 0, BASALT), false, 'the Default screen stays');
-  assert.equal(SP.deleteScreen(S, 3, BASALT), false, 'no such screen');
-  assert.equal(SP.deleteScreen(S, 1, BASALT), true);
+  assert.equal(SP.deleteScreen(S, 0, EMERY), false, 'the Default screen stays');
+  assert.equal(SP.deleteScreen(S, 3, EMERY), false, 'no such screen');
+  assert.equal(SP.deleteScreen(S, 1, EMERY), true);
   assert.equal(S.viewCount, '2');
-  assert.deepEqual(M.screensOf(S, BASALT), [DEFAULT_SCREENS[0], DEFAULT_SCREENS[2]], 'the radar screen is Flick 1 now');
+  assert.deepEqual(M.screensOf(S, EMERY), [DEFAULT_SCREENS[0], DEFAULT_SCREENS[2]], 'the radar screen is Flick 1 now');
   assert.equal(S.healthMode, 'off', 'no screen shows health any more');
-  SP.restore(S, snap, BASALT);
+  SP.restore(S, snap, EMERY);
   assert.equal(JSON.stringify(S), kept, 'Undo: every key and both modes as they were');
 });
 
 test('Rain radar Off keeps the source, and the radar\'s screen with it', () => {
   // A preset install (the migration could not move it: its watch did not say what it is).
   const S = preset();
-  SP.radarSourcePicked(S, 'rainbow', 'off', BASALT);
+  SP.radarSourcePicked(S, 'rainbow', 'off', EMERY);
   assert.equal(S.radarEnabled, false);
   assert.equal(S.radarProvider, 'metno', 'Off keeps the source');
   assert.equal(S.radarMode, 'off', 'no radar fetch');
   assert.equal(S.layoutPreset, 'custom', 'turned custom first: a preset\'s screens follow its modes');
-  assert.deepEqual(M.screensOf(S, BASALT), DEFAULT_SCREENS, 'the Rain radar screen stays, drawn without radar');
+  assert.deepEqual(M.screensOf(S, EMERY), DEFAULT_SCREENS, 'the Rain radar screen stays, drawn without radar');
   assert.equal(SP.radarSourceValue(S), 'off');
-  SP.radarSourcePicked(S, 'off', 'dwd', BASALT);
+  SP.radarSourcePicked(S, 'off', 'dwd', EMERY);
   assert.equal(S.radarEnabled, true);
   assert.equal(S.radarProvider, 'dwd');
   assert.equal(S.radarMode, 'graph', 'its screen shows the radar graph again');
   assert.equal(SP.radarSourceValue(S), 'dwd');
-});
-
-test('a watch that did not say what it is keeps its preset while only the modes move; a screen edit makes it custom', () => {
-  const UNKNOWN = platform.computeEnv({});
-  const S = preset({ layoutPreset: 'fullCal' });
-  SP.radarSourcePicked(S, 'rainbow', 'off', UNKNOWN);
-  assert.equal(S.layoutPreset, 'fullCal', 'it might be an aplite, which folds a custom layout to Compact calendar');
-  assert.equal(S.radarMode, 'off', 'no radar fetch all the same');
-  SP.radarSourcePicked(S, 'off', 'rainbow', UNKNOWN);
-  assert.equal(S.layoutPreset, 'fullCal');
-  // A screen edit is one the user asked for.
-  SP.writeScreen(S, 0, M.screensOf(S, UNKNOWN)[0], UNKNOWN);
-  assert.equal(S.layoutPreset, 'custom');
 });
 
 /**
@@ -207,23 +184,23 @@ function defaultOnly(over) {
 test('the radar key is asked for only while a radar call is made: the radar mode Save stores', () => {
   const attention = PC.attentionResolvers.get('radarKeyAttention');
   const S = defaultOnly({ radarProvider: 'rainbowkey', rainbowApiKey: '' });
-  assert.equal(SP.radarModeToSave(S, BASALT), 'off', 'on, but no screen and no rain alert needs it');
-  assert.equal(attention(S, BASALT), null);
+  assert.equal(SP.radarModeToSave(S, EMERY), 'off', 'on, but no screen and no rain alert needs it');
+  assert.equal(attention(S, EMERY), null);
   S.statusTopOnDemandLeftItems = 'bt,qt,snooze,rain';
-  assert.equal(SP.radarModeToSave(S, BASALT), 'countdown', 'the rain alert on the Watch bar needs it');
-  assert.notEqual(attention(S, BASALT), null);
+  assert.equal(SP.radarModeToSave(S, EMERY), 'countdown', 'the rain alert on the Watch bar needs it');
+  assert.notEqual(attention(S, EMERY), null);
   assert.equal(S.radarMode, 'graph', 'the stored mode lags until Save; the check does not');
-  assert.equal(attention(Object.assign({}, S, { radarEnabled: false }), BASALT), null, 'the radar off');
+  assert.equal(attention(Object.assign({}, S, { radarEnabled: false }), EMERY), null, 'the radar off');
 });
 
 test('the call budgets count the radar calls Save will make, not a stored mode that lags', () => {
   const block = PC.blocks.get('rainbowBudget');
   const S = defaultOnly({ radarProvider: 'rainbowkey', rainbowApiKey: 'key', radarMode: 'countdown' });
-  assert.equal(block(S, BASALT), '', 'nothing needs the radar: no call billed');
+  assert.equal(block(S, EMERY), '', 'nothing needs the radar: no call billed');
   Object.assign(S, { statusTopOnDemandLeftItems: 'bt,qt,snooze,rain', radarMode: 'off' });
-  assert.match(block(S, BASALT), /calls\/month/, 'the rain alert needs it: billed');
-  assert.deepEqual(PC.optionsResolvers.get('fetchIntervalBudget')(S, BASALT),
-    PC.optionsResolvers.get('fetchIntervalBudget')(Object.assign({}, S, { radarMode: 'countdown' }), BASALT),
+  assert.match(block(S, EMERY), /calls\/month/, 'the rain alert needs it: billed');
+  assert.deepEqual(PC.optionsResolvers.get('fetchIntervalBudget')(S, EMERY),
+    PC.optionsResolvers.get('fetchIntervalBudget')(Object.assign({}, S, { radarMode: 'countdown' }), EMERY),
     'the interval choice reads it too');
 });
 
@@ -234,26 +211,14 @@ test('a screen in a line, for its row on the Screens card: the Watch bar left ou
   assert.equal(SP.contents([b('strip')], {}), 'Nothing yet');
 });
 
-test('aplite has no screens: no card, and its layout and modes stay its own', () => {
-  assert.equal(SP.hasScreens(APLITE), false);
-  assert.equal(SP.screensCard(preset(), APLITE), '');
-  const S = preset({ layoutPreset: 'fullCal', radarMode: 'off', healthMode: 'off' });
-  SP.applyModes(S, APLITE);
-  assert.deepEqual([S.layoutPreset, S.radarMode, S.healthMode], ['fullCal', 'off', 'off']);
-  assert.deepEqual(PC.optionsResolvers.get('apliteLayouts')(S, APLITE), SP.APLITE_LAYOUTS);
-  assert.equal(PC.whenResolvers.get('manyScreens')(preset(), APLITE), false, 'no Screen switching card');
-  assert.equal(PC.whenResolvers.get('manyScreens')(preset(), BASALT), true);
-  assert.equal(PC.whenResolvers.get('manyScreens')(preset({ radarMode: 'off', healthMode: 'off' }), BASALT), false);
-});
-
 test('the Update interval says when the Battery saver pauses the updates', () => {
   const hint = PC.hintResolvers.get('batterySaverPauseHint');
   const own = 'Updates only send what actually changed.';
-  assert.equal(hint({ sleepNightEnabled: true, sleepStartHour: '0', sleepEndHour: '7' }, BASALT, { staticHint: own }),
+  assert.equal(hint({ sleepNightEnabled: true, sleepStartHour: '0', sleepEndHour: '7' }, EMERY, { staticHint: own }),
     own + ' Paused 0:00–7:00 by the Battery saver.');
-  assert.equal(hint({ sleepNightEnabled: true, sleepStartHour: '22', sleepEndHour: '6' }, BASALT, {}),
+  assert.equal(hint({ sleepNightEnabled: true, sleepStartHour: '22', sleepEndHour: '6' }, EMERY, {}),
     'Paused 22:00–6:00 by the Battery saver.');
-  assert.equal(hint({ sleepNightEnabled: false }, BASALT, { staticHint: own }), own, 'the saver off: nothing paused');
+  assert.equal(hint({ sleepNightEnabled: false }, EMERY, { staticHint: own }), own, 'the saver off: nothing paused');
 });
 
 // --- the page --------------------------------------------------------------------------
@@ -270,7 +235,7 @@ test('the Watchface tab: the screens pinned on top, the Screens card, then Scree
   assert.ok(html.indexOf('<span class="ttl">Screen switching</span>') > html.indexOf('<span class="ttl">Screens</span>'));
   assert.ok(html.indexOf('>Double flick to switch<') !== -1);
   assert.ok(html.indexOf('>Back to Default after<') !== -1);
-  assert.equal(html.indexOf('data-k="layoutPreset"'), -1, 'no Layout card off aplite');
+  assert.equal(html.indexOf('data-k="layoutPreset"'), -1, 'no Layout card');
   // A tap on a pinned screen or a card row opens its editor.
   page.tapAction('openScreen', 1);
   assert.equal(editorOf(page).title, 'Flick 1');
@@ -302,7 +267,7 @@ test('a ✕ deletes a flick screen at once, and Undo puts it back', (t) => {
 });
 
 test('Revert takes a deleted screen\'s Undo with it: a tap on Undo then brings back nothing Revert put back', () => {
-  const page = bootGeneratedPage(THREE, 'basalt', { dialog: true });
+  const page = bootGeneratedPage(THREE, 'emery', { dialog: true });
   const opened = page.stored();
   page.tapAction('deleteScreen', 1);
   assert.ok(page.scroll.innerHTML.indexOf('data-action="undoDeleteScreen"') !== -1, 'the Undo shows');
@@ -340,7 +305,7 @@ test('a new install: the Default screen alone; + Add screen adds a screen and op
   'the Watch bar has no handle; its Edit opens its dialog');
   assert.ok(ed.body.indexOf('aria-label="Remove Clock"') !== -1, 'a flick screen may drop its Clock');
   assert.deepEqual(editorAddGroups(ed.body), [
-    ['Add a status bar', 'Forecast bar', 'Radar bar', 'Health bar'],
+    ['Add a status bar', 'Forecast bar', 'Radar bar', 'Health bar', 'New status bar'],
     ['Add a graph', 'Forecast graph', 'Rain radar', 'Health graph'],
     ['Add the calendar', 'Calendar']], 'a chip each, grouped by what it adds');
   assert.equal(ed.body.indexOf('se-hint'), -1, 'one row that moves: nothing to reorder');
@@ -376,7 +341,7 @@ test('the editor says how to reorder while two rows can move, and its calendar a
   // The Watch bar is a status bar: ✕ it, and its chip comes back in that group.
   page.tapEditor({ se: 'rm', j: 0 });
   assert.deepEqual(editorAddGroups(editorOf(page).body)[0], ['Add a status bar', 'Watch bar', 'Forecast bar', 'Radar bar',
-    'Health bar']);
+    'Health bar', 'New status bar']);
 });
 
 test('+ Health bar on a new screen draws the bar\'s default readings, not an empty row', () => {
@@ -388,7 +353,7 @@ test('+ Health bar on a new screen draws the bar\'s default readings, not an emp
   const pic = /<span class="se-pic-card"[\s\S]*?<\/span><\/div>/.exec(editorOf(page).body)[0];
   assert.match(pic, />6\.2k</, 'steps');
   assert.match(pic, />7h12</, 'sleep');
-  assert.deepEqual(slotsOf(page.S, 'health'), ['steps', 'empty', 'sleep']);
+  assert.deepEqual(slotsOf(page.S, 'health'), ['steps', 'sleep', 'hr']);
 });
 
 test('the editor: a row\'s dropdown opens its picker; a pick, a move, a ✕ and + Add, each stored at once', () => {
@@ -455,23 +420,22 @@ test('Add: a chip per status bar, by its name, in the bars\' place; a tap puts t
   const page = bootGeneratedPage(Object.assign({ statusRadarName: 'Sky' }, THREE));
   page.tapAction('openScreen', 1);
   let body = editorOf(page).body;
-  // Flick 1 shows the Health bar: the other two by their names, in the status bars' group. No
-  // picker, and no New status bar on a watch without bars 4 to 6.
-  assert.deepEqual(editorAddChips(body), ['Forecast bar', 'Sky', 'Forecast graph', 'Rain radar', 'Calendar']);
+  // Flick 1 shows the Health bar: the other two by their names, in the status bars' group, and
+  // New status bar.
+  assert.deepEqual(editorAddChips(body), ['Forecast bar', 'Sky', 'New status bar', 'Forecast graph', 'Rain radar', 'Calendar']);
   assert.ok(body.indexOf(ui.chip('Sky', { 'data-se': 'add', 'data-k': 'radarbar' }, { icon: 'plus' })) !== -1);
-  assert.equal(body.indexOf('data-se="newbar"'), -1);
   // A bar the screen shows is never added again, whatever asks for it.
   page.tapEditor({ se: 'add', k: 'healthbar' });
-  assert.deepEqual(M.screensOf(page.S, BASALT)[1].map((x) => x.k), ['strip', 'clock', 'healthbar', 'health']);
+  assert.deepEqual(M.screensOf(page.S, EMERY)[1].map((x) => x.k), ['strip', 'clock', 'healthbar', 'health']);
   // A tap: the bar above the bottom graph, the editor repainted.
   page.tapEditor({ se: 'add', k: 'radarbar' });
-  assert.deepEqual(M.screensOf(page.S, BASALT)[1].map((x) => x.k), ['strip', 'clock', 'healthbar', 'radarbar', 'health']);
+  assert.deepEqual(M.screensOf(page.S, EMERY)[1].map((x) => x.k), ['strip', 'clock', 'healthbar', 'radarbar', 'health']);
   body = editorOf(page).body;
   assert.deepEqual(editorRows(body), ['Watch bar', 'Clock', 'Health bar', 'Sky', 'Health graph · Fill']);
   // Two bars: a screen's most, so no bar chips, and a forged tap adds no third.
   assert.deepEqual(editorAddChips(body), ['Forecast graph', 'Calendar']);
   page.tapEditor({ se: 'add', k: 'fcbar' });
-  assert.equal(M.screensOf(page.S, BASALT)[1].length, 5);
+  assert.equal(M.screensOf(page.S, EMERY)[1].length, 5);
 });
 
 test('the editor\'s rows: the calendar\'s rows and a graph\'s size are dropdowns, a bar and the forecast graph have Edit; nothing folds or shows twice', () => {
@@ -577,11 +541,11 @@ test('the editor\'s ≡ and the arrow keys: a row moves a place, keeps the focus
   const ed = page.editor();
   const key = (j, k) => page.docDispatch('keydown', { key: k, target: grip(j), preventDefault() {} });
   key(2, 'ArrowDown');
-  assert.deepEqual(M.screensOf(page.S, BASALT)[0].map((x) => x.k), ['strip', 'cal', 'fcbar', 'clock', 'fc']);
+  assert.deepEqual(M.screensOf(page.S, EMERY)[0].map((x) => x.k), ['strip', 'cal', 'fcbar', 'clock', 'fc']);
   assert.equal(ed.querySelector('[data-grip="3"]').focuses, 1, 'the ≡ keeps the focus at its new place');
   // The graph above the bar: with a calendar it stays at the bottom, and the toast says so.
   key(4, 'ArrowUp');
-  assert.deepEqual(M.screensOf(page.S, BASALT)[0].map((x) => x.k), ['strip', 'cal', 'fcbar', 'clock', 'fc'], 'nothing moved');
+  assert.deepEqual(M.screensOf(page.S, EMERY)[0].map((x) => x.k), ['strip', 'cal', 'fcbar', 'clock', 'fc'], 'nothing moved');
   assert.equal(ed.querySelector('[data-se-toast]').textContent, 'With a calendar, the graph stays at the bottom.');
   assert.equal(ed.querySelector('[data-grip="4"]').focuses, 1, 'the focus stays on the ≡ that did not move');
   t.mock.timers.tick(3000);
@@ -589,7 +553,7 @@ test('the editor\'s ≡ and the arrow keys: a row moves a place, keeps the focus
   // Nowhere to go below the last row; other keys do nothing.
   key(4, 'ArrowDown');
   key(1, 'Enter');
-  assert.deepEqual(M.screensOf(page.S, BASALT)[0].map((x) => x.k), ['strip', 'cal', 'fcbar', 'clock', 'fc']);
+  assert.deepEqual(M.screensOf(page.S, EMERY)[0].map((x) => x.k), ['strip', 'cal', 'fcbar', 'clock', 'fc']);
   assert.ok(page.editor(), 'still open');
   // Escape closes the editor.
   page.docDispatch('keydown', { key: 'Escape' });
@@ -627,12 +591,12 @@ test('a drag by the handle moves a row; one that breaks a rule snaps back and sa
   drag(4, 180, 50, 1);
   const toast = ed.querySelector('[data-se-toast]');
   assert.equal(toast.textContent, 'With a calendar, the graph stays at the bottom.');
-  assert.deepEqual(M.screensOf(page.S, BASALT)[0], DEFAULT_SCREENS[0], 'nothing moved');
+  assert.deepEqual(M.screensOf(page.S, EMERY)[0], DEFAULT_SCREENS[0], 'nothing moved');
   t.mock.timers.tick(3000);
   assert.equal(toast.textContent, '', 'the note goes after three seconds');
   // The Forecast bar dragged above the Clock keeps every rule: it moves.
   drag(3, 140, 90, 2);
-  assert.deepEqual(M.screensOf(page.S, BASALT)[0].map((x) => x.k), ['strip', 'cal', 'fcbar', 'clock', 'fc']);
+  assert.deepEqual(M.screensOf(page.S, EMERY)[0].map((x) => x.k), ['strip', 'cal', 'fcbar', 'clock', 'fc']);
   assert.equal(toast.textContent, '');
 });
 
@@ -686,13 +650,3 @@ test('Save writes the modes the screens work out, and the Rain radar picker\'s t
   assert.deepEqual([blob.radarEnabled, blob.radarProvider, blob.radarMode, blob.healthMode], [false, 'dwd', 'off', 'all']);
 });
 
-test('aplite: the Layout card, no Screens card, no Rain radar row', () => {
-  const page = bootGeneratedPage(THREE, 'aplite');
-  const html = page.scroll.innerHTML;
-  assert.deepEqual((html.match(/data-k="layoutPreset" data-v="[^"]*"/g) || []).map((x) => /data-v="([^"]*)"/.exec(x)[1]),
-    ['fullCal', 'compactCal', 'noCal']);
-  assert.equal(cardRows(html).length, 0, 'no Screens card');
-  assert.equal(html.indexOf('data-action="openScreen"'), -1, 'the pinned screen is a picture');
-  page.clickTab('setup');
-  assert.equal(page.scroll.innerHTML.indexOf('data-select="radarSource"'), -1);
-});

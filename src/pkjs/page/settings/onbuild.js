@@ -106,10 +106,6 @@ var PConf = (typeof global !== 'undefined' && global.PConf) ? global.PConf
         ctx.set('locationMode', ctx.get('location') ? 'manual' : 'gps');
         healThresholdColors(ctx);
         healOnDemandLists(ctx);
-        if (ctx.env && ctx.env.platform === 'aplite') {
-            ctx.set('radarMode', 'off');
-            ctx.set('healthMode', 'off');
-        }
     }
 
     /**

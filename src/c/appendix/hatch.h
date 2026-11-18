@@ -35,11 +35,7 @@
 // (layout_compute_peek) draws forecast plots well below this baseline — they simply
 // clamp to the base stride like any other sub-baseline height (see
 // hatch_stride_scaled() below).
-#ifdef PBL_PLATFORM_EMERY
 #define HATCH_BASE_PLOT_H 48
-#else
-#define HATCH_BASE_PLOT_H 41
-#endif
 
 // Stride for a plot `plot_h` px tall, given the unscaled `base_stride` and the baseline
 // height `min_plot_h` at which that base applies.
@@ -51,7 +47,7 @@
 // Pure: no SDK calls, no theme/config reads, integer math only — the base stride (the
 // theme's 6 or 7) and the baseline are supplied by the caller. That is what lets
 // test/c/hatch_stride_test.c compile this header standalone against the geometry-only
-// stub, the same arrangement as layers/top_status_indicators.h.
+// stub.
 static inline int hatch_stride_scaled(int base_stride, int min_plot_h, int plot_h) {
     if (plot_h <= min_plot_h || min_plot_h <= 0) {
         return base_stride;
@@ -100,12 +96,9 @@ void hatch_fill_rect_raw(GContext *ctx, GRect rect, GColor color, int stride);
 // 'stride' is the pixel spacing between hatch dots. Both the forecast night-shading
 // (NIGHT_HATCH_SPACING) and the radar area-bar background (RADAR_HATCH_SPACING) derive
 // it from their live plot height via hatch_stride_scaled() above: a base of 6 on
-// effectively-color builds / 7 on B&W at the baseline height, growing for taller plots.
-// Exception: on aplite, NIGHT_HATCH_SPACING is frozen at the constant base stride instead
-// (no radar there to keep in step with) — see forecast_layer.c.
+// the colour themes / 7 in the B&W ones at the baseline height, growing for taller plots.
 //
-// In any B&W theme (theme_is_bw() — TRUE both for a color build's bw/bw-light theme
-// AND, constant-true, on real B&W hardware: see theme.h), each dot additionally gets
+// In any B&W theme (theme_is_bw(): the bw and bw-light themes), each dot additionally gets
 // a theme_bg() backing: a 1px-wide vertical run one pixel above and below the dot (its
 // own column only), so a sparse fg dot reads over whatever it lands on (an area fill, a
 // bar) instead of blending into it — same reasoning as chart.c's chart_draw_bar_dots

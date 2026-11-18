@@ -1,5 +1,7 @@
 # Aplite is a frozen, lean source-fork; other platforms evolve
 
+Superseded by [ADR 0007](0007-pebble-time-2-only.md): the watchface no longer builds for aplite.
+
 Aplite (Pebble Classic/Steel) has a fixed 24 KB image+heap budget that a growing feature set
 cannot fit, so aplite is a frozen, lean variant. For files that diverge, aplite gets its own
 self-contained `foo_aplite.c` (no color code, no inapplicable features), selected by a

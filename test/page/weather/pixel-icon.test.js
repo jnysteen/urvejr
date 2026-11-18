@@ -33,10 +33,10 @@ test('a watch family draws a box\'s own drawing, else the one for the tallest sm
   const sizes = STATUS.icons.SUN;
   assert.equal(PixelIcon.forBox('SUN', 'emery', 15), sizes['emery-15'], 'its own');
   assert.equal(PixelIcon.forBox('SUN', 'emery', 16), sizes['emery-15'], 'the tallest below');
-  assert.equal(PixelIcon.forBox('SUN', 'basalt', 13), sizes['basalt-13'], 'per family: not emery\'s 13');
-  assert.equal(PixelIcon.forBox('SUN', 'basalt', 99), sizes['basalt-13']);
-  assert.equal(PixelIcon.forBox('SUN', 'basalt', 9), null, 'none below the smallest box');
-  assert.equal(PixelIcon.forBox('NO_SUCH_ICON', 'basalt', 13), null);
+  assert.equal(PixelIcon.forBox('SUN', 'emery', 99), sizes['emery-17'], 'the tallest of all');
+  assert.equal(PixelIcon.forBox('SUN', 'emery', 9), null, 'none below the smallest box');
+  assert.equal(PixelIcon.forBox('SUN', 'basalt', 13), null, 'no other family');
+  assert.equal(PixelIcon.forBox('NO_SUCH_ICON', 'emery', 13), null);
 });
 
 test('the page draws the very drawings the watch is built with', () => {

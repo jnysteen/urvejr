@@ -32,11 +32,7 @@ static void expect(const char *name, int got, int want) {
 
 int main(void) {
     // --- the platform constant is wired to the right baseline ---
-#ifdef PBL_PLATFORM_EMERY
     expect("HATCH_BASE_PLOT_H/emery", HATCH_BASE_PLOT_H, BASE_H_EMERY);
-#else
-    expect("HATCH_BASE_PLOT_H/168", HATCH_BASE_PLOT_H, BASE_H_168);
-#endif
 
     // --- clamp: at or below the baseline, the stride is exactly today's value ---
     expect("clamp/at-baseline/color",

@@ -94,13 +94,12 @@ test('HealthService is called from services/health.c only', () => {
   assert.deepEqual(callers, ['services/health.c']);
 });
 
-// persist_store.c keeps a RAM copy of the store (emery) that only its own writes keep exact:
-// a read or a write anywhere else would go around it. Its header forwards each call to the
-// SDK on the other watches.
-test('the persist API is called from appendix/persist_store.{c,h} only', () => {
+// persist_store.c keeps a RAM copy of the store that only its own writes keep exact: a read or
+// a write anywhere else would go around it.
+test('the persist API is called from appendix/persist_store.c only', () => {
   const sdk = /\bpersist_(exists|get_size|read_\w+|write_\w+|delete)\s*\(/;
   const callers = FILES.filter((f) => sdk.test(code(f)));
-  assert.deepEqual(callers, ['appendix/persist_store.c', 'appendix/persist_store.h']);
+  assert.deepEqual(callers, ['appendix/persist_store.c']);
 });
 
 test('the watchface ticks by the minute (and the day), never by the second', () => {

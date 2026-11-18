@@ -32,23 +32,16 @@ static void hatch_fill(GContext *ctx, GRect rect, GColor color, int stride, bool
     }
 }
 
-// Only chart.c's line-style extension and its colour-only area dither call the bare
-// emitter; elsewhere (aplite) hatch_fill keeps its one caller and folds `backing`.
-#if defined(PBL_COLOR) || defined(WW_LINE_STYLE)
+// chart.c's line-style extension and its colour-only area dither call the bare emitter.
 void hatch_fill_rect_raw(GContext *ctx, GRect rect, GColor color, int stride)
 {
     hatch_fill(ctx, rect, color, stride, false);
 }
-#endif
 
 void hatch_fill_rect(GContext *ctx, GRect rect, GColor color, int stride)
 {
-    // theme_is_bw() is constant-true on B&W hardware builds (no PBL_COLOR needed to
-    // gate it — see theme.h): a night-hatch/radar-hatch dot is equally hard to read
-    // over an underlying fill or bar on REAL B&W hardware as it is on a color build's
-    // bw theme, so this backing is not a color-only concern (unlike chart_render_area's
-    // checkerboard dither, which real hardware already gets for free from its own
-    // dithering and must not double up on).
+    // In the bw themes a night-hatch/radar-hatch dot is hard to read over an underlying
+    // fill or bar, so it gets a theme_bg() backing.
     //
     // Fix 3's neutrality argument applies here too: a bg backing over an
     // already-bg pixel (background, or a bar/fill that happens to be bg-colored)

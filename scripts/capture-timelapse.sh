@@ -2,14 +2,13 @@
 
 set -euo pipefail
 
-# Capture the two-phase time-lapse on all five platforms. watch.now is
+# Capture the two-phase time-lapse. watch.now is
 # compile-time, so every frame is its own build; a build produces one
 # multi-platform .pbw, so we build each fixture once up front and stash its
 # .pbw, then capture platform-by-platform. Within a platform the live emulator
 # is reused across every frame (a plain reinstall, no kill); `pebble kill` is
 # only run when switching platforms — and as a force-reap of QEMU/pypkjs
-# stragglers, because plain `pebble kill` leaves them alive (esp. emery) and
-# running all five emulators at once wedges the slow-booting flint.
+# stragglers, because plain `pebble kill` leaves them alive (esp. emery).
 # RUN ON THE MAC (needs the Pebble SDK + emulator).
 #
 # Stashed .pbws are reused on re-run (fixtures are deterministic), so a capture
@@ -17,14 +16,10 @@ set -euo pipefail
 # build/timelapse-pbw to force a full rebuild.
 #
 # An optional platform list captures only those platforms (the .pbws are still
-# built once and stashed, so a later run for a deferred platform — e.g. the
-# slow-booting flint — reuses them and only re-captures). With no list, all
-# five are captured.
+# built once and stashed, so a later run reuses them and only re-captures).
 #
 # Usage:   scripts/capture-timelapse.sh <version> [platform ...]
-# Example: scripts/capture-timelapse.sh v1.1.0                       # all five
-#          scripts/capture-timelapse.sh v1.1.0 emery basalt aplite diorite
-#          scripts/capture-timelapse.sh v1.1.0 flint                 # defer flint
+# Example: scripts/capture-timelapse.sh v1.1.0
 
 if [[ $# -lt 1 ]]; then
   printf 'Usage: %s <version> [platform ...]\n' "$0" >&2
@@ -33,7 +28,7 @@ fi
 
 version="$1"
 shift
-all_platforms=(emery basalt aplite diorite flint)
+all_platforms=(emery)
 if [[ $# -gt 0 ]]; then
   platforms=("$@")
   for p in "${platforms[@]}"; do
@@ -201,7 +196,7 @@ need_boot=1
 
 # capture_one <platform> <pbw> <out.png> <tap?> — install, settle, optionally
 # tap, then grab the screenshot. `pebble screenshot` can time out even on a
-# booted emulator (the screenshot service wedges, esp. on the slow flint), so
+# booted emulator (the screenshot service wedges), so
 # retry the whole install+grab from a fresh boot rather than letting one timeout
 # abort the run. Returns non-zero after 3 attempts so the caller skips the rest
 # of this platform.

@@ -36,52 +36,10 @@ The phone app's one sender to the watch. It bundles what changed into one messag
 as sent once the watch acknowledges it. It is a send queue; the term does not mean a
 transactional outbox.
 
-## Platform divergence
-
-How aplite stays within its fixed 24 KB budget while the other platforms grow
-(see [ADR 0001](./docs/adr/0001-aplite-frozen-lean-fork.md)).
-
-**Lean twin**:
-An aplite-only `foo_aplite.c` that implements the same declared interface as the
-shared `foo.c`, cheaply and without color code. It is used only when aplite callers
-must still call the interface, so the twin substitutes for `foo.c`.
-_Avoid_: aplite variant, aplite fork (say "lean twin").
-
-**Exclusion**:
-A feature aplite does without. It lives in its own leaf file whose entry points are
-guarded, so nothing on aplite references it and `--gc-sections` removes all of it.
-It has no twin and no duplicate.
-_Avoid_: aplite-disabled, stubbed-out.
-
-**Shared contract file**:
-A file whose wire format, on-flash format or config schema must stay identical
-across platforms (`app_message.c`, `persist.c`, `config.c`). It is never forked.
-
-**Frozen (of a lean twin)**:
-Feature-frozen: a twin never gains new features, but it still receives
-hand-ported bugfixes and interface updates.
-
-## Layout
-
-**View spec**:
-The small struct that describes what is on screen: top-band content, calendar
-rows, body, status row(s), font tier and band size weights. Geometry and layer
-visibility both derive from it. The phone compiles view specs (`view-cycle.js`)
-from the layout preset or, with the custom layout, from the user's screens, and sends them;
-the layout module reads them. On the watch the struct and its tier vocabulary live in
-`src/c/appendix/view_spec.h`, below the layers that read them too; the decode and the geometry
-are `src/c/windows/layout.c`.
-
-**Preset (layout)**:
-A named built-in view spec, keyed by the `layoutPreset` setting: `fullCal`,
-`compactCal`, `compactDense` (which stays dense, with health and radar status paired,
-even without a body) or `noCal`. Presets are compiled to view specs and have no
-code path of their own.
-
 **Stop (flick)**:
 One position in the wrist-flick cycle: a view spec shown when the user flicks.
 A layout preset sets its stops; the custom layout's stops are the user's screens, in
-their order. Aplite has no flick cycle. With *Double flick* on, the cursor advances only on the
+their order. With *Double flick* on, the cursor advances only on the
 second accepted flick within the pairing window (layout.h `view_flick_accept`).
 
 **Screen (settings page)**:
@@ -113,9 +71,8 @@ One of emery's three extra bars (`view-cycle.js` EXTRA_BARS: `bar4`..`bar6`, pre
 `screens.js` makeBar makes an empty bar with its slots off, named for its kind unless another
 bar has that name) until Delete bar (`screens.js` unmakeBar turns off every screen's row that
 names it). The phone bakes its line while a screen shows it and sends its On demand cells
-(`CLAY_OD_EXTRA_UINT8`) to a known emery only. A screen row names it with an ext bit over the
-first three bars' sources (`view-cycle.js` packExt, `layout.h` VIEW_EXT_UPPER_BAR_HI), and every
-other watch, an unknown one included, turns such a row off.
+(`CLAY_OD_EXTRA_UINT8`). A screen row names it with an ext bit over the first three bars'
+sources (`view-cycle.js` packExt, `layout.h` VIEW_EXT_UPPER_BAR_HI).
 _Avoid_: calling bars 4 to 6 "custom bars" or "user bars"; they are your bars like the first three.
 
 **Screen preset**:
@@ -155,10 +112,9 @@ when the numbers are on the axis, and their outline exactly when they are on the
 layout is `config.h`'s `GRAPH_OPT_*`, kept in lockstep with `src/pkjs/forecast-graphs/domain/forecast-axis.js` `BIT`,
 and the watch keeps bits 1-7 in `Config.forecast_axis`. The phone packs a dormant option as its
 default, so the axis bits are all zero exactly when every axis option is at its
-default. While they are zero the tuple is a bare boolean, and a known non-emery
-watch never gets more than that. Emery and an unknown watch get the number once an axis
-option leaves its default. The scale option is the only one that also touches the weather
-message: on a known emery, `TEMP_MIN`/`TEMP_MAX` carry the scale's ends instead of the air's.
+default. While they are zero the tuple is a bare boolean; the watch gets the number once an
+axis option leaves its default. The scale option is the only one that also touches the weather
+message: `TEMP_MIN`/`TEMP_MAX` carry the scale's ends instead of the air's.
 _Avoid_: a new message key per graph option.
 
 ## Channel
@@ -236,13 +192,13 @@ of the graphs (`src/pkjs/page/forecast-graphs/graph-styles-page.js`).
 _Avoid_: graph profile; calling a look a style (a look is where a style starts).
 
 **Forecast span**:
-The forecast graph's Forecast length option. On emery it is 12 h, 24 h or the long span
+The forecast graph's Forecast length option: 12 h, 24 h or the long span
 (Graphs › Forecast › Other › Forecast length; stored as '12' / '24' / '48'. '48' is the long
 span's token, and its label is the whole hours the watch will show for the provider's
-feed and the layout: `src/pkjs/weather/domain/forecast-span-hours.js`). Everywhere else, and on an unknown
-watch, it is 24 h (`src/pkjs/weather/domain/forecast-span.js`). The phone decides how many hours it sends
+feed and the layout: `src/pkjs/weather/domain/forecast-span-hours.js`;
+`src/pkjs/weather/domain/forecast-span.js`). The phone decides how many hours it sends
 for it: 14, 24 or 68, and 26 for 24 h when the graph has no left axis (the high/low numbers
-On graph or Off on a known emery) (`hours()`; `WeatherProvider#payloadEntries`, fewer when a
+On graph or Off) (`hours()`; `WeatherProvider#payloadEntries`, fewer when a
 feed is shorter). The watch fits its grid to the count it receives (`NUM_ENTRIES`,
 `src/c/appendix/forecast_span.h`: 2..14 the 12 h grid, 15..26 the 24 h grid, 27..68 the long
 one) and to its own plot width. Each graph style has its own span: the phone sends the hours

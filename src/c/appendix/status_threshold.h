@@ -11,12 +11,6 @@
 // test/alerts/domain/status-thresholds-contract.test.js greps this header to enforce both.
 // Deliberately no <pebble.h> so the module host-compiles (scripts/test-c.sh).
 //
-// NOT LINKED ON APLITE: aplite paints its status rows from the lean
-// layers/status_row_aplite.c twin, which carries no highlighting, so the whole
-// feature is compiled out there (WW_THRESHOLD_HIGHLIGHT in wscript) and
-// --gc-sections reaps this module. Keep every caller behind that macro, or in a
-// file aplite never compiles (status_row.c: wscript builds its twin instead).
-//
 // Wire formats:
 //  - STATUS_LEVELS_UINT8 (weather message, 2 bytes LE): packed per-kind levels
 //    for the weather kinds, 2 bits each — kinds 0..3 at bits 2k..2k+1, UV
@@ -58,8 +52,7 @@
 //                       warn level in % (valid 5..30; 0 or out of range reads
 //                       as 10), bit 6 its Look (0 icon, 1 icon + value), bit 7
 //                       reserved 0. The phone writes the level already on the
-//                       platform's step (5s on emery, 10/20/30 elsewhere), so the
-//                       watch uses it verbatim and never rounds.
+//                       watch's 5 % step, so the watch uses it verbatim.
 //      [36 + (k >> 2)]  warn look (ThreshWarnLook) per PAIRED kind, 2 bits at
 //                       bits 2 * (k & 3) — kinds 0..7 = bytes 36..37
 //                       (THRESH_WARN_LOOK_OFFSET): the box drawn at the WARN
@@ -307,19 +300,16 @@ typedef enum {
     THRESH_BAR_FORECAST = 1,
     THRESH_BAR_RADAR = 2,
     THRESH_BAR_HEALTH = 3,
-#if defined(PBL_PLATFORM_EMERY)
     // emery: bars 4 to 6 (status_line.h STATUS_LINE_BAR4..6). The blob's cell bytes are
     // full, so their cells ride a second array (THRESH_OD_EXTRA_BYTES below).
     THRESH_BAR_4 = 4,
     THRESH_BAR_5 = 5,
     THRESH_BAR_6 = 6,
-#endif
 } ThreshBar;
 // The bars with a cell in the blob's cell bytes.
 #define THRESH_BAR_COUNT 4
 _Static_assert(THRESH_BAR_COUNT * 2 <= 8, "one cell byte holds a 2-bit cell per bar");
 
-#if defined(PBL_PLATFORM_EMERY)
 // emery: bars 4 to 6's On demand cells (CLAY_OD_EXTRA_UINT8, the settings message): one
 // byte per OdItem like the blob's cells, 2 bits per bar at bits 2 * (bar - THRESH_BAR_4)
 // (bits 6-7 reserved, 0), the same values (OdSide; 3 reads as none). The phone writes
@@ -331,9 +321,6 @@ _Static_assert(THRESH_EXTRA_BAR_COUNT * 2 <= 8, "one extra cell byte holds a cel
 // 6's cells right behind it, so status_threshold_on_demand_side() reads every bar's cell
 // off one pointer.
 #define THRESH_SCRATCH_BYTES (THRESH_SETTINGS_BYTES + THRESH_OD_EXTRA_BYTES)
-#else
-#define THRESH_SCRATCH_BYTES THRESH_SETTINGS_BYTES
-#endif
 
 // The bar a status line belongs to: its cell in the On demand bytes. A map, not a
 // cast, because neither order can move to make it an identity: ThreshBar is the
@@ -347,11 +334,9 @@ static inline int status_threshold_bar_of_line(int line_id) {
         case STATUS_LINE_FORECAST: return THRESH_BAR_FORECAST;
         case STATUS_LINE_RADAR:    return THRESH_BAR_RADAR;
         case STATUS_LINE_HEALTH:   return THRESH_BAR_HEALTH;
-#if defined(PBL_PLATFORM_EMERY)
         case STATUS_LINE_BAR4:     return THRESH_BAR_4;   // emery: bars 4 to 6
         case STATUS_LINE_BAR5:     return THRESH_BAR_5;
         case STATUS_LINE_BAR6:     return THRESH_BAR_6;
-#endif
         default:                   return -1;
     }
 }

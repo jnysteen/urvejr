@@ -242,150 +242,9 @@ def build(ctx):
         # Hidden visibility for every symbol (src/c/hidden_visibility.h, force-included
         # into each C file): the app is one -fPIE image, so a global is addressed
         # PC-relative instead of through a .got slot, and the image carries no .got
-        # or .got.plt. Measured -72 B on basalt and emery, -76 B on diorite and flint,
-        # -68 B on aplite. The loader's relocations stay the .rel.data ones it already
+        # or .got.plt. Measured -72 B on emery. The loader's relocations stay the .rel.data ones it already
         # had; .rel.text holds no absolute relocation either way.
         ctx.env.CFLAGS += ['-include', ctx.path.find_node('src/c/hidden_visibility.h').abspath()]
-        # Rain radar is a rich feature aplite cannot afford: on the 24 KB Pebble
-        # Classic the extra layer + drawing code starved the boot heap and the
-        # watchface OOM-faulted before first paint. Every other platform defines
-        # WW_RAIN_RADAR; aplite lacks it, so the guarded call sites drop out and
-        # --gc-sections reaps rain_radar_layer.c from the image (frozen-lean fork,
-        # docs/adr/0001; parallels PBL_HEALTH gating the health subsystem).
-        if platform != 'aplite':
-            ctx.env.CFLAGS += ['-DWW_RAIN_RADAR=1']
-        # The on-watch fetch-error/info notice overlay (loading_layer notice text +
-        # app_message handle_notice + persist_notice) is compiled out of aplite: the
-        # 2026-07 feature pushed the aplite image past its 21800 B guard. Every other
-        # platform defines WW_FETCH_NOTICE; aplite lacks it, so the guarded call sites
-        # drop out and --gc-sections reaps persist_set/get_notice_text. aplite keeps
-        # the phone-side Settings notice panel and its 12h "No data :(" overlay.
-        # Mirrors WW_RAIN_RADAR above.
-        if platform != 'aplite':
-            ctx.env.CFLAGS += ['-DWW_FETCH_NOTICE=1']
-        # Timeline Quick View peek handling uses the firmware-4 Unobstructed Area API,
-        # which the frozen-lean aplite variant (~1.5 KB peak heap) does not carry. Every
-        # other platform defines WW_QUICK_VIEW; aplite lacks it, so the guarded call sites
-        # in main_window.c drop out and quick_view.c compiles to an empty translation unit
-        # (--gc-sections reaps anything left). Mirrors WW_RAIN_RADAR above.
-        if platform != 'aplite':
-            ctx.env.CFLAGS += ['-DWW_QUICK_VIEW=1']
-        # Wrist-flick view-cycle: cycling between forecast / radar / health-graph views.
-        # aplite has neither radar nor health (WW_RAIN_RADAR / PBL_HEALTH undefined), so the
-        # cycle resolves every non-default slot away and can never leave slot 0 — the whole
-        # cursor + accel-tap subsystem is inert there. Every other platform defines
-        # WW_VIEW_CYCLE; aplite lacks it, so the flick helpers + main_window's flick wiring
-        # drop out and --gc-sections reaps the rest. Mirrors WW_RAIN_RADAR / WW_QUICK_VIEW.
-        if platform != 'aplite':
-            ctx.env.CFLAGS += ['-DWW_VIEW_CYCLE=1']
-        # Clock ink centring is compiled out of aplite. windows/layout.c seats the clock by
-        # SOLVING for optical symmetry against its neighbours' ink, which needs the active time
-        # font's measured ink handed in (layers/clock_ink.h). Hand-porting the solver into the
-        # lean twin measured +380 B, and even reduced to plumbing the metric through and
-        # applying it as a one-line font correction it measured +76 B — against 44 B of headroom
-        # under the 21804 B launch guard. So aplite keeps the fixed, Roboto-tuned anchors its
-        # twin was always built on: LayoutMetrics carries no clock field there, clock_ink.c does
-        # not link, and layout_aplite.c never sees the metric. The visible cost is that aplite's
-        # two non-default time fonts (Leco, Bitham) keep the 2-4 px lean every 144px watch had
-        # before this change; Roboto, the default, is pixel-identical either way. Every other
-        # platform defines WW_CLOCK_INK. Mirrors WW_THRESHOLD_HIGHLIGHT below, excluded for the
-        # same trigger.
-        if platform != 'aplite':
-            ctx.env.CFLAGS += ['-DWW_CLOCK_INK=1']
-        # Theme polarity (the light / B&W-Inverted axis) is compiled out of aplite:
-        # the 2026-07 theme sweep grew the aplite image past the ~22.06 KB launch
-        # ceiling (the whole image loads into the fixed 24 KB app RAM and the loader
-        # needs ~2.5 KB left, so the firmware silently refused to start the app).
-        # Without WW_THEME_POLARITY, theme.h pins theme_is_light() to false and the
-        # compiler constant-folds every light-polarity arm out of the render sweep
-        # (measured −780 B). aplite keeps the classic white-on-black rendering only;
-        # diorite/flint (also B&W) keep both polarities. Mirrors WW_RAIN_RADAR above.
-        if platform != 'aplite':
-            ctx.env.CFLAGS += ['-DWW_THEME_POLARITY=1']
-        # Status-slot threshold highlighting (warn outline / danger fill) is compiled
-        # out of aplite: aplite paints its status rows from the frozen lean twin
-        # layers/status_row_aplite.c, which carries no threshold code at all, so the
-        # shared contract module plus its persist/AppMessage plumbing linked in as pure
-        # dead weight — and the 2026-07 feature pushed the aplite image past its
-        # 21800 B launch guard (22148 B, +348). Every other platform defines
-        # WW_THRESHOLD_HIGHLIGHT; aplite lacks it, so the guarded call sites in
-        # app_message.c drop out and --gc-sections reaps appendix/status_threshold.c
-        # together with the two persist accessors. The persist key IDs themselves
-        # (STATUS_LEVELS = 43, THRESHOLD_SETTINGS = 44) stay in persist.c's enum on
-        # every platform — the slots are append-only on-flash IDs. Mirrors
-        # WW_FETCH_NOTICE above, which was excluded for the same trigger.
-        if platform != 'aplite':
-            ctx.env.CFLAGS += ['-DWW_THRESHOLD_HIGHLIGHT=1']
-        # On demand (the items each status bar shows at its left and right edges only
-        # while they matter: Battery, Bluetooth, Quiet time and Sleep, then the
-        # weather alerts, the phone-baked metric alerts from the ALERT_ENTRIES_UINT8
-        # tuple plus the watch-resolved rain alert) is compiled out of aplite: aplite
-        # paints its status rows from the frozen lean twins layers/status_row_aplite.c
-        # and layers/top_status_layer_aplite.c, which keep the fixed Quiet Time /
-        # Bluetooth / snooze indicators and the low-battery takeover of the right
-        # slot; the items' inputs (the thresholds blob, rain_countdown.c) are
-        # aplite-absent already, and the phone never sends it the tuple. The tuple's
-        # inbox handler and its persist accessors (app_message.c, persist.c), and the
-        # bar and window hooks (status_bar.c, main_window.c), ride this macro too, so
-        # aplite's image does not grow by a byte; the strip's Bluetooth and battery
-        # handlers call status_bar_tick_on_demand from layers/top_status_layer.c,
-        # which aplite replaces with its twin. The feature's own code lives in four leaf files whose bodies sit
-        # behind the macro, so aplite compiles each to an empty object and pays zero
-        # bytes: appendix/on_demand.c (the pure two-side layout and its make-room
-        # ladder), appendix/alert_set.c (the weather alerts' entries and text lanes),
-        # layers/status_on_demand.c (which items are active, their glyph cache,
-        # measures and paint) and layers/battery_item.c (the procedural Battery
-        # icon). Every other platform defines WW_ON_DEMAND. Mirrors
-        # WW_THRESHOLD_HIGHLIGHT above.
-        if platform != 'aplite':
-            ctx.env.CFLAGS += ['-DWW_ON_DEMAND=1']
-        # Configurable forecast curve insets (CLAY_CURVE_INSET_UINT8): the phone
-        # sends render-ready per-series vertical insets (one byte per Series,
-        # FIRST..FIFTH) so temperature and a temperature-axis metric line
-        # (feels-like, dew point — on any of the four metric lines) share one
-        # pixel mapping. aplite keeps its frozen constant insets (temp 7 px,
-        # metric channels full-height) — feels-like and dew point are not
-        # offered there — so the persist accessors and the app_message handler
-        # are guarded away and --gc-sections reaps the rest. The CURVE_INSETS
-        # persist key ID stays in persist.c's enum on every platform — the slots
-        # are append-only on-flash IDs. Mirrors WW_THRESHOLD_HIGHLIGHT above.
-        if platform != 'aplite':
-            ctx.env.CFLAGS += ['-DWW_CURVE_INSET=1']
-        # The third selectable forecast metric ("Third metric" in the settings —
-        # a fourth graph line, SERIES_FOURTH) and the per-line marker styles
-        # (thin/thick solid, square dots, little x — bytes [10..13] of
-        # CLAY_LINE_STYLE_UINT8) are ONE feature set behind ONE flag: the fourth
-        # line's default rendering IS the x marker the style dispatch draws, so
-        # the halves cannot ship separately (a fourth line without the style
-        # dispatch would fall through to the solid-polyline path at bar width).
-        # aplite is the frozen-lean fork with ~0 B of image headroom under the
-        # 21804 B launch guard — the extra Series slot alone is ~76 B of .bss —
-        # so it keeps exactly its two fixed-style metric lines. Every other
-        # platform defines WW_LINE_STYLE; aplite lacks it, so the guarded
-        # Series slot, wire-table entry, persist accessors, style blob and the
-        # x-marker renderer drop out and --gc-sections reaps the rest. The
-        # FOURTH_LINE_TREND / FOURTH_LINE_COLOR / LINE_STYLES persist key IDs
-        # stay in persist.c's enum on every platform — the slots are
-        # append-only on-flash IDs. Mirrors WW_CURVE_INSET above.
-        if platform != 'aplite':
-            ctx.env.CFLAGS += ['-DWW_LINE_STYLE=1']
-        # The "Dim backlight" night tint (appendix/night_light.c) drives the RGB
-        # backlight LED to the user's colour inside their night window. Unlike the
-        # exclusions above, this one is not an aplite budget call at all — it is
-        # hardware: only emery has a colour backlight (the firmware gates the LED on
-        # CONFIG_BACKLIGHT_AW2016, which appears in exactly one board file,
-        # boards/obelix, which is CONFIG_PLATFORM_EMERY), and light_set_color_rgb888()
-        # is a documented no-op everywhere else. So this is the one flag defined by
-        # INCLUSION rather than by excluding aplite: emery gets WW_COLOR_BACKLIGHT,
-        # every other platform lacks it, the guarded call sites in
-        # windows/main_window.c drop out and appendix/night_light.c compiles to an
-        # empty translation unit (--gc-sections reaps anything left). The wire side is
-        # NOT gated here: the phone sends CLAY_NIGHT_LIGHT_UINT8 to every watch, so
-        # persist.h's layout knowledge stays compiled everywhere and the NIGHT_LIGHT
-        # persist key ID stays in persist.c's append-only enum — only the LED-driving
-        # consumption is platform-bound. Mirrors WW_RAIN_RADAR above in shape.
-        if platform == 'emery':
-            ctx.env.CFLAGS += ['-DWW_COLOR_BACKLIGHT=1']
         if enable_memory_logging:
             ctx.env.CFLAGS += ['-DWW_ENABLE_MEMORY_LOGGING=1']
         if fixture_now:
@@ -423,37 +282,20 @@ def build(ctx):
             vars=['MESSAGE_KEYS'],
             name='message_key_ids_check_{}'.format(platform))
         app_elf = '{}/pebble-app.elf'.format(ctx.env.BUILD_DIR)
-        # Per-platform source selection for the aplite lean-twin convention
-        # (docs/adr/0001-aplite-frozen-lean-fork.md). Aplite compiles foo_aplite.c
-        # and drops the same-directory base foo.c; every other platform drops all
-        # *_aplite.c. Matching is by same-directory sibling, never bare basename.
-        all_c = ctx.path.ant_glob('src/c/**/*.c')
-        if platform == 'aplite':
-            shadowed = set()
-            for node in all_c:
-                if node.name.endswith('_aplite.c'):
-                    base = node.parent.find_node(node.name[:-len('_aplite.c')] + '.c')
-                    if base is not None:
-                        shadowed.add(base.abspath())
-            app_sources = [n for n in all_c if n.abspath() not in shadowed]
-        else:
-            app_sources = [n for n in all_c if not n.name.endswith('_aplite.c')]
+        app_sources = ctx.path.ant_glob('src/c/**/*.c')
         # health_fixture.c is the canned screenshot twin of services/health.c. It never
         # ships in a normal build (dropped here to avoid a duplicate-symbol clash), and
-        # only a WW_HEALTH_FIXTURE build on a health platform swaps it IN and drops the
-        # real health.c. aplite has no PBL_HEALTH (both compile to nothing), so it keeps
-        # health.c and never the twin.
-        if health_fixture and platform != 'aplite':
+        # only a WW_HEALTH_FIXTURE build swaps it IN and drops the real health.c.
+        if health_fixture:
             app_sources = [n for n in app_sources
                            if not (n.name == 'health.c' and n.parent.name == 'services')]
         else:
             app_sources = [n for n in app_sources
                            if not (n.name == 'health_fixture.c' and n.parent.name == 'services')]
         # rain_countdown_fixture.c is the canned screenshot twin of appendix/rain_countdown.c.
-        # It ships only for a fixture that declares a countdown block, and never on aplite
-        # (which gc-sections the rain alert out); every other build drops the twin to avoid a
-        # duplicate-symbol clash with rain_countdown.c.
-        if fixture_countdown is not None and platform != 'aplite':
+        # It ships only for a fixture that declares a countdown block; every other build drops
+        # the twin to avoid a duplicate-symbol clash with rain_countdown.c.
+        if fixture_countdown is not None:
             app_sources = [n for n in app_sources
                            if not (n.name == 'rain_countdown.c' and n.parent.name == 'appendix')]
         else:

@@ -21,37 +21,25 @@
 //
 // THE TOP STRIP IS DELIBERATELY NOT HERE. top_status_layer.c owns two service
 // subscriptions, whose handlers also tick these bars' On demand items
-// (status_bar_tick_on_demand); aplite's twin adds three lazily-loaded indicator
-// bitmaps and the low-battery override. The strip carves its own content rect
-// instead of taking the band's full bounds, has no render tier, no band assignment
-// and no visibility toggle, ticks on the minute, and has a full aplite lean twin.
+// (status_bar_tick_on_demand). The strip carves its own content rect instead of
+// taking the band's full bounds, has no render tier, no band assignment and no
+// visibility toggle, and ticks on the minute.
 // The abstraction those four rows genuinely share is StatusRow, and that seam is
 // already in place.
 //
 // WHY THE API IS COLLECTIVE. Every entry point acts on ALL bars and takes no bar
-// id. That is not stylistic: aplite has neither radar nor health, so
-// STATUS_BAR_COUNT is 1 there and every loop below folds to today's single-row
-// code — but a per-id API would leave one `movs r0, #0` at each of ~10 aplite call
-// sites, roughly +20 B against an image ceiling this watchface sits close to,
-// while reclaiming nothing (the radar and health translation units already
-// preprocess to empty on aplite). Keeping the loops behind the seam is also the
-// deeper module: the window stops knowing how many bars exist.
+// id: keeping the loops behind the seam is the deeper module, and the window stops
+// knowing how many bars exist.
 
 typedef enum {
     STATUS_BAR_FORECAST = 0,
-#if defined(WW_RAIN_RADAR)
     STATUS_BAR_RADAR,
-#endif
-#if defined(PBL_HEALTH)
     STATUS_BAR_HEALTH,
-#endif
-#if defined(PBL_PLATFORM_EMERY)
     // emery: bars 4 to 6 (status_line.h STATUS_LINE_BAR4..6), one layer each like the
     // three above; hidden on every view that names none of them.
     STATUS_BAR_4,
     STATUS_BAR_5,
     STATUS_BAR_6,
-#endif
     STATUS_BAR_COUNT
 } StatusBarId;
 
@@ -71,7 +59,6 @@ void status_bar_create_all(Layer *parent, const ViewSpec *spec, const MainLayout
 
 void status_bar_destroy_all(void);
 
-#if defined(WW_VIEW_CYCLE)
 // Which bars the configured views show, as a mask of (1 << StatusSource): the only bars
 // ever read. No refresh reaches a bar outside it, so its row stays empty: no persist read,
 // no glyph, no layout. It is hidden on every view anyway, and the phone stops sending its
@@ -79,10 +66,8 @@ void status_bar_destroy_all(void);
 // which then reads the bars in use alone, and whenever the configured views change
 // (main_window_apply_top_view), before that change's render: a bar that joins is read at
 // once.
-// Every bar is in use until the first call and again after status_bar_destroy_all. Absent
-// on aplite, whose one bar is the forecast row.
+// Every bar is in use until the first call and again after status_bar_destroy_all.
 void status_bar_set_in_use(uint8_t sources);
-#endif
 
 // Re-push the per-view facts to every bar, reseat it in its band, and set its
 // visibility. Replaces the window's per-source fan-outs for render tier,
@@ -93,7 +78,6 @@ void status_bar_apply_view(const ViewSpec *spec, const MainLayout *L);
 // Re-resolve and repaint every bar — the settings / weather / flick checkpoint.
 void status_bar_refresh_all(void);
 
-#if defined(PBL_HEALTH)
 // The health readings the VISIBLE bars (those not hidden: status_bar_apply_view set the
 // flag from the view on screen) show, as services/health_summary.h's HEALTH_SUMMARY_*
 // mask: 0 when none shows any. Gates the minute handler's health work, reading by
@@ -103,7 +87,6 @@ void status_bar_refresh_all(void);
 // hidden bar can't show a stale value, and every path that unhides one
 // (status_bar_apply_view is the only visibility writer, and each of its callers pairs
 // it with main_window_refresh() -> status_bar_refresh_all()) re-resolves the row then.
-// Absent on aplite, which has no health.
 uint8_t status_bar_visible_live_health(void);
 
 // Repaint the VISIBLE bars whose packed line holds a live health slot
@@ -112,9 +95,7 @@ uint8_t status_bar_visible_live_health(void);
 // accompanies every visibility change re-resolves it before it comes back on screen;
 // main_window_sync_health, which ends that refresh, then reads what it shows.
 void status_bar_refresh_live_health(void);
-#endif
 
-#if defined(WW_ON_DEMAND)
 // Re-resolve the VISIBLE bars that carry On demand items
 // (status_row_uses_on_demand) — Quiet time has no event and the rain alert is
 // derived from the radar cache on every refresh, so only a refresh notices that
@@ -124,6 +105,5 @@ void status_bar_refresh_live_health(void);
 // keep pace with the strip's. Visible is the bar's layer not hidden, as
 // status_bar_apply_view last set it for the view on screen, so no caller passes a
 // ViewSpec. Hidden bars are skipped for the live-health reason above: the
-// refresh_all that unhides one re-resolves it. Absent on aplite (no On demand).
+// refresh_all that unhides one re-resolves it.
 void status_bar_tick_on_demand(void);
-#endif

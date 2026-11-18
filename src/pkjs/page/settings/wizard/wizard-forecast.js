@@ -282,16 +282,14 @@
     }
 
     /**
-     * Where a graph puts the high and low, as a sentence after its list says it: on emery only
-     * (the 144 px watches keep the left axis in every look).
+     * Where a graph puts the high and low, as a sentence after its list says it.
      * @param {Object<string, *>} values A look's values, or a graph's settings.
-     * @param {?Object} env Platform env.
-     * @returns {string} ' The high and low go on the graph.'; '' off emery
+     * @param {?Object} env Platform env; unused.
+     * @returns {string} ' The high and low go on the graph.'
      */
     function highLowWords(values, env) {
         var numbers = forecastAxis.numbers(values);
-        return !forecastAxis.isEmery(env) ? ''
-            : numbers === forecastAxis.OFF ? ' The graph shows no high and low.'
+        return numbers === forecastAxis.OFF ? ' The graph shows no high and low.'
             : ' The high and low go ' + (numbers === forecastAxis.GRAPH ? 'on the graph.' : 'beside the axis.');
     }
 
@@ -368,7 +366,6 @@
      */
     function governed(env) {
         return KEYS.filter(function (k) {
-            if (k === AXIS_NUMBERS) { return forecastAxis.isEmery(env); }
             if (k === BAR_COLOR) { return Boolean(env && env.color); }
             return true;
         });

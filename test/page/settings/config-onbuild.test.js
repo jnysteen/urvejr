@@ -36,13 +36,6 @@ test('onLoad derives locationMode from the stored location', function () {
     assert.equal(gps.locationMode, 'gps');
 });
 
-test('onLoad forces radar and health off on aplite', function () {
-    var store = { radarProvider: 'dwd', healthMode: 'all', radarMode: 'graph' };
-    OB.onLoad(loadContext(store, 'aplite'));
-    assert.equal(store.healthMode, 'off');
-    assert.equal(store.radarMode, 'off');
-});
-
 test('onLoad preserves radar and health settings on non-aplite platforms', function () {
     var store = { radarProvider: 'dwd', healthMode: 'all', radarMode: 'graph' };
     OB.onLoad(loadContext(store, 'basalt'));

@@ -8,10 +8,8 @@ var path = require('node:path');
 var ROOT = path.join(__dirname, '..', '..');
 var BASE = fs.readFileSync(
   path.join(ROOT, 'src/c/layers/top_status_layer.c'), 'utf8');
-var APLITE = fs.readFileSync(
-  path.join(ROOT, 'src/c/layers/top_status_layer_aplite.c'), 'utf8');
 
-// Off aplite Quiet time, Bluetooth and Sleep are On demand items the row draws
+// Quiet time, Bluetooth and Sleep are On demand items the row draws
 // (status_on_demand.c, the compiled defaults put them on the strip's left): the base
 // strip resolves no fixed indicators any more, loads no indicator bitmap and carves
 // no room for one — its content rect is the quiet strip's at all times.
@@ -22,18 +20,6 @@ test('the base strip keeps no fixed indicators; the Sleep item draws the Z\'s', 
   assert.match(items, /#include "\.\.\/appendix\/snooze\.h"/);
   assert.match(items, /s->active\[OD_SLEEP\] = persist_get_is_sleeping\(\)/);
   assert.match(items, /OD_SLEEP[\s\S]*snooze_draw\(/);
-});
-
-// aplite still resolves the snooze indicator but renders it as cheap "zZ" text
-// so --gc-sections reaps snooze.c from the frozen-lean image (ADR 0001).
-test('aplite top-status resolves snooze but draws it as cheap text', function() {
-  assert.match(APLITE, /#include "top_status_indicators\.h"/);
-  assert.doesNotMatch(APLITE, /#include "c\/appendix\/snooze\.h"/);
-  assert.match(APLITE,
-    /top_status_indicators_resolve\([\s\S]*persist_get_is_sleeping\(\)/);
-  assert.match(APLITE,
-    /TOP_STATUS_INDICATOR_SNOOZE[\s\S]*graphics_draw_text/);
-  assert.doesNotMatch(APLITE, /snooze_draw/);
 });
 
 // The strip's rain text takeover is gone: the rain alert is an On demand item

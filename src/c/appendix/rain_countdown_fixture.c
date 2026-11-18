@@ -4,8 +4,7 @@
 
 // Screenshot/showcase twin of appendix/rain_countdown.c. Selected by the wscript ONLY
 // for a fixture that declares a top-level "countdown" block (which injects
-// WW_FIXTURE_COUNTDOWN_MINS / _RAINING / _TIER), and never on aplite (which gc-sections
-// the rain alert out of its 24 KB image). Where the real module derives the alert from
+// WW_FIXTURE_COUNTDOWN_MINS / _RAINING / _TIER). Where the real module derives the alert from
 // the persisted radar trend vs the wall clock — fragile to reproduce in a static,
 // compile-time fixture (the upcoming-rain "in X" branch is gated on the look-ahead
 // horizon and the radar/now anchor) — this returns the fixture's numbers, so a captured

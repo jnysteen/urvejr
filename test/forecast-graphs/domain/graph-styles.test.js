@@ -14,8 +14,8 @@ const wizardForecast = require('../../../src/pkjs/page/settings/wizard/wizard-fo
 const platform = require('../../../src/pkjs/config-ui/lib/platform.js');
 
 const EMERY = platform.computeEnv({ platform: 'emery' });
-const BASALT = platform.computeEnv({ platform: 'basalt' });
-const UNKNOWN = platform.computeEnv(null);
+// An env whose watch draws one graph look (graphStyles false).
+const NO_STYLES = Object.assign(platform.computeEnv(), { platform: 'no styles', graphStyles: false });
 
 /**
  * The graphStyles item for styles 2 and 3.
@@ -125,7 +125,7 @@ test('wireCycle: a view keeps its style only on a watch with styles, where the s
   assert.deepEqual(cycle.map((v) => v.graphStyle || 0), [0, 1, 2], 'the compiler carries viewStyle');
   assert.deepEqual(GS.wireCycle(S, EMERY, cycle).map((v) => v.graphStyle || 0), [0, 1, 0],
     'style 3 does not exist');
-  [BASALT, UNKNOWN].forEach((env) =>
+  [NO_STYLES].forEach((env) =>
     assert.deepEqual(GS.wireCycle(S, env, cycle).map((v) => v.graphStyle || 0), [0, 0, 0], env.platform));
   assert.equal(cycle[1].graphStyle, 1, 'the cycle itself is left as it was');
 });
@@ -154,19 +154,19 @@ test('wireCycle: graphs 4 to 6 reach the watch in the slots the shown graphs lea
   const two = layout(['2', '4'], { graphStyles: six });
   assert.deepEqual(GS.wireCycle(two, EMERY, VC.resolveViewCycle(two, EMERY)).map((v) => v.graphStyle || 0),
     [1, 0], 'graph 4 takes the first slot, which no shown graph needs');
-  assert.deepEqual(GS.wireCycle(S, BASALT, VC.resolveViewCycle(S, BASALT)).map((v) => v.graphStyle || 0),
-    [0, 0, 0], 'no styles off emery');
+  assert.deepEqual(GS.wireCycle(S, NO_STYLES, VC.resolveViewCycle(S, NO_STYLES)).map((v) => v.graphStyle || 0),
+    [0, 0, 0], 'no styles without graphStyles');
   assert.equal(VC.packExt(cycle[2]) >> 9, 0, 'a spec still naming graph 6 packs the first slot, never another');
 });
 
-test('the view word carries the style on emery only, and only on a view with the forecast', () => {
+test('the view word carries the style only with graph styles, and only on a view with the forecast', () => {
   const S = layout(['2', 'radar'], { graphStyles: stylesItem({}), viewStyle1: '2' });
   const cycle = VC.resolveViewCycle(S, EMERY);
   assert.equal(cycle[0].graphStyle, 1);
   assert.equal(cycle[1].graphStyle, undefined, 'a radar screen draws no forecast style');
   assert.equal(VC.packExt(GS.wireCycle(S, EMERY, cycle)[0]) >> 9, 1);
-  assert.equal(VC.packExt(GS.wireCycle(S, BASALT, VC.resolveViewCycle(S, BASALT))[0]), 0,
-    'basalt\'s word is today\'s');
+  assert.equal(VC.packExt(GS.wireCycle(S, NO_STYLES, VC.resolveViewCycle(S, NO_STYLES))[0]), 0,
+    'without graph styles the word is today\'s');
   // A forecast graph on top carries it too.
   const top = layout(['1'], { viewTop0: 'forecast', viewBody0: 'radar', viewStyle0: '3',
     graphStyles: stylesItem({}, {}) });
@@ -195,8 +195,7 @@ test('stylesShown / stylesSent: the forecast graphs\' styles; nothing is sent wh
   assert.deepEqual(GS.stylesSent(layout(['3', '1', '3'], two), EMERY), [0, 2]);
   assert.deepEqual(GS.stylesSent(layout(['2'], two), EMERY), [1], 'the first style need not be shown');
   assert.deepEqual(GS.stylesShown(layout(['radar'], two), EMERY), [], 'no forecast graph: no style');
-  assert.deepEqual(GS.stylesSent(layout(['2', '3'], two), BASALT), [], 'basalt: one look');
-  assert.deepEqual(GS.stylesSent(layout(['2', '3'], two), UNKNOWN), [], 'an unknown watch: one look');
+  assert.deepEqual(GS.stylesSent(layout(['2', '3'], two), NO_STYLES), [], 'without graph styles: one look');
   assert.deepEqual(GS.stylesSent(layout(['2', '3'], {}), EMERY), [], 'styles that do not exist are the first');
   assert.deepEqual(GS.stylesSent(Object.assign(layout(['2']), two, { layoutPreset: 'compactCal' }), EMERY), [],
     'a preset layout has no styles');
@@ -207,15 +206,12 @@ test('seriesOf: each line\'s effective metric, whether it is a stripe and whethe
     fourthLine: 'feels', fourthLineStyle: 'stripeTop', fifthLine: 'off' };
   assert.deepEqual(GS.seriesOf(S, EMERY), [{ metric: 'precip_prob', stripe: true, alert: false }, null,
     { metric: 'feels', stripe: false, alert: false }, null], 'a repeat draws nothing; feels-like is never a stripe');
-  assert.deepEqual(GS.seriesOf(S, platform.computeEnv({ platform: 'aplite' }))[0],
-    { metric: 'precip_prob', stripe: false, alert: false }, 'no stripes where the watch draws no styles');
   // Visible values: Alert marks the series (each graph's own, the owner's, 2026-11-10); a watch
   // without Alert settings draws every line with all its values.
   const W = { secondaryLine: 'wind', thirdLine: 'uv', thirdLineStyle: 'stripeTop', fourthLine: 'off', fifthLine: 'off',
     windLineShow: 'alert', uvLineShow: 'alert' };
   assert.deepEqual(GS.seriesOf(W, EMERY).slice(0, 2), [{ metric: 'wind', stripe: false, alert: true },
     { metric: 'uv', stripe: true, alert: true }]);
-  assert.equal(GS.seriesOf(W, platform.computeEnv({ platform: 'aplite' }))[0].alert, false, 'aplite: always All');
   assert.equal(GS.sameSeries({ metric: 'wind', stripe: false, alert: true }, { metric: 'wind', stripe: false, alert: false }),
     false, 'All and Alert of one metric: two series');
   assert.equal(GS.sameSeries({ metric: 'wind', stripe: false, alert: false }, { metric: 'wind', stripe: false }), true,

@@ -20,8 +20,10 @@ const FC = require('../../../src/pkjs/page/forecast-graphs/preview-forecast.js')
 const PICKERS = ['secondaryLine', 'thirdLine', 'fourthLine', 'fifthLine'];
 const METRICS = ['precip_prob', 'cloud', 'wind', 'gust', 'uv', 'pressure', 'feels', 'dew'];
 const SHOW_KEYS = { wind: 'windLineShow', gust: 'gustLineShow', uv: 'uvLineShow' };
-const BASALT = platform.computeEnv({ platform: 'basalt' });
-const APLITE = platform.computeEnv({ platform: 'aplite' });
+// Envs of a watch without some of these features. The face is built for the Pebble Time 2
+// alone; these exercise the page's capability gates (config-ui/lib/platform.js).
+const BASALT = Object.assign(platform.computeEnv(), { platform: 'basalt', hr: false, colorBacklight: false, fineBattery: false, forecastSpan: false, graphStyles: false, extraBars: false });
+const APLITE = Object.assign(platform.computeEnv(), { platform: 'aplite', color: false, health: false, radar: false, themePolarity: false, hr: false, thresholds: false, colorBacklight: false, lineStyles: false, onDemand: false, fineBattery: false, forecastSpan: false, graphStyles: false, extraBars: false });
 const graphsTab = schema.tabs.find((t) => t.id === 'graphs');
 // Each forecast line's dialog (schema.js GRAPH_LINES), opened from the Lines card: its
 // picker first, then the rows the old Forecast tab stacked under that picker.

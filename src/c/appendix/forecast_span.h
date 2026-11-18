@@ -20,10 +20,7 @@
 
 // The most hourly entries the forecast keeps (persist, the series buffers, the paint
 // scratch, the chart's point buffer). Lockstep with hourly-window.js MAX_FORECAST_HOURS
-// (test/weather/domain/forecast-span.test.js). Every other platform keeps today's 24, equal to
-// MAX_BOTTOM_VIEW_ENTRIES (asserted in forecast_grid.c), which the health graph keeps on
-// emery too.
-#if defined(PBL_PLATFORM_EMERY)
+// (test/weather/domain/forecast-span.test.js). The health graph keeps MAX_BOTTOM_VIEW_ENTRIES.
 // emery: the long span sends 68 hourly points: ceil(200 / 3) + 1, the widest plot (the whole
 // 200 px screen: the numbers On graph or Off start the plot at its left edge, forecast_layer.c)
 // at the 3 px pitch, plus the hour whose vertex lies past the right edge. The watch picks
@@ -44,14 +41,7 @@
 // area_pts[n] (chart.c; the colour fill's diagonal to the zero row, the bw checkerboard's
 // straight drop at the last vertex), so its contour runs num_entries + this many points.
 #define FORECAST_NIGHT_PAST_LAST 1
-#else
-#define FORECAST_MAX_ENTRIES 24
-#define FORECAST_NIGHTS_MAX 3
-#define FORECAST_NIGHT_LAST_DAY 1    // the pair repeats a day back and a day on
-#define FORECAST_NIGHT_PAST_LAST 0   // the graph ends on the last hour's tick
-#endif
 
-#if defined(PBL_PLATFORM_EMERY)
 // emery: the one slot/time -> x mapping (emery only).
 #include "c/appendix/slot_x.h"
 
@@ -249,4 +239,3 @@ static inline bool forecast_span_label_fits(int x, int label, bool large, int le
     const int start = x - FORECAST_LABEL_BOX_W / 2 + (FORECAST_LABEL_BOX_W - w) / 2;
     return start + 1 >= left && start + w - 2 <= right;
 }
-#endif

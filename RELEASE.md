@@ -90,13 +90,12 @@ the way", "message me anytime").
 The store listing copy is in [STORE_LISTING.md](STORE_LISTING.md). The commands, their
 arguments and the scene set are in [DEV.md](DEV.md#store-screenshots).
 
-1. Capture the five chosen store configs on every platform with
+1. Capture the five chosen store configs with
    `scripts/capture-store-shots.sh <version>` ([DEV.md](DEV.md#store-screenshots)).
-2. Upload each platform's five raw PNGs from `screenshot/<version>/store/<platform>/` to that
-   platform in the appstore, which wants at least one screenshot per supported platform.
+2. Upload the five raw PNGs from `screenshot/<version>/store/emery/` to the appstore.
 3. Composite the README hero shots from the store captures with `mise composite <version>`
    ([DEV.md](DEV.md#readme-hero-shots), which also says where the device frames come from).
 4. When the UI or the scene set changed, refresh the README showcase GIF: run
-   `scripts/capture-showcase.sh <version>`, then `scripts/assemble-showcase-gif.sh <version> <platform>`
-   per platform ([DEV.md](DEV.md#showcase-gif-readme-hero)). Point the README's three
-   `screenshot/<version>/showcase/*-showcase.gif` links at the new version and commit the GIFs.
+   `scripts/capture-showcase.sh <version>`, then `scripts/assemble-showcase-gif.sh <version> emery`
+   ([DEV.md](DEV.md#showcase-gif-readme-hero)). Point the README's
+   `screenshot/<version>/showcase/emery-showcase.gif` link at the new version and commit the GIFs.

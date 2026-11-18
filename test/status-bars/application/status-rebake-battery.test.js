@@ -198,27 +198,6 @@ test('the stored blob holds only the payload keys the bake reads', () => {
     'the platform env the bake derives from survives too');
 });
 
-test('the platform env survives the restart: aplite still gets its lean bake', () => {
-  // watchInfo is persisted alongside the payload precisely so a restored bake
-  // cannot silently switch platform -- an aplite watch re-baked as basalt would
-  // get the LIVE_WEEK kind byte it has no code for, and a wind-direction
-  // sentinel it would draw as a glyph box.
-  const mgr = fakeManager(0.62, false);
-  const settings = { temperatureUnits: 'c', axisTimeFormat: '24h',
-                     statusForecastLeft: 'phoneBattery', statusForecastRight: 'week' };
-  boot({ navigator: modernNavigator(mgr), realBake: true, settings: settings });
-  statusRebake.rememberBakeInputs(bakePayload(), { platform: 'aplite' });
-
-  const mgr2 = fakeManager(0.62, false);
-  const h2 = boot({ navigator: modernNavigator(mgr2), realBake: true,
-                    settings: settings, keepStorage: true });
-  mgr2.setCharging(true);
-  const slots = decodeLine(h2.sends[h2.sends.length - 1].STATUS_LINE_1_UINT8);
-  assert.equal(slots[2].kind, catalog.KINDS.TEXT,
-    'aplite bakes the ISO week as text, so the restored bake did run as aplite');
-  assert.match(slots[2].text, /^W\d+$/);
-});
-
 test('the restored payload is paired with the LIVE settings, not stored ones', () => {
   // Deliberate: settings are in neither snapshot. The live blob is what the next
   // fetch would bake with (the in-memory path pairs the same way, test below).

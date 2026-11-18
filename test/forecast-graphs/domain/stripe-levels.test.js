@@ -228,7 +228,7 @@ test('Show: Alert as a stripe: nothing below the warn level, level 1 from it, fu
   assert.deepEqual(uv, [NONE, L1, L1, L1, L2, L3, FULL]);
 });
 
-test('the watch draws the stripe: aplite keeps its exact bytes, a watch with styles (or unknown) takes levels', () => {
+test('the watch draws the stripe: a stripe line takes levels', () => {
   const payload = () => ({ TEMP_RAW_TREND: [10, 20, 30], TEMP_MIN: 10, TEMP_MAX: 30,
     PRECIP_TREND_UINT8: [0, 5, 45], RAIN_TREND_UINT8: [0, 0, 0], CLOUD_TREND: [0, 9.6, 95],
     UV_TREND_UINT8: [0, 1, 33], CURRENT_TEMP: 10, CITY: 'X', SUN_EVENTS: [1] });
@@ -237,21 +237,17 @@ test('the watch draws the stripe: aplite keeps its exact bytes, a watch with sty
     barSource: 'off' };
   const plain = Object.assign({}, striped,
     { secondaryLineStyle: 'line', thirdLineStyle: 'dots', fourthLineStyle: 'x' });
-  ['basalt', 'emery', 'diorite', null].forEach((platform) => {
+  ['emery', null].forEach((platform) => {
     const info = platform ? { platform } : null;
     const out = applyForecastSeries(payload(), striped, info);
     assert.deepEqual(out.SECONDARY_LINE_TREND_UINT8, [NONE, L1, L3], String(platform));
     assert.deepEqual(out.THIRD_LINE_TREND_UINT8, [NONE, L1, L2], String(platform));
     assert.deepEqual(out.FOURTH_LINE_TREND_UINT8, [NONE, L1, FULL], String(platform));
   });
-  // aplite draws its frozen line and dots whatever is stored: the exact bytes.
-  const aplite = applyForecastSeries(payload(), striped, { platform: 'aplite' });
-  const apliteLine = applyForecastSeries(payload(), plain, { platform: 'aplite' });
-  assert.deepEqual(aplite.SECONDARY_LINE_TREND_UINT8, [0, 13, 113]);
-  assert.deepEqual(aplite.THIRD_LINE_TREND_UINT8, [0, 2, 75]);
-  assert.deepEqual(aplite.SECONDARY_LINE_TREND_UINT8, apliteLine.SECONDARY_LINE_TREND_UINT8);
-  assert.deepEqual(aplite.THIRD_LINE_TREND_UINT8, apliteLine.THIRD_LINE_TREND_UINT8);
-  assert.equal(aplite.FOURTH_LINE_TREND_UINT8, undefined, 'aplite never gets the Third metric line');
+  // Drawn as a line, the exact bytes.
+  const line = applyForecastSeries(payload(), plain, { platform: 'emery' });
+  assert.deepEqual(line.SECONDARY_LINE_TREND_UINT8, [0, 13, 113]);
+  assert.deepEqual(line.THIRD_LINE_TREND_UINT8, [0, 2, 75]);
 });
 
 // ---- The forecast preview shades the bake's levels ---------------------------------

@@ -9,7 +9,6 @@ const ChartDef FORECAST_GRID_DEF = {
     .inset_left = 1, .inset_bottom = 1,
 };
 
-#if defined(PBL_PLATFORM_EMERY)
 // emery: the span table's 24 h class is this grid, so the two cannot drift.
 _Static_assert(FORECAST_SPAN_DAY_PAD == FORECAST_GRID_PAD
                && FORECAST_SPAN_DAY_BAR_W == FORECAST_GRID_BAR_W
@@ -66,25 +65,3 @@ void forecast_grid_fill_axis_slots(ChartAxisSlot *slots, int num_slots,
                  config_axis_hour(start_local->tm_hour + i));
     }
 }
-#else
-_Static_assert(FORECAST_MAX_ENTRIES == MAX_BOTTOM_VIEW_ENTRIES,
-               "off emery the forecast keeps the 24 h grid's slots");
-
-void forecast_grid_fill_axis_slots(ChartAxisSlot *slots, int num_slots,
-                                   int origin_x, int pitch, int visible_w,
-                                   const struct tm *start_local) {
-    for (int i = 0; i < num_slots; ++i) {
-        slots[i].label[0] = '\0';
-        slots[i].tick     = TICK_NONE;
-        if ((i % 3) != 0) {
-            if ((i % 3) == 1) slots[i].tick = TICK_SMALL;  // midpoint marker
-            continue;
-        }
-        const int hour = config_axis_hour(start_local->tm_hour + i);
-        // Two-digit labels sliced by the screen edge are omitted instead of
-        // drawing half a number.
-        if (hour >= 10 && (origin_x + i * pitch - 3) + 8 > visible_w) continue;
-        snprintf(slots[i].label, sizeof(slots[i].label), "%d", hour);
-    }
-}
-#endif

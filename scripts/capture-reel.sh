@@ -14,7 +14,7 @@ set -euo pipefail
 version="${1:-v0.0.0}"
 here="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 export WW_HEALTH_FIXTURE=1
-export PLATFORMS="${PLATFORMS:-emery basalt flint aplite}"
+export PLATFORMS="${PLATFORMS:-emery}"
 
 # 0. Intro frames must already exist (from capture-showcase.sh). The scene list comes
 # from the showcase table via the reel module (single source of the intro order).

@@ -24,8 +24,9 @@ const { NOTHING_PLACED, placeOn } = require('../../helpers/on-demand.js');
 const { decodeLine } = require('../../helpers/status-line-bytes.js');
 
 const EMERY = platform.computeEnv({ platform: 'emery' });
-const BASALT = platform.computeEnv({ platform: 'basalt' });
-const UNKNOWN = platform.computeEnv(null);
+// An env whose watch has three bars (extraBars false).
+const BASALT = Object.assign(platform.computeEnv(), { platform: 'three bars', extraBars: false });
+const UNKNOWN = BASALT;
 const NOW = new Date('2026-06-26T00:00:00Z');
 
 /**
@@ -39,11 +40,9 @@ function oneScreen(upper, over) {
     viewUpper0: upper, viewLower0: 'weather' }, over || {});
 }
 
-test('the env fact: bars 4 to 6 on the Pebble Time 2 alone; an unknown watch has three bars', () => {
+test('the env fact: bars 4 to 6 on the Pebble Time 2, whatever watchInfo says', () => {
   assert.equal(EMERY.extraBars, true);
-  ['aplite', 'basalt', 'diorite', 'flint'].forEach((p) =>
-    assert.equal(platform.computeEnv({ platform: p }).extraBars, false, p));
-  assert.equal(UNKNOWN.extraBars, false, 'fail closed');
+  assert.equal(platform.computeEnv(null).extraBars, true);
 });
 
 test('a bar 4 to 6 exists once made, on a watch that has them; an omitted env is capable', () => {
@@ -105,15 +104,13 @@ test('the compiler keeps a bar 4 to 6 row only while the bar is on the watch', (
   assert.equal(keys.viewUpper0, 'bar4');
 });
 
-test('barsShown: a made bar 4 to 6 on a screen; the Clay view words carry its ext bit on emery alone', () => {
+test('barsShown: a made bar 4 to 6 on a screen; the Clay view words carry its ext bit', () => {
   const S = oneScreen('bar5', { statusBar5Made: true });
   assert.equal(VC.barsShown(S, EMERY).bar5, true);
   assert.equal(VC.barsShown(S, BASALT).bar5, false);
   assert.equal(VC.barsShown(Object.assign({}, S, { statusBar5Made: false }), EMERY).bar5, false);
   const emery = buildClayPayload(S, { platform: 'emery' }, NOW).CLAY_VIEW_0;
-  const basalt = buildClayPayload(S, { platform: 'basalt' }, NOW).CLAY_VIEW_0;
   assert.equal(VC.unpackWire(emery).statusUpper, VC.STATUS_SRC_BAR5);
-  assert.equal(VC.unpackWire(basalt).statusUpper, VC.STATUS_SRC_NONE);
 });
 
 test('the catalog: three extra lines, their wire keys and slots, empty until New status bar fills them', () => {
@@ -140,7 +137,7 @@ test('the catalog: three extra lines, their wire keys and slots, empty until New
   assert.deepEqual(extra({ statusBar4Made: true, statusBar6Made: true }, EMERY), [], 'made, on no screen');
 });
 
-test('the bake sends the line of a bar 4 to 6 a screen shows, on a Pebble Time 2 alone', () => {
+test('the bake sends the line of a bar 4 to 6 a screen shows', () => {
   const S = oneScreen('bar4', { statusBar4Made: true, statusBar5Made: true,
     statusBar4Left: 'city', statusBar4Mid: 'empty', statusBar4Right: 'city',
     statusTopLeft: 'city', statusTopMid: 'empty', statusTopRight: 'city' });
@@ -157,10 +154,6 @@ test('the bake sends the line of a bar 4 to 6 a screen shows, on a Pebble Time 2
   assert.equal('STATUS_LINE_4_UINT8' in emery, false, 'nor the Health bar');
   assert.ok(emery.STATUS_LINE_1_UINT8 && emery.STATUS_LINE_3_UINT8, 'the Forecast bar\'s, and the Watch bar\'s always');
   assert.deepEqual(decodeLine(emery.STATUS_LINE_5_UINT8).map((s) => s.text), ['Bonn', '', 'Bonn']);
-  ['basalt', 'aplite'].forEach((p) => {
-    const other = bake(S, p);
-    assert.equal(Object.keys(other).some((k) => /^STATUS_LINE_[567]_/.test(k)), false, p);
-  });
   // The fetch gates read the slots of a bar a screen shows: a pollen slot there asks for
   // pollen (no default slot of the twelve shows it).
   assert.ok(catalog.selectedCodes(oneScreen('bar4', { statusBar4Made: true, statusBar4Left: 'pollen' }))
@@ -172,9 +165,8 @@ test('the bake sends the line of a bar 4 to 6 a screen shows, on a Pebble Time 2
   // Only where the watch draws the bar: the same settings on another watch fetch nothing for it.
   const made = oneScreen('bar4', { provider: 'dwd', statusBar4Made: true, statusBar4Left: 'pollen' });
   assert.ok(catalog.selectedCodes(made, EMERY).indexOf('pollen') !== -1, 'a Pebble Time 2 draws bar 4');
-  assert.equal(catalog.selectedCodes(made, BASALT).indexOf('pollen'), -1, 'basalt is never sent its line');
+  assert.equal(catalog.selectedCodes(made, BASALT).indexOf('pollen'), -1, 'three bars: never sent its line');
   assert.equal(forecastSeries.needsPollen(made, { platform: 'emery' }), true);
-  assert.equal(forecastSeries.needsPollen(made, { platform: 'basalt' }), false);
 });
 
 test('New status bar makes the next free bar empty, called "Status bar <n>" unless another bar has that name', () => {
@@ -221,7 +213,7 @@ test('Delete status bar stores a screen as the editor\'s Remove does: the bar be
   Object.keys(before).forEach((key) => assert.deepEqual(S[key], before[key], key + ' back after Undo'));
 });
 
-test('bars 4 to 6\'s On demand cells: CLAY_OD_EXTRA_UINT8 on a known emery alone, effective values only', () => {
+test('bars 4 to 6\'s On demand cells: CLAY_OD_EXTRA_UINT8, effective values only', () => {
   // Bluetooth on bar 4's left and Quiet time on bar 6's right; bar 4 shows on a screen.
   const S = placeOn(placeOn(Object.assign({}, NOTHING_PLACED, oneScreen('bar4', { viewLower0: 'bar6' }), {
     statusBar4Made: true, statusBar6Made: true }), 'bar4', 'left', ['bt']), 'bar6', 'right', ['qt']);
@@ -237,12 +229,9 @@ test('bars 4 to 6\'s On demand cells: CLAY_OD_EXTRA_UINT8 on a known emery alone
     [OD.ITEMS.findIndex((i) => i.code === 'qt')], 0);
   assert.equal(statusWire.buildExtraCells(Object.assign({}, S, { viewUpper0: 'weather', viewLower0: 'off' }), EMERY)
     .filter(Boolean).length, 0);
-  // Sent on every known emery, zeros while no made bar shows; never on another watch.
+  // Sent always, zeros while no made bar shows.
   assert.deepEqual(buildClayPayload({}, { platform: 'emery' }, NOW).CLAY_OD_EXTRA_UINT8,
     new Array(OD.ITEMS.length).fill(0));
-  ['basalt', 'diorite', 'flint', 'aplite'].forEach((p) =>
-    assert.equal('CLAY_OD_EXTRA_UINT8' in buildClayPayload(S, { platform: p }, NOW), false, p));
-  assert.equal('CLAY_OD_EXTRA_UINT8' in buildClayPayload(S, null, NOW), false, 'an unknown watch');
   // The blob's own cells never carry bars 4 to 6 (their bits would land on the first four's).
   const blob = statusWire.buildSettingsBlob(S, EMERY);
   assert.equal(blob.slice(statusWire.ON_DEMAND_OFFSET).filter(Boolean).length, 0);
@@ -261,7 +250,7 @@ test('on-demand.js: a bar 4 to 6 exists where a screen shows it, so an item plac
     ['Watch bar', 'Forecast bar', 'Health bar', 'Radar bar', 'Status bar 4', 'Status bar 5', 'Status bar 6']);
 });
 
-test('the render signature signs the slots of a bar 4 to 6 a screen shows, on a Pebble Time 2', () => {
+test('the render signature signs the slots of a bar 4 to 6 a screen shows', () => {
   const S = oneScreen('bar4', { statusBar4Made: true, statusBar4Left: 'uv' });
   const emery = (s) => renderSignature(s, { platform: 'emery' });
   assert.notEqual(emery(S), emery(Object.assign({}, S, { statusBar4Left: 'wind' })), 'a slot edit re-bakes');
@@ -272,8 +261,6 @@ test('the render signature signs the slots of a bar 4 to 6 a screen shows, on a 
   assert.notEqual(emery(S), emery(Object.assign({}, S, { viewUpper0: 'weather' })),
     'taking it off the screen re-signs');
   assert.equal(emery({}), emery({ statusBar4Left: 'uv' }), 'and an unmade bar signs as before 3.0');
-  assert.equal(renderSignature(S, { platform: 'basalt' }),
-    renderSignature(Object.assign({}, S, { statusBar4Left: 'wind' }), { platform: 'basalt' }), 'basalt');
   // A countdown signs its date while it is the slot's item.
   const cd = oneScreen('bar4', { statusBar4Made: true, statusBar4Right: 'countdown',
     statusBar4RightCountdown: '2026-12-24' });
