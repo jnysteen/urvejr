@@ -225,4 +225,7 @@ test('the wizard\'s country pick: DWD/Met.no where they cover, else the radar of
   W.applyDerived(own, ENV);
   assert.equal(own.radarProvider, 'rainbowkey', 'a keyed source stays');
   assert.notEqual(own.radarEnabled, false, 'and stays on');
+  const aplite = { holidayCountry: 'US', radarProvider: 'dwd', provider: 'dwd' };
+  W.applyDerived(aplite, { color: false, radar: false, platform: 'aplite' });
+  assert.equal(aplite.radarEnabled, undefined, 'a watch without the radar keeps its switch');
 });

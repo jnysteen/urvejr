@@ -226,6 +226,7 @@ var PConf = (typeof global !== 'undefined' && global.PConf) ? global.PConf
      * Derive the country's settings onto the shared state, running the provider's cleanup hook the
      * way the settings control does.
      * @param {Object} S Live settings.
+     * @param {?Object} env Platform env.
      * @returns {void}
      */
     function applyDerived(S, env) {
@@ -234,12 +235,13 @@ var PConf = (typeof global !== 'undefined' && global.PConf) ? global.PConf
         S.provider = m.provider;
         PConf.onChange.get('clearPollenForProvider')(S, oldProvider, m.provider);
         // No keyless radar covers the country: the radar goes off, unless a keyed source
-        // (Rainbow, Tomorrow.io) is already picked.
+        // (Rainbow, Tomorrow.io) is already picked. A watch without the radar keeps its switch.
         var keyed = S.radarProvider === 'rainbowkey' || S.radarProvider === 'tomorrowio';
+        var hasRadar = Boolean(env && env.radar);
         if (m.radarProvider !== 'off') {
             S.radarProvider = m.radarProvider;
-            SP.setRadarEnabled(S, true, env);
-        } else if (!keyed) {
+            if (hasRadar) { SP.setRadarEnabled(S, true, env); }
+        } else if (!keyed && hasRadar) {
             SP.setRadarEnabled(S, false, env);
         }
         S.temperatureUnits = m.temperatureUnits;
