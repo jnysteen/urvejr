@@ -11,9 +11,10 @@
         + 'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>';
     var ICON_DONE = '<svg viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="3" '
         + 'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
-    var ICON_FLICK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" '
-        + 'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
-        + '<path d="M20 12a8 8 0 1 1-2.34-5.66"/><path d="M20 4v5h-5"/></svg>';
+    // A tap: a dot and its ripple.
+    var ICON_TAP = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" '
+        + 'stroke-linecap="round" aria-hidden="true">'
+        + '<circle cx="12" cy="12" r="2.5" fill="currentColor"/><circle cx="12" cy="12" r="7.5"/></svg>';
     var ICON_X = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" '
         + 'stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>';
 
@@ -97,11 +98,11 @@
         + '#wizard .wiz-legend{padding:2px 16px}'
         + '#wizard .wiz-legend p{margin:12px 0;font-size:13.5px;color:var(--muted)}'
         + '#wizard .wiz-legend b{color:var(--fg)}'
-        // the Screens step: the screen shown, big, its dots and name, Try a flick
+        // the Screens step: the screen shown, big, its dots and name, Try a tap
         + '#wizard .wiz-flick{text-align:center}'
-        + '#wizard .wiz-flick-watch{display:inline-block;transform-origin:50% 100%}'
+        + '#wizard .wiz-flick-watch{display:inline-block;transform-origin:50% 50%}'
         + '#wizard .wiz-flick-watch[data-wiz-flick]{cursor:pointer}'
-        + '#wizard .wiz-flick-watch.tilt{animation:wiz-tilt .45s ease-in-out}'
+        + '#wizard .wiz-flick-watch.press{animation:wiz-press .3s ease-out}'
         + '#wizard .wiz-flick-track{display:flex;align-items:center;justify-content:center;margin:12px 0 0}'
         + '#wizard .wiz-dot{display:inline-block;width:7px;height:7px;margin:0 3px;border-radius:50%;'
         + 'background:var(--muted);opacity:.35;vertical-align:middle;transition:opacity .2s,background .2s}'
@@ -170,17 +171,16 @@
         + '@keyframes wiz-in-l{from{opacity:0;transform:translateX(-22px)}to{opacity:1;transform:none}}'
         + '@keyframes wiz-pop{from{opacity:0;transform:scale(.6)}to{opacity:1;transform:none}}'
         + '@keyframes wiz-fade{from{opacity:.4}to{opacity:1}}'
-        + '@keyframes wiz-tilt{0%{transform:rotate(0)}30%{transform:rotate(14deg)}55%{transform:rotate(-5deg)}'
-        + '75%{transform:rotate(2deg)}100%{transform:rotate(0)}}'
+        + '@keyframes wiz-press{0%{transform:none}40%{transform:scale(.95)}100%{transform:none}}'
         // short screens (small phones, a keyboard up): a smaller watch keeps the options in view
         // (the screen at 180 px; at its own size on emery and on the Screens step, emery last: same specificity)
         + '@media (max-height:700px){#wizard .wiz-stage.big .wiz-scr{width:202.5px}'
         + '#wizard .wiz-flick .wiz-stage.big .wiz-scr{width:162px}#wizard.w200 .wiz-stage.big .wiz-scr{width:224px}'
         + '#wizard .wiz-graph{max-width:290px}#wizard .wiz-title{font-size:22px}}'
-        + '@media (prefers-reduced-motion:reduce){#wizard .wiz-step,#wizard .wiz-badge,#wizard .wiz-flick-watch.tilt,'
+        + '@media (prefers-reduced-motion:reduce){#wizard .wiz-step,#wizard .wiz-badge,#wizard .wiz-flick-watch.press,'
         + '#wizard .wiz-graph svg,#wizard .wiz-look svg{animation:none}#wizard [data-wiz-watch] .wiz-scr,#wizard .wiz-seg{transition:none}}';
 
-    var api = { CSS: WIZ_CSS, ICON_BACK: ICON_BACK, ICON_DONE: ICON_DONE, ICON_FLICK: ICON_FLICK, ICON_X: ICON_X };
+    var api = { CSS: WIZ_CSS, ICON_BACK: ICON_BACK, ICON_DONE: ICON_DONE, ICON_TAP: ICON_TAP, ICON_X: ICON_X };
 
     // Dual-context export — mirrors the tail of src/pkjs/forecast-graphs/domain/forecast-axis.js.
     if (typeof module !== 'undefined' && module.exports) {

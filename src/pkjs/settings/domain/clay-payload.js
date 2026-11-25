@@ -94,18 +94,13 @@ var VIEW_RESET_MINUTES_MASK = 0xFF;
 var VIEW_RESET_DOUBLE_FLICK = 0x100;
 
 /**
- * The CLAY_VIEW_RESET_MIN word: the auto-return minutes plus the Double flick bit. The
- * minutes mask stops any input (e.g. '-1') from spilling into the flag bit.
+ * The CLAY_VIEW_RESET_MIN word: the auto-return minutes. The mask keeps any input (e.g. '-1')
+ * out of the retired Double flick bit, which is always sent clear (a stale doubleFlick is ignored).
  * @param {Object} settings Clay settings.
- * @returns {number} Non-negative int, at most 0x1FF.
+ * @returns {number} Non-negative int, at most 0xFF.
  */
 function packViewReset(settings) {
-    var word = (parseInt(settings.viewResetMin, 10) || 0) & VIEW_RESET_MINUTES_MASK;
-    // Absent reads as off, which is the toggle's default.
-    if (settings.doubleFlick) {
-        word = word | VIEW_RESET_DOUBLE_FLICK;
-    }
-    return word;
+    return (parseInt(settings.viewResetMin, 10) || 0) & VIEW_RESET_MINUTES_MASK;
 }
 
 /**

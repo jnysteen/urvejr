@@ -146,11 +146,7 @@ uint8_t view_cursor_after_config(uint8_t cursor, const uint32_t old_word[3],
 // minute still gets its full window before snapping back to the default view.
 bool view_auto_return_due(int32_t now, int32_t flick_since, uint8_t reset_min);
 
-// ── Screen-tap gate (pure) ── raw touch events -> view switches.
-// A tap is a touch that lifts off near where it touched down, soon after. A finger that
-// slides further than VIEW_TAP_SLOP_PX at any point (a swipe, a drag, a palm or sleeve
-// sliding over the glass) or stays down VIEW_TAP_MAX_MS or longer (a press, a resting
-// finger) is not a tap and switches nothing.
+// Screen-tap gate: a swipe, a long press or a sleeve brushing the glass must not switch views.
 #define VIEW_TAP_SLOP_PX 16
 #define VIEW_TAP_MAX_MS 700
 typedef struct {
@@ -162,17 +158,13 @@ static inline bool view_tap_near(const ViewTapGate *gate, int16_t x, int16_t y) 
     int dx = x - gate->x, dy = y - gate->y;
     return dx * dx + dy * dy <= VIEW_TAP_SLOP_PX * VIEW_TAP_SLOP_PX;
 }
-// A finger touched the screen: start a candidate tap.
 static inline void view_tap_down(ViewTapGate *gate, int16_t x, int16_t y, uint32_t now_ms) {
     *gate = (ViewTapGate){ .down_ms = now_ms, .x = x, .y = y, .down = true };
 }
-// The finger moved: drop the candidate once it slides out of the slop.
 static inline void view_tap_move(ViewTapGate *gate, int16_t x, int16_t y) {
     if (gate->down && !view_tap_near(gate, x, y)) { gate->down = false; }
 }
-// The finger lifted: true = it was a tap, advance the view. A Liftoff with no Touchdown
-// before it (a touch that began before the subscription) is not a tap. The unsigned
-// elapsed time reads a wall-clock step back as "long ago", so that lift is no tap either.
+// Unsigned elapsed time: a wall-clock step back reads as "long ago", so no tap.
 static inline bool view_tap_up(ViewTapGate *gate, int16_t x, int16_t y, uint32_t now_ms) {
     bool tap = gate->down && view_tap_near(gate, x, y)
                && (uint32_t) (now_ms - gate->down_ms) < VIEW_TAP_MAX_MS;

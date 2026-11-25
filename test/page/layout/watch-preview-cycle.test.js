@@ -60,7 +60,7 @@ test('radar and health grow the cycle by a view each', () => {
   assert.equal(n({ healthMode: 'off' }), 2, 'an unset radar mode counts as the default, on');
   const html = pw.watchPreview({ layoutPreset: 'compactDense', radarMode: 'graph', healthMode: 'all' }, BASALT, {});
   assert.deepEqual((html.match(/class="wpv-cap" aria-hidden="true">[^<]*/g) || []).map((m) => m.split('>')[1]),
-    ['Default', 'Flick 1', 'Flick 2'], 'one card per view, named');
+    ['Default', 'Screen 2', 'Screen 3'], 'one card per view, named');
 });
 
 test('each tier seats its status rows where the watch does', () => {

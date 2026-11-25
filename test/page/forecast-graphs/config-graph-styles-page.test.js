@@ -64,7 +64,7 @@ function stylesItem(two, three, names) {
   return JSON.stringify({ names: names || ['', 'Long', ''], styles: [null, two || null, three || null] });
 }
 
-// Two screens: the Default on the first style (24 h), Flick 1 on "Long" (the long span, cloud).
+// Two screens: the Default on the first style (24 h), Screen 2 on "Long" (the long span, cloud).
 const TWO = layout(['1', '2'], {
   provider: 'dwd', forecastHours: '24', secondaryLine: 'precip_prob', thirdLine: 'off',
   graphStyles: stylesItem({ forecastHours: '48', thirdLine: 'cloud', thirdLineStyle: 'stripeTop' })
@@ -211,12 +211,12 @@ test('the cards\' line: a graph\'s length and the screens it shows on', () => {
   // The cards' line: the length, then the screens.
   const line = (S, k) => row(S, EMERY, k).where;
   assert.equal(line(TWO, 0), '24 h · Default');
-  assert.match(line(TWO, 1), /^\d+ h · Flick 1$/);
-  assert.notEqual(line(TWO, 1), '48 h · Flick 1', 'the long span by the hours it shows');
+  assert.match(line(TWO, 1), /^\d+ h · Screen 2$/);
+  assert.notEqual(line(TWO, 1), '48 h · Screen 2', 'the long span by the hours it shows');
   const three = layout(['1', '2', '2'], { graphStyles: TWO.graphStyles, forecastHours: '24' });
-  assert.match(line(three, 1), /^\d+ h · Flick 1, Flick 2$/);
+  assert.match(line(three, 1), /^\d+ h · Screen 2, Screen 3$/);
   assert.match(line(layout(['1'], { graphStyles: TWO.graphStyles }), 1), /^\d+ h · No screen$/);
-  assert.equal(line(layout(['1', '3'], { graphStyles: TWO.graphStyles }), 0), '24 h · Default, Flick 1',
+  assert.equal(line(layout(['1', '3'], { graphStyles: TWO.graphStyles }), 0), '24 h · Default, Screen 2',
     'a screen on a style that does not exist draws the first');
 });
 
@@ -349,7 +349,7 @@ test('the page: Your graphs lists each graph with its picture, where it shows, i
     ['1', 'Graph 1', 'Precipitation %', 'Room for 3 more metrics'],
     ['2', 'Long', 'Precipitation %, Cloud cover % (stripe)', 'Room for 2 more metrics']], 'a row per graph, a tap opens it');
   assert.equal(r[0][2], '24 h · Default', 'its length and its screens');
-  assert.match(r[1][2], /^\d+ h · Flick 1$/);
+  assert.match(r[1][2], /^\d+ h · Screen 2$/);
   assert.ok(html.indexOf('id="nh-gl0"') !== -1 && html.indexOf('id="nh-gl1"') !== -1, 'each picture\'s ids its own');
   assert.equal(html.indexOf('gl-lead'), -1, 'two graphs: no lead');
   ['pickGraph', 'renameGraph', 'ui-pen', 'deleteGraphStyle', 'graphOnScreen'].forEach((gone) =>
@@ -374,7 +374,7 @@ test('the page: Your graphs lists each graph with its picture, where it shows, i
 
 test('a row\'s room: the graph\'s free lines, and on a graph the screens show no more than their five metrics leave', () => {
   const room = (S, env, k) => row(S, env, k).room;
-  // Graph 1 draws four metrics on the Default, Long the fifth on Flick 1.
+  // Graph 1 draws four metrics on the Default, Long the fifth on Screen 2.
   const four = layout(['1', '2'], { secondaryLine: 'precip_prob', thirdLine: 'uv', fourthLine: 'wind', fifthLine: 'gust',
     graphStyles: stylesItem({ secondaryLine: 'cloud', thirdLine: 'off', fourthLine: 'off', fifthLine: 'off' }) });
   assert.equal(room(four, EMERY, 0), 'Full: 4 metrics', 'every line taken');
@@ -414,7 +414,7 @@ test('the page: a row opens its graph\'s dialog; its edits are that graph\'s, Do
   assert.equal(p.modal.innerHTML, '', 'Done closes it');
   assert.equal(p.S.forecastHours, '24', 'and the flat keys hold the first graph again');
   assert.equal(p.S[GSP.SWAP], undefined);
-  assert.equal(rows(p.scroll.innerHTML)[1][2], '12 h · Flick 1', 'the row says the new length');
+  assert.equal(rows(p.scroll.innerHTML)[1][2], '12 h · Screen 2', 'the row says the new length');
   assert.ok(p.asked.indexOf('[data-action="openGraph"][data-action-arg="2"]') !== -1, 'the focus goes back to its row');
   assert.ok(p.scroll.innerHTML.indexOf('data-action="openGraph" data-action-arg="2"') !== -1);
   // × puts back what the dialog changed.
@@ -588,7 +588,7 @@ test('the page: Delete in a graph\'s dialog closes it and moves its screens to t
   assert.equal(p.modal.innerHTML, '', 'the dialog closes: its graph is gone');
   assert.equal(GSP.graphShown(p.S, EMERY), false);
   assert.equal(GS.count(p.S), 1);
-  assert.equal(p.S.viewStyle1, '1', 'Flick 1 draws the first graph');
+  assert.equal(p.S.viewStyle1, '1', 'Screen 2 draws the first graph');
   assert.equal(p.S.forecastHours, '24');
   assert.deepEqual(rows(p.scroll.innerHTML).map((x) => x[1]), ['Graph 1']);
   assert.match(p.scroll.innerHTML, /Long deleted\./);
@@ -660,7 +660,7 @@ test('the screen editor: with several graphs a chip per graph adds the forecast 
 
 test('the screen editor: a graph that would make the screens show a sixth metric is a greyed-out chip; a tap on it says why', () => {
   const M = require('../../../src/pkjs/layout/domain/screens.js');
-  // Default draws Graph 1's four series; Flick 1 has no forecast graph. Long would add cloud and
+  // Default draws Graph 1's four series; Screen 2 has no forecast graph. Long would add cloud and
   // pressure (six), Sky cloud alone (five, on the spare row).
   const S = layout(['1', '1'], { provider: 'dwd', viewBody1: 'none', viewTop1: 'cal',
     secondaryLine: 'precip_prob', thirdLine: 'uv', fourthLine: 'wind', fifthLine: 'gust',
@@ -702,7 +702,7 @@ function switchChips(html) {
 
 test('the screen editor: with its forecast graph on, Switch graph offers the other graphs; a tap puts one in its place', () => {
   const M = require('../../../src/pkjs/layout/domain/screens.js');
-  // Three graphs; Flick 1 draws Long over the calendar, its graph 3 rows.
+  // Three graphs; Screen 2 draws Long over the calendar, its graph 3 rows.
   const S = layout(['1', '2'], { provider: 'dwd', forecastHours: '24', secondaryLine: 'precip_prob', thirdLine: 'off',
     viewTop1: 'cal', viewBodySize1: '3',
     graphStyles: stylesItem({ forecastHours: '48', thirdLine: 'cloud', thirdLineStyle: 'stripeTop' },
@@ -743,7 +743,7 @@ test('the screen editor: with its forecast graph on, Switch graph offers the oth
 
 test('the screen editor: a graph that would make the screens show a sixth metric is a greyed-out Switch graph chip', () => {
   const M = require('../../../src/pkjs/layout/domain/screens.js');
-  // Default draws Graph 1's four series; Flick 1 draws Sky (cloud: the fifth). Long would make
+  // Default draws Graph 1's four series; Screen 2 draws Sky (cloud: the fifth). Long would make
   // it cloud and pressure (six).
   const S = layout(['1', '3'], { provider: 'dwd', viewTop1: 'cal',
     secondaryLine: 'precip_prob', thirdLine: 'uv', fourthLine: 'wind', fifthLine: 'gust',
@@ -768,26 +768,26 @@ test('the screen editor: a graph that would make the screens show a sixth metric
 });
 
 test('the page: Show on in a graph\'s dialog puts the graph on a screen or takes it off', async () => {
-  // Default and Flick 1 draw graph 1, Flick 2 has no forecast graph; Long is on no screen.
+  // Default and Screen 2 draw graph 1, Screen 3 has no forecast graph; Long is on no screen.
   const S = layout(['1', '1', '1'], { provider: 'dwd', forecastHours: '24', viewBody2: 'none', viewTop2: 'cal',
     graphStyles: stylesItem({ forecastHours: '48', thirdLine: 'cloud', thirdLineStyle: 'stripeTop' }) });
   const p = bootGeneratedPage(S, 'emery');
   p.clickTab('graphs');
   // Graph 1: its ticks stay (a screen draws it unless it has another graph).
   p.tapAction('openGraph', 1);
-  assert.deepEqual(chips(p.modal.innerHTML), [['Default', 'kept'], ['Flick 1', 'kept'], ['Flick 2', 'dim']]);
-  assert.ok(p.modal.innerHTML.indexOf('Flick 2 has no forecast graph. A screen shows Graph 1 unless you give it another graph.') !== -1);
+  assert.deepEqual(chips(p.modal.innerHTML), [['Default', 'kept'], ['Screen 2', 'kept'], ['Screen 3', 'dim']]);
+  assert.ok(p.modal.innerHTML.indexOf('Screen 3 has no forecast graph. A screen shows Graph 1 unless you give it another graph.') !== -1);
   p.doneDialog();
   p.tapAction('openGraph', 2);
-  assert.deepEqual(chips(p.modal.innerHTML), [['Default', 'off'], ['Flick 1', 'off'], ['Flick 2', 'dim']]);
+  assert.deepEqual(chips(p.modal.innerHTML), [['Default', 'off'], ['Screen 2', 'off'], ['Screen 3', 'dim']]);
   p.tapAction('graphOnScreen', 1, 'modal');
-  assert.equal(p.S.viewStyle1, '2', 'Flick 1 draws Long');
+  assert.equal(p.S.viewStyle1, '2', 'Screen 2 draws Long');
   assert.equal(p.S.forecastHours, '48', 'Long is still the graph on show');
-  assert.deepEqual(chips(p.modal.innerHTML), [['Default', 'off'], ['Flick 1', 'on'], ['Flick 2', 'dim']]);
+  assert.deepEqual(chips(p.modal.innerHTML), [['Default', 'off'], ['Screen 2', 'on'], ['Screen 3', 'dim']]);
   p.tapAction('graphOnScreen', 2, 'modal');
   assert.equal(p.S.viewStyle2, '1', 'a screen without a forecast graph is left alone');
   p.tapAction('graphOnScreen', 1, 'modal');
-  assert.equal(p.S.viewStyle1, '1', 'off again: Flick 1 draws the first graph');
+  assert.equal(p.S.viewStyle1, '1', 'off again: Screen 2 draws the first graph');
   p.tapAction('graphOnScreen', 0, 'modal');
   p.doneDialog();
   assert.match(rows(p.scroll.innerHTML)[1][2], /^\d+ h · Default$/, 'the list says where it shows');
@@ -798,7 +798,7 @@ test('the page: Show on in a graph\'s dialog puts the graph on a screen or takes
   p.cancelDialog();
   assert.equal(p.S.viewStyle1, '1');
   p.tapAction('openGraph', 1);
-  assert.deepEqual(chips(p.modal.innerHTML), [['Default', 'off'], ['Flick 1', 'kept'], ['Flick 2', 'dim']]);
+  assert.deepEqual(chips(p.modal.innerHTML), [['Default', 'off'], ['Screen 2', 'kept'], ['Screen 3', 'dim']]);
   p.tapAction('graphOnScreen', 1, 'modal');
   assert.equal(p.S.viewStyle1, '1', 'the first graph\'s own tick does nothing');
   p.doneDialog();
@@ -821,7 +821,7 @@ test('the page: Show on in a graph\'s dialog puts the graph on a screen or takes
   q.tapAction('openGraph', 2);
   // Graph 1 draws four series on the other screen, so Long's cloud and pressure would make six
   // on either.
-  assert.deepEqual(chips(q.modal.innerHTML), [['Default', 'dim'], ['Flick 1', 'dim']]);
+  assert.deepEqual(chips(q.modal.innerHTML), [['Default', 'dim'], ['Screen 2', 'dim']]);
   assert.ok(q.modal.innerHTML.indexOf('The watch can show 5 metrics across all your screens. In use: Precipitation %,'
     + ' UV Index, Wind speed, Wind gusts. Long also needs Cloud cover % and Air pressure (hPa). To make room, turn off a line'
     + ' in one of your graphs.') !== -1, 'the limit says why: what is in use, what Long adds, what to do');
@@ -847,7 +847,7 @@ const COUNTS = '<p class="intro-more">The graphs on your screens can show 5 metr
 
 test('the page: Your graphs\' header counts the metrics the screens use, "2/5 metrics active"; its \'?\' says which', () => {
   // Graph 1 draws the rain chance on the Default; Long the rain chance too and the cloud stripe
-  // on Flick 1: the rain chance counts once.
+  // on Screen 2: the rain chance counts once.
   const p = bootGeneratedPage(TWO, 'emery');
   p.clickTab('graphs');
   let html = p.scroll.innerHTML;
@@ -863,14 +863,14 @@ test('the page: Your graphs\' header counts the metrics the screens use, "2/5 me
   assert.ok(html.indexOf(info) < html.indexOf('data-action="openGraph"'), 'first in the card');
   p.toggleInfo('n:graphs:graphStyle/0');
   assert.equal(p.scroll.innerHTML.indexOf('Active:'), -1, 'the \'?\' again hides it');
-  // It follows the screens: Long off Flick 1 draws Graph 1 there, and a graph no screen shows
+  // It follows the screens: Long off Screen 2 draws Graph 1 there, and a graph no screen shows
   // does not count.
   p.tapAction('openGraph', 2);
   p.tapAction('graphOnScreen', 1, 'modal');
   p.doneDialog();
   assert.equal(p.S.viewStyle1, '1');
   assert.equal(headerNote(p.scroll.innerHTML).text, '1/5 metrics active');
-  // And the lines: a third metric on Long while it is back on Flick 1.
+  // And the lines: a third metric on Long while it is back on Screen 2.
   p.tapAction('openGraph', 2);
   p.tapAction('graphOnScreen', 1, 'modal');
   p.openNestedSheet('lineThird');
@@ -919,7 +919,7 @@ test('a screen picture draws its forecast graph with the screen\'s style', () =>
   const S = Object.assign({}, TWO, { graphStyles: stylesItem({ forecastHours: '12', barSource: 'off' }) });
   const cycle = VC.resolveViewCycle(S);
   const svg = (spec, st) => PW.screenSvg(spec, 0, st, EMERY, {}, 1, new Date(2026, 10, 8, 12, 0), 'x').svg;
-  // Flick 1 draws style 2: the same picture as the Default screen's view drawn from style 2's settings.
+  // Screen 2 draws style 2: the same picture as the Default screen's view drawn from style 2's settings.
   assert.equal(cycle[1].graphStyle, 1);
   const two = GS.settingsFor(S, 1);
   const plain = Object.assign({}, cycle[1]);

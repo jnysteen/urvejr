@@ -86,12 +86,12 @@ test('a first edit turns a preset custom through its own keys: the other screens
   const S = preset();
   const before = words(S);
   assert.deepEqual(M.screensOf(S), DEFAULT_SCREENS, 'premise: the preset\'s screens');
-  SP.writeScreen(S, 2, M.remove(DEFAULT_SCREENS[2], 2), EMERY);   // the Radar bar off Flick 2
+  SP.writeScreen(S, 2, M.remove(DEFAULT_SCREENS[2], 2), EMERY);   // the Radar bar off Screen 3
   assert.equal(S.layoutPreset, 'custom');
   assert.equal(S.customLayoutSeeded, true);
   const after = words(S);
-  assert.deepEqual(after.slice(0, 2), before.slice(0, 2), 'Default and Flick 1 byte for byte');
-  assert.notDeepEqual(after[2], before[2], 'Flick 2 changed');
+  assert.deepEqual(after.slice(0, 2), before.slice(0, 2), 'Default and Screen 2 byte for byte');
+  assert.notDeepEqual(after[2], before[2], 'Screen 3 changed');
   assert.deepEqual(M.screensOf(S)[2], [b('strip'), b('clock'), b('radar', { size: 'fill' })]);
   assert.deepEqual([S.radarMode, S.healthMode], ['graph', 'all'], 'the modes the screens need');
 });
@@ -130,7 +130,7 @@ test('a bar with a reading of its own, or one a screen shows already, keeps its 
 });
 
 test('a screen put in where a deleted one\'s keys still lie fills the bar it brings', () => {
-  // Flick 2 (the Rain radar screen) deleted: its keys stay in the slot past the last screen.
+  // Screen 3 (the Rain radar screen) deleted: its keys stay in the slot past the last screen.
   const S = preset(BLANK_RADAR);
   assert.equal(SP.deleteScreen(S, 2, EMERY), true);
   assert.equal(S.viewLower2, 'radar', 'premise: the deleted screen\'s Radar bar still in its keys');
@@ -147,7 +147,7 @@ test('Delete a flick screen: the ones after it move up, and Undo puts every key 
   assert.equal(SP.deleteScreen(S, 3, EMERY), false, 'no such screen');
   assert.equal(SP.deleteScreen(S, 1, EMERY), true);
   assert.equal(S.viewCount, '2');
-  assert.deepEqual(M.screensOf(S), [DEFAULT_SCREENS[0], DEFAULT_SCREENS[2]], 'the radar screen is Flick 1 now');
+  assert.deepEqual(M.screensOf(S), [DEFAULT_SCREENS[0], DEFAULT_SCREENS[2]], 'the radar screen is Screen 2 now');
   assert.equal(S.healthMode, 'off', 'no screen shows health any more');
   SP.restore(S, snap, EMERY);
   assert.equal(JSON.stringify(S), kept, 'Undo: every key and both modes as they were');
@@ -227,8 +227,8 @@ test('the Watchface tab: the screens pinned on top, the Screens card, then Scree
   const html = page.scroll.innerHTML;
   assert.deepEqual(cardRows(html), [
     ['Default', 'Calendar · Clock · Forecast bar · Forecast graph', false],
-    ['Flick 1', 'Clock · Health bar · Health graph', true],
-    ['Flick 2', 'Clock · Radar bar · Rain radar', true]
+    ['Screen 2', 'Clock · Health bar · Health graph', true],
+    ['Screen 3', 'Clock · Radar bar · Rain radar', true]
   ], 'a row per screen, no pictures, a ✕ on each flick');
   assert.equal(html.indexOf('data-action="addScreen"'), -1, 'three screens: none to add');
   assert.ok(html.indexOf('<span class="ttl">Screen switching</span>') > html.indexOf('<span class="ttl">Screens</span>'));
@@ -237,7 +237,7 @@ test('the Watchface tab: the screens pinned on top, the Screens card, then Scree
   assert.equal(html.indexOf('data-k="layoutPreset"'), -1, 'no Layout card');
   // A tap on a pinned screen or a card row opens its editor.
   page.tapAction('openScreen', 1);
-  assert.equal(editorOf(page).title, 'Flick 1');
+  assert.equal(editorOf(page).title, 'Screen 2');
   page.tapEditor({ se: 'close' });
   assert.equal(page.editor(), null, 'closed');
 });
@@ -248,10 +248,10 @@ test('a ✕ deletes a flick screen at once, and Undo puts it back', (t) => {
   page.tapAction('deleteScreen', 1);
   assert.deepEqual(cardRows(page.scroll.innerHTML).map((r) => r.slice(0, 2)), [
     ['Default', 'Calendar · Clock · Forecast bar · Forecast graph'],
-    ['Flick 1', 'Clock · Radar bar · Rain radar']
+    ['Screen 2', 'Clock · Radar bar · Rain radar']
   ]);
   // The page's one Undo (ui.js undoToast), as after a Delete status bar or a deleted graph.
-  assert.match(page.scroll.innerHTML, /<div class="ui-toast" role="status"><span>Flick 1 deleted\.<\/span><button type="button" class="ui-undo" data-action="undoDeleteScreen">Undo<\/button><\/div>/);
+  assert.match(page.scroll.innerHTML, /<div class="ui-toast" role="status"><span>Screen 2 deleted\.<\/span><button type="button" class="ui-undo" data-action="undoDeleteScreen">Undo<\/button><\/div>/);
   assert.ok(page.scroll.innerHTML.indexOf('<button type="button" class="ui-row ui-new" data-action="addScreen"><svg class="ui-ic"')
     !== -1 && page.scroll.innerHTML.indexOf('<span class="ui-n">Add screen</span></button>') !== -1,
   'room for one more: the New row, as New status bar and New graph');
@@ -260,7 +260,7 @@ test('a ✕ deletes a flick screen at once, and Undo puts it back', (t) => {
   assert.equal(page.scroll.innerHTML.indexOf('ui-toast'), -1, 'and the toast goes');
   // Unanswered, the toast goes by itself.
   page.tapAction('deleteScreen', 2);
-  assert.ok(page.scroll.innerHTML.indexOf('Flick 2 deleted.') !== -1);
+  assert.ok(page.scroll.innerHTML.indexOf('Screen 3 deleted.') !== -1);
   t.mock.timers.tick(5000);
   assert.equal(page.scroll.innerHTML.indexOf('ui-toast'), -1, 'gone after five seconds');
 });
@@ -318,7 +318,7 @@ test('the editor says how to reorder while two rows can move, and its calendar a
   const page = bootGeneratedPage(THREE);
   page.tapAction('openScreen', 1);
   let body = editorOf(page).body;
-  // Flick 1: the Watch bar (it stays on top), the Clock, the Health bar and graph.
+  // Screen 2: the Watch bar (it stays on top), the Clock, the Health bar and graph.
   const hint = '<div class="ui-foot se-hint">' + SP.ROWS_HINT + '</div>';
   // How to reorder alone: that the watch shows the rows top to bottom goes without saying (the
   // owner's, 2026-11-09).
@@ -419,7 +419,7 @@ test('Add: a chip per status bar, by its name, in the bars\' place; a tap puts t
   const page = bootGeneratedPage(Object.assign({ statusRadarName: 'Sky' }, THREE));
   page.tapAction('openScreen', 1);
   let body = editorOf(page).body;
-  // Flick 1 shows the Health bar: the other two by their names, in the status bars' group, and
+  // Screen 2 shows the Health bar: the other two by their names, in the status bars' group, and
   // New status bar.
   assert.deepEqual(editorAddChips(body), ['Forecast bar', 'Sky', 'New status bar', 'Forecast graph', 'Rain radar', 'Calendar']);
   assert.ok(body.indexOf(ui.chip('Sky', { 'data-se': 'add', 'data-k': 'radarbar' }, { icon: 'plus' })) !== -1);
@@ -605,8 +605,8 @@ test('Delete screen at the foot of a flick screen\'s editor', (t) => {
   page.tapAction('openScreen', 2);
   page.tapEditor({ se: 'delscreen' });
   assert.equal(page.editor(), null, 'the editor closes');
-  assert.deepEqual(cardRows(page.scroll.innerHTML).map((r) => r[0]), ['Default', 'Flick 1']);
-  assert.ok(page.scroll.innerHTML.indexOf('Flick 2 deleted.') !== -1, 'with its Undo');
+  assert.deepEqual(cardRows(page.scroll.innerHTML).map((r) => r[0]), ['Default', 'Screen 2']);
+  assert.ok(page.scroll.innerHTML.indexOf('Screen 3 deleted.') !== -1, 'with its Undo');
 });
 
 test('the radar off: the Rain radar row says so with a way back on, and the picture draws without it', () => {
@@ -622,7 +622,7 @@ test('the radar off: the Rain radar row says so with a way back on, and the pict
   let ed = editorOf(page);
   assert.ok(ed.body.indexOf('<div class="se-sub se-off"><span>The rain radar is off.</span>'
     + '<button type="button" class="se-link" data-se="radaron">Turn on</button></div>') !== -1);
-  assert.match(ed.body, /aria-label="Flick 2: Clock · Radar bar · Rain radar \(off\)"/);
+  assert.match(ed.body, /aria-label="Screen 3: Clock · Radar bar · Rain radar \(off\)"/);
   page.tapEditor({ se: 'radaron' });
   ed = editorOf(page);
   assert.equal(page.S.radarEnabled, true);

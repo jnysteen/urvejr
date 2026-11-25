@@ -266,10 +266,10 @@ test('the Screens step\'s screens: a second forecast, Health and Rain radar, in 
   assert.equal(SCREENS.templateOf(second).id, 'forecast2');
   assert.equal(SCREENS.insertAt([[], second.slice(), SCREENS.listOf(SCREENS.byId('health'), '')], 'radar'), 3);
   assert.equal(SCREENS.insertAt([[], SCREENS.listOf(SCREENS.byId('health'), '')], 'forecast2'), 1, 'before the Health screen');
-  // An upgraded install's flick screens ARE the two (today's Flick 1 and Flick 2).
+  // An upgraded install's flick screens ARE the two (today's Screen 2 and Screen 3).
   const three = M.screensOf({ layoutPreset: 'compactCal', healthMode: 'all', radarMode: 'graph' });
   assert.deepEqual(three.map((l, i) => SCREENS.nameOf(l, i)), ['Default', 'Health', 'Rain radar']);
-  assert.equal(SCREENS.nameOf([b('strip'), b('clock')], 2), 'Flick 2', 'a screen of the user\'s own: its place');
+  assert.equal(SCREENS.nameOf([b('strip'), b('clock')], 2), 'Screen 3', 'a screen of the user\'s own: its place');
   // Health goes in before a Rain radar screen, the Rain radar screen after the others.
   assert.equal(SCREENS.insertAt([three[0], three[2]], 'health'), 1);
   assert.equal(SCREENS.insertAt([three[0]], 'health'), 1);

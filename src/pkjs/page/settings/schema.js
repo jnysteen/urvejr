@@ -1447,9 +1447,6 @@ module.exports = {
             ]
         }, {
             // When the watch goes back to the Default screen, once there is a screen to tap to.
-            // A tap on the screen switches screens; the old Double flick toggle is gone (its
-            // key, doubleFlick, may linger in a saved store and rides CLAY_VIEW_RESET_MIN's
-            // bit 8, which the watch no longer reads: config.h view_double_flick).
             id: 'screenSwitching',
             title: 'Screen switching',
             showWhen: {when: 'manyScreens'},

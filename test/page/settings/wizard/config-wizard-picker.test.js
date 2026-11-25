@@ -178,7 +178,7 @@ test('the last step sums up the picks as their pickers named them; Change goes b
   const row = (k) => (new RegExp('<span class="k">' + k + '</span><span class="v"[^>]*>([^<]*)</span>').exec(body) || [])[1];
   assert.equal(row('Country'), 'Germany');
   assert.equal(row('Layout'), 'No calendar');
-  assert.equal(row('Screens'), 'Default, Flick 1', 'No calendar with the Health bar: a flick screen of its own');
+  assert.equal(row('Screens'), 'Default, Screen 2', 'No calendar with the Health bar: a flick screen of its own');
   assert.equal(row('Theme'), 'Light');
   assert.ok(row('Weather'), 'the weather provider setup picked is named');
   assert.match(body, /data-wiz-goto="screens" aria-label="Change screens"/);
@@ -562,7 +562,7 @@ test('a layout that puts the Forecast bar back gives it its readings when it has
   assert.deepEqual(slotsOf(ctx.S, 'forecast'), ['temp', 'city', 'sun']);
 });
 
-test('Try a flick steps through the screens and back to Default', () => {
+test('Try a tap steps through the screens and back to Default', () => {
   mock.timers.enable({ apis: ['setTimeout'] });
   try {
     const { dom } = openSetup({ saved: { layoutPreset: 'compactCal', healthMode: 'all', radarMode: 'graph' } });
@@ -635,12 +635,12 @@ test('a screen of the user\'s own keeps its place\'s name, and only what fits is
     viewUpper1: 'weather', viewLower1: 'off', viewClockOff1: false, viewStripOff1: false };
   const { ctx, dom } = openSetup({ saved: own });
   walkToTitle(dom, 'Tap to switch screens');
-  assert.deepEqual(screenNames(ctx), ['Default', 'Flick 1']);
-  assert.match(dom.body.innerHTML, /aria-label="Remove the Flick 1 screen"/);
+  assert.deepEqual(screenNames(ctx), ['Default', 'Screen 2']);
+  assert.match(dom.body.innerHTML, /aria-label="Remove the Screen 2 screen"/);
   assert.deepEqual(dom.findAll('[data-wiz-scr-add]').map((b) => b.getAttribute('data-wiz-scr-add')),
     ['forecast2', 'health', 'radar'], 'room for one more: any');
   addScreen(dom, 'radar');
-  assert.deepEqual(screenNames(ctx), ['Default', 'Flick 1', 'Rain radar']);
+  assert.deepEqual(screenNames(ctx), ['Default', 'Screen 2', 'Rain radar']);
   assert.equal(dom.findAll('[data-wiz-scr-add]').length, 0);
 });
 

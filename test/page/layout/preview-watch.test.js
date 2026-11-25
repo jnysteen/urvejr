@@ -99,8 +99,8 @@ test('each screen is named and spoken band by band, and a tap opens its editor',
   const html = pw.watchPreview(S, env, {});
   assert.deepEqual(labels(html), [
     'Edit Default: Watch bar, Calendar (2 rows), Clock, Forecast bar, Forecast',
-    'Edit Flick 1: Watch bar, Clock, Health bar, Health graph',
-    'Edit Flick 2: Watch bar, Clock, Radar bar, Radar'
+    'Edit Screen 2: Watch bar, Clock, Health bar, Health graph',
+    'Edit Screen 3: Watch bar, Clock, Radar bar, Radar'
   ]);
   // Each is a button that opens its screen's editor (screens-page.js openScreen).
   assert.deepEqual((html.match(/<button type="button" class="wpv-v wpv-btn" data-action="openScreen" data-action-arg="\d"/g)

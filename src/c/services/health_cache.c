@@ -60,7 +60,7 @@ static void health_cache_fill_range(int start, int len) {
     if (len < 1) { return; }
     if (start + len == N) {
         // The in-progress hour: its 15-minute slot counts as read, whichever path reads it
-        // (a build, a restore's top-up, a rollover, the flick's or the tick's re-read).
+        // (a build, a restore's top-up, a rollover, the view switch's or the tick's re-read).
         s_quarter = time(NULL) / HEALTH_CACHE_QUARTER_S;
     }
     const time_t fa = s_end_hour + STEP;                 // exclusive end of bucket N-1
@@ -244,7 +244,7 @@ void health_cache_tick(bool view_visible) {
 
     // Same hour: re-read the in-progress bucket once per 15-minute slot while visible.
     // The slot, not its first second: a tick that runs late (behind a busy event loop)
-    // still gets its read, and a read the flick already made in this slot counts.
+    // still gets its read, and a read a view switch already made in this slot counts.
     if (view_visible && quarter != s_quarter) {
         health_cache_recalc(now_hour, 1);
     }

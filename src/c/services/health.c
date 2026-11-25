@@ -56,7 +56,7 @@ __attribute__((noinline)) static int sum_today(HealthMetric metric) {
    copy, so the answer stayed yes (bar a no at exactly 00:00:00, when the range from
    midnight to now is empty). The latch keeps that yes for the app's life without the
    read: while health is on, main_window.c asks health_available() through
-   health_renderable() twice per minute tick, about four times per flick and about
+   health_renderable() twice per minute tick, about four times per view switch and about
    five times per settings apply, and a shown distance slot asks for its metric on
    every minute. A no is asked again on the next call. */
 static bool latched_accessible(bool *latch, HealthMetric metric) {

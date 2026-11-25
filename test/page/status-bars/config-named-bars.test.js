@@ -22,7 +22,7 @@ const VC = require('../../../src/pkjs/layout/domain/view-cycle.js');
 const { buildClayPayload } = require('../../../src/pkjs/settings/domain/clay-payload.js');
 
 const EMERY = {};
-// An upgraded install's three screens: Default (Forecast bar), Flick 1 (Health bar), Flick 2
+// An upgraded install's three screens: Default (Forecast bar), Screen 2 (Health bar), Screen 3
 // (Radar bar).
 const THREE = { provider: 'dwd', radarMode: 'graph', healthMode: 'all' };
 
@@ -93,8 +93,8 @@ test('the Your status bars card: every bar by its name, where it shows and its s
   const html = page.scroll.innerHTML;
   assert.ok(html.indexOf('>Your status bars</span>') !== -1, 'the card');
   assert.ok(html.indexOf('Tap a bar to change its slots and the rest of its settings.') !== -1, 'its lead');
-  [['forecast', 'Forecast bar', 'Default'], ['health', 'Health bar', 'Flick 1'],
-    ['radar', 'Radar bar', 'Flick 2']].forEach(([bar, name, where]) => {
+  [['forecast', 'Forecast bar', 'Default'], ['health', 'Health bar', 'Screen 2'],
+    ['radar', 'Radar bar', 'Screen 3']].forEach(([bar, name, where]) => {
     const line = barLine(html, bar);
     // The whole row is one button that opens the bar's dialog (the owner's, 2026-11-14): its name
     // line (the name and where it shows; no alerts placed on it, no alerts line) over its picture.
@@ -238,7 +238,7 @@ test('the editor: a bar\'s row and its Add chip read by its name; the row has it
     + '</span></div>') !== -1, 'its Edit, named by the bar (the owner\'s pick, 2026-11-10)');
   assert.ok(body(page).indexOf('aria-label="Remove Morning"') !== -1);
   page.tapEditor({ se: 'close' });
-  // The same bar on Flick 1 too, by its chip: where else it shows is the Status bars tab's to
+  // The same bar on Screen 2 too, by its chip: where else it shows is the Status bars tab's to
   // say, not the row's.
   page.tapAction('openScreen', 1);
   assert.deepEqual(editorAddChips(body(page)), ['Morning', 'Radar bar', 'New status bar', 'Forecast graph', 'Rain radar', 'Calendar']);

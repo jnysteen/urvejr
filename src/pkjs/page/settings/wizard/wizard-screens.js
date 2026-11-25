@@ -18,7 +18,7 @@
     // The flick screens setup offers, in the order they go in: the second forecast screen (Pebble
     // Time 2: a second graph over the other length than the Default's, the owner's asks, 2026-11-09
     // and 2026-11-15; its graph is wizard.js'), the Health screen, then the Rain radar screen
-    // (today's Flick 1 and Flick 2): Add a screen's screens (screen-presets.js listOf). `graph` is
+    // (today's Screen 2 and Screen 3): Add a screen's screens (screen-presets.js listOf). `graph` is
     // the graph it shows. Each is named after its template as
     // it goes in, the second forecast after its length (forecastName); `name` is what a screen of
     // it that has no name of its own is called.
@@ -93,7 +93,7 @@
 
     /**
      * What the step calls a screen: its own name (screens.js nameOf), else Default, a template's
-     * name (a screen added before screens had names), else its place (Flick 1, Flick 2).
+     * name (a screen added before screens had names), else its place (Screen 2, Screen 3).
      * @param {Array<Object>} list The screen.
      * @param {number} i Its place (0 = Default).
      * @param {Object} [S] Settings (its stored name).
@@ -104,7 +104,7 @@
         if (own) { return own; }
         if (i === 0) { return M.NAMES[0]; }
         var t = templateOf(list);
-        return t ? t.name : M.NAMES[i] || 'Flick ' + i;
+        return t ? t.name : M.NAMES[i] || 'Screen ' + (i + 1);
     }
 
     /**

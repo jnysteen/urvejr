@@ -84,7 +84,7 @@ function names(S, env) {
 
 test('a screen\'s name: its own, else its place\'s; trimmed, 24 characters at most', () => {
   assert.equal(M.nameOf({}, 0), 'Default');
-  assert.equal(M.nameOf({ viewName1: '' }, 1), 'Flick 1');
+  assert.equal(M.nameOf({ viewName1: '' }, 1), 'Screen 2');
   assert.equal(M.nameOf({ viewName2: '  Rain  ' }, 2), 'Rain');
   assert.equal(M.nameOf({ viewName0: '   ' }, 0), 'Default', 'blank is no name');
   assert.equal(M.cleanName('x'.repeat(30)).length, M.NAME_MAX);
@@ -92,7 +92,7 @@ test('a screen\'s name: its own, else its place\'s; trimmed, 24 characters at mo
   const S = {};
   SP.renameScreen(S, 1, '  Weekend ');
   assert.equal(S.viewName1, 'Weekend');
-  SP.renameScreen(S, 1, 'Flick 1');
+  SP.renameScreen(S, 1, 'Screen 2');
   assert.equal(S.viewName1, '', 'the place\'s own name stores none: the screen keeps reading as its place');
   SP.renameScreen(S, 0, '');
   assert.equal(S.viewName0, '');
@@ -115,13 +115,13 @@ test('a move: the screens in between shift a place, their keys, names and graphs
   const w = words(S, EMERY);
   assert.equal(SP.moveScreen(S, 2, 0, EMERY), '');
   assert.deepEqual(words(S, EMERY), [w[2], w[0], w[1]], 'each screen draws what it drew, in its new place');
-  assert.deepEqual(names(S, EMERY), ['Default', 'Flick 1', 'Steps'],
+  assert.deepEqual(names(S, EMERY), ['Default', 'Screen 2', 'Steps'],
     'the top one is the Default; an unnamed one reads as its new place');
   assert.equal(S.viewClockOff1, false, 'the old Default keeps the clock it had');
   assert.equal(S.viewClockOff0, undefined, 'the top screen has no Clock off');
   assert.equal(SP.moveScreen(S, 0, 2, EMERY), '');
   assert.deepEqual(words(S, EMERY), [w[0], w[1], w[2]], 'and back');
-  assert.deepEqual(names(S, EMERY), ['Default', 'Steps', 'Flick 2']);
+  assert.deepEqual(names(S, EMERY), ['Default', 'Steps', 'Screen 3']);
   assert.deepEqual([S.radarMode, S.healthMode], ['graph', 'all'], 'the modes follow the screens');
 });
 
@@ -163,7 +163,7 @@ test('a delete and an insert carry the names with their screens', () => {
   assert.equal(SP.deleteScreen(S, 1, EMERY), true);
   assert.deepEqual(names(S, EMERY), ['Default', 'Rain']);
   assert.equal(SP.insertScreen(S, 1, M.copy(HEALTH), EMERY), true);
-  assert.deepEqual(names(S, EMERY), ['Default', 'Flick 1', 'Rain'], 'a screen put in starts with its place\'s name');
+  assert.deepEqual(names(S, EMERY), ['Default', 'Screen 2', 'Rain'], 'a screen put in starts with its place\'s name');
 });
 
 // --- the screens Add a screen offers -----------------------------------------------------
@@ -422,7 +422,7 @@ test('adding a screen: its rows on the calendar picked, after the others, named 
   assert.equal(SP.addChosen(B, EMERY, 'blank'), 1);
   assert.deepEqual(M.screensOf(B)[1], [b('strip'), b('clock')]);
   assert.equal(B.viewName1, '', 'no name of its own');
-  assert.equal(M.nameOf(B, 1), 'Flick 1');
+  assert.equal(M.nameOf(B, 1), 'Screen 2');
   // One that is not offered adds nothing.
   const U = fresh(EMERY), kept = JSON.stringify(U);
   assert.equal(SP.addChosen(U, EMERY, 'clean'), -1, 'a template is no kind');
@@ -588,7 +588,7 @@ test('setup\'s screens are Add a screen\'s, on a calendar; setup names what it a
   assert.equal(WS.nameOf(HEALTH, 1), 'Health', 'a screen added before names: its template');
   assert.equal(WS.nameOf(HEALTH, 1, { viewName1: 'Steps' }), 'Steps', 'its own name first');
   assert.equal(WS.nameOf([b('strip'), b('clock')], 0, { viewName0: 'Home' }), 'Home');
-  assert.equal(WS.nameOf([b('strip'), b('clock')], 2), 'Flick 2');
+  assert.equal(WS.nameOf([b('strip'), b('clock')], 2), 'Screen 3');
 });
 
 // --- the page --------------------------------------------------------------------------
@@ -624,7 +624,7 @@ test('the Screens card: a ≡ on each screen with two or more, the line that say
   assert.equal(one.scroll.innerHTML.indexOf(SP.REORDER_HINT), -1);
   const page = bootGeneratedPage(Object.assign({ viewName1: 'Steps' }, THREE));
   let html = page.scroll.innerHTML;
-  assert.deepEqual(cardRows(html), [['Default', '', true], ['Steps', '', true], ['Flick 2', '', true]]);
+  assert.deepEqual(cardRows(html), [['Default', '', true], ['Steps', '', true], ['Screen 3', '', true]]);
   assert.ok(html.indexOf('<div class="ui-row ui-foot" id="scrHint">' + SP.REORDER_HINT + '</div>') !== -1);
   // No "the watch starts on the top screen": it goes without saying (the owner's, 2026-11-09).
   assert.equal(SP.REORDER_HINT, 'Each tap on the screen shows the next one. Drag\u00a0≡ to change the order.');
@@ -632,13 +632,13 @@ test('the Screens card: a ≡ on each screen with two or more, the line that say
   const key = (i, k) => page.docDispatch('keydown', { key: k, target: grip(i), preventDefault() {} });
   key(1, 'ArrowUp');
   assert.deepEqual(cardRows(page.scroll.innerHTML).map((r) => r.slice(0, 2)),
-    [['Steps', 'Default'], ['Flick 1', ''], ['Flick 2', '']], 'Steps is the Default now; its pill says so');
+    [['Steps', 'Default'], ['Screen 2', ''], ['Screen 3', '']], 'Steps is the Default now; its pill says so');
   assert.deepEqual(M.screensOf(page.S).map((l) => l[l.length - 1].k), ['health', 'fc', 'radar']);
   key(0, 'ArrowUp');
   assert.deepEqual(M.screensOf(page.S).map((l) => l[l.length - 1].k), ['health', 'fc', 'radar'],
     'nowhere to go above the top');
   key(0, 'ArrowDown');
-  assert.deepEqual(cardRows(page.scroll.innerHTML).map((r) => r[0]), ['Default', 'Steps', 'Flick 2']);
+  assert.deepEqual(cardRows(page.scroll.innerHTML).map((r) => r[0]), ['Default', 'Steps', 'Screen 3']);
   html = page.scroll.innerHTML;
   assert.equal(html.indexOf('ui-note'), -1, 'no reason to give');
 });
@@ -879,7 +879,7 @@ test('Blank goes in at once, the Watch bar and the clock, its editor next', () =
   assert.equal(page.S.viewCount, '2');
   assert.deepEqual(M.screensOf(page.S)[1], [b('strip'), b('clock')]);
   const head = page.editor().querySelector('[data-se-head]').innerHTML;
-  assert.ok(head.indexOf('id="seTitle">Flick 1</span><button type="button" class="ui-pen"') !== -1,
+  assert.ok(head.indexOf('id="seTitle">Screen 2</span><button type="button" class="ui-pen"') !== -1,
     'its editor, by its place\'s name');
   assert.equal(page.S.graphStyles, fresh(EMERY).graphStyles, 'no graph made');
 });
@@ -1170,10 +1170,10 @@ test('the editor\'s title renames the screen: Enter keeps the name, Escape drops
   const page = bootGeneratedPage(THREE);
   page.tapAction('openScreen', 1);
   const ed = page.editor(), title = ed.querySelector('[data-se-head]');
-  assert.ok(title.innerHTML.indexOf('aria-label="Rename Flick 1"') !== -1);
+  assert.ok(title.innerHTML.indexOf('aria-label="Rename Screen 2"') !== -1);
   page.tapEditor({ se: 'rename' });
   // The page's one rename (ui.js renameField): the field in the title's place, OK in Done's.
-  assert.match(title.innerHTML, /<input type="text" class="ui-rn-in" data-se-name maxlength="24" autocomplete="off" aria-label="Screen name" placeholder="Flick 1" value="Flick 1"><button type="button" class="dlg-done" data-se="renameok">OK<\/button><\/div>$/);
+  assert.match(title.innerHTML, /<input type="text" class="ui-rn-in" data-se-name maxlength="24" autocomplete="off" aria-label="Screen name" placeholder="Screen 2" value="Screen 2"><button type="button" class="dlg-done" data-se="renameok">OK<\/button><\/div>$/);
   assert.equal(title.innerHTML.indexOf('>Done</button>'), -1, 'OK in Done\'s place');
   const input = ed.querySelector('[data-se-name]');
   assert.ok(input.focuses > 0, 'the field takes the focus');
@@ -1192,10 +1192,10 @@ test('the editor\'s title renames the screen: Enter keeps the name, Escape drops
   // Blur keeps what was typed; the place's name stores none.
   page.tapEditor({ se: 'rename' });
   const third = ed.querySelector('[data-se-name]');
-  third.value = 'Flick 1';
+  third.value = 'Screen 2';
   third.dispatch('blur', {});
   assert.equal(page.S.viewName1, '');
-  assert.ok(title.innerHTML.indexOf('id="seTitle">Flick 1</span>') !== -1);
+  assert.ok(title.innerHTML.indexOf('id="seTitle">Screen 2</span>') !== -1);
 });
 
 test('the names everywhere: the pinned watch\'s captions, the delete toast and the graph chips', (t) => {
@@ -1204,7 +1204,7 @@ test('the names everywhere: the pinned watch\'s captions, the delete toast and t
   const html = page.scroll.innerHTML;
   assert.ok(html.indexOf('<span class="wpv-cap" aria-hidden="true">Home</span>') !== -1);
   assert.ok(html.indexOf('<span class="wpv-cap" aria-hidden="true">Rain</span>') !== -1);
-  assert.deepEqual(cardRows(html).map((r) => r.slice(0, 2)), [['Home', 'Default'], ['Flick 1', ''], ['Rain', '']]);
+  assert.deepEqual(cardRows(html).map((r) => r.slice(0, 2)), [['Home', 'Default'], ['Screen 2', ''], ['Rain', '']]);
   page.tapAction('deleteScreen', 2);
   assert.ok(page.scroll.innerHTML.indexOf('Rain deleted.') !== -1);
   // The Graphs tab names the screens a graph shows on by their names.

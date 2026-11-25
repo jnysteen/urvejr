@@ -39,11 +39,10 @@ static uint8_t s_view_index;
 // keep the cursor). Whole words, so a change confined to the tier/top/custom bits (8-15)
 // or to the custom-layout ext word alone (a size or Position) is still detected.
 static uint32_t s_applied_view_word[3];
-// Epoch of the last view-switching flick (or relaunch-restore to a non-default view),
+// Epoch of the last view-switching tap (or relaunch-restore to a non-default view),
 // seeding the auto-return-to-default timer. 0 = on the default view / no timer running.
 static time_t s_flick_epoch;
-// Screen-tap gate state (rules: layout.h view_tap_down/move/up). RAM only, reset at each
-// subscribe: a touch that began before it is no tap.
+// Reset at each subscribe, so a touch that began before it is no tap.
 static ViewTapGate s_tap_gate;
 // Whether touch_handler is subscribed: only while the cycle can move (tap_follow_cycle).
 static bool s_tap_subscribed;
@@ -293,11 +292,7 @@ static void show_view(void) {
     main_window_refresh();
 }
 
-// A tap on the screen advances to the next enabled + available view and restarts the
-// auto-return timer. view_tap_down/move/up (layout.h) decide what counts as a tap; a touch
-// that is none changes nothing (no view, no auto-return restart, no health warm). Touches on
-// an idle face (event->non_navigational) count too: a watchface has no "wake first" step,
-// and the auto-return takes a brushed screen back to the default view.
+// Idle-face touches (non_navigational) count too: a watchface has no "wake first" step.
 static void touch_handler(const TouchEvent *event, void *context) {
     (void) context;
     time_t now_s;
@@ -323,10 +318,7 @@ static void touch_handler(const TouchEvent *event, void *context) {
     show_view();
 }
 
-// Take touch events only while a tap can move the cursor (layout.h view_cycle_flickable):
-// the touch sensor draws power while subscribed, so a face with one view keeps it off. The
-// cycle changes only with a settings apply, and each one calls this, as the load does; the
-// unload passes NULL.
+// Subscribe only while a tap can move the cursor: the touch sensor draws power while on.
 static void tap_follow_cycle(const uint32_t *words) {
     const bool want = words && view_cycle_flickable(words);
     if (want == s_tap_subscribed) { return; }

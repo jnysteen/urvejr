@@ -119,11 +119,7 @@ typedef struct {
     // zeros and renders exactly as it did. Appended at the END (append-only persist
     // offsets).
     uint16_t view_ext[3];
-    // --- double flick (v2.1), RETIRED: switched views only on the second of two wrist
-    // flicks. A tap on the screen switches views now (main_window.c touch_handler), and
-    // nothing reads this byte. It stays in place, as do its wire bit (bit 8 of
-    // CLAY_VIEW_RESET_MIN, config_wire.h VIEW_RESET_DOUBLE_FLICK) and its read: the fields
-    // after it keep their persist offsets.
+    // RETIRED (Double flick; taps switch views now): kept so later fields keep their persist offsets.
     bool view_double_flick;
     // --- forecast left axis (v2.2): bits 1-7 of the CLAY_LARGE_GRAPH_FONT
     // graph-options word as sent (GRAPH_OPT_* below); 0 = every option at its default, today's

@@ -63,7 +63,7 @@ void health_cache_tick(bool view_visible);
 void health_cache_reset(void);
 
 /**
- * Cheap in-progress-hour re-read for the flick path. No-op unless the cache is
+ * Cheap in-progress-hour re-read for the view-switch path. No-op unless the cache is
  * kept and ready, no build/refresh is in flight, and it is still aligned to the
  * current hour (a pending rollover is left to the tick).
  */

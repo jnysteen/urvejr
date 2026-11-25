@@ -1,6 +1,6 @@
 // test/page/layout/layout-flick-preview.test.js
 // The Watchface tab pins the watch preview at its top: one card per screen of the resolved
-// view cycle (Default, Flick 1, Flick 2), each a button that opens its editor.
+// view cycle (Default, Screen 2, Screen 3), each a button that opens its editor.
 // Drive the real engine over the Watchface tab and assert the cards track the cycle — a
 // screen a preset's modes leave out simply isn't in the cycle, so there's no card to dim.
 // Also covers the engine capability that a staticText item may host a blockBefore.
@@ -69,7 +69,7 @@ test('compactCal + radar shows a Default and a Flick card (radar view present)',
   assert.ok(body.indexOf('<svg') >= 0, 'preview SVG renders');
   assert.deepEqual(views(body), [
     'Default: Watch bar, Calendar (2 rows), Forecast bar, Clock, Forecast',
-    'Flick 1: Watch bar, Calendar (2 rows), Radar bar, Clock, Radar'
+    'Screen 2: Watch bar, Calendar (2 rows), Radar bar, Clock, Radar'
   ], 'two cards, the second the radar view');
 });
 
@@ -81,7 +81,7 @@ test('compactCal with radar disabled has no radar card', () => {
 
 test('compactDense all + radar shows three cards incl. Health graph', () => {
   const v = views(layoutBody({ layoutPreset: 'compactDense', radarMode: 'graph', healthMode: 'all' }));
-  assert.deepEqual(v.map((d) => d.split(':')[0]), ['Default', 'Flick 1', 'Flick 2'], 'three cards');
+  assert.deepEqual(v.map((d) => d.split(':')[0]), ['Default', 'Screen 2', 'Screen 3'], 'three cards');
   assert.ok(v.some((d) => /Health graph$/.test(d)), 'graph flick present');
 });
 
