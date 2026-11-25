@@ -40,15 +40,11 @@ test('buildSettingsBlob: byte 35 packs the Battery item — its warn level on th
   assert.equal(B, 35);
   assert.equal(wire.buildSettingsBlob({})[B], 10, 'absent: 10 %, Icon');
   assert.equal(wire.buildSettingsBlob(null)[B], 10, 'no settings at all: the same default');
-  const emery = { color: true, fineBattery: true };
-  const basalt = { color: true, fineBattery: false };
-  // A stored '15' sends 20 to a 10 % watch and 15 to emery (on-demand.js batteryLevel).
-  assert.equal(wire.buildSettingsBlob({ batteryLowLevel: '15' }, basalt)[B], 20);
-  assert.equal(wire.buildSettingsBlob({ batteryLowLevel: '15' }, emery)[B], 15);
-  assert.equal(wire.buildSettingsBlob({ batteryLowLevel: '15' })[B], 20, 'no env: 10 % steps');
-  assert.equal(wire.buildSettingsBlob({ batteryLowLevel: '31' }, emery)[B], 10, 'out of range: the default');
+  // The watch's 5 % steps (on-demand.js batteryLevel).
+  assert.equal(wire.buildSettingsBlob({ batteryLowLevel: '15' })[B], 15);
+  assert.equal(wire.buildSettingsBlob({ batteryLowLevel: '31' })[B], 10, 'out of range: the default');
   assert.equal(wire.buildSettingsBlob({ batteryLowDisplay: 'value' })[B], 10 | wire.BATTERY_VALUE_BIT);
-  assert.equal(wire.buildSettingsBlob({ batteryLowLevel: '30', batteryLowDisplay: 'value' }, emery)[B], 30 | 0x40);
+  assert.equal(wire.buildSettingsBlob({ batteryLowLevel: '30', batteryLowDisplay: 'value' })[B], 30 | 0x40);
   // It never touches the rain look next door, nor the look the level.
   const both = wire.buildSettingsBlob({ rainAlertDisplay: 'minutes', batteryLowLevel: '20',
     rainAlertReplacesSlot: false });
@@ -92,11 +88,6 @@ test('buildSettingsBlob: bytes 38-47 carry the On demand cells, effective values
   assert.equal(cells[OD.itemIndex('uv')], (1 << 2) | (2 << 4), 'forecast left, radar right');
   assert.equal(cells[OD.itemIndex('bt')], 1 << 2);
   assert.equal(cells[OD.itemIndex('battery')], 0);
-  // A watch without On demand gets zeros (it never gets the blob, but the packer agrees).
-  assert.deepEqual(wire.buildSettingsBlob(S, { onDemand: false }).slice(O), [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
-  const platform = require('../../../src/pkjs/config-ui/lib/platform.js');
-  assert.deepEqual(wire.buildSettingsBlob({}, platform.computeEnv({ platform: 'aplite' })).slice(O),
-    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0], 'aplite');
   // A side that ticks nothing is zeros, on a bar that exists (health) as on one already
   // placed.
   const health = placeOn(Object.assign({ healthMode: 'all' }, S), 'health', 'left', '');
@@ -126,10 +117,9 @@ th.ALERT_KINDS.forEach((a) => { ICON_LOOKS['alert' + a.key + 'Display'] = 'icon'
 function on(codes, extra) { return placedOnly(codes, extra); }
 /**
  * @param {Object} settings Clay settings blob.
- * @param {Object} [env] Platform env.
  * @returns {string[]} the codes enabledAlerts lists
  */
-const codesOf = (settings, env) => th.enabledAlerts(settings, env).map((a) => a.code);
+const codesOf = (settings) => th.enabledAlerts(settings).map((a) => a.code);
 /**
  * @param {Object} settings Clay settings blob.
  * @returns {string[]} the codes enabledAlerts lists with a Look that shows the value
@@ -155,12 +145,9 @@ test('enabledAlerts: the placed alerts in the On demand order, with how each rea
     assert.equal(a.days, 'tomorrow', a.code + ': Today + tomorrow is the default');
     assert.equal(a.mark, 'raquo', a.code + ': the » is the default');
   });
-  // The env reaches alertOn: omitted is a watch that draws On demand; a watch without
-  // it, or without the bar an alert is placed on, lists nothing for it.
-  assert.deepEqual(th.enabledAlerts(ALL_ON, { onDemand: false }), []);
+  // An alert placed on a bar a screen shows is listed.
   const onRadar = placeOn(on([], { radarMode: 'status' }), 'radar', 'left', ['uv']);
   assert.deepEqual(codesOf(onRadar), ['uv']);
-  assert.deepEqual(codesOf(onRadar, { radar: false }), []);
 });
 
 test('alertOn / enabledAlerts: keyed by code, on while placed on any bar, the value only while on', () => {
@@ -175,8 +162,7 @@ test('alertOn / enabledAlerts: keyed by code, on while placed on any bar, the va
       a.code + ': unplaced shows no value, whatever its Look');
     assert.equal(th.alertOn(on([a.code]), a.code), true);
     assert.equal(th.alertOn(on([]), a.code), false);
-    assert.equal(th.alertOn(on([a.code]), a.code, { onDemand: false }), false, a.code + ': a watch without On demand');
-    assert.equal(th.alertOn(placeOn(on([]), 'health', 'left', [a.code]), a.code, { health: true }), false,
+    assert.equal(th.alertOn(placeOn(on([]), 'health', 'left', [a.code]), a.code), false,
       a.code + ': a bar the modes remove');
     assert.equal(th.alertOn(placeOn(on([], { healthMode: 'status' }), 'health', 'left', [a.code]), a.code), true,
       a.code + ': a health bar that exists');

@@ -43,13 +43,9 @@ static void on_demand_cell_tests(void) {
     expect("cells.wind_top_none", side_of(blob, n, THRESH_BAR_TOP, OD_WIND), OD_SIDE_NONE);
     // Out of range: none, never a read past the end.
     expect("cells.oob_bar_neg", side_of(blob, n, -1, OD_RAIN), OD_SIDE_NONE);
-#if defined(PBL_PLATFORM_EMERY)
     // emery: bars 4 to 6 follow the blob's four (extra_cell_tests below).
     expect("cells.oob_bar", side_of(blob, n, THRESH_BAR_4 + THRESH_EXTRA_BAR_COUNT, OD_RAIN),
            OD_SIDE_NONE);
-#else
-    expect("cells.oob_bar", side_of(blob, n, THRESH_BAR_COUNT, OD_RAIN), OD_SIDE_NONE);
-#endif
     expect("cells.oob_item_neg", side_of(blob, n, THRESH_BAR_TOP, -1), OD_SIDE_NONE);
     expect("cells.oob_item", side_of(blob, n, THRESH_BAR_TOP, OD_ITEM_COUNT), OD_SIDE_NONE);
     // The warn-look and Battery bytes never leak into the cells, nor they into them.
@@ -159,7 +155,6 @@ static void rain_replaces_tests(void) {
     expect("replace.reserved_no_alias", status_threshold_rain_replaces(blob), 0);
 }
 
-#if defined(PBL_PLATFORM_EMERY)
 // emery: bars 4 to 6's cells (CLAY_OD_EXTRA_UINT8) ride behind the blob in the row's scratch:
 // one byte per OdItem, 2 bits per bar at bits 2 * (bar - 4), the same values. They and the
 // blob's own cells never read each other's bytes, and bits 6-7 are reserved.
@@ -209,13 +204,10 @@ static void extra_cell_tests(void) {
     expect("extra.line_bar5", status_threshold_bar_of_line(STATUS_LINE_BAR5), THRESH_BAR_5);
     expect("extra.line_bar6", status_threshold_bar_of_line(STATUS_LINE_BAR6), THRESH_BAR_6);
 }
-#endif
 
 int main(void) {
     on_demand_cell_tests();
-#if defined(PBL_PLATFORM_EMERY)
     extra_cell_tests();
-#endif
     on_demand_default_tests();
     battery_byte_tests();
     rain_replaces_tests();

@@ -13,11 +13,6 @@
 // On demand's business (appendix/on_demand.c lays them out); the SDK side — glyphs,
 // text, paint — is layers/status_on_demand.c.
 //
-// NOT LINKED ON APLITE: On demand is aplite-absent (WW_ON_DEMAND in wscript), so the
-// .c body sits behind that macro and compiles to an empty object there. These
-// declarations stay visible everywhere (they emit nothing); every CALL site is
-// guarded, or in a file aplite never compiles (status_row.c's lean twin replaces it).
-//
 // Where the alerts come from:
 //  - the metric alerts are baked by the phone into their own weather tuple,
 //    ALERT_ENTRIES_UINT8 (encoding below), which app_message.c checks with
@@ -27,12 +22,7 @@
 //  - the rain alert is no entry: the watch resolves it from its own radar cache as
 //    numbers (rain_countdown_get()), and alert_set_rain_text() prints them.
 
-// The two macros gate different wire concerns (WW_THRESHOLD_HIGHLIGHT the thresholds
-// blob and levels word, WW_ON_DEMAND the entries tuple), but On demand cannot stand
-// without the first: its alert items are judged and painted by the threshold looks.
-#if defined(WW_ON_DEMAND) && !defined(WW_THRESHOLD_HIGHLIGHT)
-#error "WW_ON_DEMAND needs WW_THRESHOLD_HIGHLIGHT: the alert items paint the threshold looks"
-#endif
+// On demand's alert items are judged and painted by the threshold looks.
 
 #define ALERT_SET_MAX 5   // the five metric kinds
 
@@ -65,7 +55,7 @@
 // with values stay under the cap on either day (5 headers + at most 2 + 3 + 3 + 3
 // + 3 value bytes, pollen's widest band being "2-3" = 19 B — a tomorrow entry costs
 // no extra byte), so the 20-B cap drops nothing today; it bounds what the inbox has
-// to budget for (test/repo/inbox-size.test.js). The phone never sends the tuple to aplite.
+// to budget for (test/repo/inbox-size.test.js).
 #define ALERT_ENTRIES_MAX_BYTES 20
 #define STATUS_ALERT_HEADER 0x80
 #define STATUS_ALERT_KIND_MASK 0x07

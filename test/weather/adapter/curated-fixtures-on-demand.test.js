@@ -77,7 +77,7 @@ function bakedAlertEntries(fx, platform) {
   console.log = () => {};
   try {
     const out = fixtureWeather.getFixtureWeatherPayload(copy,
-      Object.assign({}, defaults, copy.claySettings), { platform }, new Date(2026, 5, 1, 12, 34));
+      Object.assign({}, defaults, copy.claySettings), new Date(2026, 5, 1, 12, 34));
     return (out && out.ALERT_ENTRIES_UINT8) || [];
   } finally {
     console.log = origLog;
@@ -99,7 +99,7 @@ test('every store-shot fixture pins its On demand ticks and bakes no alert entry
   names.forEach((name) => {
     const fx = readFixture(path.join(ROOT, 'fixtures', name + '.json'));
     assertPinned(fx, name);
-    ['basalt', 'emery'].forEach((platform) => {
+    ['emery'].forEach((platform) => {
       assert.deepEqual(bakedAlertEntries(fx, platform), [], name + ' on ' + platform);
     });
   });
@@ -113,7 +113,7 @@ test('every showcase frame (variants included) pins its On demand ticks and bake
     const fx = readFixture(file);
     const label = path.basename(file);
     assertPinned(fx, label);
-    ['basalt', 'emery'].forEach((platform) => {
+    ['emery'].forEach((platform) => {
       assert.deepEqual(bakedAlertEntries(fx, platform), [], label + ' on ' + platform);
     });
   });

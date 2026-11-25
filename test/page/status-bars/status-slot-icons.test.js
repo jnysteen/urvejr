@@ -83,7 +83,7 @@ test('every slot item the watch draws a glyph for has the page copy, and no othe
   // included, is a picture the previews must show too.
   const catalog = require('../../../src/pkjs/status-bars/domain/status-line-catalog.js');
   const { slotIcon } = require('../../../src/pkjs/page/status-bars/preview-status-bars.js');
-  const C = catalog.ICONS, basalt = { platform: 'basalt' };
+  const C = catalog.ICONS, emery = { platform: 'emery' };
   const TEXT = [C.NONE, C.PRESSURE, C.PHONE_BATTERY_PLAIN];
   ['empty', 'temp', 'wind', 'gust', 'pressure', 'dew', 'uv', 'aqi', 'pollen', 'sun', 'date', 'week', 'city',
     'countdown', 'steps', 'distance', 'hr', 'sleep', 'batteryPct', 'phoneBattery', 'phoneBatteryPlain'].forEach((code) => {
@@ -91,45 +91,32 @@ test('every slot item the watch draws a glyph for has the page copy, and no othe
     assert.ok(item, code + ' is a catalog item');
     if (code === 'city') {
       // The city draws the current weather's icon once switched on (citySlotIcon, off by default).
-      assert.equal(slotIcon(code, basalt, { citySlotIcon: true }), ICONS.condition, 'city switched on: the weather icon');
-      assert.equal(slotIcon(code, basalt), null, 'city by default: text alone, as the watch draws it');
+      assert.equal(slotIcon(code, emery, { citySlotIcon: true }), ICONS.condition, 'city switched on: the weather icon');
+      assert.equal(slotIcon(code, emery), null, 'city by default: text alone, as the watch draws it');
     } else if (TEXT.indexOf(item.icon) === -1) {
-      assert.equal(slotIcon(code, basalt), ICONS[code], code + ': the watch draws a glyph, so the preview does');
+      assert.equal(slotIcon(code, emery), ICONS[code], code + ': the watch draws a glyph, so the preview does');
     } else {
-      assert.equal(slotIcon(code, basalt), null, code + ': text on the watch, text in the preview');
+      assert.equal(slotIcon(code, emery), null, code + ': text on the watch, text in the preview');
     }
   });
   // The watch battery is its own drawn glyph on the bars (preview-watch.js batteryGlyph);
   // its registered outline is the Alerts rows' and the Status bars tab's.
-  assert.equal(slotIcon('battery', basalt), ICONS.battery);
-});
-
-test('aplite draws only the glyphs of its lean row: the bitmap masks and the sun arrow', () => {
-  const { slotIcon } = require('../../../src/pkjs/page/status-bars/preview-status-bars.js');
-  const aplite = { platform: 'aplite' };
-  ['temp', 'wind', 'gust', 'uv', 'aqi', 'pollen', 'countdown', 'sun'].forEach((code) => {
-    assert.equal(slotIcon(code, aplite), ICONS[code], code + ' has a mask on aplite');
-  });
-  // No dew drops, the battery prints its charge, and health and the phone's battery are not there.
-  ['dew', 'battery', 'steps', 'distance', 'sleep', 'hr', 'phoneBattery'].forEach((code) => {
-    assert.equal(slotIcon(code, aplite), null, code + ' draws no glyph on aplite');
-  });
+  assert.equal(slotIcon('battery', emery), ICONS.battery);
 });
 
 test('each slot item names the drawing the watch pictures draw at a bar\'s box, none for a glyph drawn in code', () => {
   // The watch pictures (preview-watch.js) take the slot's drawing from barSlots and draw it at
   // the bar's box and seat; the rows above draw its outline (ICONS).
   const preview = require('../../../src/pkjs/page/status-bars/preview-status-bars.js');
-  const basalt = { platform: 'basalt' }, aplite = { platform: 'aplite' };
+  const emery = { platform: 'emery' };
   const S = { statusForecastLeft: 'uv', statusForecastMid: 'empty', statusForecastRight: 'city', citySlotIcon: true };
-  assert.deepEqual(preview.barSlots(S, basalt, 'forecast').map((c) => c.drawing), ['UV', null, 'SUN_CLOUD'],
+  assert.deepEqual(preview.barSlots(S, emery, 'forecast').map((c) => c.drawing), ['UV', null, 'SUN_CLOUD'],
     'the city draws the weather\'s icon');
-  assert.equal(preview.barSlots(Object.assign({}, S, { citySlotIcon: false }), basalt, 'forecast')[2].drawing, null,
+  assert.equal(preview.barSlots(Object.assign({}, S, { citySlotIcon: false }), emery, 'forecast')[2].drawing, null,
     'the city without its icon: none');
-  assert.equal(preview.barSlots(S, aplite, 'forecast')[2].drawing, null, 'no weather icon on the Classic');
-  assert.equal(preview.barSlots(Object.assign({}, S, { statusForecastLeft: 'sun' }), basalt, 'forecast')[0].drawing, null,
+  assert.equal(preview.barSlots(Object.assign({}, S, { statusForecastLeft: 'sun' }), emery, 'forecast')[0].drawing, null,
     'the sun arrow is drawn in code');
-  const battery = preview.barSlots({ statusTopRight: 'battery' }, basalt, 'top')[2];
+  const battery = preview.barSlots({ statusTopRight: 'battery' }, emery, 'top')[2];
   assert.deepEqual([battery.code, battery.drawing], ['battery', null], 'and the battery');
   // Every slot with a glyph of the watch's drawings names a drawing the page has.
   const STATUS = require('../../../src/pkjs/settings/status-pixels.generated.js');

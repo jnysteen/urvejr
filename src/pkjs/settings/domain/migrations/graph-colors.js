@@ -51,8 +51,7 @@ function migrateGraphNightColorsResend() {
  *     opt-in forecast_layer.c uses to draw the night re-shade 1.15.0 skipped;
  *   - graphNightTint would answer from the tint key forever, so changing the
  *     fill would leave the night hours painted in the fill colour the user just
- *     replaced — the exact failure the cascade exists to prevent;
- *   - telemetry would report those carried colours as picks.
+ *     replaced — the exact failure the cascade exists to prevent.
  *
  * So a stored tint that still equals its stored fill goes back to the built-in.
  * The resolve-time cascade then re-derives the same triple from the fill with

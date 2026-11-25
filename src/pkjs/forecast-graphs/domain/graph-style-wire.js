@@ -10,8 +10,7 @@
 // (graph-wire.js), plus its hours and the row each of its lines reads. A slot no shown style
 // takes gets an empty tuple, which clears it on the watch; with only the first style shown
 // all three are empty, and the watch draws the flat tuples' look on every screen, as before
-// graph styles. Known emery only (env.graphStyles): an unknown watch could be an aplite,
-// whose 536 B inbox has no room for them. Layout in lockstep with src/c/appendix/graph_style.h,
+// graph styles. Layout in lockstep with src/c/appendix/graph_style.h,
 // pinned by test/forecast-graphs/domain/graph-style-wire.test.js and test/c/graph_style_test.c:
 //   [0]      hours: the hours the style draws (forecast-span.js hours)
 //   [1]      flags: bit 0 Day / night shading; the Left axis bits (forecast-axis.js wireBits)
@@ -44,7 +43,6 @@ var forecastSpan = require('../../weather/domain/forecast-span.js');
 var forecastAxis = require('./forecast-axis.js');
 var lineStyle = require('./line-style.js');
 var lineAlert = require('../../alerts/domain/line-alert.js');
-var platforms = require('../../config-ui/lib/platform.js');
 
 // The record's tuples, by style index.
 var KEYS = ['CLAY_GRAPH_STYLE_1_UINT8', 'CLAY_GRAPH_STYLE_2_UINT8', 'CLAY_GRAPH_STYLE_3_UINT8'];
@@ -58,14 +56,13 @@ var LINE_STYLE = 'line';
 /**
  * The bake's union for these settings: the styles whose records ride, and their rows.
  * @param {Object} settings Clay settings.
- * @param {Object} env config-ui computeEnv() result.
  * @returns {?{styles: number[], rows: Array<?Object>, maps: Object<string, number[]>}} null
  *   while no record rides.
  */
-function unionOf(settings, env) {
-    var styles = graphStyles.stylesSent(settings, env);
+function unionOf(settings) {
+    var styles = graphStyles.stylesSent(settings);
     if (!styles.length) { return null; }
-    var u = graphStyles.assign(settings, env, styles);
+    var u = graphStyles.assign(settings, styles);
     return { styles: styles, rows: u.rows, maps: u.maps };
 }
 
@@ -85,12 +82,10 @@ function nightShading(Sk) {
  * (graphStyleSlots), the rain bars on while a shown style draws them, and the longest shown
  * style's length.
  * @param {Object} settings Clay settings.
- * @param {?Object} watchInfo Pebble.getActiveWatchInfo() result, or null.
  * @returns {Object}
  */
-function weatherSettings(settings, watchInfo) {
-    var env = platforms.computeEnv(watchInfo);
-    var u = settings ? unionOf(settings, env) : null;
+function weatherSettings(settings) {
+    var u = settings ? unionOf(settings) : null;
     if (!u) { return settings; }
     var out = Object.assign({}, settings);
     lineStyle.FORECAST_LINES.forEach(function (line, t) {
@@ -114,7 +109,7 @@ function weatherSettings(settings, watchInfo) {
     u.styles.forEach(function (k) {
         var Sk = graphStyles.settingsFor(settings, k);
         if (Sk.barSource === 'rain') { out.barSource = 'rain'; }
-        var h = forecastSpan.hours(Sk, env);
+        var h = forecastSpan.hours(Sk);
         if (h > most) {
             most = h;
             out.forecastHours = Sk.forecastHours;
@@ -128,11 +123,10 @@ function weatherSettings(settings, watchInfo) {
  * The hours the phone fetches and sends this watch: the longest shown style's while records
  * ride, else the first style's (forecast-span.js hours, which the watch caps per screen).
  * @param {Object} settings Clay settings.
- * @param {?Object} watchInfo Pebble.getActiveWatchInfo() result, or null.
  * @returns {number} 14, 24, 26 or 68
  */
-function hoursSent(settings, watchInfo) {
-    return forecastSpan.hours(weatherSettings(settings, watchInfo), platforms.computeEnv(watchInfo));
+function hoursSent(settings) {
+    return forecastSpan.hours(weatherSettings(settings));
 }
 
 /**
@@ -140,48 +134,42 @@ function hoursSent(settings, watchInfo) {
  * @param {Object} settings Clay settings.
  * @param {number} k The style index.
  * @param {{rows: Array<?Object>, maps: Object<string, number[]>}} u The union (unionOf).
- * @param {?Object} watchInfo Pebble.getActiveWatchInfo() result, or null.
  * @returns {number[]} 26 bytes plus 3 per palette stop
  */
-function packRecord(settings, k, u, watchInfo) {
-    var env = platforms.computeEnv(watchInfo);
+function packRecord(settings, k, u) {
     var Sk = graphStyles.settingsFor(settings, k);
     var scale = 0;
-    if (forecastAxis.bakesScale(settings, env)) {
+    if (forecastAxis.bakesScale(settings)) {
         u.rows.forEach(function (row, t) {
             if (row && lineStyle.isTempAxisMetric(row.metric)) { scale |= 1 << (t + 1); }
         });
     }
     var rec = [
-        forecastSpan.hours(Sk, env),
-        (nightShading(Sk) ? FLAG_NIGHT : 0) | forecastAxis.wireBits(Sk, env),
+        forecastSpan.hours(Sk),
+        (nightShading(Sk) ? FLAG_NIGHT : 0) | forecastAxis.wireBits(Sk),
         scale
     ];
-    rec = rec.concat(u.maps[k], graphWire.buildCurveInsetBytes(Sk), graphWire.buildLineStyleBytes(Sk, watchInfo));
+    rec = rec.concat(u.maps[k], graphWire.buildCurveInsetBytes(Sk), graphWire.buildLineStyleBytes(Sk));
     if (Sk.barSource === 'rain') {
-        rec = rec.concat(graphWire.buildPaletteTuples(Sk, watchInfo).BAR_PALETTE_UINT8);
+        rec = rec.concat(graphWire.buildPaletteTuples(Sk).BAR_PALETTE_UINT8);
     }
     return rec;
 }
 
 /**
- * The three record tuples for one watch (see THE RECORDS above): {} for a watch without
- * graph styles, else the record of each style whose record rides in its slot and an empty
- * tuple in the rest.
+ * The three record tuples (see THE RECORDS above): the record of each style whose record
+ * rides in its slot and an empty tuple in the rest.
  * @param {Object} settings Clay settings.
- * @param {?Object} watchInfo Pebble.getActiveWatchInfo() result, or null.
  * @returns {Object<string, number[]>}
  */
-function buildStyleTuples(settings, watchInfo) {
-    var env = platforms.computeEnv(watchInfo);
-    if (!env.graphStyles) { return {}; }
-    var u = unionOf(settings, env);
+function buildStyleTuples(settings) {
+    var u = unionOf(settings);
     var out = {};
     KEYS.forEach(function (key) { out[key] = []; });
     if (u) {
         var slots = graphStyles.slotsFor(u.styles);
         u.styles.forEach(function (k) {
-            if (slots[k] !== undefined) { out[KEYS[slots[k]]] = packRecord(settings, k, u, watchInfo); }
+            if (slots[k] !== undefined) { out[KEYS[slots[k]]] = packRecord(settings, k, u); }
         });
     }
     return out;

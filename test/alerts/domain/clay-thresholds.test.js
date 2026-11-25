@@ -13,7 +13,6 @@ global.localStorage = {
 const { buildClayPayload } = require('../../../src/pkjs/settings/domain/clay-payload');
 const thresholds = require('../../../src/pkjs/alerts/domain/status-thresholds');
 const wire = require('../../../src/pkjs/alerts/domain/status-wire');
-const platform = require('../../../src/pkjs/config-ui/lib/platform.js');
 
 const BASE = {
   temperatureUnits: 'c', timeLeadingZero: true, axisTimeFormat: '24h',
@@ -24,7 +23,7 @@ const BASE = {
 };
 
 test('Clay payload carries the 48-byte threshold settings blob', () => {
-  const payload = buildClayPayload(BASE, { platform: 'basalt' },
+  const payload = buildClayPayload(BASE,
     new Date('2026-07-22T00:00:00Z'));
   assert.ok(Array.isArray(payload.CLAY_THRESHOLDS_UINT8));
   assert.equal(payload.CLAY_THRESHOLDS_UINT8.length, 48);
@@ -37,24 +36,13 @@ test('Clay payload carries the 48-byte threshold settings blob', () => {
   assert.deepEqual(payload.CLAY_THRESHOLDS_UINT8.slice(38), [2, 1, 1, 1, 1, 2, 2, 2, 0, 2]);
 });
 
-// The warn look's default is per PLATFORM, so the payload hands the packer the
-// watch's env: a B&W watch outlines where a colour one fills (a B&W warn fill would
-// look exactly like danger). A stored look is sent as picked on either.
-test('the warn looks ride bytes 36-37 with the watch platform\'s default', () => {
+// The warn looks ride the Clay blob: weather kinds fill by default, goals outline, and a
+// stored look is sent as picked.
+test('the warn looks ride bytes 36-37 with the default', () => {
   const at = new Date('2026-07-22T00:00:00Z');
-  ['diorite', 'flint'].forEach((platform) => {
-    const payload = buildClayPayload(BASE, { platform }, at);
-    assert.deepEqual(payload.CLAY_THRESHOLDS_UINT8.slice(36, 38), [0x55, 0x55], platform);
-    assert.deepEqual(payload.CLAY_THRESHOLDS_UINT8,
-      wire.buildSettingsBlob(BASE, { color: false }), platform + ': the packer, with env');
-  });
-  ['basalt', 'emery'].forEach((platform) => {
-    assert.deepEqual(buildClayPayload(BASE, { platform }, at).CLAY_THRESHOLDS_UINT8.slice(36, 38),
-      [0xAA, 0x95], platform);
-  });
-  const picked = Object.assign({}, BASE, { threshUvWarnLook: 'fill', threshAqiWarnLook: 'none' });
-  assert.deepEqual(buildClayPayload(picked, { platform: 'diorite' }, at)
-    .CLAY_THRESHOLDS_UINT8.slice(36, 38), [0x54, 0x95], 'picks win on B&W too');
+  assert.deepEqual(buildClayPayload(BASE, at).CLAY_THRESHOLDS_UINT8.slice(36, 38), [0xAA, 0x95]);
+  const picked = Object.assign({}, BASE, { threshUvWarnLook: 'outline', threshAqiWarnLook: 'none' });
+  assert.deepEqual(wire.buildSettingsBlob(picked).slice(36, 38), [0xA8, 0x55], 'picks win');
 });
 
 // The On demand cells and the Battery item ride the blob, so a change reaches the watch
@@ -64,13 +52,11 @@ test('the On demand cells and the Battery item ride bytes 35 and 38-47 of the Cl
   const at = new Date('2026-07-22T00:00:00Z');
   const s = Object.assign({}, BASE, { radarMode: 'status', batteryLowLevel: '15',
     statusRadarOnDemandRightItems: 'uv,bt' });
-  const basalt = buildClayPayload(s, { platform: 'basalt' }, at).CLAY_THRESHOLDS_UINT8;
-  assert.equal(basalt[35], 20, 'a stored 15 rides as 20 to a 10 % watch');
-  assert.equal(basalt[38 + 6], 2 | (2 << 4), 'UV on the top bar\'s right and the radar bar\'s right');
-  assert.equal(basalt[38 + 1], 1 | (2 << 4), 'Bluetooth on the top bar\'s left and the radar bar\'s right');
-  assert.deepEqual(basalt, wire.buildSettingsBlob(s, platform.computeEnv({ platform: 'basalt' })));
-  const emery = buildClayPayload(s, { platform: 'emery' }, at).CLAY_THRESHOLDS_UINT8;
-  assert.equal(emery[35], 15, 'emery reports 5 % steps: 15 rides as 15');
+  const emery = buildClayPayload(s, at).CLAY_THRESHOLDS_UINT8;
+  assert.equal(emery[35], 15, '5 % steps: 15 rides as 15');
+  assert.equal(emery[38 + 6], 2 | (2 << 4), 'UV on the top bar\'s right and the radar bar\'s right');
+  assert.equal(emery[38 + 1], 1 | (2 << 4), 'Bluetooth on the top bar\'s left and the radar bar\'s right');
+  assert.deepEqual(emery, wire.buildSettingsBlob(s));
 });
 
 // The rain alert's look rides byte 34 of the blob, so a change reaches the watch
@@ -78,7 +64,7 @@ test('the On demand cells and the Battery item ride bytes 35 and 38-47 of the Cl
 test('the rain alert look rides byte 34 of the Clay blob', () => {
   [['text', 0], ['icon', 1], ['minutes', 2], [undefined, 0], ['bogus', 0]].forEach((c) => {
     const s = Object.assign({}, BASE, { rainAlertDisplay: c[0] });
-    const payload = buildClayPayload(s, { platform: 'basalt' },
+    const payload = buildClayPayload(s,
       new Date('2026-07-22T00:00:00Z'));
     assert.equal(payload.CLAY_THRESHOLDS_UINT8[34] & 3, c[1], String(c[0]));
   });
@@ -90,22 +76,11 @@ test('the blob matches buildSettingsBlob for configured settings', () => {
     threshAqiWarnColor: 0xFFAA00, threshAqiDangerColor: 0xFF0000,
     threshStepsOn: true, threshStepsWarn: '4000', threshStepsDanger: '8000'
   });
-  const payload = buildClayPayload(s, { platform: 'basalt' },
+  const payload = buildClayPayload(s,
     new Date('2026-07-22T00:00:00Z'));
   assert.deepEqual(payload.CLAY_THRESHOLDS_UINT8, wire.buildSettingsBlob(s));
   assert.equal(payload.CLAY_THRESHOLDS_UINT8[0] & 1, 1);          // AQI enabled
   assert.equal(payload.CLAY_THRESHOLDS_UINT8[0] & (1 << 4), 16);  // Steps enabled
-});
-
-test('aplite gets no threshold blob at all (it compiles the highlight out)', () => {
-  // aplite has no WW_THRESHOLD_HIGHLIGHT: its status-row twin cannot draw the
-  // highlight and its inbox handler for this tuple is gone, so the 55 B
-  // (48-byte blob + 7 B tuple header) must not ride its Clay bundle.
-  const payload = buildClayPayload(BASE, { platform: 'aplite' },
-    new Date('2026-07-22T00:00:00Z'));
-  assert.equal(Object.prototype.hasOwnProperty.call(payload, 'CLAY_THRESHOLDS_UINT8'), false);
-  // The rest of the Clay payload is unchanged.
-  assert.equal(payload.CLAY_THEME, 0);
 });
 
 test('the dew bold cell fits byte 33 without widening the blob', () => {
@@ -114,7 +89,7 @@ test('the dew bold cell fits byte 33 without widening the blob', () => {
   // grow by a byte. Assert on the REAL payload, not just buildSettingsBlob: what
   // test/repo/inbox-size.test.js records is the tuple that actually rides the wire.
   const s = Object.assign({}, BASE, { threshDewBoldMode: 'always' });
-  const payload = buildClayPayload(s, { platform: 'basalt' },
+  const payload = buildClayPayload(s,
     new Date('2026-07-22T00:00:00Z'));
   assert.equal(payload.CLAY_THRESHOLDS_UINT8.length, 48,
     'kinds 17-19 share byte 33 with kind 16 — no widening');
@@ -147,7 +122,7 @@ test('the two phone-battery cells fill byte 33 without widening the Clay blob', 
   // payload, not just buildSettingsBlob: what test/repo/inbox-size.test.js records is
   // the tuple that actually rides the Clay message.
   const s = Object.assign({}, BASE, { threshPhoneBatteryBoldMode: 'always' });
-  const payload = buildClayPayload(s, { platform: 'basalt' },
+  const payload = buildClayPayload(s,
     new Date('2026-07-22T00:00:00Z'));
   assert.equal(payload.CLAY_THRESHOLDS_UINT8.length, 48,
     'the phone battery must not grow the Clay bundle by a byte');
@@ -163,7 +138,7 @@ test('the two phone-battery cells fill byte 33 without widening the Clay blob', 
     threshBatteryPctBoldMode: 'always', threshDewBoldMode: 'always',
     threshPhoneBatteryBoldMode: 'always'
   });
-  const fullPayload = buildClayPayload(full, { platform: 'basalt' },
+  const fullPayload = buildClayPayload(full,
     new Date('2026-07-22T00:00:00Z'));
   assert.equal(fullPayload.CLAY_THRESHOLDS_UINT8.length, 48);
   assert.equal(fullPayload.CLAY_THRESHOLDS_UINT8[33], 0xAA, 'all four cells = always');
@@ -173,7 +148,7 @@ test('the two phone-battery cells fill byte 33 without widening the Clay blob', 
 
 test('an unknown/absent watchInfo still gets the blob (never hide a real feature)', () => {
   [null, undefined, {}].forEach((wi) => {
-    const payload = buildClayPayload(BASE, wi, new Date('2026-07-22T00:00:00Z'));
+    const payload = buildClayPayload(BASE, new Date('2026-07-22T00:00:00Z'));
     assert.equal(payload.CLAY_THRESHOLDS_UINT8.length, 48, String(wi));
     // Unknown platform = colour, like every capability: the colour defaults, and a
     // watch that draws On demand (the cells at their defaults).

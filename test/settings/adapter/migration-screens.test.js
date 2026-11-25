@@ -1,7 +1,7 @@
 // test/settings/adapter/migration-screens.test.js — the 2.6.0 move onto screens (src/pkjs/settings/domain/migrations/screens.js):
 // every preset install becomes the custom keys of its own cycle with the modes worked out from
 // them, and its watch is sent exactly what it was sent before; a custom install keeps the views
-// 2.5 drew; aplite and an unknown watch keep their preset.
+// 2.5 drew.
 const test = require('node:test');
 const assert = require('node:assert/strict');
 
@@ -28,7 +28,7 @@ const NOW = new Date('2026-06-26T00:00:00Z');
 const PRESETS = ['fullCal', 'compactCal', 'compactDense', 'noCal', 'weatherOnly'];
 const HEALTH = ['off', 'slot', 'status', 'all'];
 const RADAR = ['off', 'countdown', 'status', 'graph'];
-const COLOUR_WATCHES = ['basalt', 'diorite', 'emery', 'flint'];
+const COLOUR_WATCHES = ['emery'];
 
 /**
  * A seeded install's settings with some keys set.
@@ -46,7 +46,7 @@ function seeded(over) {
  * @returns {number[]}
  */
 function words(S, platform) {
-  const p = buildClayPayload(S, { platform }, NOW);
+  const p = buildClayPayload(S, NOW);
   return [p.CLAY_VIEW_0, p.CLAY_VIEW_1, p.CLAY_VIEW_2];
 }
 
@@ -62,22 +62,22 @@ test('every preset × health × radar × swap: the same Clay message and the sam
       assert.deepEqual([after.radarMode, after.healthMode], [radarMode, healthMode], label);
       assert.equal(after.radarEnabled, radarMode !== 'off', label);
       // The whole Clay message, the views, modes, rain alert window and alert cells included.
-      assert.deepEqual(buildClayPayload(after, { platform }, NOW), buildClayPayload(before, { platform }, NOW), label);
+      assert.deepEqual(buildClayPayload(after, NOW), buildClayPayload(before, NOW), label);
       assert.equal(r.send, false, label + ': nothing to send');
       n++;
     })))));
-  assert.equal(n, 640);
+  assert.equal(n, 160);
 });
 
 test('the moved preset reads as its screens, and the modes the page works out are the stored ones', () => {
   const S = seeded({ layoutPreset: 'compactCal', healthMode: 'all', radarMode: 'graph', swapClockStatus: true });
-  migrateToScreens(S, { knownPlatform: 'basalt' });
+  migrateToScreens(S, {});
   const b = (k, o) => Object.assign({ k }, o || {});
-  assert.deepEqual(M.screensOf(S, { platform: 'basalt' }), [
+  assert.deepEqual(M.screensOf(S), [
     [b('strip'), b('cal', { rows: '2' }), b('clock'), b('fcbar'), b('fc', { size: 'fill' })],
     [b('strip'), b('clock'), b('healthbar'), b('health', { size: 'fill' })],
     [b('strip'), b('clock'), b('radarbar'), b('radar', { size: 'fill' })]]);
-  assert.deepEqual(M.deriveModes(S, { platform: 'basalt' }), { radarMode: 'graph', healthMode: 'all' });
+  assert.deepEqual(M.deriveModes(S), { radarMode: 'graph', healthMode: 'all' });
 });
 
 test('a custom layout keeps the views 2.5 drew: a Radar bar its radar mode hid stays hidden', () => {
@@ -85,7 +85,7 @@ test('a custom layout keeps the views 2.5 drew: a Radar bar its radar mode hid s
     viewCount: '2', viewTop1: 'none', viewBody1: 'forecast', viewUpper1: 'radar', viewLower1: 'weather',
     viewOrder1: 'TACB', viewClockOff1: false });
   const drawn = legacyCycle(S).map((v) => vc.packWire(v || null));
-  const r = migrateToScreens(S, { knownPlatform: 'basalt' });
+  const r = migrateToScreens(S, {});
   assert.equal(S.viewUpper1, 'weather', 'the forecast bar took the upper seat, as on 2.5');
   assert.equal(S.viewLower1, 'off');
   assert.deepEqual(words(S, 'basalt').slice(0, 2), drawn);
@@ -101,7 +101,7 @@ test('a custom layout keeps the views 2.5 drew: a Health bar its health mode hid
     viewCount: '2', viewTop1: 'none', viewBody1: 'forecast', viewUpper1: 'health', viewLower1: 'weather',
     viewOrder1: 'TACB', viewClockOff1: false });
   const drawn = legacyCycle(S).map((v) => vc.packWire(v || null));
-  const r = migrateToScreens(S, { knownPlatform: 'basalt' });
+  const r = migrateToScreens(S, {});
   assert.equal(S.viewUpper1, 'weather', 'the forecast bar took the upper seat, as on 2.5');
   assert.equal(S.viewLower1, 'off');
   assert.deepEqual(words(S, 'basalt').slice(0, 2), drawn);
@@ -114,7 +114,7 @@ test('a custom layout keeps the views 2.5 drew: a graph its health mode folded s
     viewCount: '2', viewTop1: 'none', viewBody1: 'health', viewUpper1: 'health', viewLower1: 'off',
     viewOrder1: 'TACB', viewClockOff1: false });
   const before = words(S, 'emery');
-  migrateToScreens(S, { knownPlatform: 'emery' });
+  migrateToScreens(S, {});
   assert.equal(S.viewBody1, 'forecast', 'healthMode status drew the forecast in its place');
   assert.equal(S.healthMode, 'status');
   assert.deepEqual(words(S, 'emery'), before);
@@ -126,16 +126,16 @@ test('a flick screen with nothing on it stays a screen the watch skips', () => {
     viewClockOff2: true, viewStripOff2: false });
   const before = words(S, 'basalt');
   assert.equal(before[2], 0);
-  migrateToScreens(S, { knownPlatform: 'basalt' });
+  migrateToScreens(S, {});
   assert.equal(S.viewCount, '3');
   assert.deepEqual(words(S, 'basalt'), before);
-  assert.deepEqual(M.screensOf(S, { platform: 'basalt' })[2], [{ k: 'strip' }]);
+  assert.deepEqual(M.screensOf(S)[2], [{ k: 'strip' }]);
 });
 
 test('health off: a health item 2.5 drew as an empty slot is stored as Empty', () => {
   const S = seeded({ layoutPreset: 'compactCal', healthMode: 'off', radarMode: 'graph',
     statusTopLeft: 'steps', statusForecastRight: 'sleep', statusHealthLeft: 'steps' });
-  migrateToScreens(S, { knownPlatform: 'basalt' });
+  migrateToScreens(S, {});
   assert.equal(S.statusTopLeft, 'empty');
   assert.equal(S.statusForecastRight, 'empty');
   assert.equal(S.statusHealthLeft, 'steps', 'a bar no screen shows keeps its slots');
@@ -144,52 +144,14 @@ test('health off: a health item 2.5 drew as an empty slot is stored as Empty', (
 
 test('health slot: a health item in a shown slot keeps it, and so does none', () => {
   const withItem = seeded({ layoutPreset: 'compactCal', healthMode: 'slot', statusTopLeft: 'steps' });
-  migrateToScreens(withItem, { knownPlatform: 'basalt' });
+  migrateToScreens(withItem, {});
   assert.equal(withItem.statusTopLeft, 'steps');
   assert.equal(withItem.healthMode, 'slot');
   // With none, the screens cannot tell 'slot' from 'off': the install keeps what it had.
   const without = seeded({ layoutPreset: 'compactCal', healthMode: 'slot' });
-  migrateToScreens(without, { knownPlatform: 'basalt' });
-  assert.equal(M.deriveModes(without, { platform: 'basalt' }).healthMode, 'off');
+  migrateToScreens(without, {});
+  assert.equal(M.deriveModes(without).healthMode, 'off');
   assert.equal(without.healthMode, 'slot');
-});
-
-test('aplite and an unknown watch keep their preset; radarEnabled follows radarMode everywhere', () => {
-  ['aplite', ''].forEach((knownPlatform) => RADAR.forEach((radarMode) => {
-    const S = seeded({ layoutPreset: 'fullCal', healthMode: 'status', radarMode });
-    const before = JSON.parse(JSON.stringify(S));
-    const r = migrateToScreens(S, { knownPlatform });
-    assert.equal(S.layoutPreset, 'fullCal', knownPlatform);
-    assert.equal(S.radarEnabled, radarMode !== 'off');
-    delete S.radarEnabled;
-    delete before.radarEnabled;
-    assert.deepEqual(S, before, 'nothing else moves');
-    assert.equal(r.send, false);
-  }));
-});
-
-test('a watch that did not say keeps what 2.5 drew too: the health slots it hid, the seats its modes folded', () => {
-  // A preset stays one (it might be an aplite), and so do the modes; a health item 2.5 drew as
-  // an empty slot is stored as Empty, since 2.6 no longer hides it by healthMode.
-  const S = seeded({ layoutPreset: 'compactCal', healthMode: 'off', radarMode: 'graph',
-    statusTopLeft: 'steps', statusHealthLeft: 'steps' });
-  const r = migrateToScreens(S, { knownPlatform: '' });
-  assert.equal(S.layoutPreset, 'compactCal');
-  assert.equal(S.statusTopLeft, 'empty');
-  assert.equal(S.statusHealthLeft, 'steps', 'a bar 2.5 did not draw keeps its slots');
-  assert.deepEqual([S.radarMode, S.healthMode], ['graph', 'off']);
-  assert.equal(r.send, false);
-  // A custom layout is rewritten to the views 2.5 drew: aplite never reads its keys.
-  const C = seeded({ layoutPreset: 'custom', customLayoutSeeded: true, radarMode: 'countdown', healthMode: 'all',
-    viewCount: '2', viewTop1: 'none', viewBody1: 'forecast', viewUpper1: 'radar', viewLower1: 'weather',
-    viewOrder1: 'TACB', viewClockOff1: false });
-  const drawn = legacyCycle(C).map((v) => vc.packWire(v || null));
-  const rc = migrateToScreens(C, { knownPlatform: '' });
-  assert.equal(C.layoutPreset, 'custom');
-  assert.equal(C.viewUpper1, 'weather', 'the Radar bar its radar mode hid stays hidden');
-  assert.deepEqual(words(C, 'basalt').slice(0, 2), drawn);
-  assert.deepEqual([C.radarMode, C.healthMode], ['countdown', 'all']);
-  assert.equal(rc.send, true, 'the current compiler would have kept the bar: a send is due');
 });
 
 test('the move is idempotent: a second run changes nothing', () => {
@@ -203,11 +165,11 @@ test('the move is idempotent: a second run changes nothing', () => {
   }));
 });
 
-test('the ledger runs the move at boot with the watch\'s own platform', () => {
+test('the ledger runs the move at boot', () => {
   // A new install: the Default screen alone, the rain alert's radar, no health.
   Object.keys(STORE).forEach((k) => delete STORE[k]);
   claySettings.seedDefaults(COLORS);
-  clayMigrations.runMigrations({ platform: 'basalt', knownPlatform: 'basalt', colors: COLORS,
+  clayMigrations.runMigrations({ colors: COLORS,
     defaultRadarProvider: 'rainbow', hadExistingInstall: false }, { only: KEYS.SCREENS_MIGRATION_KEY });
   let S = claySettings.read();
   assert.equal(S.layoutPreset, 'custom');
@@ -218,16 +180,10 @@ test('the ledger runs the move at boot with the watch\'s own platform', () => {
   Object.keys(STORE).forEach((k) => delete STORE[k]);
   STORE['clay-settings'] = JSON.stringify({ provider: 'dwd' });
   claySettings.seedDefaults(COLORS);
-  clayMigrations.runMigrations({ platform: 'basalt', knownPlatform: 'basalt', colors: COLORS,
+  clayMigrations.runMigrations({ colors: COLORS,
     defaultRadarProvider: 'rainbow', hadExistingInstall: true }, { only: KEYS.SCREENS_MIGRATION_KEY });
   S = claySettings.read();
   assert.equal(S.layoutPreset, 'custom');
   assert.equal(S.viewCount, '3', 'the Default and two flick screens');
   assert.deepEqual([S.radarMode, S.healthMode], ['graph', 'all']);
-  // A watch that did not say keeps the preset (it might be an aplite).
-  Object.keys(STORE).forEach((k) => delete STORE[k]);
-  claySettings.seedDefaults(COLORS);
-  clayMigrations.runMigrations({ platform: 'basalt', colors: COLORS, defaultRadarProvider: 'rainbow',
-    hadExistingInstall: false }, { only: KEYS.SCREENS_MIGRATION_KEY });
-  assert.equal(claySettings.read().layoutPreset, 'compactCal');
 });

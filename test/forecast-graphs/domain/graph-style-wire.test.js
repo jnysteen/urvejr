@@ -77,7 +77,7 @@ test('the record layout is graph_style.h\'s', () => {
   assert.deepEqual([GS.HOURS, GS.FLAGS, GS.SCALE, GS.MAP, GS.INSETS, GS.LINE_STYLE, GS.PALETTE],
     [0, 1, 2, 3, 7, 12, 26]);
   assert.equal(cDefine('GS_MAP_BYTES'), 4);
-  assert.equal(cDefine('GS_LINE_STYLE_BYTES'), graphWire.buildLineStyleBytes({}, EMERY).length);
+  assert.equal(cDefine('GS_LINE_STYLE_BYTES'), graphWire.buildLineStyleBytes({}).length);
   assert.equal(cDefine('GS_INSETS') + graphWire.buildCurveInsetBytes({}).length, GS.LINE_STYLE);
   assert.equal(cDefine('GS_FLAG_NIGHT'), wire.FLAG_NIGHT);
   assert.equal(cDefine('GS_PALETTE') + cDefine('GS_STOP_BYTES') * cDefine('GS_MAX_STOPS'), GS.MAX);
@@ -87,21 +87,18 @@ test('the record layout is graph_style.h\'s', () => {
   assert.equal(forecastAxis.BIT.SCALE & ~cDefine('GS_FLAG_AXIS_MASK'), 0);
 });
 
-test('no records off emery; three empty tuples while only the first style shows', () => {
-  const S = styled(['1', '2'], LONG);
-  [{ platform: 'basalt' }, { platform: 'aplite' }, null].forEach((w) =>
-    assert.deepEqual(wire.buildStyleTuples(S, w), {}, JSON.stringify(w)));
+test('three empty tuples while only the first style shows', () => {
   const one = styled(['1', '1'], LONG);
-  assert.deepEqual(wire.buildStyleTuples(one, EMERY),
+  assert.deepEqual(wire.buildStyleTuples(one),
     { CLAY_GRAPH_STYLE_1_UINT8: [], CLAY_GRAPH_STYLE_2_UINT8: [], CLAY_GRAPH_STYLE_3_UINT8: [] });
-  assert.deepEqual(wire.buildStyleTuples({}, EMERY),
+  assert.deepEqual(wire.buildStyleTuples({}),
     { CLAY_GRAPH_STYLE_1_UINT8: [], CLAY_GRAPH_STYLE_2_UINT8: [], CLAY_GRAPH_STYLE_3_UINT8: [] },
     'a fresh install: the first style alone');
 });
 
 test('the first style\'s record is the look the flat tuples carry', () => {
   const S = styled(['1', '2'], LONG, null, { forecastAxisNumbers: 'graph' });
-  const payload = buildClayPayload(S, EMERY, NOW);
+  const payload = buildClayPayload(S, NOW);
   const rec = payload.CLAY_GRAPH_STYLE_1_UINT8;
   assert.equal(rec[GS.HOURS], 26, '24 h with no left axis: 26 hours');
   assert.equal(rec[GS.FLAGS], (payload.CLAY_DAY_NIGHT_SHADING ? wire.FLAG_NIGHT : 0)
@@ -116,14 +113,14 @@ test('the first style\'s record is the look the flat tuples carry', () => {
 
 test('another style\'s record: its own hours, look and rows, no palette without rain bars', () => {
   const S = styled(['1', '2'], LONG);
-  const rec = buildClayPayload(S, EMERY, NOW).CLAY_GRAPH_STYLE_2_UINT8;
+  const rec = buildClayPayload(S, NOW).CLAY_GRAPH_STYLE_2_UINT8;
   const S2 = Object.assign({}, S, LONG);
   assert.equal(rec[GS.HOURS], 68);
   assert.equal(rec[GS.FLAGS], forecastAxis.BIT.NUMS_GRAPH, 'no shading; the numbers on the graph');
   assert.equal(rec[GS.SCALE], 0);
   assert.deepEqual(rec.slice(GS.MAP, GS.INSETS), [1, 3, 0, 0], 'the rain chance shared, cloud on a free row');
   assert.deepEqual(rec.slice(GS.INSETS, GS.LINE_STYLE), graphWire.buildCurveInsetBytes(S2));
-  assert.deepEqual(rec.slice(GS.LINE_STYLE, GS.PALETTE), graphWire.buildLineStyleBytes(S2, EMERY));
+  assert.deepEqual(rec.slice(GS.LINE_STYLE, GS.PALETTE), graphWire.buildLineStyleBytes(S2));
   assert.equal(rec.length, GS.PALETTE, 'no rain bars: no palette');
 });
 
@@ -131,7 +128,7 @@ test('graphs 4 to 6: each shown graph\'s record rides in its view words\' slot',
   const S = styled(['1', '5', '6'], null, null, {
     graphStyles: JSON.stringify({ names: ['', '', '', '', '', ''],
       styles: [null, { forecastHours: '12' }, { forecastHours: '12' }, null, LONG, { forecastHours: '12' }] }) });
-  const payload = buildClayPayload(S, EMERY, NOW);
+  const payload = buildClayPayload(S, NOW);
   assert.deepEqual([payload.CLAY_VIEW_0, payload.CLAY_VIEW_1, payload.CLAY_VIEW_2]
     .map((w) => (Math.floor(w / 65536) >> 9) & 3), [0, 1, 2], 'graphs 1, 5 and 6 in slots 1 to 3');
   assert.equal(payload.CLAY_GRAPH_STYLE_1_UINT8[GS.HOURS], 24, 'the first graph: 24 h');
@@ -142,7 +139,7 @@ test('graphs 4 to 6: each shown graph\'s record rides in its view words\' slot',
   // Graphs 2 and 3 exist but no screen shows them: graph 4 alone beside the first.
   const four = styled(['4', '1'], null, null, {
     graphStyles: JSON.stringify({ names: [], styles: [null, {}, {}, LONG] }) });
-  const p4 = buildClayPayload(four, EMERY, NOW);
+  const p4 = buildClayPayload(four, NOW);
   assert.equal((Math.floor(p4.CLAY_VIEW_0 / 65536) >> 9) & 3, 1, 'graph 4 in the slot the first graph leaves');
   assert.equal(p4.CLAY_GRAPH_STYLE_2_UINT8[GS.HOURS], 68);
   assert.equal(p4.CLAY_GRAPH_STYLE_1_UINT8[GS.HOURS], 24, 'the first graph in its own');
@@ -152,7 +149,7 @@ test('graphs 4 to 6: each shown graph\'s record rides in its view words\' slot',
 test('the scale rows: every feels-like and dew point row, while the scale option is on', () => {
   const two = Object.assign({}, LONG, { fourthLine: 'feels' });
   const on = styled(['1', '2'], two, null, { forecastAxisScale: true, fifthLine: 'dew' });
-  const recs = wire.buildStyleTuples(on, EMERY);
+  const recs = wire.buildStyleTuples(on);
   // Rows: precip line 0, uv 1, cloud stripe 2 (style 2's second line, on the first free row),
   // dew 3 (the first style's fifth line), feels 4 (style 2's third line: the spare row).
   const both = (1 << 4) | (1 << 5);
@@ -160,23 +157,22 @@ test('the scale rows: every feels-like and dew point row, while the scale option
   assert.equal(recs.CLAY_GRAPH_STYLE_2_UINT8[GS.SCALE], both, 'the same byte in every record');
   assert.deepEqual(recs.CLAY_GRAPH_STYLE_2_UINT8.slice(GS.MAP, GS.INSETS), [1, 3, GS.SPARE, 0]);
   const off = styled(['1', '2'], two, null, { fifthLine: 'dew' });
-  assert.equal(wire.buildStyleTuples(off, EMERY).CLAY_GRAPH_STYLE_1_UINT8[GS.SCALE], 0);
+  assert.equal(wire.buildStyleTuples(off).CLAY_GRAPH_STYLE_1_UINT8[GS.SCALE], 0);
 });
 
 test('the bake\'s settings: the union\'s rows, the bars while one style draws them, the longest length', () => {
   const S = styled(['1', '2'], LONG);
-  assert.equal(wire.weatherSettings(styled(['1', '1'], LONG), EMERY).graphStyleSlots, undefined);
-  assert.equal(wire.weatherSettings(S, { platform: 'basalt' }), S, 'basalt: the settings themselves');
-  const W = wire.weatherSettings(S, EMERY);
+  assert.equal(wire.weatherSettings(styled(['1', '1'], LONG)).graphStyleSlots, undefined);
+  const W = wire.weatherSettings(S);
   assert.deepEqual([W.secondaryLine, W.thirdLine, W.fourthLine, W.fifthLine], ['precip_prob', 'uv', 'cloud', 'off']);
   assert.deepEqual([W.secondaryLineStyle, W.thirdLineStyle, W.fourthLineStyle], ['line', 'line', 'stripeTop']);
   assert.deepEqual(W.graphStyleSlots[2], { metric: 'cloud', stripe: true, alert: false });
   assert.equal(W.barSource, 'rain', 'the first style draws them');
   assert.equal(W.forecastHours, '48');
-  assert.equal(wire.hoursSent(S, EMERY), 68);
-  assert.equal(wire.hoursSent(styled(['1', '2'], Object.assign({}, LONG, { forecastHours: '12' })), EMERY), 24,
+  assert.equal(wire.hoursSent(S), 68);
+  assert.equal(wire.hoursSent(styled(['1', '2'], Object.assign({}, LONG, { forecastHours: '12' }))), 24,
     'the first style\'s 24 h is the longest');
-  const noBars = wire.weatherSettings(styled(['2'], LONG), EMERY);
+  const noBars = wire.weatherSettings(styled(['2'], LONG));
   assert.equal(noBars.barSource, 'off', 'style 2 alone: no rain bars');
   assert.equal(S.thirdLine, 'uv', 'the settings are not touched');
 });
@@ -190,7 +186,7 @@ test('the bake sends one metric twice when one style draws it as a line and anot
     TEMP_RAW_TREND: [10, 11, 12, 13, 14, 15], TEMP_MIN: 10, TEMP_MAX: 15,
     PRECIP_TREND_UINT8: precips, CLOUD_TREND: [0, 20, 40, 60, 80, 100], RAIN_TREND_UINT8: [0, 0, 1, 2, 3, 0],
     WIND_TREND_UINT8: [], GUST_TREND_UINT8: [], UV_TREND_UINT8: [0, 10, 20, 30, 40, 50]
-  }, S, EMERY);
+  }, S);
   // Rows: precip line, uv, cloud stripe, precip stripe.
   assert.deepEqual(payload.SECONDARY_LINE_TREND_UINT8, precips.map((p) => Math.round(p * 10 / 4)));
   assert.equal(payload.THIRD_LINE_TREND_UINT8.length, precips.length, 'uv');
@@ -205,11 +201,11 @@ test('the bake sends one metric twice when one style shows all its values and an
   // counts as another metric. Style 1 draws UV with all its values, style 2 with alerts only.
   const two = Object.assign({}, LONG, { secondaryLine: 'uv', thirdLine: 'off', fourthLine: 'off', uvLineShow: 'alert' });
   const S = styled(['1', '2'], two, null, { uvLineShow: 'all' });
-  const W = wire.weatherSettings(S, EMERY);
+  const W = wire.weatherSettings(S);
   assert.deepEqual(W.graphStyleSlots.slice(0, 3).map((r) => r && [r.metric, r.alert]),
     [['precip_prob', false], ['uv', false], ['uv', true]]);
   assert.equal(W.uvLineShow, 'alert', 'the bake\'s settings carry the band of the Alert row');
-  assert.deepEqual(wire.buildStyleTuples(S, EMERY).CLAY_GRAPH_STYLE_2_UINT8.slice(GS.MAP, GS.INSETS), [3, 0, 0, 0],
+  assert.deepEqual(wire.buildStyleTuples(S).CLAY_GRAPH_STYLE_2_UINT8.slice(GS.MAP, GS.INSETS), [3, 0, 0, 0],
     'style 2 reads the Alert row');
   const payload = bake(S, EMERY);
   const allOnly = bake(styled(['1'], null, null, { uvLineShow: 'all' }), EMERY);
@@ -219,31 +215,29 @@ test('the bake sends one metric twice when one style shows all its values and an
   assert.notDeepEqual(payload.FOURTH_LINE_TREND_UINT8, payload.THIRD_LINE_TREND_UINT8);
   // Both alerts only: one row, as before each graph had its own.
   const both = styled(['1', '2'], two, null, { uvLineShow: 'alert' });
-  assert.deepEqual(wire.weatherSettings(both, EMERY).graphStyleSlots.slice(0, 3).map((r) => r && r.metric),
+  assert.deepEqual(wire.weatherSettings(both).graphStyleSlots.slice(0, 3).map((r) => r && r.metric),
     ['precip_prob', 'uv', null]);
   // Which row draws alerts only signs: flipping both styles trades the rows' bytes.
   const flipped = styled(['1', '2'], Object.assign({}, two, { uvLineShow: 'all' }), null, { uvLineShow: 'alert' });
-  assert.notEqual(renderSignature(flipped, EMERY), renderSignature(S, EMERY));
-  assert.equal(renderSignature(styled(['1', '2'], LONG), EMERY).split('|').length,
-    renderSignature(styled(['1', '1'], LONG), EMERY).split('|').length, 'no Alert row: no extra part');
+  assert.notEqual(renderSignature(flipped), renderSignature(S));
+  assert.equal(renderSignature(styled(['1', '2'], LONG)).split('|').length,
+    renderSignature(styled(['1', '1'], LONG)).split('|').length, 'no Alert row: no extra part');
 });
 
 test('the fetch and the render signature read the shown styles\' union', () => {
   const S = styled(['1', '2'], Object.assign({}, LONG, { fourthLine: 'feels' }));
-  const opts = fetchOptions.build(S, EMERY);
+  const opts = fetchOptions.build(S);
   assert.equal(opts.forecastHours, 68, 'the longest style');
   assert.equal(opts.fetchFeels, true, 'style 2 draws feels-like');
-  assert.equal(fetchOptions.build(S, { platform: 'basalt' }).forecastHours, 24);
-  const base = renderSignature(S, EMERY);
-  assert.notEqual(base, renderSignature(S), 'the union signs');
+  const base = renderSignature(S);
   const recolored = styled(['1', '2'], Object.assign({}, LONG, { fourthLine: 'feels', gcCloudLineDark: 0xFF0000 }));
-  assert.equal(renderSignature(recolored, EMERY), base, 'a colour rides the Clay message');
+  assert.equal(renderSignature(recolored), base, 'a colour rides the Clay message');
   const relined = styled(['1', '2'], Object.assign({}, LONG, { fourthLine: 'dew' }));
-  assert.notEqual(renderSignature(relined, EMERY), base, 'another style\'s metric re-bakes');
+  assert.notEqual(renderSignature(relined), base, 'another style\'s metric re-bakes');
   const shorter = styled(['1', '2'], Object.assign({}, LONG, { fourthLine: 'feels', forecastHours: '12' }));
-  assert.notEqual(renderSignature(shorter, EMERY), base, 'and its length');
+  assert.notEqual(renderSignature(shorter), base, 'and its length');
   const unshown = styled(['1', '1'], Object.assign({}, LONG, { fourthLine: 'dew' }));
-  assert.equal(renderSignature(unshown, EMERY), renderSignature(styled(['1', '1'], LONG), EMERY),
+  assert.equal(renderSignature(unshown), renderSignature(styled(['1', '1'], LONG)),
     'a style no screen shows signs nothing');
 });
 
@@ -265,18 +259,18 @@ const RAW = {
  * @returns {Object}
  */
 function bake(S, watchInfo) {
-  return applyForecastSeries(JSON.parse(JSON.stringify(RAW)), S, watchInfo);
+  return applyForecastSeries(JSON.parse(JSON.stringify(RAW)), S);
 }
 
 test('the spare row: a fifth series bakes into SPARE_LINE_TREND_UINT8, a union of four sends none', () => {
   // The first style's precip, uv and wind take rows 0-2 (wind on its own fourth-line row);
   // style 2's gust finds its own row taken and takes row 3, its cloud the spare.
   const S = styled(['1', '2'], FIFTH, null, { fourthLine: 'wind' });
-  const W = wire.weatherSettings(S, EMERY);
+  const W = wire.weatherSettings(S);
   assert.deepEqual(W.graphStyleSlots.map((r) => r && r.metric), ['precip_prob', 'uv', 'wind', 'gust', 'cloud']);
   assert.equal(W.spareLine, 'cloud', 'the bake\'s settings name the spare');
   assert.equal(S.spareLine, undefined, 'the settings themselves never do');
-  assert.deepEqual(wire.buildStyleTuples(S, EMERY).CLAY_GRAPH_STYLE_2_UINT8.slice(GS.MAP, GS.INSETS), [1, 4, GS.SPARE, 0]);
+  assert.deepEqual(wire.buildStyleTuples(S).CLAY_GRAPH_STYLE_2_UINT8.slice(GS.MAP, GS.INSETS), [1, 4, GS.SPARE, 0]);
   const payload = bake(S, EMERY);
   assert.deepEqual(payload.SPARE_LINE_TREND_UINT8, RAW.CLOUD_TREND.map((c) => Math.round(c * 10 / 4)), 'cloud %');
   assert.equal(payload.FIFTH_LINE_TREND_UINT8.length, RAW.GUST_TREND_UINT8.length, 'gusts on row 3');
@@ -286,10 +280,10 @@ test('the spare row: a fifth series bakes into SPARE_LINE_TREND_UINT8, a union o
   assert.ok(striped.SPARE_LINE_TREND_UINT8.every((b) => stripeLevels.LEVEL_BYTES.includes(b)), 'levels');
   assert.notDeepEqual(striped.SPARE_LINE_TREND_UINT8, payload.SPARE_LINE_TREND_UINT8);
   // Four series between the styles: no spare, so the key is left out (the watch deletes its
-  // spare trend), as it is with one style shown and on every other watch.
+  // spare trend), as it is with one style shown.
   const four = styled(['1', '2'], Object.assign({}, FIFTH, { fourthLine: 'off' }), null, FOUR_LINES);
-  assert.equal(wire.weatherSettings(four, EMERY).spareLine, undefined);
-  [[four, EMERY], [styled(['1', '1'], FIFTH, null, FOUR_LINES), EMERY], [S, { platform: 'basalt' }], [S, null]]
+  assert.equal(wire.weatherSettings(four).spareLine, undefined);
+  [[four, EMERY], [styled(['1', '1'], FIFTH, null, FOUR_LINES), EMERY]]
     .forEach(([settings, watch], i) => assert.equal(
       Object.prototype.hasOwnProperty.call(bake(settings, watch), 'SPARE_LINE_TREND_UINT8'), false, 'case ' + i));
 });
@@ -301,20 +295,20 @@ test('the spare row joins the fetch, the left axis, the Show: Alert bands and th
   const uvSpare = styled(['1', '2'], Object.assign({}, FIFTH, { fourthLine: 'uv' }), null,
     Object.assign({ thirdLine: 'wind', thirdLineStyle: 'line', fourthLine: 'cloud', statusRadarLeft: 'empty' },
       NOTHING_PLACED));
-  assert.equal(wire.weatherSettings(uvSpare, EMERY).spareLine, 'uv');
-  assert.equal(fetchOptions.build(uvSpare, EMERY).fetchUv, true);
+  assert.equal(wire.weatherSettings(uvSpare).spareLine, 'uv');
+  assert.equal(fetchOptions.build(uvSpare).fetchUv, true);
   const noUv = styled(['1', '2'], Object.assign({}, FIFTH, { fourthLine: 'pressure' }), null,
     Object.assign({ thirdLine: 'wind', thirdLineStyle: 'line', fourthLine: 'cloud', statusRadarLeft: 'empty' },
       NOTHING_PLACED));
-  assert.equal(fetchOptions.build(noUv, EMERY).fetchUv, false, 'the control: nothing else asks for UV');
+  assert.equal(fetchOptions.build(noUv).fetchUv, false, 'the control: nothing else asks for UV');
   // Feels-like on the spare alone is fetched and, with the left axis naming the scale, widens
   // its ends as a feels-like line does.
   const feelsSpare = styled(['1', '2'], Object.assign({}, FIFTH, { fourthLine: 'feels' }), null,
     { fourthLine: 'wind', forecastAxisScale: true });
-  assert.equal(wire.weatherSettings(feelsSpare, EMERY).spareLine, 'feels');
-  assert.equal(fetchOptions.build(feelsSpare, EMERY).fetchFeels, true);
+  assert.equal(wire.weatherSettings(feelsSpare).spareLine, 'feels');
+  assert.equal(fetchOptions.build(feelsSpare).fetchFeels, true);
   const feels = applyForecastSeries(Object.assign(JSON.parse(JSON.stringify(RAW)),
-    { FEELS_TREND: [8, 9, 10, 11, 12, 20] }), feelsSpare, EMERY);
+    { FEELS_TREND: [8, 9, 10, 11, 12, 20] }), feelsSpare);
   assert.equal(feels.SPARE_LINE_TREND_UINT8.length, 6);
   assert.deepEqual([feels.TEMP_MIN, feels.TEMP_MAX], [8, 20], 'the scale\'s ends cover the spare\'s feels-like');
   // A gust line on the spare drawn Show: Alert shares the wind line's band, so it bakes the
@@ -325,20 +319,20 @@ test('the spare row joins the fetch, the left axis, the Show: Alert bands and th
   const lines = { thirdLine: 'uv', thirdLineStyle: 'line', fourthLine: 'wind' };
   const gustSpare = styled(['1', '2'], Object.assign({}, LONG, { thirdLine: 'cloud', thirdLineStyle: 'line',
     fourthLine: 'gust' }), null, Object.assign({}, lines, alert));
-  assert.equal(wire.weatherSettings(gustSpare, EMERY).spareLine, 'gust');
+  assert.equal(wire.weatherSettings(gustSpare).spareLine, 'gust');
   const own = styled(['1'], null, null, Object.assign({}, lines, { fifthLine: 'gust' }, alert));
   assert.deepEqual(bake(gustSpare, EMERY).SPARE_LINE_TREND_UINT8, bake(own, EMERY).FIFTH_LINE_TREND_UINT8);
   assert.ok(bake(gustSpare, EMERY).SPARE_LINE_TREND_UINT8.includes(0), 'gaps below the warn level');
   // The render signature: the spare signs while there is one, its stripe too, and a union of
   // four signs as it did before the spare.
-  const sig = renderSignature(uvSpare, EMERY);
-  assert.notEqual(renderSignature(noUv, EMERY), sig, 'another metric on the spare re-bakes');
+  const sig = renderSignature(uvSpare);
+  assert.notEqual(renderSignature(noUv), sig, 'another metric on the spare re-bakes');
   const cloudLine = styled(['1', '2'], FIFTH, null, { fourthLine: 'wind' });
   const cloudStripe = styled(['1', '2'], Object.assign({}, FIFTH, { fourthLineStyle: 'stripeTop' }), null,
     { fourthLine: 'wind' });
-  assert.notEqual(renderSignature(cloudStripe, EMERY), renderSignature(cloudLine, EMERY), 'the spare as a stripe');
+  assert.notEqual(renderSignature(cloudStripe), renderSignature(cloudLine), 'the spare as a stripe');
   const four = styled(['1', '2'], Object.assign({}, FIFTH, { fourthLine: 'off' }), null, FOUR_LINES);
-  assert.equal(renderSignature(four, EMERY).split('|').length,
-    renderSignature(styled(['1', '1'], FIFTH, null, FOUR_LINES), EMERY).split('|').length, 'no spare: no extra part');
-  assert.equal(sig.split('|').length, renderSignature(four, EMERY).split('|').length + 1, 'the spare: one part');
+  assert.equal(renderSignature(four).split('|').length,
+    renderSignature(styled(['1', '1'], FIFTH, null, FOUR_LINES)).split('|').length, 'no spare: no extra part');
+  assert.equal(sig.split('|').length, renderSignature(four).split('|').length + 1, 'the spare: one part');
 });

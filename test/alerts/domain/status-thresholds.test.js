@@ -575,23 +575,19 @@ test('buildSettingsBlob: nothing configured -> all disabled, zeroed thresholds',
 });
 
 // Bytes 36..37: the warn look per PAIRED kind, 2 bits each in KINDS order (0 none,
-// 1 outline, 2 fill). An unset look takes the platform default — the packer is
-// handed the watch's env for exactly that.
-test('buildSettingsBlob: warn looks pack 2 bits per paired kind, defaults per platform', () => {
+// 1 outline, 2 fill). An unset look takes the default.
+test('buildSettingsBlob: warn looks pack 2 bits per paired kind', () => {
   const O = wire.WARN_LOOK_OFFSET;
   assert.equal(O, 36);
   const looks = (blob) => blob.slice(O, O + 2);
-  assert.deepEqual(looks(wire.buildSettingsBlob({}, { color: true })), [0xAA, 0x95], 'colour');
-  assert.deepEqual(looks(wire.buildSettingsBlob({})), [0xAA, 0x95], 'no env = colour');
-  assert.deepEqual(looks(wire.buildSettingsBlob({}, { color: false })), [0x55, 0x55],
-    'B&W: outline everywhere — a warn fill would be the danger fill');
+  assert.deepEqual(looks(wire.buildSettingsBlob({})), [0xAA, 0x95], 'the defaults');
   const picked = wire.buildSettingsBlob({
     threshAqiWarnLook: 'none', threshPollenWarnLook: 'outline', threshWindWarnLook: 'fill',
     threshGustWarnLook: 'none', threshStepsWarnLook: 'fill', threshSleepWarnLook: 'none',
     threshDistanceWarnLook: 'outline', threshUvWarnLook: 'none'
-  }, { color: false });
+  });
   assert.deepEqual(looks(picked), [0 | (1 << 2) | (2 << 4) | (0 << 6),
-    2 | (0 << 2) | (1 << 4) | (0 << 6)], 'a stored look wins on any platform');
+    2 | (0 << 2) | (1 << 4) | (0 << 6)], 'a stored look wins');
   // Unknown values fall back to the default; bold-only kinds own no look cell.
   assert.deepEqual(looks(wire.buildSettingsBlob({ threshAqiWarnLook: 'bogus',
     threshTempWarnLook: 'none' })), [0xAA, 0x95]);
@@ -604,7 +600,7 @@ test('buildSettingsBlob: warn looks pack 2 bits per paired kind, defaults per pl
 // without the look bytes (it reads 0x00 as "no outline") still draws one; 0x00 is
 // the 'none' look alone. Unset is auto: theme fg for weather, goal green for goals.
 test('buildSettingsBlob: the warn colour byte is 0x00 exactly for the none look', () => {
-  const warnByte = (settings, k, env) => wire.buildSettingsBlob(settings, env)[1 + 2 * k];
+  const warnByte = (settings, k) => wire.buildSettingsBlob(settings)[1 + 2 * k];
   ['outline', 'fill'].forEach((look) => {
     assert.equal(warnByte({ theme: 'dark', threshWindWarnLook: look }, 2), 0xFF,
       look + ': unset warn on dark = white');
@@ -616,11 +612,9 @@ test('buildSettingsBlob: the warn colour byte is 0x00 exactly for the none look'
     assert.equal(warnByte({ threshStepsWarnLook: look, threshStepsWarnColor: '' }, 4), 0xDC,
       look + ': a goal blank is auto green now, not "off"');
   });
-  assert.equal(warnByte({ theme: 'dark' }, 2, { color: false }), 0xFF, 'B&W default outline: fg');
   assert.equal(warnByte({ threshWindWarnLook: 'none', threshWindWarnColor: 0xFFAA00 }, 2), 0x00);
   assert.equal(warnByte({ threshStepsWarnLook: 'none' }, 4), 0x00, 'goal none: 0x00');
   assert.equal(th.kindConfig({ threshWindWarnLook: 'none' }, 2).warnColor, null);
-  assert.equal(th.kindConfig({}, 2, false).warnLook, 'outline');
   assert.equal(th.kindConfig({}, 2).warnLook, 'fill');
   assert.equal(th.kindConfig({}, 8).warnLook, null, 'bold-only kinds have no look');
 });
@@ -912,25 +906,14 @@ test('isGoalKind flags the celebratory health trio', () => {
 test('buildStatusLines bakes STATUS_LEVELS_UINT8 into the weather payload', () => {
   const payload = { AQI_TREND: [150] };
   statusLines.buildStatusLines(payload,
-    { threshAqiWarn: '100', threshAqiDanger: '200' }, { platform: 'basalt' }, NOW);
+    { threshAqiWarn: '100', threshAqiDanger: '200' }, NOW);
   assert.deepEqual(payload.STATUS_LEVELS_UINT8, [1, 0]);   // AQI warn in bits 0-1
-});
-
-test('buildStatusLines omits STATUS_LEVELS_UINT8 on aplite (highlight compiled out)', () => {
-  // aplite has no WW_THRESHOLD_HIGHLIGHT, so its inbox handler for this tuple is
-  // gone: sending the byte would cost 8 B of its inbox bundle for nothing. The four
-  // status-line blobs (the 'status' dedupe category's other keys) still go out.
-  const payload = { AQI_TREND: [150] };
-  statusLines.buildStatusLines(payload,
-    { threshAqiWarn: '100', threshAqiDanger: '200' }, { platform: 'aplite' }, NOW);
-  assert.equal(Object.prototype.hasOwnProperty.call(payload, 'STATUS_LEVELS_UINT8'), false);
-  assert.ok(Array.isArray(payload.STATUS_LINE_1_UINT8), 'status lines still packed');
 });
 
 test('buildStatusLines keeps STATUS_LEVELS_UINT8 for an unknown watchInfo', () => {
   const payload = { AQI_TREND: [150] };
   statusLines.buildStatusLines(payload,
-    { threshAqiWarn: '100', threshAqiDanger: '200' }, null, NOW);
+    { threshAqiWarn: '100', threshAqiDanger: '200' }, NOW);
   assert.deepEqual(payload.STATUS_LEVELS_UINT8, [1, 0]);
 });
 

@@ -1,7 +1,7 @@
 'use strict';
 // Bars 4 to 6's wire and storage contract (Pebble Time 2, 3.0.0's New status bar): four appended
-// message keys, four appended persist slots, the watch's line and cell handlers behind
-// PBL_PLATFORM_EMERY, and the view word's row bits read on the watch where the phone packs
+// message keys, four appended persist slots, the watch's line and cell handlers, and the view
+// word's row bits read on the watch where the phone packs
 // them (src/c/appendix/view_spec.h, src/c/windows/layout.h, src/pkjs/layout/domain/view-cycle.js packExt). The phone's half of each:
 // test/status-bars/domain/extra-bars.test.js.
 
@@ -27,16 +27,13 @@ const template = JSON.parse(readC('package.template.json'));
 const LINE_KEYS = ['STATUS_LINE_5_UINT8', 'STATUS_LINE_6_UINT8', 'STATUS_LINE_7_UINT8'];
 
 /**
- * Whether `needle` sits inside an `#if defined(PBL_PLATFORM_EMERY)` block of `src`.
+ * Whether `needle` occurs in `src`.
  * @param {string} src C source text
  * @param {string} needle text that must occur in it
  * @returns {boolean}
  */
-function emeryOnly(src, needle) {
-  const at = src.indexOf(needle);
-  assert.ok(at !== -1, 'missing: ' + needle);
-  const guard = src.lastIndexOf('#if defined(PBL_PLATFORM_EMERY)', at);
-  return guard !== -1 && src.indexOf('#endif', guard) > at;
+function has(src, needle) {
+  return src.indexOf(needle) !== -1;
 }
 
 test('the four keys are appended after SPARE_LINE_TREND_UINT8: the three lines, then the cells', () => {
@@ -57,25 +54,24 @@ test('PERSIST STATUS_LINE_5..7 and OD_EXTRA_CELLS are appended after SPARE_LINE_
     'the last slots, in order');
   // A bar 4 to 6's line id maps onto its own slot; the first four keep theirs.
   assert.match(persistC, /if \(line_id >= STATUS_LINE_BAR4\) \{ return STATUS_LINE_5 \+ \(line_id - STATUS_LINE_BAR4\); \}/);
-  assert.ok(emeryOnly(persistC, 'return STATUS_LINE_5 + (line_id - STATUS_LINE_BAR4)'), 'behind PBL_PLATFORM_EMERY');
-  assert.ok(emeryOnly(persistC, 'persist_get_od_extra_cells'), 'the cells\' reader is emery only');
+  assert.ok(has(persistC, 'return STATUS_LINE_5 + (line_id - STATUS_LINE_BAR4)'), 'missing');
+  assert.ok(has(persistC, 'persist_get_od_extra_cells'), 'the cells\' reader');
 });
 
-test('the line ids: bars 4 to 6 follow the four, on emery alone, each received on its own key', () => {
+test('the line ids: bars 4 to 6 follow the four, each received on its own key', () => {
   assert.equal(cEnum(statusLineH, 'STATUS_LINE_BAR4'), 4);
   assert.equal(cEnum(statusLineH, 'STATUS_LINE_BAR5'), 5);
   assert.equal(cEnum(statusLineH, 'STATUS_LINE_BAR6'), 6);
-  assert.ok(emeryOnly(statusLineH, 'STATUS_LINE_BAR4 = 4'));
-  assert.ok(emeryOnly(statusLineH, '#define STATUS_LINE_COUNT 7'), 'seven lines on emery');
-  assert.match(statusLineH, /#else\s+#define STATUS_LINE_COUNT 4/, 'four elsewhere');
+  assert.ok(has(statusLineH, 'STATUS_LINE_BAR4 = 4'));
+  assert.ok(has(statusLineH, '#define STATUS_LINE_COUNT 7'), 'seven lines');
   ['BAR4', 'BAR5', 'BAR6'].forEach((bar, i) => {
     const line = 'case STATUS_LINE_' + bar + ': return MESSAGE_KEY_' + LINE_KEYS[i] + ';';
     assert.ok(appMessageC.indexOf(line) !== -1, line);
-    assert.ok(emeryOnly(appMessageC, line), line + ' behind PBL_PLATFORM_EMERY');
+    assert.ok(has(appMessageC, line), line);
   });
 });
 
-test('the cells: CLAY_OD_EXTRA_UINT8 is one byte per item, checked before the write, on emery alone', () => {
+test('the cells: CLAY_OD_EXTRA_UINT8 is one byte per item, checked before the write', () => {
   assert.match(thresholdH, /#define THRESH_OD_EXTRA_BYTES OD_ITEM_COUNT/);
   assert.equal(cEnum(onDemandH, 'OD_ITEM_COUNT'), OD.ITEMS.length, 'one byte per On demand item');
   assert.match(thresholdH, /#define THRESH_SCRATCH_BYTES \(THRESH_SETTINGS_BYTES \+ THRESH_OD_EXTRA_BYTES\)/,
@@ -85,8 +81,8 @@ test('the cells: CLAY_OD_EXTRA_UINT8 is one byte per item, checked before the wr
   assert.match(body, /dict_find\(iterator, MESSAGE_KEY_CLAY_OD_EXTRA_UINT8\)/);
   assert.ok(body.indexOf('tuple->length != THRESH_OD_EXTRA_BYTES') < body.indexOf('persist_set_od_extra_cells'),
     'the length is checked before the write');
-  assert.ok(emeryOnly(appMessageC, 'static bool handle_od_extra('), 'behind PBL_PLATFORM_EMERY');
-  assert.ok(emeryOnly(appMessageC, 'handled |= handle_od_extra(iterator, &status_dirty);'));
+  assert.ok(has(appMessageC, 'static bool handle_od_extra('), 'missing');
+  assert.ok(has(appMessageC, 'handled |= handle_od_extra(iterator, &status_dirty);'));
   assert.equal(cEnum(thresholdH, 'THRESH_BAR_4'), OD.BLOB_BARS.length, 'bar 4 follows the blob\'s four');
   assert.equal(cDefine(thresholdH, 'THRESH_EXTRA_BAR_COUNT'), VC.EXTRA_BARS.length);
 });
@@ -95,12 +91,12 @@ test('the view word: bars 4 to 6 ride the row fields plus ext bits 11 and 12, re
   assert.equal(cEnum(viewSpecH, 'STATUS_SRC_BAR4'), VC.STATUS_SRC_BAR4);
   assert.equal(cEnum(viewSpecH, 'STATUS_SRC_BAR5'), VC.STATUS_SRC_BAR5);
   assert.equal(cEnum(viewSpecH, 'STATUS_SRC_BAR6'), VC.STATUS_SRC_BAR6);
-  assert.ok(emeryOnly(viewSpecH, 'STATUS_SRC_BAR4 = 4'));
+  assert.ok(has(viewSpecH, 'STATUS_SRC_BAR4 = 4'));
   assert.match(layoutH, /#define VIEW_EXT_UPPER_BAR_HI \(1u << 11\)/);
   assert.match(layoutH, /#define VIEW_EXT_LOWER_BAR_HI \(1u << 12\)/);
   assert.equal(VC.EXT_UPPER_BAR_HI, 1 << 11);
   assert.equal(VC.EXT_LOWER_BAR_HI, 1 << 12);
-  assert.ok(emeryOnly(layoutH, '#define VIEW_EXT_UPPER_BAR_HI'));
+  assert.ok(has(layoutH, '#define VIEW_EXT_UPPER_BAR_HI'));
   // The watch adds 3 to a row that is on, as unpackWire does.
   const start = layoutC.indexOf('void view_spec_apply_ext(');
   const body = layoutC.slice(start, layoutC.indexOf('\n}\n', start));

@@ -4,6 +4,7 @@
   "packages": {
     ".": {
       "release-type": "go",
+      "bump-minor-pre-major": true,
       "skip-changelog": true,
       "exclude-paths": ["plugins"],
       "extra-files": [

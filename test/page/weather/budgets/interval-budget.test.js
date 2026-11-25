@@ -10,13 +10,12 @@ const rb = require('../../../../src/pkjs/page/weather/budgets/rainbow-budget.js'
 const FULL = ['5', '10', '15', '30', '60'];
 const values = (opts) => opts.map((o) => o[1]);
 
-// Base state: no guarded call (Open-Meteo weather, the shared Rainbow radar: "Rainbow
-// (limited)"), no night pause, both guards on. OWN_KEY puts the radar on the user's key
-// ("Rainbow (own key)").
+// Base state: no guarded call (Open-Meteo weather, Met.no radar), no night pause, both
+// guards on. OWN_KEY puts the radar on Rainbow, on the user's key.
 const OWN_KEY = { radarProvider: 'rainbowkey' };
 function S(over) {
   return Object.assign({
-    provider: 'openmeteo', radarProvider: 'rainbow', radarMode: 'graph',
+    provider: 'openmeteo', radarProvider: 'metno', radarMode: 'graph',
     sleepNightEnabled: false, sleepStartHour: '22', sleepEndHour: '7',
     tomorrowioFitBudget: true, rainbowFitBudget: true
   }, over || {});

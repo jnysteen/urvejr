@@ -363,38 +363,30 @@
 
   /**
    * The warn look a kind takes while its thresh<Kind>WarnLook is unset: goal kinds
-   * the outline (their green "close" ring), weather kinds a fill on a colour watch
-   * and an outline on a B&W one — there a warn fill would be the danger fill (both
-   * solid in the one ink), so the outline is the only look that keeps the two
-   * levels apart. The settings page's defaultFrom resolver (blocks.js
+   * the outline (their green "close" ring), weather kinds a fill. The settings page's defaultFrom resolver (blocks.js
    * warnLookDefault) calls this too, so the page and the packer always agree,
    * and the page never stores the look it resolves here (the item's defaultFrom
    * is sticky: false): the key stays unset until a pick differs from the saving
    * watch's default, so a phone shared by a colour and a B&W watch still packs
    * each one's own default.
    * @param {string} keyStem Kind key stem, e.g. 'Uv'.
-   * @param {boolean} [isColor] Whether the watch has a colour display; anything
-   *     but false (an unknown platform included) counts as colour.
    * @returns {string} 'outline' | 'fill'
    */
-  function warnLookDefault(keyStem, isColor) {
-    if (isGoalKind(keyStem)) { return 'outline'; }
-    return isColor === false ? 'outline' : 'fill';
+  function warnLookDefault(keyStem) {
+    return isGoalKind(keyStem) ? 'outline' : 'fill';
   }
 
   /**
    * A kind's warn look: the stored thresh<Kind>WarnLook when it is a known look,
-   * else warnLookDefault. The one resolution for the packer and the telemetry code.
+   * else warnLookDefault. The one resolution for the packer and the settings page.
    * @param {Object} settings Clay settings blob
    * @param {string} keyStem Kind key stem, e.g. 'Uv'.
-   * @param {boolean} [isColor] Whether the watch has a colour display (see
-   *     warnLookDefault).
    * @returns {string} 'none' | 'outline' | 'fill'
    */
-  function warnLookFor(settings, keyStem, isColor) {
+  function warnLookFor(settings, keyStem) {
     var raw = settings && settings['thresh' + keyStem + 'WarnLook'];
     return Object.prototype.hasOwnProperty.call(WARN_LOOKS, raw)
-      ? raw : warnLookDefault(keyStem, isColor);
+      ? raw : warnLookDefault(keyStem);
   }
 
   /**
@@ -420,13 +412,11 @@
    * it is 'none'.
    * @param {Object} settings Clay settings blob
    * @param {number} kindIndex wire kind id (0..THRESH_KIND_COUNT - 1)
-   * @param {boolean} [isColor] Whether the watch has a colour display (the warn
-   *     look's default, see warnLookDefault); anything but false counts as colour.
    * @returns {{enabled: boolean, warn: ?number, danger: ?number,
    *            warnLook: ?string, warnColor: ?number, dangerColor: ?number,
    *            boldMode: string}}
    */
-  function kindConfig(settings, kindIndex, isColor) {
+  function kindConfig(settings, kindIndex) {
     var k = KINDS[kindIndex];
     if (k.boldOnly) {
       // Bold-only kinds own no thresholds, colors, or health pair — boldMode is
@@ -447,7 +437,7 @@
     // sentinel, which is also what a watch WITHOUT the look bytes reads as "no
     // outline" — so any other look keeps a real colour in that byte and an older
     // watch still draws its outline.
-    var warnLook = warnLookFor(settings, k.key, isColor);
+    var warnLook = warnLookFor(settings, k.key);
     // Bold mode is deliberately NOT gated on `enabled`: 'always' bolds a slot
     // whose kind has its highlight off.
     return {
@@ -485,7 +475,7 @@
   // alert is on while its item is ticked on an On demand side of any bar
   // (alertOn). THE alert vocabulary: which alerts exist, their order and how their
   // settings read live here alone. Every reader outside this module — the fetch
-  // gates, the render signature, telemetry, the settings page, the bake
+  // gates, the render signature, the settings page, the bake
   // (status-wire.js) — goes through alertOn / alertDays / alertNextDayMark or
   // enabledAlerts; all of them rest on alertOn. The order is also the bake's, so
   // the entries' 20-B cap drops Wind speed first. The settings page's
@@ -562,13 +552,11 @@
    * so a partial blob reads the default ticks.
    * @param {Object} settings Clay settings blob
    * @param {*} code An ALERT_KINDS code.
-   * @param {Object} [env] Platform env (omitted = a watch that draws On demand, the
-   *     reading of the bake and the render signature: the entries only ride to one).
    * @returns {boolean} whether that metric alert is on (false for a code with no
    *     alert)
    */
-  function alertOn(settings, code, env) {
-    return alertKindOf(code) !== null && onDemand.placedAnywhere(settings, code, env);
+  function alertOn(settings, code) {
+    return alertKindOf(code) !== null && onDemand.placedAnywhere(settings, code);
   }
 
   /**
@@ -602,18 +590,16 @@
    * with how each reads: whether its Look prints the value, its Days and its
    * tomorrow mark (the mark only matters with Days 'tomorrow'). The rest is read
    * only for an alert that is on: one that is off bakes nothing, whatever its other
-   * settings. THE list the bake, the render signature and telemetry read.
+   * settings. THE list the bake and the render signature read.
    * @param {Object} settings Clay settings blob
-   * @param {Object} [env] Platform env, passed to alertOn (omitted = a watch that
-   *     draws On demand).
    * @returns {Array<{code: string, kindId: number, showValue: boolean,
    *     days: string, mark: string}>} [] when none is on
    */
-  function enabledAlerts(settings, env) {
+  function enabledAlerts(settings) {
     var out = [];
     for (var i = 0; i < ALERT_KINDS.length; i++) {
       var a = ALERT_KINDS[i];
-      if (!alertOn(settings, a.code, env)) { continue; }
+      if (!alertOn(settings, a.code)) { continue; }
       out.push({code: a.code, kindId: kindId(a.code),
         showValue: alertSetting(settings, a.code, 'Display') !== 'icon',
         days: alertDays(settings, a.code),
@@ -631,7 +617,7 @@
    * "Replaces the slot") is on unless stored off (the owner's, 2026-11-14: the rain
    * alert replaces by default, and it is the only alert that can — the metric alerts
    * always sit beside their slot). Whether the rain alert shows at all is its On demand
-   * tick (on-demand.js placedAnywhere(settings, 'rain', env)), and radar mode 'off'
+   * tick (on-demand.js placedAnywhere(settings, 'rain')), and radar mode 'off'
    * silencing it is the Clay packer's fold (clay-payload.js).
    * @param {Object} settings Clay settings blob
    * @returns {{look: string, horizonMin: number, replacesSlot: boolean}}

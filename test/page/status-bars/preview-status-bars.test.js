@@ -34,13 +34,6 @@ test('the date slot prints the full date without a calendar, in the region\'s or
   assert.doesNotMatch(sample('date', { holidayCountry: 'DE' }, { fullDate: true }), /[A-Z][a-z]{2} \d$/);
 });
 
-test('aplite\'s date slot keeps the two original formats whatever is picked', () => {
-  const S = { holidayCountry: 'DE', dateSlotMonthFormat: 'iso', dateSlotFullFormat: 'textyear' };
-  const env = { platform: 'aplite' };
-  assert.equal(sample('date', S, { fullDate: false, env }), 'Sep 2026');
-  assert.equal(sample('date', S, { fullDate: true, env }), '07.09.26');
-});
-
 test('the date and week follow today, not a fixed sample', () => {
   const now = new Date();
   assert.equal(preview.sample('date', { dateSlotMonthFormat: 'dots' }, { fullDate: false }),
@@ -95,13 +88,12 @@ test('wind units sit tight, drop when they do not fit, and give way to the arrow
   assert.equal(sample('gust', { windUnits: 'knots', gustSlotDisplay: 'max' }), '24kn');
 });
 
-test('the arrow follows the watch: on, the current reading shown, not aplite', () => {
+test('the arrow follows the watch: on, the current reading shown', () => {
   assert.equal(preview.arrowDue('wind', { windSlotDirection: true }, {}), true);
   assert.equal(preview.arrowDue('wind', { windSlotDirection: false }, {}), false);
   assert.equal(preview.arrowDue('wind', { windSlotDirection: true, windSlotDisplay: 'max' }, {}), false,
     'Day max alone prints the peak, not the wind the arrow points');
   assert.equal(preview.arrowDue('wind', { windSlotDirection: true, windSlotDisplay: 'both' }, {}), true);
-  assert.equal(preview.arrowDue('wind', { windSlotDirection: true }, { platform: 'aplite' }), false);
   assert.equal(preview.arrowDue('uv', { uvSlotDirection: true }, {}), false);
 });
 
@@ -113,12 +105,6 @@ test('the arrow needs a free byte after the text, as packLine appends it', () =>
   assert.equal(text, '12 ab 30');
   assert.equal(preview.arrowShown('wind', text, S, {}, EDGE), false);
   assert.equal(preview.arrowShown('wind', '12/30', S, {}, EDGE), true);
-});
-
-test('aplite keeps the wind unit where the arrow would have stood', () => {
-  const S = { windSlotDisplay: 'both', windSlotUnit: true, windSlotDirection: true };
-  assert.equal(sample('wind', S, { cap: EDGE, env: { platform: 'aplite' } }), '12/30kph');
-  assert.equal(sample('wind', S, { cap: EDGE, env: {} }), '12/30');
 });
 
 test('the other phone-baked kinds print their units by their own toggles', () => {
@@ -140,8 +126,6 @@ test('the watch-rendered kinds print in the watch\'s own shapes', () => {
   assert.equal(sample('distance', {}), '4.2km');
   assert.equal(sample('distance', { distanceUnits: 'imperial' }), '2.6mi');
   assert.equal(sample('battery', {}), '', 'the watch battery is its glyph alone');
-  assert.equal(sample('battery', {}, { env: { platform: 'aplite' } }), '80%',
-    'aplite\'s lean twin prints the charge instead');
 });
 
 test('the block prints the date by whether the bar\'s view shows a calendar', () => {
@@ -183,7 +167,7 @@ test('a bar no view of the layout seats is left out', () => {
 
 test('the Radar and Health bars show while a screen shows them', () => {
   const VC = require('../../../src/pkjs/layout/domain/view-cycle.js');
-  const env = { platform: 'basalt', health: true, radar: true };
+  const env = { platform: 'emery', health: true, radar: true };
   // A preset's screens follow its modes (view-cycle.js barsShown); the bars follow the screens.
   const presets = ['fullCal', 'compactCal', 'compactDense', 'noCal', 'weatherOnly'];
   presets.forEach((layoutPreset) => {
@@ -191,7 +175,7 @@ test('the Radar and Health bars show while a screen shows them', () => {
       ['off', 'countdown', 'status', 'graph'].forEach((radarMode) => {
         const S = { layoutPreset, healthMode, radarMode };
         const html = preview.statusBarsPreview(S, env);
-        const shown = VC.barsShown(S, env);
+        const shown = VC.barsShown(S);
         const label = layoutPreset + '/' + healthMode + '/' + radarMode;
         assert.equal(html.indexOf('>Radar<') !== -1, shown.radar, label + ': ' + html);
         assert.equal(html.indexOf('>Health<') !== -1, shown.health, label + ': ' + html);
@@ -216,15 +200,10 @@ test('the Radar and Health bars show while a screen shows them', () => {
 });
 
 test('the Radar and Health bars stay out while no screen shows them', () => {
-  const env = { platform: 'basalt', health: true, radar: true };
+  const env = { platform: 'emery', health: true, radar: true };
   const off = preview.statusBarsPreview({ layoutPreset: 'compactCal', healthMode: 'slot', radarMode: 'countdown' }, env);
   assert.equal(off.indexOf('>Radar<'), -1, off);
   assert.equal(off.indexOf('>Health<'), -1, off);
-  // A watch without the radar or health (aplite) never lists them.
-  const aplite = preview.statusBarsPreview({ layoutPreset: 'compactCal', healthMode: 'all', radarMode: 'graph' },
-    { platform: 'aplite', health: false, radar: false });
-  assert.equal(aplite.indexOf('>Radar<'), -1, aplite);
-  assert.equal(aplite.indexOf('>Health<'), -1, aplite);
 });
 
 test('two-value temperature pairs keep the user\'s separator when the degree cannot fit', () => {
@@ -258,48 +237,40 @@ test('the bars are pictures alone, on the tab and above a slot\'s dialog: nothin
 });
 
 test('barCodes reads each bar\'s slots as barSlots does, without the sample text', () => {
-  const basalt = require('../../../src/pkjs/config-ui/lib/platform.js').computeEnv({ platform: 'basalt' });
-  // Heart rate on a basalt reads as Empty, as the picture draws it.
+  const emery = {};
   const S = { statusHealthLeft: 'empty', statusHealthRight: 'hr', statusForecastMid: 'city' };
   catalog.LINES.forEach((line) => {
-    const codes = preview.barCodes(S, basalt, line.id);
+    const codes = preview.barCodes(S, emery, line.id);
     assert.deepEqual(codes.map((c) => c.key), line.slots, line.id);
     assert.deepEqual(codes.map((c) => c.pos), catalog.SLOT_POSITIONS, line.id);
-    assert.deepEqual(codes, preview.barSlots(S, basalt, line.id).map((c) => ({ pos: c.pos, key: c.key, code: c.code })),
+    assert.deepEqual(codes, preview.barSlots(S, emery, line.id).map((c) => ({ pos: c.pos, key: c.key, code: c.code })),
       line.id);
   });
-  assert.equal(preview.barCodes(S, basalt, 'health')[2].code, 'empty');
-  assert.deepEqual(preview.barCodes(S, basalt, 'unknown'), []);
+  assert.equal(preview.barCodes(S, emery, 'health')[2].code, 'hr');
+  assert.deepEqual(preview.barCodes(S, emery, 'unknown'), []);
 });
 
 // The weather condition slot's picture prints the sample partly cloudy afternoon as the bake
 // does (slot-text.js conditionText): the name with its short form where the slot has the
 // bytes, split into the text and the form the watch picture swaps in where the row would cut
-// the name; the short form alone in an edge slot and on aplite. The Look decides the glyph
+// the name; the short form alone in an edge slot. The Look decides the glyph
 // in one place, slotIcon.
 test('the condition slot: the bake\'s forms, split, and one place for the glyph', () => {
-  const basalt = { platform: 'basalt' };
-  const aplite = { platform: 'aplite' };
-  assert.equal(sample('condition', {}, { cap: MID, env: basalt }), 'Partly cloudy' + catalog.ALT_SEP + 'PCLDY');
-  assert.equal(sample('condition', {}, { cap: EDGE, env: basalt }), 'PCLDY');
-  assert.equal(sample('condition', { conditionSlotLook: 'icon' }, { cap: MID, env: basalt }), '');
-  assert.equal(sample('condition', { conditionSlotLook: 'icon' }, { cap: MID, env: aplite }), 'PCLDY',
-    'aplite prints the text whatever the Look');
+  const emery = { platform: 'emery' };
+  assert.equal(sample('condition', {}, { cap: MID, env: emery }), 'Partly cloudy' + catalog.ALT_SEP + 'PCLDY');
+  assert.equal(sample('condition', {}, { cap: EDGE, env: emery }), 'PCLDY');
+  assert.equal(sample('condition', { conditionSlotLook: 'icon' }, { cap: MID, env: emery }), '');
   const S = { statusForecastLeft: 'condition', statusForecastMid: 'condition', statusForecastRight: 'empty' };
-  const [left, mid] = preview.barSlots(S, basalt, 'forecast');
+  const [left, mid] = preview.barSlots(S, emery, 'forecast');
   assert.deepEqual([mid.text, mid.alt], ['Partly cloudy', 'PCLDY']);
   assert.deepEqual([left.text, left.alt], ['Partly cloudy', 'PCLDY'], 'the line has the room: as the bake gives it');
   // A full line leaves an edge one form, as the bake does (status-line-catalog.js widenEdges).
-  const full = preview.barSlots(Object.assign({}, S, { statusForecastRight: 'condition' }), basalt, 'forecast');
+  const full = preview.barSlots(Object.assign({}, S, { statusForecastRight: 'condition' }), emery, 'forecast');
   assert.deepEqual([full[0].text, full[0].alt, full[2].text], ['PCLDY', '', 'PCLDY']);
-  assert.deepEqual([preview.barSlots(S, aplite, 'forecast')[0].text, preview.barSlots(S, aplite, 'forecast')[0].alt],
-    ['PCLDY', ''], 'aplite: one form');
-  assert.equal(preview.slotIcon('condition', basalt, { conditionSlotLook: 'text' }), null, 'the Text look: no glyph');
-  assert.equal(preview.slotIcon('condition', aplite, {}), null, 'aplite draws none');
+  assert.equal(preview.slotIcon('condition', emery, { conditionSlotLook: 'text' }), null, 'the Text look: no glyph');
   // The city draws the current weather's icon before its name unless switched off.
-  assert.equal(preview.slotIcon('city', basalt, {}), preview.slotIcon('condition', basalt, {}),
+  assert.equal(preview.slotIcon('city', emery, {}), preview.slotIcon('condition', emery, {}),
     'the city: the weather icon, on by default');
-  assert.equal(preview.slotIcon('city', basalt, { citySlotIcon: false }), null, 'switched off: none');
-  assert.equal(preview.slotIcon('city', aplite, {}), null, 'aplite draws none');
-  assert.equal(preview.barSlots(Object.assign({ conditionSlotLook: 'text' }, S), basalt, 'forecast')[1].icon, null);
+  assert.equal(preview.slotIcon('city', emery, { citySlotIcon: false }), null, 'switched off: none');
+  assert.equal(preview.barSlots(Object.assign({ conditionSlotLook: 'text' }, S), emery, 'forecast')[1].icon, null);
 });

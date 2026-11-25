@@ -7,15 +7,10 @@ static GColor s_charging_palette[2];
 static GColor s_charging_fg;
 
 static GColor battery_fill_color(int level, GColor fg) {
-#ifdef PBL_COLOR
     if (theme_is_bw()) { return fg; }
     if (level >= 50) { return GColorGreen; }
     if (level >= 30) { return GColorYellow; }
     return GColorRed;
-#else
-    (void) level;
-    return fg;
-#endif
 }
 
 static void ensure_charging_bitmap(GColor fg) {

@@ -21,18 +21,14 @@ const contract = require('../../../src/pkjs/alerts/domain/status-thresholds.js')
 const SCHEMA_ITEM = {};
 eachItem(schema, (it) => { if (it.messageKey) { SCHEMA_ITEM[it.messageKey] = it; } });
 
-// Shaped like config-ui/lib/platform.js computeEnv().
-const ENV_BASALT = { platform: 'basalt', color: true, health: true, radar: true, hr: false, thresholds: true, themePolarity: true };
-const ENV_DIORITE = { platform: 'diorite', color: false, health: true, radar: true, hr: true, thresholds: true, themePolarity: true };
-const ENV_APLITE = { platform: 'aplite', color: false, health: false, radar: false, hr: false, thresholds: false, themePolarity: false };
-const ENV_EMERY = { platform: 'emery', color: true, health: true, radar: true, hr: true, thresholds: true, themePolarity: true };
+const ENV = {};
 
 /**
  * @param {Object} [over] Fields to override on the baseline context.
  * @returns {Object} A resolver context {wizard, env, choices}.
  */
 function ctx(over) {
-  return Object.assign({ wizard: false, env: ENV_BASALT, choices: { healthMode: 'all' } }, over || {});
+  return Object.assign({ wizard: false, env: ENV, choices: { healthMode: 'all' } }, over || {});
 }
 
 // The matrix, spelled out once. The tests below assert the resolver reproduces
@@ -56,7 +52,7 @@ test('wizard rules apply only while the wizard is running', () => {
   const rule = { id: 'w', when: { wizard: true }, set: {} };
   assert.equal(policy.ruleApplies(rule, ctx({ wizard: true })), true);
   assert.equal(policy.ruleApplies(rule, ctx({ wizard: false })), false);
-  assert.equal(policy.ruleApplies(rule, { env: ENV_BASALT }), false, 'missing wizard flag reads as not-the-wizard');
+  assert.equal(policy.ruleApplies(rule, { env: ENV }), false, 'missing wizard flag reads as not-the-wizard');
 });
 
 test('when: {wizard: false} is honoured as a real condition, not ignored', () => {
@@ -79,33 +75,10 @@ test("healthMode 'status', 'all' and 'slot' all count as health-enabled", () => 
     "an unset healthMode falls back to the schema default ('off' since 2.6: health follows the screens)");
 });
 
-test('health rules also need the platform capability (aplite has no health)', () => {
-  const rule = { id: 'h', when: { health: true }, set: {} };
-  assert.equal(policy.ruleApplies(rule, ctx({ env: ENV_APLITE })), false);
-  assert.equal(policy.ruleApplies(rule, { choices: { healthMode: 'all' } }), false,
-    'no env at all reads as no capability — conservative, never places a dead slot');
-});
-
 test('when: {health: false} matches the health-off side', () => {
   const rule = { id: 'no-h', when: { health: false }, set: {} };
   assert.equal(policy.ruleApplies(rule, ctx({ choices: { healthMode: 'off' } })), true);
-  assert.equal(policy.ruleApplies(rule, ctx({ env: ENV_APLITE })), true);
   assert.equal(policy.ruleApplies(rule, ctx()), false);
-});
-
-test('capability conditions read the env flags', () => {
-  assert.equal(policy.ruleApplies({ id: 'hr', when: { hr: true }, set: {} }, ctx({ env: ENV_DIORITE })), true);
-  assert.equal(policy.ruleApplies({ id: 'hr', when: { hr: true }, set: {} }, ctx()), false);
-  assert.equal(policy.ruleApplies({ id: 'r', when: { radar: true }, set: {} }, ctx()), true);
-  assert.equal(policy.ruleApplies({ id: 't', when: { thresholds: true }, set: {} }, ctx({ env: ENV_APLITE })), false);
-});
-
-test('platform conditions accept one name or a list', () => {
-  assert.equal(policy.ruleApplies({ id: 'p', when: { platform: 'basalt' }, set: {} }, ctx()), true);
-  assert.equal(policy.ruleApplies({ id: 'p', when: { platform: 'aplite' }, set: {} }, ctx()), false);
-  assert.equal(policy.ruleApplies({ id: 'p', when: { platform: ['emery', 'basalt'] }, set: {} }, ctx()), true);
-  assert.equal(policy.ruleApplies({ id: 'p', when: { platformNot: 'aplite' }, set: {} }, ctx()), true);
-  assert.equal(policy.ruleApplies({ id: 'p', when: { platformNot: ['aplite'] }, set: {} }, ctx({ env: ENV_APLITE })), false);
 });
 
 test('choice conditions compare a stored/wizard choice', () => {
@@ -129,9 +102,7 @@ test('nothing is overridden outside the wizard', () => {
 });
 
 test('the wizard on a health watch moves no status slot: steps stays in the Health bar', () => {
-  [ENV_EMERY, ENV_BASALT, ENV_DIORITE].forEach((env) => {
-    assert.deepEqual(policy.resolveDefaults(ctx({ wizard: true, env })), AQI_HIGHLIGHT, env.platform);
-  });
+  assert.deepEqual(policy.resolveDefaults(ctx({ wizard: true })), AQI_HIGHLIGHT);
   policy.RULES.forEach((rule) => Object.keys(rule.set).forEach((key) => {
     assert.ok(!/^status(Top|Health)/.test(key), rule.id + ' writes ' + key);
   }));
@@ -139,11 +110,8 @@ test('the wizard on a health watch moves no status slot: steps stays in the Heal
 
 test('the wizard with health off applies the AQI rule only', () => {
   assert.deepEqual(policy.resolveDefaults(ctx({ wizard: true, choices: { healthMode: 'off' } })), AQI_HIGHLIGHT);
-  assert.deepEqual(policy.resolveDefaults(ctx({ wizard: true, env: ENV_APLITE })), AQI_HIGHLIGHT);
   assert.deepEqual(policy.resolveDefaults({ wizard: true }), AQI_HIGHLIGHT,
-    'a bare context must not throw — and an unknown platform is not emery');
-  assert.deepEqual(
-    policy.resolveDefaults(ctx({ wizard: true, env: ENV_EMERY, choices: { healthMode: 'off' } })), AQI_HIGHLIGHT);
+    'a bare context must not throw');
 });
 
 test('later rules win when two rules set the same key', () => {
@@ -233,13 +201,10 @@ test('the AQI rule switches the highlight on and pins no levels', () => {
 
 // Setup leaves every slot's Bold as its own row sets it (the owner, 2026-11-06: setup
 // made the status bars bold).
-test('setup writes no Bold mode, on any watch', () => {
-  [ENV_BASALT, ENV_DIORITE, ENV_APLITE, ENV_EMERY].forEach((env) => {
-    ['all', 'off'].forEach((healthMode) => {
-      const keys = Object.keys(policy.resolveDefaults({ wizard: true, env, choices: { healthMode } }));
-      assert.deepEqual(keys.filter((k) => /BoldMode$|^statusBoldAll$/.test(k)), [],
-        env.platform + ' health ' + healthMode);
-    });
+test('setup writes no Bold mode', () => {
+  ['all', 'off'].forEach((healthMode) => {
+    const keys = Object.keys(policy.resolveDefaults({ wizard: true, env: ENV, choices: { healthMode } }));
+    assert.deepEqual(keys.filter((k) => /BoldMode$|^statusBoldAll$/.test(k)), [], 'health ' + healthMode);
   });
 });
 

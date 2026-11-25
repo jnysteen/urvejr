@@ -54,12 +54,8 @@ static void past_the_last_line_refused(void) {
     expect("oob.write", persist_set_status_line(STATUS_LINE_COUNT, BLOB, sizeof(BLOB)), 0);
     expect("oob.read", persist_get_status_line(STATUS_LINE_COUNT, out, sizeof(out)), 0);
     expect("oob.no_write", s_data_writes, 0);
-#if !defined(PBL_PLATFORM_EMERY)
-    expect("oob.four_lines", STATUS_LINE_COUNT, 4);
-#endif
 }
 
-#if defined(PBL_PLATFORM_EMERY)
 static void extra_lines_in_their_slots(void) {
     flash_reset();
     flash_seed(ENCODING_VERSION_SLOT, BLOB, 1);
@@ -110,16 +106,13 @@ static void migration_drops_every_line(void) {
         expect("migrate.dropped", persist_get_status_line(line, out, sizeof(out)), 0);
     }
 }
-#endif
 
 int main(void) {
     first_four_side_by_side();
     past_the_last_line_refused();
-#if defined(PBL_PLATFORM_EMERY)
     extra_lines_in_their_slots();
     extra_cells_in_their_slot();
     migration_drops_every_line();
-#endif
     if (s_failures) { printf("%d status_line_persist failure(s)\n", s_failures); return 1; }
     printf("status_line_persist_test OK\n");
     return 0;

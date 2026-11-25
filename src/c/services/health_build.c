@@ -1,6 +1,5 @@
 #include "health_build.h"
 
-#if defined(PBL_HEALTH)
 
 int health_build_chunk_len(int next, int build_end, int chunk) {
     int left = build_end - next;
@@ -21,4 +20,3 @@ bool health_build_rollover(time_t old_end_hour, time_t now_hour, int step, int n
     return false;
 }
 
-#endif  // PBL_HEALTH

@@ -58,7 +58,7 @@ The other 8 are the agreed change below.
   longer numbers but drawings, held to the build by `gen_watch_icons.js --check`.
 - The lookup tables: 62 drawings on the 144 px watches (67 before), 96 on the Pebble Time 2
   (90 before, plus Windy weather's three). Each drawing is 4 bytes in the table.
-- The icon creator reads the boxes and the drawings from WarnWeather, and exports them with
+- The icon creator reads the boxes and the drawings from urvejr, and exports them with
   their seats.
 - The settings page's pictures of the watch draw the same drawings (`status-pixels.generated.js`,
   written with them), at each bar's box and seat by the watch's rule, so a seat set in the icon

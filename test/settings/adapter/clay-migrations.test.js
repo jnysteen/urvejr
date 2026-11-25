@@ -82,7 +82,7 @@ test('3.0.0 slot defaults: an existing install keeps the slots it showed, a fres
   /**
    * One unmarked run over `blob`.
    * @param {Object} blob Stored settings.
-   * @param {Object} opts Runner options (knownPlatform, hadExistingInstall).
+   * @param {Object} opts Runner options (hadExistingInstall).
    * @returns {Object} The three changed slots after the run (undefined where unset).
    */
   function runOn(blob, opts) {
@@ -97,34 +97,22 @@ test('3.0.0 slot defaults: an existing install keeps the slots it showed, a fres
     return out;
   }
   // The new defaults: sunrise/sunset in the Forecast bar, air quality in the top row.
-  const emery = { platform: 'emery' };
-  assert.equal(catalog.slotDefault('statusForecastRight', emery), 'sun');
-  assert.equal(catalog.slotDefault('statusTopRight', emery), 'aqi');
-  assert.equal(catalog.slotDefault('statusForecastRight', { platform: 'basalt' }), 'sun');
-  assert.equal(catalog.slotDefault('statusTopLeft', { platform: 'basalt' }), 'aqi');
-  assert.equal(catalog.slotDefault('statusTopRight', { platform: 'basalt' }), 'battery');
-  // An existing emery install that never saved the page keeps air quality in the Forecast
-  // bar and sunrise/sunset in the top row's corner; its week stays a default.
-  assert.deepEqual(runOn({ theme: 'dark' }, { knownPlatform: 'emery', hadExistingInstall: true }),
+  assert.equal(catalog.slotDefault('statusForecastRight'), 'sun');
+  assert.equal(catalog.slotDefault('statusTopRight'), 'aqi');
+  // An existing install that never saved the page keeps air quality in the Forecast bar
+  // and sunrise/sunset in the top row's corner; its week stays a default.
+  assert.deepEqual(runOn({ theme: 'dark' }, { hadExistingInstall: true }),
     { statusForecastRight: 'aqi', statusTopLeft: undefined, statusTopRight: 'sun' });
-  // A narrow watch keeps its empty left slot (the battery corner was never a default change).
-  ['basalt', 'diorite', 'aplite', 'flint'].forEach((platform) => {
-    assert.deepEqual(runOn({ theme: 'dark' }, { knownPlatform: platform, hadExistingInstall: true }),
-      { statusForecastRight: 'aqi', statusTopLeft: 'empty', statusTopRight: undefined }, platform);
-  });
-  // A watch that did not say: only the slot whose old default was the same everywhere.
-  assert.deepEqual(runOn({ theme: 'dark' }, { knownPlatform: '', hadExistingInstall: true }),
-    { statusForecastRight: 'aqi', statusTopLeft: undefined, statusTopRight: undefined });
   // A pick stays.
   assert.deepEqual(runOn({ statusForecastRight: 'uv', statusTopRight: 'steps' },
-    { knownPlatform: 'emery', hadExistingInstall: true }),
+    { hadExistingInstall: true }),
   { statusForecastRight: 'uv', statusTopLeft: undefined, statusTopRight: 'steps' });
   // A fresh install takes the new defaults.
-  assert.deepEqual(runOn({ theme: 'dark' }, { knownPlatform: 'emery', hadExistingInstall: false }),
+  assert.deepEqual(runOn({ theme: 'dark' }, { hadExistingInstall: false }),
     { statusForecastRight: undefined, statusTopLeft: undefined, statusTopRight: undefined });
 });
 
-test('status-line health defaults: emery upgrades the seeded triple once, without clobbering edits', () => {
+test('status-line health defaults: the seeded triple upgrades once, without clobbering edits', () => {
   const L = loadLedger(null);
   const key = KEYS.STATUS_LINE_HEALTH_DEFAULTS_MIGRATION_KEY;
   /**
@@ -146,18 +134,9 @@ test('status-line health defaults: emery upgrades the seeded triple once, withou
   assert.equal(s.statusHealthMid, 'sleep');
   assert.equal(s.statusHealthRight, 'hr');
 
-  // user-edited values stay untouched even on emery
+  // user-edited values stay untouched
   s = runOn({ statusHealthLeft: 'distance', statusHealthMid: 'empty', statusHealthRight: 'sleep' }, 'emery');
   assert.equal(s.statusHealthLeft, 'distance');
-  assert.equal(s.statusHealthRight, 'sleep');
-
-  // diorite (Pebble 2) is HR-capable -> seeded triple upgrades to hr
-  s = runOn({ statusHealthLeft: 'steps', statusHealthMid: 'empty', statusHealthRight: 'sleep' }, 'diorite');
-  assert.equal(s.statusHealthMid, 'sleep');
-  assert.equal(s.statusHealthRight, 'hr', 'diorite migrates to the HR triple');
-
-  // non-emery/non-diorite: marked done, nothing changes
-  s = runOn({ statusHealthLeft: 'steps', statusHealthMid: 'empty', statusHealthRight: 'sleep' }, 'basalt');
   assert.equal(s.statusHealthRight, 'sleep');
 });
 
@@ -292,10 +271,10 @@ test('a night tint the 1.15.0 page carried from the fill is released on upgrade'
   // style bytes) postdates 1.15.0 and has its own pins in test/forecast-graphs/domain/line-style.test.js.
   const SHIPPED_BYTES = [248, 240, 226, 1, 213, 213, 240, 245];
   assert.equal(lineStyle.graphColorIsPicked(blob, 'wind', 'Night', 'Light'), true,
-    'un-migrated, the carried tint reads as a pick, the wrong answer for telemetry');
+    'un-migrated, the carried tint reads as a pick, the wrong answer');
 
   mods.clayMigrations.runMigrations({
-    platform: 'basalt', colors: COLORS, defaultRadarProvider: 'rainbow' });
+    colors: COLORS, defaultRadarProvider: 'rainbow' });
   const healed = mods.claySettings.read();
 
   assert.equal(healed.gcWindNightLight,
@@ -303,9 +282,9 @@ test('a night tint the 1.15.0 page carried from the fill is released on upgrade'
     'the carried tint goes back to the built-in');
   assert.equal(healed.gcWindFillLight, 0xFF0000, 'the fill the user DID pick stays');
   assert.equal(lineStyle.graphColorIsPicked(healed, 'wind', 'Night', 'Light'), false,
-    'and telemetry reports it as a default again, not a pick');
+    'and it reads as the default again, not a pick');
   assert.deepEqual(
-    Array.from(graphWire.buildLineStyleBytes(healed, { platform: 'basalt' })).slice(0, 8),
+    Array.from(graphWire.buildLineStyleBytes(healed)).slice(0, 8),
     SHIPPED_BYTES,
     'the healed blob packs byte-for-byte what 1.15.0 sent: the cascade re-derives ' +
     'the same night triple from the fill, with the flag clear');
@@ -332,7 +311,7 @@ test('the released tint tracks the next fill pick again', () => {
     'stuck on the carried colour before the migration');
 
   mods.clayMigrations.runMigrations({
-    platform: 'basalt', colors: COLORS, defaultRadarProvider: 'rainbow' });
+    colors: COLORS, defaultRadarProvider: 'rainbow' });
   const healed = mods.claySettings.read();
   // The current page writes the fill key ALONE.
   healed.gcPrecipFillDark = 0x00FF00;
@@ -354,7 +333,7 @@ test('the migration leaves a tint the user really picked alone', () => {
   mods.claySettings.save(blob);
 
   mods.clayMigrations.runMigrations({
-    platform: 'basalt', colors: COLORS, defaultRadarProvider: 'rainbow' });
+    colors: COLORS, defaultRadarProvider: 'rainbow' });
   const healed = mods.claySettings.read();
 
   assert.equal(healed.gcUvNightDark, 0x00AA55, 'a distinct tint survives');
@@ -374,7 +353,7 @@ test('the carried-tint migration is one-shot and marks a clean blob too', () => 
 
   // A blob with nothing carried still marks itself, so the sweep never re-runs.
   mods.clayMigrations.runMigrations({
-    platform: 'basalt', colors: COLORS, defaultRadarProvider: 'rainbow' });
+    colors: COLORS, defaultRadarProvider: 'rainbow' });
   assert.equal(store[mods.KEYS.CARRIED_GRAPH_NIGHT_TINT_MIGRATION_KEY], '1');
 
   // A tint deliberately set equal to its fill AFTER the migration is a real pick
@@ -384,7 +363,7 @@ test('the carried-tint migration is one-shot and marks a clean blob too', () => 
   blob.gcWindNightDark = 0x00AA55;
   mods.claySettings.save(blob);
   mods.clayMigrations.runMigrations({
-    platform: 'basalt', colors: COLORS, defaultRadarProvider: 'rainbow' });
+    colors: COLORS, defaultRadarProvider: 'rainbow' });
   assert.equal(mods.claySettings.read().gcWindNightDark, 0x00AA55,
     'a marked migration never re-fires');
   assert.equal(lineStyle.graphColorIsPicked(mods.claySettings.read(), 'wind', 'Night', 'Dark'),
@@ -407,7 +386,7 @@ test('the seeded light graph colours move onto the re-tuned built-ins', () => {
   seedPreRetuneInstall(store, mods.claySettings, mods.KEYS, now);
 
   const res = mods.clayMigrations.runMigrations({
-    platform: 'basalt', colors: COLORS, defaultRadarProvider: 'rainbow' });
+    colors: COLORS, defaultRadarProvider: 'rainbow' });
   const healed = mods.claySettings.read();
 
   Object.keys(PRE_RETUNE_LIGHT).forEach((key) => {
@@ -433,7 +412,7 @@ test('the re-tune marker is deferred to the Clay ACK, so a NACK retries', () => 
   seedPreRetuneInstall(store, mods.claySettings, mods.KEYS, now);
 
   const res = mods.clayMigrations.runMigrations({
-    platform: 'basalt', colors: COLORS, defaultRadarProvider: 'rainbow' });
+    colors: COLORS, defaultRadarProvider: 'rainbow' });
   assert.equal(store[mods.KEYS.LIGHT_GRAPH_COLOR_RETUNE_MIGRATION_KEY], undefined,
     'not marked while the watch has not acknowledged it');
   res.commitDeferredMarkers();
@@ -454,7 +433,7 @@ test('a light colour the user actually chose survives the re-tune', () => {
   mods.claySettings.save(blob);
 
   mods.clayMigrations.runMigrations({
-    platform: 'basalt', colors: COLORS, defaultRadarProvider: 'rainbow' });
+    colors: COLORS, defaultRadarProvider: 'rainbow' });
   const healed = mods.claySettings.read();
 
   assert.equal(healed.gcWindLineLight, 0xFF0000, 'a chosen line colour is not discarded');
@@ -477,7 +456,7 @@ test('the re-tune leaves every DARK graph colour alone', () => {
   assert.ok(darkKeys.length >= 12, 'the dark keys are actually in the blob');
 
   mods.clayMigrations.runMigrations({
-    platform: 'basalt', colors: COLORS, defaultRadarProvider: 'rainbow' });
+    colors: COLORS, defaultRadarProvider: 'rainbow' });
   const healed = mods.claySettings.read();
 
   darkKeys.forEach((k) => assert.equal(healed[k], before[k], `${k} untouched`));
@@ -499,12 +478,12 @@ test('a NACKed re-tune retries even when one cell is a deliberate pick', () => {
   // Boot 1: rewrites the other nine, asks for the send — and the send NACKs, so the
   // deferred marker is never committed.
   assert.equal(mods.clayMigrations.runMigrations({
-    platform: 'basalt', colors: COLORS, defaultRadarProvider: 'rainbow' }).clayRequired, true);
+    colors: COLORS, defaultRadarProvider: 'rainbow' }).clayRequired, true);
   assert.equal(store[mods.KEYS.LIGHT_GRAPH_COLOR_RETUNE_MIGRATION_KEY], undefined);
 
   // Boot 2: nothing left to rewrite, but the watch still has not been told.
   assert.equal(mods.clayMigrations.runMigrations({
-    platform: 'basalt', colors: COLORS, defaultRadarProvider: 'rainbow' }).clayRequired, true,
+    colors: COLORS, defaultRadarProvider: 'rainbow' }).clayRequired, true,
     'the resend is still requested, so the watch eventually gets the new colours');
   assert.equal(store[mods.KEYS.LIGHT_GRAPH_COLOR_RETUNE_MIGRATION_KEY], undefined,
     'and the marker stays deferred until an ACK');
@@ -548,7 +527,7 @@ test('the re-tune runs after the carried-tint release, or a carry is stranded', 
     'and un-migrated it reads as a deliberate pick — the thing the release exists to undo');
 
   mods.clayMigrations.runMigrations({
-    platform: 'basalt', colors: COLORS, defaultRadarProvider: 'rainbow' });
+    colors: COLORS, defaultRadarProvider: 'rainbow' });
   const healed = mods.claySettings.read();
 
   assert.equal(lineStyle.graphColorIsDefault(healed, 'wind', 'Night', 'Light'), true,
@@ -619,7 +598,7 @@ test('bw-light migrates too, though its bars are painted B&W', () => {
   seedThemedInstall(store, mods.claySettings, mods.KEYS, now, 'bw-light');
 
   mods.clayMigrations.runMigrations({
-    platform: 'basalt', colors: COLORS, defaultRadarProvider: 'rainbow' });
+    colors: COLORS, defaultRadarProvider: 'rainbow' });
   const healed = mods.claySettings.read();
   assert.equal(healed.rainBarColor, 'white');
   assert.equal(healed.radarColor, 'white');
@@ -677,7 +656,7 @@ test('the dependency stays one-way: clay-settings never requires the ledger back
   // require back would form a cycle AND let the owner module start growing with the
   // ledger again — which is what put it near 1000 lines in the first place. Source
   // inspection, in the spirit of the repo's other structural guards
-  // (check-aplite-twins.js, test/page/settings/config-page-bundle.test.js).
+  // (test/page/settings/config-page-bundle.test.js).
   const fs = require('node:fs');
   const src = fs.readFileSync(require.resolve('../../../src/pkjs/settings/adapter/clay-settings.js'), 'utf8');
   assert.equal(/require\(['"]\.\/(clay-migrations|migrations\/)/.test(src), false,
@@ -763,7 +742,7 @@ test('the fourth-line style move survives the boot order (seedDefaults, then the
     store['clay-settings'] = JSON.stringify(stored);
     mods.claySettings.seedDefaults(COLORS);
     const res = mods.clayMigrations.runMigrations({
-      platform: 'basalt', colors: COLORS, defaultRadarProvider: 'rainbow', hadExistingInstall: true });
+      colors: COLORS, defaultRadarProvider: 'rainbow', hadExistingInstall: true });
     const read = mods.claySettings.read();
     assert.equal(read.fifthLineStyle, want, what);
     assert.equal(read.fifthLine, stored.fifthLine || 'off', what + ': the metric is untouched');
@@ -837,7 +816,7 @@ test('an upgrade with a stripe on a drawn pressure/feels/dew line asks for one C
     const mods = loadUpgradeModules();
     seed123Install(store, mods, blob);
     const res = mods.clayMigrations.runMigrations({
-      platform: 'basalt', colors: COLORS, defaultRadarProvider: 'rainbow', hadExistingInstall: true },
+      colors: COLORS, defaultRadarProvider: 'rainbow', hadExistingInstall: true },
     ONLY_STRIPE);
     assert.equal(res.clayRequired, want, what);
     const read = mods.claySettings.read();
@@ -850,7 +829,7 @@ test('an upgrade with a stripe on a drawn pressure/feels/dew line asks for one C
     res.commitDeferredMarkers();
     assert.equal(store[marker], '1', what + ': committed');
     const again = mods.clayMigrations.runMigrations({
-      platform: 'basalt', colors: COLORS, defaultRadarProvider: 'rainbow', hadExistingInstall: true },
+      colors: COLORS, defaultRadarProvider: 'rainbow', hadExistingInstall: true },
     ONLY_STRIPE);
     assert.equal(again.clayRequired, false, what + ': one-time');
   });
@@ -887,7 +866,7 @@ test('resetAll marks the fourth-line style move done: the next blob is seeded wi
   assert.equal(localStorage.getItem(mods.KEYS.FIFTH_LINE_STYLE_DEFAULT_MIGRATION_KEY), '1');
   // A stripe on an unused line saved after the reset is a pick, and stays.
   localStorage.setItem('clay-settings', JSON.stringify({ fifthLine: 'off', fifthLineStyle: 'stripeTop' }));
-  mods.clayMigrations.runMigrations({ platform: 'basalt', colors: COLORS, defaultRadarProvider: 'rainbow' });
+  mods.clayMigrations.runMigrations({ colors: COLORS, defaultRadarProvider: 'rainbow' });
   assert.equal(mods.claySettings.read().fifthLineStyle, 'stripeTop');
 });
 
@@ -1114,8 +1093,8 @@ test('warn look: a weather outline that was on stays an outline; a goal outline 
   assert.strictEqual(read.threshWindWarnOutlineOn, true, 'the old toggle is left in place');
   // What the watch is told matches what it drew before: outline where there was one,
   // no box for the goal kinds that had none.
-  assert.equal(thresholdsContract.warnLookFor(read, 'Wind', false), 'outline');
-  assert.equal(thresholdsContract.warnLookFor(read, 'Steps', true), 'none');
+  assert.equal(thresholdsContract.warnLookFor(read, 'Wind'), 'outline');
+  assert.equal(thresholdsContract.warnLookFor(read, 'Steps'), 'none');
 });
 
 test('warn look: a stored look is the page\'s own truth', () => {
@@ -1144,7 +1123,7 @@ test('warn look: a weather danger that held the old auto text colour turns red',
   assert.equal(read.threshPollenDangerColor, '', 'unset stays unset');
   assert.equal(read.threshStepsDangerColor, 0xFFFFFF, 'goal kinds are not touched');
   const wind = thresholdsContract.kindConfig(read,
-    thresholdsContract.KINDS.findIndex(k => k.key === 'Wind'), true);
+    thresholdsContract.KINDS.findIndex(k => k.key === 'Wind'));
   assert.equal(wind.dangerColor, 0xFF0000, 'the watch gets red');
   assert.notEqual(wind.warnColor, wind.dangerColor, 'and warn stays apart from it');
 });
@@ -1180,7 +1159,7 @@ test('resetAll marks the alert levels done: what the page saves before the next 
     tempSlotSeparator: 'slash'                                           // picked on the 1.24.0 page
   };
   localStorage.setItem('clay-settings', JSON.stringify(saved));
-  mods.clayMigrations.runMigrations({ platform: 'basalt', colors: COLORS, defaultRadarProvider: 'rainbow' });
+  mods.clayMigrations.runMigrations({ colors: COLORS, defaultRadarProvider: 'rainbow' });
   const read = mods.claySettings.read();
   Object.keys(saved).forEach((k) => assert.deepEqual(read[k], saved[k], k + ' stands'));
   assert.equal(read.threshStepsWarnLook, undefined, 'the goal kind is not read as the old no-outline');
@@ -1212,8 +1191,10 @@ test('the owner\'s dev phone: the alert levels never re-run; On demand runs only
   const boot = (marked) => {
     const L = loadLedger(Object.assign({ alertRain: false, alertUv: true }, SAVED_ON_THE_1_24_PAGE));
     L.claySettings.seedDefaults(COLORS);
-    // The 3.0.0 slot defaults entry came long after these builds and has a test of its own.
-    marked.concat([KEYS.SLOT_DEFAULTS_2_7_MIGRATION_KEY]).forEach((k) => { L.store[k] = '1'; });
+    // The 2.6.0 screens move and the 3.0.0 slot defaults entry came long after these
+    // builds and have tests of their own.
+    marked.concat([KEYS.SCREENS_MIGRATION_KEY, KEYS.SLOT_DEFAULTS_2_7_MIGRATION_KEY])
+      .forEach((k) => { L.store[k] = '1'; });
     const saved = L.read();
     L.saves.n = 0;
     const res = L.run(null, { platform: 'emery', hadExistingInstall: true });
@@ -1299,8 +1280,8 @@ test('seed pairs: a pin under the unit in effect leaves the bytes and the refetc
   ].forEach((blob, n) => {
     const { before, read: after } = stepOn(blankSeeds, blob, true);
     [{ color: true }, { color: false }].forEach((env) => {
-      assert.deepEqual(wire.buildSettingsBlob(after, env),
-        wire.buildSettingsBlob(before, env), n + ': CLAY_THRESHOLDS_UINT8');
+      assert.deepEqual(wire.buildSettingsBlob(after),
+        wire.buildSettingsBlob(before), n + ': CLAY_THRESHOLDS_UINT8');
     });
     assert.equal(renderSignature(after), renderSignature(before), n + ': no refetch');
     thresholdsContract.KINDS.filter((k) => !k.boldOnly).forEach((k) => {
@@ -1329,7 +1310,7 @@ test('seed pairs: a pin of a seed 1.24.0 moved goes blank and takes the new defa
     // The weather pairs ride no Clay byte; the phone bakes the new levels on the next
     // fetch, which the changed signature asks for.
     [{ color: true }, { color: false }].forEach((env) => {
-      assert.deepEqual(wire.buildSettingsBlob(after, env), wire.buildSettingsBlob(before, env),
+      assert.deepEqual(wire.buildSettingsBlob(after), wire.buildSettingsBlob(before),
         'CLAY_THRESHOLDS_UINT8');
     });
     assert.notEqual(renderSignature(after), renderSignature(before), 'the bake reads new levels');
@@ -1593,7 +1574,7 @@ test('on demand: Reset watchface marks it done, so ticks picked after the reset 
   localStorage.setItem('clay-settings', JSON.stringify({ statusTopOnDemandRightItems: DEFAULT_RIGHT }));
   mods.claySettings.resetAll(mods.clayMigrations.RESET_SAFE_MARKERS);
   localStorage.setItem('clay-settings', JSON.stringify({ showQt: false, statusTopOnDemandLeftItems: 'bt,qt' }));
-  mods.clayMigrations.runMigrations({ platform: 'basalt', colors: COLORS, defaultRadarProvider: 'rainbow' });
+  mods.clayMigrations.runMigrations({ colors: COLORS, defaultRadarProvider: 'rainbow' });
   assert.equal(mods.claySettings.read().statusTopOnDemandLeftItems, 'bt,qt', 'the 1.24.0 page\'s pick survives');
 });
 
@@ -1679,13 +1660,13 @@ function bootWholeLedger(blob, marked, existing) {
   L.claySettings.seedDefaults(COLORS);
   const seeded = L.read();
   L.saves.n = 0;
-  const res = L.run(null, { platform: 'basalt', hadExistingInstall: existing });
+  const res = L.run(null, { hadExistingInstall: existing });
   return { L, seeded, res, read: L.read() };
 }
 
-test('rainbow own key, upgrade paths: a fresh install opens on "Rainbow (limited)" and stores no switch', () => {
+test('rainbow own key, upgrade paths: a fresh install opens on DWD and stores no switch', () => {
   const { L, read } = bootWholeLedger(null, [], false);
-  assert.equal(read.radarProvider, 'rainbow');
+  assert.equal(read.radarProvider, 'dwd');
   assert.ok(!('rainbowOwnKey' in read), 'the seeded blob holds no rainbowOwnKey');
   assert.equal(L.store[RAINBOW_OWN_KEY], '1');
 });
@@ -1725,7 +1706,7 @@ test('rainbow own key, upgrade paths: the dev phone holding every other marker m
   assert.equal(L.store[RAINBOW_OWN_KEY], '1');
   // Its next boot runs nothing.
   L.saves.n = 0;
-  assert.equal(L.run(null, { platform: 'basalt', hadExistingInstall: true }).clayRequired, false);
+  assert.equal(L.run(null, { hadExistingInstall: true }).clayRequired, false);
   assert.deepEqual(L.read(), expected);
   assert.equal(L.saves.n, 0);
 });
@@ -1752,8 +1733,7 @@ test('alert defaults: each weather kind\'s stored outline goes and resolves to t
     const read = L.read();
     assert.ok(!(warnLookKey(k) in read), k.key + ': the stored outline is deleted');
     assert.equal(res.clayRequired, true, k.key + ': the warn look rides the Clay blob, so it is sent');
-    assert.equal(thresholdsContract.warnLookFor(read, k.key, true), 'fill', k.key + ': the fill on colour');
-    assert.equal(thresholdsContract.warnLookFor(read, k.key, false), 'outline', k.key + ': the outline on B&W');
+    assert.equal(thresholdsContract.warnLookFor(read, k.key), 'fill', k.key + ': the default fill');
     assert.equal(L.saves.n, 1, k.key + ': saved once');
     assert.equal(L.store[ALERT_DEFAULTS], '1', k.key + ': marked at once');
   });
@@ -1897,7 +1877,7 @@ test('alert defaults, upgrade paths: a 1.24.0 install gets the fill and the valu
   const v123 = bootWholeLedger({ theme: 'dark', radarMode: 'graph',
     threshAqiWarnOutlineOn: true, threshAqiWarnColor: 0xFFFFFF }, THROUGH_1_23_1, true);
   assert.ok(!('threshAqiWarnLook' in v123.read), 'the 1.23.1 outline ends on the default');
-  assert.equal(thresholdsContract.warnLookFor(v123.read, 'Aqi', true), 'fill');
+  assert.equal(thresholdsContract.warnLookFor(v123.read, 'Aqi'), 'fill');
   assert.equal(v123.read.alertAqiDisplay, 'value');
 });
 
@@ -1911,7 +1891,7 @@ test('resetAll marks the alert defaults done: a look picked after the reset stan
   assert.equal(localStorage.getItem(ALERT_DEFAULTS), '1', 'marked by the reset');
   const saved = { threshWindWarnLook: 'outline', alertUvDisplay: 'icon' };
   localStorage.setItem('clay-settings', JSON.stringify(saved));
-  mods.clayMigrations.runMigrations({ platform: 'basalt', colors: COLORS, defaultRadarProvider: 'rainbow' });
+  mods.clayMigrations.runMigrations({ colors: COLORS, defaultRadarProvider: 'rainbow' });
   const read = mods.claySettings.read();
   Object.keys(saved).forEach((k) => assert.equal(read[k], saved[k], k + ' stands'));
 });
@@ -1963,7 +1943,7 @@ test('the ledger order and marker policies are pinned: a released entry never mo
 // The properties every entry owes, checked once over the golden's boots (fresh installs,
 // 1.23.1 upgrades, marker-less legacy installs) and a freshly seeded blob per platform
 // rather than entry by entry.
-const FRESH = ['aplite', 'basalt', 'diorite', 'emery', 'flint'].map((platform) => ({
+const FRESH = ['emery'].map((platform) => ({
   name: 'fresh seeded install, ' + platform, platform, hadExistingInstall: false, blob: null, marked: [] }));
 const BOOTS = SCENARIOS.concat(FRESH);
 
@@ -1984,11 +1964,18 @@ function bootOnce(scenario, marked) {
   return { L, seeded, res: L.run(null, opts), opts };
 }
 
-test('every entry: a fresh seeded blob is a no-op on every platform', () => {
+test('every entry: a fresh seeded blob is a no-op but for its preset written as its screens', () => {
+  const VC = require('../../../src/pkjs/layout/domain/view-cycle.js');
+  const wire = (s) => VC.resolveViewCycle(s).map((v) => VC.packWire(v || null));
   FRESH.forEach((sc) => {
-    const { L, seeded } = bootOnce(sc);
-    assert.deepEqual(L.read(), seeded, sc.name + ': left as seeded');
-    assert.equal(L.saves.n, 0, sc.name + ': nothing saved');
+    const { L, seeded, res } = bootOnce(sc);
+    const read = L.read();
+    assert.equal(read.layoutPreset, 'custom', sc.name + ': the 2.6.0 screens move');
+    assert.deepEqual(wire(read), wire(seeded), sc.name + ': the watch shows the same screens');
+    const SCREEN_KEY = /^(view|layoutPreset$|customLayoutSeeded$)/;
+    Object.keys(seeded).filter((k) => !SCREEN_KEY.test(k)).forEach((k) =>
+      assert.deepEqual(read[k], seeded[k], sc.name + ': ' + k + ' left as seeded'));
+    assert.equal(res.clayRequired, true, sc.name + ': the graph night colours resend, as ever');
   });
 });
 

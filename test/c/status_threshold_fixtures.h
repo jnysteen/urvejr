@@ -86,7 +86,6 @@ static inline int side_of(const uint8_t *blob, int len, int bar, int item) {
     return status_threshold_on_demand_side(load(blob, len), bar, item);
 }
 
-#if defined(PBL_PLATFORM_EMERY)
 // emery: a side read the way a row reads one with bars 4 to 6's cells loaded behind the
 // blob (status_row.c load_thresholds): the 48-byte blob as stored, then the extra cells.
 static inline int extra_side_of(const uint8_t *blob, const uint8_t extra[THRESH_OD_EXTRA_BYTES],
@@ -95,7 +94,6 @@ static inline int extra_side_of(const uint8_t *blob, const uint8_t extra[THRESH_
     memcpy(s_scratch + THRESH_SETTINGS_BYTES, extra, THRESH_OD_EXTRA_BYTES);
     return status_threshold_on_demand_side(s_scratch, bar, item);
 }
-#endif
 
 static inline int battery_level_of(const uint8_t *blob, int len) {
     return status_threshold_battery_level(load(blob, len));

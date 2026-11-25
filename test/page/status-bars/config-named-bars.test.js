@@ -19,10 +19,9 @@ const ui = require('../../../src/pkjs/config-ui/lib/ui.js');
 const { editorBody: body, editorRows, editorAddChips } = require('../../helpers/page-rows.js');
 const M = require('../../../src/pkjs/layout/domain/screens.js');
 const VC = require('../../../src/pkjs/layout/domain/view-cycle.js');
-const platform = require('../../../src/pkjs/config-ui/lib/platform.js');
 const { buildClayPayload } = require('../../../src/pkjs/settings/domain/clay-payload.js');
 
-const BASALT = platform.computeEnv({ platform: 'basalt' });
+const EMERY = {};
 // An upgraded install's three screens: Default (Forecast bar), Flick 1 (Health bar), Flick 2
 // (Radar bar).
 const THREE = { provider: 'dwd', radarMode: 'graph', healthMode: 'all' };
@@ -47,9 +46,9 @@ test('a bar\'s name: its own, trimmed and at most 24 characters, else its kind\'
 test('the names are the page\'s own: the watch is sent the same message with or without them', () => {
   const S = Object.assign({ layoutPreset: 'custom', viewCount: '1', viewUpper0: 'weather' }, THREE);
   const named = Object.assign({ statusForecastName: 'Morning', statusRadarName: 'Wind', statusHealthName: 'Fit' }, S);
-  assert.deepEqual(buildClayPayload(named, { platform: 'basalt' }, new Date(0)),
-    buildClayPayload(S, { platform: 'basalt' }, new Date(0)));
-  assert.deepEqual(VC.resolveViewCycle(named, BASALT), VC.resolveViewCycle(S, BASALT));
+  assert.deepEqual(buildClayPayload(named, new Date(0)),
+    buildClayPayload(S, new Date(0)));
+  assert.deepEqual(VC.resolveViewCycle(named), VC.resolveViewCycle(S));
 });
 
 // --- the Status bars tab ------------------------------------------------------------
@@ -140,23 +139,6 @@ test('a bar no screen shows is still one of your bars: listed, dimmed, and it sa
   });
   page.openEditSheet('bar-health');
   assert.ok(page.modal.innerHTML.indexOf('<div class="ui-d">On no screen</div>') !== -1);
-});
-
-test('aplite lists its two bars without screens, each with its dialog; no New status bar', () => {
-  const page = bootGeneratedPage({ provider: 'dwd' }, 'aplite');
-  page.clickTab('watch');
-  const html = page.scroll.innerHTML;
-  assert.deepEqual((html.match(/class="bl-open" data-edit-sheet="bar-[a-z0-9]+"/g) || []), ['class="bl-open" data-edit-sheet="bar-top"',
-    'class="bl-open" data-edit-sheet="bar-forecast"'], 'the Watch and Forecast bars');
-  assert.equal(html.indexOf('class="ui-d'), -1, 'one screen: no screens named; no alerts on aplite');
-  assert.equal((html.match(/<span class="chev nav" aria-hidden="true">&#8250;<\/span><\/span><\/button><\/div>/g) || []).length, 2,
-    'each bar\'s row ends on the red arrow');
-  assert.equal(html.indexOf('data-action="newBar"'), -1);
-  page.openEditSheet('bar-top');
-  const dlg = page.modal.innerHTML;
-  assert.ok(dlg.indexOf('<span class="ttl">Icons and vibration</span>') !== -1, 'the Watch bar keeps its own rows');
-  ['batteryLowOnly', 'showQt', 'vibe'].forEach((k) => assert.ok(dlg.indexOf('data-k="' + k + '"') !== -1, k));
-  assert.equal(dlg.indexOf('<div class="ui-d">On'), -1, 'one screen: where it shows goes unsaid');
 });
 
 test('a name typed in a bar\'s dialog title: OK stores it, and the title, the list and the slot pickers say it, escaped', () => {
@@ -259,7 +241,7 @@ test('the editor: a bar\'s row and its Add chip read by its name; the row has it
   // The same bar on Flick 1 too, by its chip: where else it shows is the Status bars tab's to
   // say, not the row's.
   page.tapAction('openScreen', 1);
-  assert.deepEqual(editorAddChips(body(page)), ['Morning', 'Radar bar', 'Forecast graph', 'Rain radar', 'Calendar']);
+  assert.deepEqual(editorAddChips(body(page)), ['Morning', 'Radar bar', 'New status bar', 'Forecast graph', 'Rain radar', 'Calendar']);
   page.tapEditor({ se: 'add', k: 'fcbar' });
   assert.ok(editorRows(body(page)).indexOf('Morning') !== -1, editorRows(body(page)).join(' | '));
   assert.equal(body(page).indexOf('Also on'), -1);

@@ -4,7 +4,7 @@
  * (status-lines.js) and the config page (slot dropdown options).
  *
  * LOCKSTEP: KINDS / ICONS / CAPS mirror src/c/appendix/status_line.h;
- * test/status-bars/domain/status-line-contract.test.js enforces it. ES5 only (aplite PKJS).
+ * test/status-bars/domain/status-line-contract.test.js enforces it. ES5 only (AGENTS.md).
  */
 (function() {
   // view-cycle.js requires nothing, so there is no cycle; in the flat settings page it is
@@ -23,7 +23,7 @@
     // the id only discriminates pressure from city (both TEXT) on the wire so
     // each can carry its own bold mode (status_threshold.h).
     PRESSURE: 14,
-    // Droplets. The glyph is optional (aplite ships none), but the id is not:
+    // Droplets. The glyph is optional, but the id is not:
     // without one the dew slot would be TEXT + NONE and inherit city's bold mode.
     // Id 6 is a retired hole (STATUS_ICON_PRECIP, 3dae9f4) — never reuse it.
     DEWPOINT: 15,
@@ -64,9 +64,6 @@
     { code: 'wind', label: 'Wind speed', kind: KINDS.TEXT, icon: ICONS.WIND, category: 'weather' },
     { code: 'gust', label: 'Wind gusts', kind: KINDS.TEXT, icon: ICONS.GUST, category: 'weather' },
     { code: 'pressure', label: 'Air pressure (hPa)', kind: KINDS.TEXT, icon: ICONS.PRESSURE, category: 'weather' },
-    // No notAplite gate: the slot is plain phone-baked text everywhere, and the
-    // lean aplite status-row twin returns NULL for an unknown icon id (reserving
-    // zero width), so it simply renders without the droplets glyph.
     { code: 'dew', label: 'Dew point', kind: KINDS.TEXT, icon: ICONS.DEWPOINT, category: 'weather' },
     // No '/day max' suffix any more: the edit sheet's Now / Day max / Both pills pick
     // what prints, and wind, gusts and AQI carry the same modes without one either.
@@ -86,7 +83,7 @@
     { code: 'date', label: 'Date', kind: KINDS.LIVE_DATE, icon: ICONS.NONE, category: 'datelocation' },
     { code: 'week', label: 'Calendar week', kind: KINDS.LIVE_WEEK, icon: ICONS.NONE, category: 'datelocation' },
     // iconLabel: the slot lists' name while the city draws the current weather's icon before
-    // it (iconLabelKey switched on, every watch but aplite; slot-text.js cityIcon).
+    // it (iconLabelKey switched on; slot-text.js cityIcon).
     { code: 'city', label: 'City', iconLabel: 'City with weather icon', iconLabelKey: 'citySlotIcon',
       kind: KINDS.TEXT, icon: ICONS.NONE, category: 'datelocation' },
     { code: 'countdown', label: 'Date countdown', kind: KINDS.TEXT,
@@ -96,25 +93,24 @@
     { code: 'hr', label: 'Heart rate', kind: KINDS.LIVE_HR, icon: ICONS.HR, needsHealth: true, needsHr: true, category: 'health' },
     { code: 'sleep', label: 'Sleep', kind: KINDS.LIVE_SLEEP, icon: ICONS.SLEEP, needsHealth: true, category: 'health' },
     { code: 'battery', label: 'Watch battery', kind: KINDS.LIVE_BATTERY, icon: ICONS.NONE, topRightOnly: true, category: 'battery' },
-    { code: 'batteryPct', label: 'Watch battery percentage', kind: KINDS.LIVE_BATTERY_PCT, icon: ICONS.NONE, topRightOnly: true, notAplite: true, category: 'battery' },
+    { code: 'batteryPct', label: 'Watch battery percentage', kind: KINDS.LIVE_BATTERY_PCT, icon: ICONS.NONE, topRightOnly: true, category: 'battery' },
     // The PHONE's battery: phone-baked TEXT, so unlike the watch items above it
     // is NOT corner-pinned — those sit top-right because that corner already
     // reads as the watch's battery, while these carry their own icon (or, for
     // the plain variant, deliberately none) and fit any slot.
     { code: 'phoneBattery', label: 'Phone battery', kind: KINDS.TEXT,
-      icon: ICONS.PHONE_BATTERY, needsPhoneBattery: true, notAplite: true, category: 'battery' },
+      icon: ICONS.PHONE_BATTERY, needsPhoneBattery: true, category: 'battery' },
     { code: 'phoneBatteryPlain', label: 'Phone battery (no icon)', kind: KINDS.TEXT,
-      icon: ICONS.PHONE_BATTERY_PLAIN, needsPhoneBattery: true, notAplite: true, category: 'battery' }
+      icon: ICONS.PHONE_BATTERY_PLAIN, needsPhoneBattery: true, category: 'battery' }
   ];
 
   // Dropdown grouping order + header labels (Part F). A category with no
   // available item for a slot emits no header, so gated items never leave an
   // orphan heading. 'battery' holds four items: the WATCH glyph item and the
   // watch "NN%" text item — both top-right only (the watch battery belongs in
-  // the corner already read as its own), the "NN%" one additionally absent on
-  // aplite — plus the two PHONE-battery items, which are selectable in any slot
-  // but exist only where the phone can report its charge (needsPhoneBattery,
-  // Android-only) and never on aplite. The labels carry the Watch/Phone
+  // the corner already read as its own) — plus the two PHONE-battery items, which are
+  // selectable in any slot but exist only where the phone can report its charge
+  // (needsPhoneBattery, Android-only). The labels carry the Watch/Phone
   // qualifier because all four otherwise read as "battery".
   var CATEGORIES = [
     ['weather', 'Weather'], ['datelocation', 'Date and location'],
@@ -139,27 +135,20 @@
       slots: ['statusTopLeft', 'statusTopMid', 'statusTopRight'],
       // The strip beside the clock, and the one row on screen in EVERY view. Air quality
       // sits here, where every screen shows it (the owner's, 2026-11-09: it swapped places
-      // with the Forecast bar's sunrise/sunset). emery's 200 px display has the width for
-      // three readings: the week, the date and air quality in the right-hand corner. On
-      // the 144/180 px platforms that corner is the battery (it already reads as the
-      // battery: see the topRightOnly items), so air quality takes the left slot. An
-      // install from before keeps what it showed (settings/domain/migrations/status-slots.js
+      // with the Forecast bar's sunrise/sunset). The 200 px display has the width for three
+      // readings: the week, the date and air quality in the right-hand corner. An install
+      // from before keeps what it showed (settings/domain/migrations/status-slots.js
       // keepSlotDefaults27).
-      defaults: { statusTopLeft: 'aqi', statusTopMid: 'date', statusTopRight: 'battery' },
-      emeryDefaults: { statusTopLeft: 'week', statusTopMid: 'date', statusTopRight: 'aqi' } },
+      defaults: { statusTopLeft: 'week', statusTopMid: 'date', statusTopRight: 'aqi' } },
     { id: 'health', wireKey: 'STATUS_LINE_4_UINT8',
       slots: ['statusHealthLeft', 'statusHealthMid', 'statusHealthRight'],
-      // Non-HR platforms (basalt/aplite/flint): leave the middle empty and show
-      // sleep on the right — matches the seed migrateStatusLineHealthDefaults
-      // detects before upgrading HR-capable watches to the hr triple.
-      defaults: { statusHealthLeft: 'steps', statusHealthMid: 'empty', statusHealthRight: 'sleep' },
-      hrDefaults: { statusHealthLeft: 'steps', statusHealthMid: 'sleep', statusHealthRight: 'hr' } }
+      defaults: { statusHealthLeft: 'steps', statusHealthMid: 'sleep', statusHealthRight: 'hr' } }
   ];
 
   // Bars 4 to 6 (Pebble Time 2, 3.0.0's New status bar: view-cycle.js EXTRA_BARS, whose prefixes they
   // take): their lines (STATUS_LINE_5..7_UINT8), every slot empty until New status bar writes its
   // starting set. Kept out of LINES, so every reader of the first four (the twelve selections,
-  // telemetry, the 2.6 migration) stays as it is; the bake (bakedLines) adds one while a
+  // the 2.6 migration) stays as it is; the bake (bakedLines) adds one while a
   // screen shows the bar, and a slot key's lookups walk ALL_LINES.
   var EXTRA_LINES = VC.EXTRA_BARS.map(function (b, i) {
     var slots = [b.prefix + 'Left', b.prefix + 'Mid', b.prefix + 'Right'];
@@ -184,7 +173,7 @@
    * Phone-side availability gate. The watch never gates.
    * @param {Object} item catalog entry
    * @param {Object} settings Clay settings blob
-   * @param {Object} env {color, platform, health, radar, hr, phoneBattery}
+   * @param {Object} env {phoneBattery}: the phone's facts
    * @param {Object} [slotCtx] {slotKey, position: 'left'|'mid'|'right'} of the
    *   slot being resolved; position-gated items are unavailable without it
    * @returns {boolean}
@@ -193,25 +182,12 @@
     if (!item) { return false; }
     if (item.middleOnly && (!slotCtx || slotCtx.position !== 'mid')) { return false; }
     if (item.topRightOnly && (!slotCtx || slotCtx.slotKey !== 'statusTopRight')) { return false; }
-    // Health items need the watch's health. Not healthMode: since 2.6 it follows the screens
-    // and the slots (screens.js deriveModes), so a slot can pick a health item in any mode.
-    if (item.needsHealth && (!env || !env.health)) { return false; }
-    if (item.needsHr && (!env || !env.hr)) { return false; }
     // The phone's battery is readable only where the PKJS host exposes the
     // Battery Status API — Android's Chromium WebView, never iOS's
     // JavaScriptCore and never the emulator. env.phoneBattery carries that
-    // answer (from the PHONE_BATTERY_SUPPORTED storage key). Like notAplite and
-    // UNLIKE needsProvider, a false gate OMITS the item rather than showing a
+    // answer (from the PHONE_BATTERY_SUPPORTED storage key). UNLIKE needsProvider, a false gate OMITS the item rather than showing a
     // disabled row: there is no setting the user could change to earn it.
     if (item.needsPhoneBattery && (!env || !env.phoneBattery)) { return false; }
-    // Items whose watch-side C rendering is compiled out on aplite (frozen
-    // image budget): batteryPct — the lean status-row twin never learned kind
-    // 10, and aplite's glyph battery slot already renders as "NN%" text anyway
-    // — and the two phone-battery items, which ship no aplite glyph at all.
-    // (Calendar-week used this gate once — the watch-side iso_week() is
-    // aplite-excluded — but the phone now bakes that slot as phone-side TEXT
-    // for aplite instead; status-lines.js.)
-    if (item.notAplite && env && env.platform === 'aplite') { return false; }
     // No catalog item sets needsRadarOff today; gate kept correct (radarMode-based) for when one does.
     if (item.needsRadarOff && (!settings || (settings.radarMode || 'graph') !== 'off')) {
       return false;
@@ -243,14 +219,14 @@
 
   /**
    * An item's name in the slot lists: its iconLabel while the watch draws that icon (its
-   * iconLabelKey switched on, never on aplite).
+   * iconLabelKey switched on).
    * @param {Object} item A catalog item. @param {Object} settings Settings.
    * @param {Object} env Platform env.
    * @returns {string}
    */
   function optionLabel(item, settings, env) {
     var on = item.iconLabel && settings && settings[item.iconLabelKey] === true;
-    return on && !(env && env.platform === 'aplite') ? item.iconLabel : item.label;
+    return on ? item.iconLabel : item.label;
   }
 
   /**
@@ -310,24 +286,22 @@
   /**
    * The effective slot codes of every line the bake sends (bakedLines: the Watch bar's and
    * each bar a screen shows), answering each unset slot with the default the bake packs for
-   * this watch (slotDefault with env: status-lines.js packLine). Its callers are fetch gates
+   * this watch (slotDefault: status-lines.js packLine). Its callers are fetch gates
    * (forecast-series.js's needsUv / needsAqi / needsPollen, dayMaxInUse) asking whether a
-   * code is on screen anywhere, and a flavor moves one of those: air quality sits in the top
-   * row's corner on emery and in its left slot elsewhere. So a slot on a bar no screen shows
-   * fetches nothing, and an unset slot fetches what the watch draws in it.
+   * code is on screen anywhere. So a slot on a bar no screen shows fetches nothing, and an
+   * unset slot fetches what the watch draws in it.
    * @param {Object} settings Clay settings blob
-   * @param {?Object} [env] platform env (omitted: capable, the base flavor)
    * @returns {string[]} the effective slot codes (stored or line default), three per line
    */
-  function selectedCodes(settings, env) {
+  function selectedCodes(settings) {
     var out = [];
-    var lines = bakedLines(settings, env);
+    var lines = bakedLines(settings);
     for (var l = 0; l < lines.length; l++) {
       var line = lines[l];
       for (var s = 0; s < line.slots.length; s++) {
         var key = line.slots[s];
         var v = settings && settings[key];
-        out.push(v || slotDefault(key, env));
+        out.push(v || slotDefault(key));
       }
     }
     return out;
@@ -350,23 +324,18 @@
   /**
    * The lines the bake sends (status-lines.js), and so the ones whose slots the fetch gates
    * and the render signature read: the Watch bar's always, every other bar's while a screen
-   * shows it (view-cycle.js barsShown, which shows a bar 4 to 6 only once made on a watch
-   * that has them). The Watch bar is the exception because every watch can show it on any
-   * screen: aplite has no screen without it, and the others bring it back in a Timeline
-   * Quick View peek (the watch's layout_peek_spec). The Radar and Health bars also need a
-   * watch that draws them, which aplite does not, whatever a settings blob from another
-   * watch puts on its screens. A bar on no screen is sent no line, so the watch keeps the
+   * shows it (view-cycle.js barsShown, which shows a bar 4 to 6 only once made). The Watch bar
+   * is the exception because the watch brings it back on any screen in a Timeline Quick View
+   * peek (the watch's layout_peek_spec). A bar on no screen is sent no line, so the watch keeps the
    * last one it had (status_bar.c loads no row for it); the save that puts it on a screen
    * re-bakes at once (status-rebake.js) and fetches what its slots need (render-signature.js).
    * @param {Object} settings Clay settings blob
-   * @param {?Object} [env] platform env (omitted: capable)
    * @returns {Array<Object>} LINES and EXTRA_LINES entries, in wire order
    */
-  function bakedLines(settings, env) {
-    var shown = VC.barsShown(settings, env);
+  function bakedLines(settings) {
+    var shown = VC.barsShown(settings);
     return ALL_LINES.filter(function (line) {
       if (line.id === 'top') { return true; }
-      if ((line.id === 'radar' || line.id === 'health') && env && env[line.id] === false) { return false; }
       return Boolean(shown[line.id]);
     });
   }
@@ -394,32 +363,21 @@
   }
 
   /**
-   * The platform-aware default code for one slot: the emery flavor (emeryDefaults) on
-   * the one display wide enough for it, the HR flavor (hrDefaults) on a watch with a
-   * heart-rate sensor, else the line's base default. EVERY caller resolving a fresh
-   * install's slot goes through here — the settings page (statusSlotDefault), the
-   * per-row reset, and the phone's bake (status-lines.js packLine) — so a flavor added
-   * to a line reaches all three at once.
-   *
-   * The two flavors sit on different lines (top and health), so no line carries both
-   * and the order below is a tie-break nothing reaches today. Should one ever want
-   * both, emery wins: it is the narrower condition.
+   * The default code for one slot. EVERY caller resolving a fresh install's slot goes through
+   * here — the settings page (statusSlotDefault), the per-row reset, and the phone's bake
+   * (status-lines.js packLine).
    * @param {string} slotKey slot settings key (e.g. 'statusHealthRight')
-   * @param {Object} [env] platform env; env.platform and env.hr select the flavor
    * @returns {string|undefined} default item code, or undefined for an unknown slotKey
    */
-  function slotDefault(slotKey, env) {
+  function slotDefault(slotKey) {
     for (var l = 0; l < ALL_LINES.length; l++) {
       var line = ALL_LINES[l];
       if (line.slots.indexOf(slotKey) === -1) { continue; }
-      if (env && env.platform === 'emery' && line.emeryDefaults) {
-        return line.emeryDefaults[slotKey];
-      }
-      if (env && env.hr && line.hrDefaults) { return line.hrDefaults[slotKey]; }
       return line.defaults[slotKey];
     }
     return undefined;
   }
+
 
   /**
    * @param {string} slotKey Slot messageKey.
@@ -458,13 +416,12 @@
    * migration's emptied slots (settings/domain/migrations/screens.js) ask this.
    * @param {Object} S Settings.
    * @param {string} lineId A LINES id.
-   * @param {?Object} [env] Platform env (slotDefault's).
    * @returns {Array<string>} the slot keys
    */
-  function healthSlots(S, lineId, env) {
+  function healthSlots(S, lineId) {
     var line = lineById(lineId);
     return (line ? line.slots : []).filter(function (key) {
-      var item = byCode((S || {})[key] || slotDefault(key, env));
+      var item = byCode((S || {})[key] || slotDefault(key));
       return Boolean(item && item.needsHealth);
     });
   }
@@ -558,13 +515,12 @@
    * forecast-series.js dayPeakCodes, so this catalog stays alert-agnostic.
    * @param {Object} settings Clay settings blob.
    * @param {string} kind A DAY_MAX_KINDS entry.
-   * @param {?Object} [env] platform env (omitted: capable)
    * @returns {boolean}
    */
-  function dayMaxInUse(settings, kind, env) {
+  function dayMaxInUse(settings, kind) {
     if (!settings) { return false; }
     var mode = settings[kind + 'SlotDisplay'];
-    return (mode === 'max' || mode === 'both') && selectedCodes(settings, env).indexOf(kind) !== -1;
+    return (mode === 'max' || mode === 'both') && selectedCodes(settings).indexOf(kind) !== -1;
   }
 
   /**

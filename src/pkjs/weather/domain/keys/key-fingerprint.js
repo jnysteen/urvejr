@@ -8,7 +8,7 @@
  *
  * FNV-1a over the trimmed key's UTF-16 code units, 32 bits, as 8 hex digits. Not a
  * secret and not a security measure: it only ever sits next to the key itself (the
- * phone's own storage, the page the phone opens), never in a URL, a log or telemetry.
+ * phone's own storage, the page the phone opens), never in a URL or a log.
  * A different key matching by chance is a 1-in-4-billion event, and the worst it can do
  * is show another key's last result. ES5 only (aplite PKJS and the settings webview).
  */

@@ -1,30 +1,5 @@
 [
   {
-    "name": "fresh install, basalt",
-    "clayRequired": true,
-    "changed": {},
-    "deleted": [],
-    "markedNow": [
-      "v1.10.0_radar_view_mode_migration",
-      "v1.15.1_carried_graph_night_tint_migration",
-      "v1.20.0_onboarding_existing_install_migration",
-      "v1.23.0_norain_default_text_migration",
-      "v1.23.1_fifth_line_style_default_migration",
-      "v1.23.1_stripe_metric_rule_resend_migration",
-      "v1.24.0_warn_look_migration",
-      "v1.4.0_holiday_region_key_migration",
-      "v1.4.0_holiday_white_to_toggle_migration",
-      "v1.8.0_status_line_health_defaults_migration",
-      "v1.8.0_status_top_right_battery_migration"
-    ],
-    "markedOnAck": [
-      "v1.15.0_graph_night_colors_migration",
-      "v1.16.0_light_graph_color_retune_migration",
-      "v1.16.0_light_solid_bars_migration",
-      "v1.34.0_weekend_holiday_color_migration"
-    ]
-  },
-  {
     "name": "fresh install, emery",
     "clayRequired": true,
     "changed": {},
@@ -229,7 +204,7 @@
     ]
   },
   {
-    "name": "legacy install, basalt, no blob before this boot",
+    "name": "legacy install, no blob before this boot",
     "clayRequired": true,
     "changed": {
       "radarProvider": "rainbow",
@@ -276,7 +251,9 @@
       "threshWindWarnLook": "outline",
       "threshGustWarnLook": "outline",
       "threshStepsWarnLook": "none",
-      "threshSleepWarnLook": "none"
+      "threshSleepWarnLook": "none",
+      "statusHealthMid": "sleep",
+      "statusHealthRight": "hr"
     },
     "deleted": [
       "holidayRegionDE",
@@ -348,7 +325,9 @@
       "threshWindWarnLook": "outline",
       "threshGustWarnLook": "outline",
       "threshStepsWarnLook": "none",
-      "threshSleepWarnLook": "none"
+      "threshSleepWarnLook": "none",
+      "statusHealthMid": "sleep",
+      "statusHealthRight": "hr"
     },
     "deleted": [
       "holidayRegionDE",
@@ -422,7 +401,9 @@
       "threshWindWarnLook": "outline",
       "threshGustWarnLook": "outline",
       "threshStepsWarnLook": "none",
-      "threshSleepWarnLook": "none"
+      "threshSleepWarnLook": "none",
+      "statusHealthMid": "sleep",
+      "statusHealthRight": "hr"
     },
     "deleted": [
       "holidayRegionDE",

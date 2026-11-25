@@ -1,6 +1,5 @@
 // src/pkjs/config-ui/index.js (library entry)
 var color    = require('../lib/color.js');     // intToHex, hexToInt, PALETTE
-var platform = require('../config-ui/lib/platform.js');  // isColorPlatform, computeEnv
 var defaults = require('./lib/defaults.js');  // deriveDefaults(schema), deriveColorKeys(schema)
 require('../lib/polyfills.js');                    // Object.assign / Array.find on aplite
 
@@ -74,8 +73,6 @@ function createConfig(cfg) {
 
   function generateUrl(opts) {                            // Clay.generateUrl analog (opts optional)
     opts = opts || {};
-    var watchInfo = opts.watchInfo ||
-      (typeof Pebble !== 'undefined' && Pebble.getActiveWatchInfo ? Pebble.getActiveWatchInfo() : null);
     // In the emulator a desktop browser blocks navigating the top frame to a data: URL, so
     // (when the app supplies a hosted helper) route through it: the page goes in the #hash and
     // its return target is the $$RETURN_TO$$ placeholder the helper substitutes. Real devices
@@ -85,14 +82,11 @@ function createConfig(cfg) {
       : (useEmulatorHelper ? '$$RETURN_TO$$' : 'pebblejs://close#');
     var html = injectIntoPage(cfg.page, {
       values:   typeof opts.values !== 'undefined' ? opts.values : readStore(),
-      // opts.env is an OVERLAY, not a replacement: the library owns every fact it can
-      // derive from watchInfo, and the app contributes the ones it can't. Some env
-      // facts are properties of the PHONE, not of the watch -- e.g. whether this PKJS
-      // host exposes the Battery Status API (Android's Chromium WebView only) -- and
-      // the library must not go looking for them itself (no inbound app coupling; see
-      // README "Packaging"). Merging keeps the app's line to a single key instead of a
-      // hand-assembled full env that would silently rot as platform.js grows facts.
-      env:      Object.assign(platform.computeEnv(watchInfo), opts.env || {}),
+      // The env is the app's: facts of the PHONE the page cannot know, e.g. whether this
+      // PKJS host exposes the Battery Status API (Android's Chromium WebView only). The
+      // library does not go looking for them itself (no inbound app coupling; see
+      // README "Packaging").
+      env:      Object.assign({}, opts.env || {}),
       userData: typeof opts.userData !== 'undefined' ? opts.userData : instance.meta.userData,
       returnTo: returnTo });
     if (useEmulatorHelper) {
@@ -120,13 +114,6 @@ function createConfig(cfg) {
 
 module.exports = {                                        // factory + reusable pure helpers
   createConfig: createConfig,
-  isColorPlatform: platform.isColorPlatform, computeEnv: platform.computeEnv,
-  isThemePolarityPlatform: platform.isThemePolarityPlatform,
-  // telemetry-settings.js gates the Dim backlight fields on this: the LED is emery's alone.
-  isColorBacklightPlatform: platform.isColorBacklightPlatform,
-  // forecast-series.js gates the fourth-line trend key on this: aplite has no
-  // SERIES_FOURTH (WW_LINE_STYLE).
-  isLineStylePlatform: platform.isLineStylePlatform,
   intToHex: color.intToHex, hexToInt: color.hexToInt,
   deriveDefaults: defaults.deriveDefaults, deriveColorKeys: defaults.deriveColorKeys,
   // scripts/build-page.js previewPage fills the same markers for the dev preview.

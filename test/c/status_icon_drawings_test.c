@@ -28,20 +28,11 @@ static void expect(const char *name, int got, int want) {
 // bar, 5/9 in the top strip. Gothic 14 and 18 bars and the Gothic 18 top strip on the 144-px
 // watches; Gothic 18 and 24 bars and the Gothic 24 top strip on the Pebble Time 2.
 typedef struct { int target; bool top; } Tier;
-#if defined(PBL_PLATFORM_EMERY)
 static const Tier TIERS[] = { { 18 * 6 / 9, false }, { 24 * 5 / 9, true }, { 24 * 6 / 9, false } };
 #define RAIN_BUCKETS 3   // emery: the only strip wide enough for the heavy bucket
-#else
-static const Tier TIERS[] = { { 14 * 6 / 9, false }, { 18 * 5 / 9, true }, { 18 * 6 / 9, false } };
-#define RAIN_BUCKETS 2   // rain_tier_to_bucket3 folds heavy rain into rain here
-#endif
 #define TIER_COUNT ((int)(sizeof(TIERS) / sizeof(TIERS[0])))
 
-#if defined(PBL_PLATFORM_EMERY)
 #define FAMILY "emery"
-#else
-#define FAMILY "basalt"
-#endif
 
 // Every glyph a slot or an On demand item can ask for, and the ids that are text by contract.
 #define DRAWN_IDS(X) \

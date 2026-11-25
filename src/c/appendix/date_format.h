@@ -3,10 +3,7 @@
 // Pure date-slot formatters for SLOT_LIVE_DATE — header-only (static inline, no
 // .c file), like status_icon_size.h: plain libc string composition with no SDK
 // binding, so the host test (test/c/date_format_test.c) pins every format string
-// without an emulator. The only caller is status_row.c's format_status_date,
-// which aplite never compiles (its frozen lean twin status_row_aplite.c keeps
-// the hardcoded "%b %Y" / dd.mm.yy formats), so nothing here needs a platform
-// guard.
+// without an emulator. The only caller is status_row.c's format_status_date.
 //
 // Month names come from strftime in the app's default locale — the app never
 // calls setlocale(), so they are ENGLISH on every firmware language (Sep,

@@ -4,7 +4,6 @@
 const test = require('node:test');
 const assert = require('node:assert');
 const OD = require('../../../src/pkjs/status-bars/domain/on-demand.js');
-const platform = require('../../../src/pkjs/config-ui/lib/platform.js');
 
 const CODES = ['battery', 'bt', 'qt', 'snooze', 'rain', 'gust', 'uv', 'aqi', 'pollen', 'wind'];
 
@@ -70,7 +69,7 @@ test('sideOf / placedAnywhere on a partial blob read the default ticks', () => {
     'a non-string list reads the default ticks');
 });
 
-test('sideOf: empty sides, missing bars and a non-On-demand watch show nothing', () => {
+test('sideOf: empty sides and missing bars show nothing', () => {
   const S = {statusTopOnDemandRightItems: ''};
   assert.equal(OD.sideOf(S, 'top', 'battery'), null, 'nothing ticked: the side is off');
   assert.equal(OD.placedAnywhere(S, 'uv'), false);
@@ -79,14 +78,11 @@ test('sideOf: empty sides, missing bars and a non-On-demand watch show nothing',
   assert.equal(OD.sideOf(Object.assign({}, radar, {radarMode: 'off'}), 'radar', 'uv'), null,
     'the radar bar does not exist in radar mode Off');
   assert.equal(OD.sideOf(Object.assign({}, radar, {radarMode: 'countdown'}), 'radar', 'uv'), null);
-  assert.equal(OD.sideOf(radar, 'radar', 'uv', platform.computeEnv({platform: 'basalt'})), 'left');
+  assert.equal(OD.sideOf(radar, 'radar', 'uv'), 'left');
   const health = {statusHealthOnDemandRightItems: 'aqi', healthMode: 'status'};
   assert.equal(OD.sideOf(health, 'health', 'aqi'), 'right');
   assert.equal(OD.sideOf(Object.assign({}, health, {healthMode: 'slot'}), 'health', 'aqi'), null);
-  assert.equal(OD.sideOf({}, 'top', 'bt', platform.computeEnv({platform: 'aplite'})), null,
-    'aplite has no On demand');
-  assert.equal(OD.placedAnywhere({}, 'bt', platform.computeEnv({platform: 'aplite'})), false);
-  assert.equal(OD.sideOf({}, 'top', 'bt', platform.computeEnv(null)), 'left', 'an unknown watch is capable');
+  assert.equal(OD.sideOf({}, 'top', 'bt'), 'left', 'the default tick');
   // Left wins an overlap only a hand-edited blob can hold.
   assert.equal(OD.sideOf({statusTopOnDemandRightItems: 'bt'}, 'top', 'bt'), 'left');
 });
@@ -97,9 +93,7 @@ test('barExists: top and forecast always, radar and health where a screen shows 
   assert.equal(OD.barExists({}, 'top'), true);
   assert.equal(OD.barExists({}, 'forecast'), true);
   assert.equal(OD.barExists({radarMode: 'status'}, 'radar'), true);
-  assert.equal(OD.barExists({radarMode: 'graph'}, 'radar', {radar: false}), false);
   assert.equal(OD.barExists({healthMode: 'all'}, 'health'), true);
-  assert.equal(OD.barExists({healthMode: 'all'}, 'health', {health: false}), false);
   assert.equal(OD.barExists({radarMode: 'countdown'}, 'radar'), false, 'Rain alert only has no radar screen');
   assert.equal(OD.barExists({healthMode: 'slot'}, 'health'), false, 'Status slots only has no Health bar');
   const custom = { layoutPreset: 'custom', viewCount: '1', viewTop0: 'none', viewBody0: 'forecast',
@@ -108,7 +102,6 @@ test('barExists: top and forecast always, radar and health where a screen shows 
   assert.equal(OD.barExists(custom, 'health'), true, 'the Health bar its screen holds, whatever the mode');
   assert.equal(OD.barExists(Object.assign({}, custom, { viewUpper0: 'weather' }), 'radar'), false,
     'no screen holds it');
-  assert.equal(OD.barExists(custom, 'radar', {radar: false}), false, 'a watch without the radar view');
 });
 
 test('tickOn: joins the side in the canonical order and leaves the other side', () => {
@@ -180,45 +173,14 @@ test('placeRainForCountdown: Rain alert only ticks Rain top left unless a bar of
   assert.equal(OD.placeRainForCountdown(null), false);
 });
 
-test('batteryLevel: 5 % steps on emery, the next 10 % step up everywhere else', () => {
-  const emery = platform.computeEnv({platform: 'emery'});
+test('batteryLevel: the stored level in 5 % steps', () => {
   for (let v = 5; v <= 30; v += 5) {
-    assert.equal(OD.batteryLevel({batteryLowLevel: String(v)}, emery), v, 'emery keeps ' + v);
+    assert.equal(OD.batteryLevel({batteryLowLevel: String(v)}), v, 'keeps ' + v);
   }
-  ['basalt', 'diorite', 'flint', 'aplite'].forEach((p) => {
-    const env = platform.computeEnv({platform: p});
-    [[5, 10], [10, 10], [15, 20], [20, 20], [25, 30], [30, 30]].forEach(([v, want]) => {
-      assert.equal(OD.batteryLevel({batteryLowLevel: String(v)}, env), want, p + ' ' + v);
-    });
-  });
-  assert.equal(OD.batteryLevel({batteryLowLevel: '15'}, platform.computeEnv(null)), 20, 'unknown watch: 10 % steps');
-  assert.equal(OD.batteryLevel({batteryLowLevel: '15'}), 20, 'env omitted rounds too');
   ['0', '31', 'abc', '', '-5'].forEach((v) => {
-    assert.equal(OD.batteryLevel({batteryLowLevel: v}, emery), 10, JSON.stringify(v));
+    assert.equal(OD.batteryLevel({batteryLowLevel: v}), 10, JSON.stringify(v));
   });
   assert.equal(OD.batteryLevel({}), 10, 'absent');
-  assert.equal(OD.batteryLevel({batteryLowLevel: 25}, emery), 25, 'a number reads too');
+  assert.equal(OD.batteryLevel({batteryLowLevel: 25}), 25, 'a number reads too');
 });
 
-test('computeEnv: fineBattery on emery only, false for an unknown watch', () => {
-  assert.equal(platform.computeEnv({platform: 'emery'}).fineBattery, true);
-  ['aplite', 'basalt', 'diorite', 'flint', 'x'].forEach((p) => {
-    assert.equal(platform.computeEnv({platform: p}).fineBattery, false, p);
-  });
-  assert.equal(platform.computeEnv(null).fineBattery, false);
-});
-
-test('telemetryCode: 40 letters, upper case only while the item shows', () => {
-  assert.equal(OD.telemetryCode({}), 'RLLLLRRR-R' + '-'.repeat(30), 'an untouched install');
-  const S = {
-    statusTopOnDemandLeftItems: '',
-    statusForecastOnDemandRightItems: 'rain',
-    statusRadarOnDemandLeftItems: 'uv', radarMode: 'off'
-  };
-  const code = OD.telemetryCode(S);
-  assert.equal(code.length, 40);
-  assert.equal(code.slice(0, 10), 'R----RRR-R', 'nothing ticked on the left');
-  assert.equal(code.slice(10, 20), '----R-----', 'forecast: rain right');
-  assert.equal(code.slice(20, 30), '------l---', 'a bar the mode removes reads lower case');
-  assert.equal(OD.telemetryCode({}, platform.computeEnv({platform: 'aplite'})), undefined);
-});

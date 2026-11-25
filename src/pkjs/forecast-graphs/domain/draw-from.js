@@ -2,7 +2,7 @@
 // line of an amount metric, the forecast's rain bars and the radar graph's rain bars
 // start. Bottom (the default) stands them on the graph's bottom, as always; Top hangs
 // them from the top of the graph, a bigger value reaching further down. THE one reading
-// of the six settings, for the wire (forecast-graphs/domain/graph-wire.js, which encodes it), telemetry
+// of the six settings, for the wire (forecast-graphs/domain/graph-wire.js, which encodes it)
 // and the settings page (which picker a Draw from row sits under, the rows' hints, the
 // Visible values: Alert scale hint, the forecast and radar previews), so they can never
 // disagree.
@@ -16,12 +16,11 @@
 // for temperature, feels-like, dew point or pressure, nor for health: they never hang.
 //
 // PER METRIC, NOT PER LINE. The choice follows its metric from picker to picker (as the
-// Visible values row and the graph colours do). A line hangs only while the watch draws
-// line styles (WW_LINE_STYLE: not aplite), the line is drawn (line-style.js
-// effectiveLineMetric) and is not a stripe (a stripe keeps its own Top/Bottom). A stored
+// Visible values row and the graph colours do). A line hangs only while the line is drawn
+// (line-style.js effectiveLineMetric) and is not a stripe (a stripe keeps its own Top/Bottom). A stored
 // Top on a line that is not drawn, or now a stripe, lies dormant: kept, but sent as
 // Bottom, and back the moment the line draws as a line again. The bars' flag is a pure
-// function of its key (and the watch), independent of barSource and radarMode: inert
+// function of its key, independent of barSource and radarMode: inert
 // while those bars are off, and toggling them never changes the palette bytes.
 //
 // THE ANCHORED EDGES (owner, 2026-10-02). Whatever is drawn from an edge of the forecast
@@ -38,10 +37,6 @@
 // feels-like, dew point: every metric without a Draw from key). lineEdge is that reading
 // of one line, for the wire and the page alike. The bits and where they ride:
 // forecast-graphs/domain/graph-wire.js.
-//
-// THE WATCH. Every reading takes the watch as `env`, config-ui platform.js computeEnv()
-// facts (the phone's of the connected watch, or the settings page's own); only its
-// `lineStyles` is read, and only an explicit false (aplite) is incapable (capable).
 //
 // Settings-derived and never baked: forecast-series.js reads none of it, so the keys stay
 // out of render-signature.js and a flip is a Clay-only resend, no weather fetch.
@@ -107,45 +102,31 @@
     }
 
     /**
-     * Whether a watch draws anything from the top: every watch with line styles (the
-     * WW_LINE_STYLE mirror). Only an explicit lineStyles false (aplite) is incapable, so
-     * an unknown watch reads capable, as computeEnv(null) does.
-     * @param {?Object} [env] config-ui platform.js computeEnv() facts (`lineStyles`).
-     * @returns {boolean}
-     */
-    function capable(env) {
-        return !(env && env.lineStyles === false);
-    }
-
-    /**
      * Whether a metric's lines are set to hang from the top on this watch: its key reads
      * Top. Says nothing about whether such a line is drawn, or is a stripe (lineEdge).
      * @param {Object} settings Clay settings blob.
      * @param {*} metric A graph metric id.
-     * @param {?Object} [env] Platform env (capable).
      * @returns {boolean}
      */
-    function metricFromTop(settings, metric, env) {
+    function metricFromTop(settings, metric) {
         var key = settingKey(metric);
-        return capable(env) && key !== null && value((settings || {})[key]) === TOP;
+        return key !== null && value((settings || {})[key]) === TOP;
     }
 
     /**
      * The edge one forecast line is drawn from, as the wire sends it (graph-wire.js
-     * styleByte): for a line the watch draws as a line or marks (it draws line styles, the
-     * line is not off, not a repeat of an earlier picker's metric, not a stripe), its
+     * styleByte): for a line the watch draws as a line or marks (the line is not off, not a repeat of an earlier picker's metric, not a stripe), its
      * metric's key's TOP or BOTTOM, or FLOAT for a metric without a key (pressure,
      * feels-like, dew point), which anchors no edge. Null for every other line: not drawn,
-     * a stripe (it keeps its own Top/Bottom), or a watch without line styles.
+     * or a stripe (it keeps its own Top/Bottom).
      * @param {Object} settings Clay settings blob.
      * @param {string} lineKey secondaryLine|thirdLine|fourthLine|fifthLine.
-     * @param {?Object} [env] Platform env (capable).
      * @returns {?string} TOP, BOTTOM, FLOAT or null.
      */
-    function lineEdge(settings, lineKey, env) {
+    function lineEdge(settings, lineKey) {
         var s = settings || {};
         var metric = lineStyle.effectiveLineMetric(s, lineKey);
-        if (!capable(env) || metric === null || lineStyle.isStripeStyle(s, lineKey + 'Style')) {
+        if (metric === null || lineStyle.isStripeStyle(s, lineKey + 'Style')) {
             return null;
         }
         var key = settingKey(metric);
@@ -164,25 +145,23 @@
      * The anchored edges of the forecast graph (see the header): the rain bars' edge while
      * barSource draws them, and each drawn amount line's, each only while it has a value above
      * 0 (`hasValue`; the watch's one scan, temp_axis_pad.h temp_axis_any_above_zero). Nothing
-     * on a watch without line styles (aplite keeps its frozen margins).
+     *
      * @param {Object} settings Clay settings blob.
-     * @param {?Object} [env] Platform env (capable).
      * @param {function(string): boolean} [hasValue] Whether an element has a value above 0 in
      *   the hours drawn: called with 'bars' for the rain bars, else with the line's key
      *   (secondaryLine|thirdLine|fourthLine|fifthLine). Absent, every element has one.
      * @returns {{top: boolean, bottom: boolean}}
      */
-    function forecastAnchors(settings, env, hasValue) {
+    function forecastAnchors(settings, hasValue) {
         var s = settings || {};
         var out = { top: false, bottom: false };
         var has = hasValue || function () { return true; };
-        if (!capable(env)) { return out; }
         if (s.barSource === 'rain' && has('bars')) {
-            out[barsFromTop(s, 'rain', env) ? TOP : BOTTOM] = true;
+            out[barsFromTop(s, 'rain') ? TOP : BOTTOM] = true;
         }
         for (var i = 0; i < lineStyle.FORECAST_LINES.length; i++) {
             var key = lineStyle.FORECAST_LINES[i].key;
-            var edge = lineEdge(s, key, env);
+            var edge = lineEdge(s, key);
             if (anchors(edge) && has(key)) { out[edge] = true; }
         }
         return out;
@@ -193,14 +172,13 @@
      * drawn from an edge (lineEdge TOP or BOTTOM) by a metric with that key.
      * @param {Object} settings Clay settings blob.
      * @param {string} rowKey A Draw from key.
-     * @param {?Object} [env] Platform env (capable).
      * @returns {string[]} Line keys (secondaryLine|thirdLine|fourthLine|fifthLine).
      */
-    function linesOfRow(settings, rowKey, env) {
+    function linesOfRow(settings, rowKey) {
         var out = [];
         for (var i = 0; i < lineStyle.FORECAST_LINES.length; i++) {
             var key = lineStyle.FORECAST_LINES[i].key;
-            if (anchors(lineEdge(settings, key, env))
+            if (anchors(lineEdge(settings, key))
                 && settingKey(lineStyle.effectiveLineMetric(settings, key)) === rowKey) {
                 out.push(key);
             }
@@ -214,11 +192,10 @@
      * hides while no line reads it (a stored Top lies dormant then).
      * @param {Object} settings Clay settings blob.
      * @param {string} rowKey A Draw from key.
-     * @param {?Object} [env] Platform env (capable).
      * @returns {?string} A line key, or null.
      */
-    function rowLine(settings, rowKey, env) {
-        var lines = linesOfRow(settings, rowKey, env);
+    function rowLine(settings, rowKey) {
+        var lines = linesOfRow(settings, rowKey);
         return lines.length ? lines[0] : null;
     }
 
@@ -228,11 +205,10 @@
      * page's Top hint speaks of both lines then.
      * @param {Object} settings Clay settings blob.
      * @param {string} rowKey A Draw from key.
-     * @param {?Object} [env] Platform env (capable).
      * @returns {number}
      */
-    function linesSharing(settings, rowKey, env) {
-        return linesOfRow(settings, rowKey, env).length;
+    function linesSharing(settings, rowKey) {
+        return linesOfRow(settings, rowKey).length;
     }
 
     /**
@@ -240,11 +216,10 @@
      * reads Top. Independent of barSource and radarMode (see the header).
      * @param {Object} settings Clay settings blob.
      * @param {string} chart 'rain' (the forecast's bars) | 'radar' (the radar graph's).
-     * @param {?Object} [env] Platform env (capable).
      * @returns {boolean}
      */
-    function barsFromTop(settings, chart, env) {
-        return capable(env) && owns(BAR_KEYS, chart)
+    function barsFromTop(settings, chart) {
+        return owns(BAR_KEYS, chart)
             && value((settings || {})[BAR_KEYS[chart]]) === TOP;
     }
 
@@ -256,7 +231,6 @@
         BAR_KEYS: BAR_KEYS,
         value: value,
         settingKey: settingKey,
-        capable: capable,
         metricFromTop: metricFromTop,
         lineEdge: lineEdge,
         forecastAnchors: forecastAnchors,

@@ -19,7 +19,6 @@ const cityLadder = require('../../../src/pkjs/status-bars/domain/city-ladder.js'
 const utf8 = require('../../../src/pkjs/lib/utf8.js');
 const statusLines = require('../../../src/pkjs/status-bars/domain/status-lines.js');
 const catalog = require('../../../src/pkjs/status-bars/domain/status-line-catalog.js');
-const platformLib = require('../../../src/pkjs/config-ui/lib/platform.js');
 
 /**
  * The CITY_VECTORS rows of the C test: each is the name, then its abbreviated forms.
@@ -115,7 +114,7 @@ function settings(extra) {
  * @returns {Object[]} the decoded slots
  */
 function bakeTop(city, platform) {
-  const env = platformLib.computeEnv(platform ? { platform } : null);
+  const env = {};
   return decodeLine(statusLines.packLine(TOP, { CITY: city },
     settings({ statusTopLeft: 'city', statusTopMid: 'city', statusTopRight: 'city' }), env, null, bakeEnv(NOW)));
 }
@@ -167,13 +166,3 @@ test('a middle city too long for its cap is cut as before, never laddered', () =
   });
 });
 
-test('a known aplite bakes its edge cities byte for byte as before', () => {
-  const plain = (city) => Buffer.from(statusLines.utf8Truncate(
-    statusLines.utf8Encode(city), catalog.CAPS.EDGE_TEXT_MAX)).toString('utf8');
-  ['Bad Soden', 'Bad Berleburg', 'New York', 'Frankfurt am Main', 'Bad Tölz'].forEach((city) => {
-    const slots = bakeTop(city, 'aplite');
-    assert.equal(slots[0].text, plain(city), city);
-    assert.equal(slots[2].text, plain(city), city);
-  });
-  assert.equal(bakeTop('Bad Soden', 'aplite')[0].text, 'Bad Sode');
-});

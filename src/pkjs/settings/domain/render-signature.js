@@ -17,7 +17,6 @@ var forecastSpan = require('../../weather/domain/forecast-span.js');
 var forecastAxis = require('../../forecast-graphs/domain/forecast-axis.js');
 // Graph styles (emery): the bake's settings while screens show several styles.
 var graphStyleWire = require('../../forecast-graphs/domain/graph-style-wire.js');
-var platformLib = require('../../config-ui/lib/platform.js');
 
 /**
  * The drawn metrics whose line is a stripe: a stripe line's bytes are level bytes on the
@@ -81,13 +80,12 @@ function isAlertCode(code) {
  * bar. Such a slot bakes the alert's value into its text, so moving the alert onto
  * or off that side re-bakes it; moving it anywhere else does not.
  * @param {Object} settings Clay settings.
- * @param {Object} env Platform env of the watch the data is baked for.
  * @returns {string} e.g. 'radar.left.uv', comma-joined; '' for none
  */
-function mergedSlots(settings, env) {
+function mergedSlots(settings) {
     var out = [];
     // The lines the bake sends (catalog bakedLines): a bar no screen shows bakes nothing.
-    var lines = statusCatalog.bakedLines(settings, env);
+    var lines = statusCatalog.bakedLines(settings);
     for (var l = 0; l < lines.length; l++) {
         var line = lines[l];
         for (var s = 0; s < 3; s += 2) {
@@ -119,17 +117,16 @@ function signSlots(parts, settings, keys) {
 /**
  * Join the render-affecting settings into a change-detection signature.
  *
+ * While the screens show several graph styles, the graph's part signs the bake's settings,
+ * the shown styles' union (forecast-graphs/domain/graph-style-wire.js weatherSettings), so
+ * another style's metric, line or length re-fetches as the first style's does.
+ *
  * @param {Object} settings Clay settings.
- * @param {?Object} [watchInfo] The watch the data is baked for: while its screens show several
- *   graph styles (emery), the graph's part signs the bake's settings, the shown styles' union
- *   (forecast-graphs/domain/graph-style-wire.js weatherSettings), so another style's metric, line or length
- *   re-fetches as the first style's does. Omitted: the settings as they are.
  * @returns {string} Pipe-joined signature, or '' when settings is falsy.
  */
-function renderSignature(settings, watchInfo) {
+function renderSignature(settings) {
     if (!settings) { return ''; }
-    settings = graphStyleWire.weatherSettings(settings, watchInfo || null);
-    var env = platformLib.computeEnv(watchInfo || null);
+    settings = graphStyleWire.weatherSettings(settings);
     // Series selection and encoding — fourthLine/fifthLine change which series the phone
     // bakes (and fetches — UV), so it joins. NOT the theme or the area-fill toggle:
     // the line colours, the fill flag, the ...LineStyle keys and the
@@ -213,7 +210,7 @@ function renderSignature(settings, watchInfo) {
     // screen starts showing joins the list, so its save fetches what its slots need
     // (UV, AQI, pollen, a day's peaks); a slot on a bar no screen shows bakes and
     // fetches nothing, so editing it signs nothing.
-    statusCatalog.bakedLines(settings, env).forEach(function (line) {
+    statusCatalog.bakedLines(settings).forEach(function (line) {
         parts.push(line.id);
         signSlots(parts, settings, line.slots);
     });
@@ -264,7 +261,7 @@ function renderSignature(settings, watchInfo) {
     }).join(','));
     // The one placement that does bake: an alert on the side whose slot shows its
     // metric, which merges into that slot's text (mergedSlots).
-    parts.push(mergedSlots(settings, env));
+    parts.push(mergedSlots(settings));
     // The graph styles' spare row (emery): the union's fifth series, which no line key holds.
     // Signed only while there is one, so every other bake signs as it did before the spare.
     var spare = spareSignature(settings);

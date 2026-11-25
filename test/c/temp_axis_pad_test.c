@@ -1439,7 +1439,6 @@ static void test_screen_edge(void) {
     assert(temp_axis_drawn_entries(14, w, 16) == 13);             // 12 h at its widest pitch
 }
 
-#if defined(PBL_PLATFORM_EMERY)
 // The phone's temperature byte (forecast-series.js tempTrendToBytes): t on the joint band
 // [jlo, jlo + S] as round((t - jlo) * 250 / S), JS Math.round's half up, held to 0..250.
 static int enc_temp(int t, int jlo, int S) {
@@ -1482,7 +1481,6 @@ static void test_byte_temp(void) {
     const TempAxisRange flat = { 125, 125 };
     assert(temp_axis_byte_temp(125, flat, 54, 54) == 54);
 }
-#endif
 
 int main(void) {
     test_constants();
@@ -1511,11 +1509,7 @@ int main(void) {
     test_numbers_part();
     test_numbers_scale_points();
     test_screen_edge();
-#if defined(PBL_PLATFORM_EMERY)
     test_byte_temp();
     printf("temp_axis_pad_test (emery): all passed\n");
-#else
-    printf("temp_axis_pad_test: all passed\n");
-#endif
     return 0;
 }

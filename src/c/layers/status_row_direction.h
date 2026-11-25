@@ -25,11 +25,6 @@
 // host-compiles under scripts/test-c.sh (test/c/status_line_test.c) while its only
 // caller, status_row.c, is SDK-bound and cannot. Same reason, same shape as
 // status_icon_size.h next door.
-//
-// APLITE. Never reaches it: packLine suppresses the sentinel for that platform, and
-// the feature-frozen lean twin status_row_aplite.c (compiled INSTEAD of
-// status_row.c there) neither includes this header nor draws an arrow. A header of
-// static inlines nothing includes costs the aplite image nothing.
 
 #define STATUS_DIR_SENTINEL_MIN 0x01
 #define STATUS_DIR_SENTINEL_MAX 0x10
@@ -67,7 +62,7 @@ static inline int8_t status_slot_direction(const StatusSlotView *slot) {
 //     point UP and by 0 to point DOWN (status_row.c), i.e. 8/16 and 0/16, exactly
 //     what this returns for sector 0 (north) and sector 8 (south);
 //   the horizontal — a westerly (bearing FROM 270, so blowing east, sector 4) was
-//     rendered on a basalt emulator and drew a RIGHT-pointing arrow.
+//     rendered on an emulator and drew a RIGHT-pointing arrow.
 // Positive angles therefore turn clockwise and this mapping is correct as written.
 //
 // If a future SDK ever reverses that, the whole fix is this one line:

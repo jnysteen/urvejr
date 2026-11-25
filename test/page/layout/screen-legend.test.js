@@ -16,14 +16,11 @@ const P = require('../../../src/pkjs/page/layout/screen-presets.js');
 const FM = require('../../../src/pkjs/page/forecast-graphs/forecast-metrics.js');
 const svgLib = require('../../../src/pkjs/page/settings/preview-svg.js');
 const VC = require('../../../src/pkjs/layout/domain/view-cycle.js');
-const platform = require('../../../src/pkjs/config-ui/lib/platform.js');
 const schema = require('../../../src/pkjs/page/settings/schema.js');
 const palette = require('../../../src/pkjs/theme/domain/preview-palette.js').buildPreviewPalette();
 
 const PC = global.PConf;
-const BASALT = platform.computeEnv({ platform: 'basalt' });
-const EMERY = platform.computeEnv({ platform: 'emery' });
-const DIORITE = platform.computeEnv({ platform: 'diorite' });
+const EMERY = {};
 const USER = { palette };
 
 /**
@@ -48,7 +45,7 @@ function legendOf(id, env, S) {
   const kind = Boolean(P.byId(id));
   const c = kind ? SP.addPreview(S || fresh(env), env, id, '') : SP.addPreview(S || fresh(env), env, 'forecast', '', id);
   assert.ok(c, id + ' is offered');
-  return L.groups(SP.drawnView(VC.screensCycle(c.W, env)[c.n], c.W), c.W, env, USER);
+  return L.groups(SP.drawnView(VC.screensCycle(c.W)[c.n], c.W), c.W, env, USER);
 }
 
 /**
@@ -83,20 +80,20 @@ function said(gs) {
 }
 
 test('a forecast graph\'s rows: the temperature, each line in its style, then the rain bars', () => {
-  const S = fresh(BASALT, { secondaryLine: 'wind', secondaryLineStyle: 'dots', secondaryLineFill: false, thirdLine: 'uv',
+  const S = fresh(EMERY, { secondaryLine: 'wind', secondaryLineStyle: 'dots', secondaryLineFill: false, thirdLine: 'uv',
     thirdLineStyle: 'x', fourthLine: 'cloud', fourthLineStyle: 'stripeBottom', fifthLine: 'gust', fifthLineStyle: 'bold' });
-  assert.deepEqual(said(legendOf('forecast', BASALT, S)), [['forecast', 'Temperature: thick line', 'Wind: dots', 'UV index: × marks',
+  assert.deepEqual(said(legendOf('forecast', EMERY, S)), [['forecast', 'Temperature: thick line', 'Wind: dots', 'UV index: × marks',
     'Clouds: stripe along the bottom', 'Gusts: thick line', 'Rain: bars']]);
   // A filled main line is its shaded area; a line on its own, a stripe at the top, bars hung from it.
-  const T = fresh(BASALT, { secondaryLine: 'precip_prob', secondaryLineStyle: 'line', secondaryLineFill: true,
+  const T = fresh(EMERY, { secondaryLine: 'precip_prob', secondaryLineStyle: 'line', secondaryLineFill: true,
     thirdLine: 'cloud', thirdLineStyle: 'stripeTop', fourthLine: 'dew', fourthLineStyle: 'line', rainBarFrom: 'top' });
-  assert.deepEqual(said(legendOf('forecast', BASALT, T))[0].slice(2), ['Rain chance: shaded area',
+  assert.deepEqual(said(legendOf('forecast', EMERY, T))[0].slice(2), ['Rain chance: shaded area',
     'Clouds: stripe along the top', 'Dew point: line', 'Rain: bars from the top']);
   // Dots or marks of a filled main line keep its area under them.
-  assert.equal(said(legendOf('forecast', BASALT, fresh(BASALT, { secondaryLine: 'wind', secondaryLineStyle: 'dots',
+  assert.equal(said(legendOf('forecast', EMERY, fresh(EMERY, { secondaryLine: 'wind', secondaryLineStyle: 'dots',
     secondaryLineFill: true })))[0][2], 'Wind: dots over a shaded area');
   // No rain bars, no row for them; every metric by its name in the metrics' table.
-  assert.deepEqual(said(legendOf('forecast', BASALT, fresh(BASALT, { barSource: 'off' }))),
+  assert.deepEqual(said(legendOf('forecast', EMERY, fresh(EMERY, { barSource: 'off' }))),
     [['forecast', 'Temperature: thick line', 'Rain chance: shaded area']]);
   FM.METRICS.forEach((m) => assert.equal(FM.legendName(m.id), m.name));
   assert.deepEqual(FM.METRICS.map((m) => m.name), ['Rain chance', 'Clouds', 'Wind', 'Gusts', 'UV index', 'Air pressure',
@@ -105,16 +102,17 @@ test('a forecast graph\'s rows: the temperature, each line in its style, then th
 
 test('the health graph\'s and the rain radar\'s rows, as each draws on this watch', () => {
   assert.deepEqual(said(legendOf('health', EMERY)), [['health', 'Steps: bars', 'Heart rate: line', 'Sleep: band along the bottom']]);
-  assert.deepEqual(said(legendOf('health', BASALT)), [['health', 'Steps: bars', 'Sleep: band along the bottom']],
-    'no heart-rate sensor');
   // The radar draws its sky rows as a graph: the card's picture holds the modes the screens need
   // with it added, so it draws them too.
-  assert.deepEqual(said(legendOf('radar', BASALT)), [['radar', 'Rain: bars', 'Clouds: stripe', 'Sun: stripe', 'Lightning: bolt']]);
-  assert.deepEqual(said(legendOf('radar', BASALT, fresh(BASALT, { radarSky: false }))), [['radar', 'Rain: bars']]);
-  assert.deepEqual(said(legendOf('radar', BASALT, fresh(BASALT, { radarProvider: 'dwd', radarSky: false }))),
+  const point = { radarProvider: 'metno' };   // a radar with no rain nearby
+  assert.deepEqual(said(legendOf('radar', EMERY, fresh(EMERY, point))),
+    [['radar', 'Rain: bars', 'Clouds: stripe', 'Sun: stripe', 'Lightning: bolt']]);
+  assert.deepEqual(said(legendOf('radar', EMERY, fresh(EMERY, { radarProvider: 'metno', radarSky: false }))),
+    [['radar', 'Rain: bars']]);
+  assert.deepEqual(said(legendOf('radar', EMERY, fresh(EMERY, { radarProvider: 'dwd', radarSky: false }))),
     [['radar', 'Rain: bars', 'Rain nearby: faint bars']], 'DWD\'s rain nearby');
   // Two graphs: the upper one first.
-  assert.deepEqual(said(legendOf('radarfc', BASALT, fresh(BASALT, { radarSky: false }))),
+  assert.deepEqual(said(legendOf('radarfc', EMERY, fresh(EMERY, { radarProvider: 'metno', radarSky: false }))),
     [['radar', 'Rain: bars'], ['forecast', 'Temperature: thick line', 'Rain chance: shaded area', 'Rain: bars']]);
 });
 
@@ -125,7 +123,7 @@ test('a template screen\'s rows are its graph\'s, at its length (the Pebble Time
     'UV index: line', 'Rain: bars from the top']]);
   // The screen as added at another length: Outdoor's feels-like line on 12 and 24 hours.
   const S = fresh(EMERY), n = SP.addChosen(S, EMERY, 'forecast', '', 'outdoor', '24');
-  assert.deepEqual(said(L.groups(SP.drawnView(VC.screensCycle(S, EMERY)[n], S), S, EMERY, USER))[0].slice(3, 5),
+  assert.deepEqual(said(L.groups(SP.drawnView(VC.screensCycle(S)[n], S), S, EMERY, USER))[0].slice(3, 5),
     ['UV index: line', 'Feels like: line']);
 });
 
@@ -183,10 +181,3 @@ test('what the weather service leaves out of the forecast graph', () => {
   assert.equal(L.gapNote(legendOf('health', EMERY), 'yandex'), '', 'no forecast graph');
 });
 
-test('a black-and-white watch\'s legend draws in its ink', () => {
-  const gs = legendOf('forecast', DIORITE);
-  assert.ok(gs[0].rows.every((r) => r.color === '#FFFFFF'), 'white on the dark theme');
-  const rain = gs[0].rows.find((r) => r.metric === 'rain');
-  assert.equal(rain.outline, true, 'outlined bars');
-  assert.equal(rain.tiers, null);
-});

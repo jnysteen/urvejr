@@ -7,25 +7,24 @@
 // single-flight (a forced call queued ONCE behind an in-flight fetch), the force
 // pre-clears or the auth backoff, the geocode cooldown — and owns its lifecycle:
 // the once-only completion, the watchdog, the late-completion guard, the attempt
-// counter, the sleep commit, the telemetry event and the success/failure records.
+// counter, the sleep commit and the success/failure records.
 //
 // It holds index.js's fetch(), needRefresh() and their helpers, the cycle's
 // chain as the internal runCycle, and channel-scheduler.js's two cadence statics. index.js keeps the event wiring;
 // the channel scheduler keeps WHEN (its startFetch/shouldFetchNow deps are these
 // two methods). Clock, timer, provider, settings and every collaborator that
-// touches Pebble, storage-backed state or telemetry are injected, so the cycle
+// touches Pebble or storage-backed state is injected, so the cycle
 // runs under Node's test runner without booting index.js.
 //
 // Load-time invariant: this module loads with NO globals installed (no
 // localStorage, Pebble or navigator) — it reads localStorage only at call time
 // (and never caches the object or its methods: tests swap getItem after boot),
 // and it does not directly require index.js, outbox.js, auth-backoff.js,
-// notices.js or telemetry.js; those arrive through deps.
+// or notices.js; those arrive through deps.
 
 var storageKeys = require('../settings/domain/storage-keys.js');
 var fetchOptions = require('../weather/domain/fetch-options.js');
 var batterySaver = require('../wire/domain/battery-saver.js');
-var platformLib = require('../config-ui/lib/platform.js');
 var radarFactory = require('../weather/adapter/radar-factory.js');
 var radarWire = require('../weather/domain/radar/radar-wire.js');
 var radarSky = require('../weather/domain/radar/radar-sky.js');
@@ -44,7 +43,7 @@ var KEY_LAST_IS_SLEEPING = storageKeys.LAST_IS_SLEEPING_KEY;
 var KEY_SERVER_STREAK = storageKeys.SERVER_FAILURE_STREAK_KEY;
 // How long an in-flight weather fetch may run before it is presumed lost. A
 // healthy chain is bounded by its own timeouts, step after step: the GPS fix
-// (10 s) or the address's geocode; the radar (twice for Rainbow (own key), which
+// (10 s) or the address's geocode; the radar (twice for Rainbow, which
 // retries without its start time; the sky rows ask alongside); the city; the
 // provider (up to three requests for DWD and Open-Meteo, five for Weather
 // Underground when it re-scrapes a refused key); AQI (twice when Auto falls back);
@@ -194,21 +193,11 @@ function watchMayShowForecast(now) {
     }
 }
 
-// --- request throttles ------------------------------------------------------
-// One request per UTC-aligned slot of a source's interval, the cycles in between
-// re-serving the slot's answer (request-throttle.js).
-// The radar's (radar-factory.js minRequestIntervalMs: the shared Rainbow proxy) records
-// its request before it goes out, so failures and timeouts count and a failing proxy is
-// not hammered. It keeps a real window, the limit notice (radarWire.limitedRadarTuples:
-// the source refused this slot, and the watch should say so until the next slot asks
-// again) and the clear (radarWire.clearRadarTuples; e.g. a proxy 404/405, the proxy
-// missing: without it a NACKed clear would leave the watch rolling its old window forward
-// until the next slot asks again).
-var radarThrottle = requestThrottle.createRequestThrottle({
-    key: storageKeys.RADAR_REQUEST_THROTTLE_KEY, answerField: 'tuples', failuresCount: true
-});
-// The sky rows' (radar-sky-source.js minRequestIntervalMs, with its accepted edge case)
-// keeps a request only with its answer, so a failed one asks again next cycle.
+// --- request throttle -------------------------------------------------------
+// One sky request per UTC-aligned slot of its interval, the cycles in between re-serving
+// the slot's answer (request-throttle.js; radar-sky-source.js minRequestIntervalMs, with
+// its accepted edge case). It keeps a request only with its answer, so a failed one asks
+// again next cycle.
 var skyThrottle = requestThrottle.createRequestThrottle({
     key: storageKeys.SKY_REQUEST_THROTTLE_KEY, answerField: 'tuple', failuresCount: false
 });
@@ -263,14 +252,12 @@ function runCycle(deps) {
  *
  * @param {Object} deps Injected behavior + environment.
  * @param {function():Object} deps.getSettings Live Clay settings (index.js reassigns them on config close/reset — never cache the object).
- * @param {function():?Object} deps.getWatchInfo Live getActiveWatchInfo() result, or null.
  * @param {function():Object} deps.getProvider Live weather provider (refreshProvider replaces it mid-session).
  * @param {function():boolean} deps.isWatchConnected True when a watch is connected.
  * @param {{sendWeather: Function, clearWeatherCaches: Function, clearNoticeCache: Function}} deps.outbox The deduping outbox.
  * @param {Object} deps.authBackoff The auth-backoff module (isAuthFailure/isActive/set/clear).
  * @param {Object} deps.notices The notices module (isServerFailure/noticeForFailure/add/watchText/clearErrors).
- * @param {function(Object):void} deps.trackWeatherFetch Receives each fetch's telemetry event (the caller owns the telemetry-enabled gate).
- * @param {{waqiToken: string, rainbowEndpoint: string}} deps.env Build-injected secrets (package.json's waqi.token and rainbow.endpoint; '' when absent).
+ * @param {{waqiToken: string}} deps.env Build-injected secrets (package.json's waqi.token; '' when absent).
  * @param {function():Date} deps.now Current-time supplier (same contract as the channel scheduler's deps.now).
  * @param {function():?Object} [deps.getPhoneBattery] The phone's battery facts for the bake
  *   (phone-battery.js bakeFacts); absent = a host that cannot read the phone's battery.
@@ -291,8 +278,8 @@ function createFetchCycle(deps) {
      * acquisition), with the radar's sky rows (radar-sky.js) merged in. A transient
      * radar failure leaves the radar keys out: the callback gets the sky answer
      * alone, or null when the sky had none either, and the weather payload still
-     * ships without radar tuples. A permanent one (missing key/endpoint, rejected
-     * key, a missing or outdated Rainbow proxy) calls back the clearing tuples, and
+     * ships without radar tuples. A permanent one (missing or rejected key) calls
+     * back the clearing tuples, and
      * a source refusing us over a request limit (HTTP 429) the limit notice
      * (radarWire.limitedRadarTuples), which rides the send in place of the three
      * radar arrays. A place outside a regional source's area (radar-coverage.js)
@@ -315,38 +302,21 @@ function createFetchCycle(deps) {
      *
      * @param {number} lat Latitude in decimal degrees.
      * @param {number} lon Longitude in decimal degrees.
-     * @param {boolean} force Whether this fetch was forced (bypasses the radar
+     * @param {boolean} force Whether this fetch was forced (bypasses the sky
      *   request throttle, see request-throttle.js).
      * @param {Function} callback Receives the radar and/or sky tuples, or null.
      * @returns {void}
      */
     function withRainRadarTuplesAt(lat, lon, force, callback) {
-        if (!platformLib.computeEnv(deps.getWatchInfo()).radar) {
-            // The watch compiles the radar out (aplite: no WW_RAIN_RADAR) and drops
-            // every RAIN_RADAR_* tuple, so skip the request and leave the keys out
-            // of the send. The Radar settings tab is hidden there, so an install
-            // whose settings were never saved still holds the 'graph' default — the
-            // gate has to live here, not in the stored radarMode. An unknown
-            // platform (no watchInfo) stays radar-capable, as in computeEnv.
-            callback(null);
-            return;
-        }
         var settings = deps.getSettings();
         // Radar source is configured independently of the forecast provider. The
         // 5-min pinned slot-0 epoch (RAIN_RADAR_START on the wire) is computed here
         // at the clock edge, so the adapters stay deterministic (no clock injection).
         // radarMode 'off' clears the watch's radar via the 'disabled' clearing
         // adapter; any non-off mode fetches the full trend (countdown needs it).
-        // "Rainbow (own key)" is radarProvider 'rainbowkey', with its own (absent)
-        // throttle.
         var radarId = (settings.radarMode || 'graph') === 'off' ? 'disabled' : settings.radarProvider;
-        // '' when the build carried no RAINBOW_PROXY_ENDPOINT — the rainbow
-        // adapter then clears the watch's radar (it can never answer).
-        // tomorrowioApiKey is the user's key from settings; '' likewise
-        // clears in the adapter. rainbowApiKey (Rainbow on the user's own key,
-        // 'rainbowkey') likewise; '' clears in the adapter.
+        // The user's keys from settings; '' clears the watch's radar in the adapter.
         var radarCfg = {
-            rainbowEndpoint: deps.env.rainbowEndpoint,
             rainbowApiKey: (settings && settings.rainbowApiKey) || '',
             tomorrowioApiKey: (settings && settings.tomorrowioApiKey) || ''
         };
@@ -358,32 +328,11 @@ function createFetchCycle(deps) {
         var skySource = radarSkySource.createSkySource(skyId);
         var nowMs = +deps.now();
         var slotZeroEpoch = radarWire.slotZeroEpochFor(nowMs);
-        // A source that can never answer forgets its record (interval 0).
-        var radarIntervalMs = radarCanAnswer ? radarFactory.minRequestIntervalMs(radarId) : 0;
-        var slot = radarThrottle.take(radarId, radarIntervalMs, nowMs, force);
         var skySlot = skyThrottle.take(skyId, radarSkySource.minRequestIntervalMs(skyId), nowMs, force);
         // The sky request is independent of the radar's, so both go out at once and
         // the forecast waits for the slower one, not for one after the other.
         radarSky.joinRadarAndSky(function (cb) {
-            if (!slot.request) {
-                // The re-served window keeps its own RAIN_RADAR_START (the slot's
-                // request), which may be behind this cycle's slot 0: radar-dedupe.js
-                // aligns it by k, and the watch persists the start as-is and shifts
-                // it to the grid on its minute tick.
-                var reserved = !slot.answer ? 'the watch advances its window.'
-                    : radarWire.isLimitedRadarTuples(slot.answer) ? 're-serving this slot\'s limit notice.'
-                    : radarWire.isClearRadarTuples(slot.answer) ? 're-serving this slot\'s clear.'
-                    : 're-serving this slot\'s window.';
-                console.log('Radar request skipped: ' + radarId + ' is limited to one request per '
-                    + (slot.intervalMs / 60000) + ' min; ' + reserved);
-                // A limit notice an older build kept (the 1 it sent) goes out as today's line.
-                cb(radarWire.isLimitedRadarTuples(slot.answer) ? radarWire.limitedRadarTuples() : slot.answer);
-                return;
-            }
-            source.fetchRadarTuplesAt(lat, lon, slotZeroEpoch, function (tuples) {
-                radarThrottle.remember(slot, tuples);
-                cb(tuples);
-            });
+            source.fetchRadarTuplesAt(lat, lon, slotZeroEpoch, cb);
         }, function (cb) {
             if (!skySlot.request) {
                 console.log('Sky request skipped: asked once per ' + (skySlot.intervalMs / 60000)
@@ -497,13 +446,11 @@ function createFetchCycle(deps) {
         console.log('Fetching from ' + provider.name);
         // This fetch's knobs (UV/AQI/pollen requests, feels work + formula, day-max
         // codes, units, the WAQI token) as one value — set before any request is built.
-        provider.options = fetchOptions.build(deps.getSettings(), deps.getWatchInfo(), { waqiToken: deps.env.waqiToken });
+        provider.options = fetchOptions.build(deps.getSettings(), { waqiToken: deps.env.waqiToken });
         fetchInProgress = true;
         // This fetch's once-guard: set by the first of success, failure or the
         // watchdog, after which every later completion from this fetch is a no-op.
         var settled = false;
-        var fetchStart = +deps.now();
-        var attempt = null;
         var fetchStatus = {
             time: deps.now(),
             id: provider.id,
@@ -571,16 +518,6 @@ function createFetchCycle(deps) {
             deps.notices.clearErrors();
             deps.outbox.clearNoticeCache();
             console.log('Successfully fetched weather!');
-            if (provider.recoveredFailure) {
-                var recoveredEvent = baseTelemetryEvent(provider, attempt, fetchStart);
-                recoveredEvent.success = false;
-                recoveredEvent.error = provider.recoveredFailure;
-                provider.recoveredFailure = null;
-                deps.trackWeatherFetch(recoveredEvent);
-            }
-            var successEvent = baseTelemetryEvent(provider, attempt, fetchStart);
-            successEvent.success = true;
-            deps.trackWeatherFetch(successEvent);
         }
 
         /**
@@ -659,10 +596,6 @@ function createFetchCycle(deps) {
                 error: failure
             };
             localStorage.setItem(KEY_LAST_FETCH_ATTEMPT, JSON.stringify(attemptStatus));
-            var failureEvent = baseTelemetryEvent(provider, attempt, fetchStart);
-            failureEvent.success = false;
-            failureEvent.error = failure;
-            deps.trackWeatherFetch(failureEvent);
         }
 
         // PKJS owns metric selection: map the provider's raw precip/rain into the
@@ -674,7 +607,7 @@ function createFetchCycle(deps) {
          * @returns {Object} The render-ready wire payload.
          */
         function toRenderPayload(payload) {
-            return renderPayload.toRenderPayload(payload, deps.getSettings(), deps.getWatchInfo(),
+            return renderPayload.toRenderPayload(payload, deps.getSettings(),
                 deps.now(), typeof deps.getPhoneBattery === 'function' ? deps.getPhoneBattery() : null);
         }
 
@@ -690,7 +623,7 @@ function createFetchCycle(deps) {
         }, FETCH_WATCHDOG_MS);
 
         try {
-            attempt = incrementFetchAttemptCounter();
+            incrementFetchAttemptCounter();
             localStorage.setItem(KEY_LAST_FETCH_ATTEMPT, JSON.stringify(fetchStatus));
             runCycle({
                 provider: provider,
@@ -710,7 +643,7 @@ function createFetchCycle(deps) {
         catch (e) {
             // Once-guarded: a throw after this fetch already completed is ignored.
             console.log('Weather fetch threw synchronously: ' + e.message);
-            // The failure path writes storage and telemetry too, so it can throw for
+            // The failure path writes storage too, so it can throw for
             // the same reason (a full localStorage); start() runs on the scheduler
             // tick, and a throw escaping here would stop the tick loop for good.
             // settle() runs first inside it, so the in-progress flag is clear either way.
@@ -722,28 +655,6 @@ function createFetchCycle(deps) {
             }
         }
         return true;
-    }
-
-    /**
-     * Shared fields for both the success and failure weather-fetch telemetry events.
-     *
-     * @param {Object} provider Active provider.
-     * @param {number} attempt Attempt counter.
-     * @param {number} fetchStart Epoch ms (deps.now()) at fetch start.
-     * @returns {Object} Base event without success/error.
-     */
-    function baseTelemetryEvent(provider, attempt, fetchStart) {
-        return {
-            provider: provider.id,
-            attempt: attempt,
-            usedGpsCache: provider.usedGpsCache,
-            gpsErrorCode: provider.gpsErrorCode,
-            locationMode: provider.locationMode,
-            countryCode: provider.countryCode,
-            settings: deps.getSettings(),
-            watchInfo: deps.getWatchInfo(),
-            durationMs: +deps.now() - fetchStart
-        };
     }
 
     /**

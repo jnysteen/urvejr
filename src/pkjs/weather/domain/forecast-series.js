@@ -1,6 +1,5 @@
 var rainTier = require('../../forecast-graphs/domain/rain-tier');
 var lineStyle = require('../../forecast-graphs/domain/line-style.js');   // LINE_COLORS/FILL_COLORS + the resolved line styling
-var platforms = require('../../config-ui/lib/platform.js');   // computeEnv, isLineStylePlatform
 var statusCatalog = require('../../status-bars/domain/status-line-catalog.js');
 // alertOn — whether a metric's alert is placed on a status bar (On demand), which the
 // fetch gates below add to what the slots and lines ask for.
@@ -10,9 +9,9 @@ var pressurePlausibility = require('./pressure-plausibility.js');
 var lineAlert = require('../../alerts/domain/line-alert.js');
 // A line drawn as a stripe: each hour's level on the metric's own scale.
 var stripeLevels = require('../../forecast-graphs/domain/stripe-levels.js');
-// The forecast's left axis options (emery): whether TEMP_MIN/TEMP_MAX name the scale.
+// The forecast's left axis options: whether TEMP_MIN/TEMP_MAX name the scale.
 var forecastAxis = require('../../forecast-graphs/domain/forecast-axis.js');
-// Graph styles (emery): the settings the bake reads while screens show several styles.
+// Graph styles: the settings the bake reads while screens show several styles.
 var graphStyleWire = require('../../forecast-graphs/domain/graph-style-wire.js');
 
 /**
@@ -252,31 +251,16 @@ function pressurePermille(arr, scale) {
  * Whether a temperature-axis line (feels, dew) is the effective metric of a
  * forecast line this watch actually DRAWS. Every line carries its own curve-inset
  * byte (clay-payload.js' CLAY_CURVE_INSET_UINT8), so any of them can share the
- * temperature axis: the Main and Second metric lines (secondaryLine/thirdLine) on
- * every non-aplite watch, the Third and Fourth metric lines (fourthLine/fifthLine)
- * only where the watch compiles them (platform.isLineStylePlatform — the same gate
- * applyForecastSeries puts on their wire keys). line-style.js firstDrawnLine walks
- * them by effectiveLineMetric: an off line, or one repeating an earlier line's pick,
- * draws nothing and so widens nothing.
- *
- * Never on aplite: such a curve only lines up with the temp curve when both share
- * a band AND a pixel inset, and aplite compiles the configurable inset out (no
- * WW_CURVE_INSET — its insets are frozen at 7/0/0 and clay-payload.js never sends
- * it CLAY_CURVE_INSET_UINT8), so the line would map full-height against a 7 px-inset
- * temp curve squashed into the joint band. The settings page never offers these
- * there, but a stored blob can still carry one (picked on a colour watch paired to
- * the same phone), so this is the bake-time gate — the line degrades to off and the
- * temps keep their own band. Gates on exactly 'aplite': an unknown platform (no
- * watchInfo) stays capable, as in computeEnv and clay-payload.js.
+ * temperature axis: the Main, Second, Third and Fourth metric lines (secondaryLine,
+ * thirdLine, fourthLine, fifthLine). line-style.js firstDrawnLine walks them by
+ * effectiveLineMetric: an off line, or one repeating an earlier line's pick, draws
+ * nothing and so widens nothing.
  * @param {Object} settings Clay settings.
- * @param {Object} [watchInfo] getActiveWatchInfo() result, or null/undefined.
  * @param {string} metric 'feels' | 'dew'.
- * @returns {boolean} True when the line is selected and the watch can draw it.
+ * @returns {boolean} True when the line is selected and the watch draws it.
  */
-function tempAxisLineDrawn(settings, watchInfo, metric) {
-    var platform = watchInfo && watchInfo.platform ? watchInfo.platform : '';
-    if (platform === 'aplite') { return false; }
-    return lineStyle.firstDrawnLine(settings, platforms.isLineStylePlatform(platform),
+function tempAxisLineDrawn(settings, metric) {
+    return lineStyle.firstDrawnLine(settings,
         function (m) { return m === metric; }) !== null;
 }
 
@@ -413,21 +397,16 @@ function rowBytes(metric, stripe, raw, settings, bands, all) {
  * settings-derived, so they ride the Clay settings message instead — see
  * line-style.js and clay-payload.js's CLAY_LINE_STYLE_UINT8. The style reaches the
  * values in one place: a line drawn as a stripe sends level bytes (stripeBytes). The
- * platform facts the values read — which lines the watch draws, for the band a wind
- * and a gust line both drawn Show: Alert share, whether it has Alert settings at all,
- * and whether it draws the line styles (raw.lineStyles: aplite draws its frozen line
- * and dots whatever is stored, so its lines never take stripe bytes) — arrive on raw
- * from applyForecastSeries, the way the temp axis band does; without them the values
- * are those of a watch that draws every line and style and has Alert settings.
+ * Show: Alert lines' bands arrive on raw from applyForecastSeries, the way the temp axis
+ * band does.
  *
- * @param {{precips:number[], clouds:number[], rains:number[], winds:number[], gusts:number[], uvs:number[], pressures:number[], feels:number[], dews:Array, tempBand:Object, alertBands:Object, lineStyles:boolean}} raw Raw series (+ the temp axis band the feels and dew metrics share, the Show: Alert lines' bands, line-alert.js alertBands, and whether the watch draws the line styles).
+ * @param {{precips:number[], clouds:number[], rains:number[], winds:number[], gusts:number[], uvs:number[], pressures:number[], feels:number[], dews:Array, tempBand:Object, alertBands:Object}} raw Raw series (+ the temp axis band the feels and dew metrics share, and the Show: Alert lines' bands, line-alert.js alertBands).
  * @param {{secondaryLine:string, thirdLine:string, fourthLine:string, fifthLine:string, windScale:string, barSource:string, graphStyleSlots:(Array|undefined)}} settings Settings.
  * @returns {Object} Wire fields (see module interface).
  */
 function buildForecastSeries(raw, settings) {
     var out = {};
-    var bands = raw.alertBands || lineAlert.alertBands(settings, null);
-    var stylesDrawn = raw.lineStyles !== false;
+    var bands = raw.alertBands || lineAlert.alertBands(settings);
     var slots = settings.graphStyleSlots || null;
 
     // One symmetric block per ordered line (line-style.js FORECAST_LINES).
@@ -444,7 +423,7 @@ function buildForecastSeries(raw, settings) {
         // Drawn as a stripe: the watch draws the styles and the line's effective style is
         // a stripe (lineStyleValue never resolves one on a metric that cannot be one, and
         // every metric that can has a scale: stripe-levels.js METRIC_SCALES, pinned equal).
-        var stripe = Boolean(metric) && stylesDrawn && (slots ? slot.stripe
+        var stripe = Boolean(metric) && (slots ? slot.stripe
             : lineStyle.isStripeStyle(settings, lineStyle.FORECAST_LINES[i].styleKey));
         // A graph style's row draws its metric Show: Alert only where its own flag says so: the
         // union may draw it with all its values on another row.
@@ -453,7 +432,7 @@ function buildForecastSeries(raw, settings) {
     // The union's spare row: its series as the lines bake theirs.
     var spare = slots ? slots[lineStyle.FORECAST_LINES.length] : null;
     if (spare) {
-        out.SPARE_LINE_TREND_UINT8 = rowBytes(spare.metric, stylesDrawn && spare.stripe, raw, settings,
+        out.SPARE_LINE_TREND_UINT8 = rowBytes(spare.metric, spare.stripe, raw, settings,
             bands, !spare.alert);
     }
 
@@ -494,22 +473,15 @@ function tempScaleRange(temps, series) {
  * live-fetch and fixture send paths call this so the two can't drift.
  * @param {Object} payload Weather payload with PRECIP_/RAIN_/WIND_/GUST_/UV_TREND_UINT8.
  * @param {Object} settings Clay settings.
- * @param {Object} watchInfo getActiveWatchInfo() result, or null/undefined. The series
- *   are platform-independent now that the line styling rides the Clay message, save four
- *   gates: a feels or dew line is dropped on aplite, which cannot draw it (tempAxisLineDrawn),
- *   the fourth line's key is suppressed on platforms without WW_LINE_STYLE, a line
- *   draws Show: Alert only on a watch with Alert settings (not aplite), a wind and a
- *   gust line sharing its band only where the watch draws both, and a line stored as a
- *   stripe takes stripe level bytes only where the watch draws the styles (not aplite).
  * @returns {Object} The same payload, raw keys removed and wire keys set.
  */
-function applyForecastSeries(payload, settings, watchInfo) {
+function applyForecastSeries(payload, settings) {
     // The caller (weather/application/render-payload.js) also bakes the status lines and
     // removes their inputs afterwards; this reads some of the same trends and leaves them.
-    // From here on the graph's settings: with screens showing several graph styles
-    // (emery), the shown styles' union (forecast-graphs/domain/graph-style-wire.js weatherSettings),
+    // From here on the graph's settings: with screens showing several graph styles,
+    // the shown styles' union (forecast-graphs/domain/graph-style-wire.js weatherSettings),
     // else the settings themselves.
-    settings = graphStyleWire.weatherSettings(settings, watchInfo);
+    settings = graphStyleWire.weatherSettings(settings);
     // THE one temp encode: getPayload ships whole-degree temps (TEMP_RAW_TREND,
     // transient) and this is where they become wire bytes — with settings in
     // hand. Joint temp∪feels∪dew axis: the curves only read as one graph if they
@@ -529,15 +501,13 @@ function applyForecastSeries(payload, settings, watchInfo) {
     // (text_labels_refresh). So they carry the ACTUAL air temperature range,
     // over the very window the watch's fit reads off the bytes — a "lo" of 52
     // on a day whose air never dropped below 60 would be a plain lie — unless a
-    // known emery has the left axis's 'High/low includes feels-like & dew point' option on
+    // the left axis's 'High/low includes feels-like & dew point' option on
     // (forecast-axis.js bakesScale): then the labels name the temperature
     // scale's ends, the lowest and highest value of the air and of every drawn
     // feels-like / capped dew point line, and the numbers sit at those points
     // (temp_axis_pad.h THE NUMBERS ON THE GRAPH). Otherwise the feels and dew
     // curves' own extremes are unlabelled.
-    //
-    // A line the watch cannot draw (aplite, see tempAxisLineDrawn) takes the
-    // empty-series path: no joint band, and its channel renders off.
+
     var rawTemps = payload.TEMP_RAW_TREND || [];
     var tempBand = (typeof payload.TEMP_MIN === 'number' && typeof payload.TEMP_MAX === 'number')
         ? { min: payload.TEMP_MIN, max: payload.TEMP_MAX } : null;
@@ -547,7 +517,7 @@ function applyForecastSeries(payload, settings, watchInfo) {
         uvs: payload.UV_TREND_UINT8, pressures: payload.PRESSURE_TREND };
     var drawnAxis = [];
     lineStyle.TEMP_AXIS_METRIC_IDS.forEach(function (m) {
-        var series = tempAxisLineDrawn(settings, watchInfo, m)
+        var series = tempAxisLineDrawn(settings, m)
             ? (payload[TEMP_AXIS_SERIES[m].payload] || []) : [];
         if (TEMP_AXIS_SERIES[m].atMostTemp) {
             series = series.map(function (v, i) {
@@ -563,21 +533,13 @@ function applyForecastSeries(payload, settings, watchInfo) {
         tempBand = jointTempAxisBand(tempBand.min, tempBand.max, drawnAxis);
     }
     raw.tempBand = tempBand;
-    // The Show: Alert lines' bands, over the lines THIS watch draws: a gust line on the
-    // Third or Fourth metric line, which aplite never draws, must not pull a drawn wind
-    // line's shared bottom down there. aplite has no Alert settings at all, so it gets
-    // none and draws every line All whatever is stored. An unknown platform draws every
-    // line, and Alert.
-    var env = platforms.computeEnv(watchInfo);
-    raw.alertBands = lineAlert.alertBands(settings, env);
-    // Whether the watch draws the line styles (WW_LINE_STYLE): only then does a line
-    // stored as a stripe take stripe level bytes. aplite draws its frozen line and dots.
-    raw.lineStyles = env.lineStyles;
-    // emery's left axis (forecast-axis.js): the numbers name the temperature scale's
+    // The Show: Alert lines' bands, over the lines the watch draws.
+    raw.alertBands = lineAlert.alertBands(settings);
+    // The left axis (forecast-axis.js): the numbers name the temperature scale's
     // ends -- the air and every drawn feels-like / capped dew point value, over the window
     // the watch fits (getPayload's payloadEntries hours). tempBand read the air pair above,
     // so no byte changes; with no line drawn the ends are the air's own.
-    if (forecastAxis.bakesScale(settings, env) && rawTemps.length) {
+    if (forecastAxis.bakesScale(settings) && rawTemps.length) {
         var ends = tempScaleRange(rawTemps, drawnAxis);
         if (ends) {
             payload.TEMP_MIN = ends.min;
@@ -598,16 +560,10 @@ function applyForecastSeries(payload, settings, watchInfo) {
     // message now (CLAY_LINE_STYLE_UINT8), so the weather send carries no styling.
     payload.SECONDARY_LINE_TREND_UINT8 = series.SECONDARY_LINE_TREND_UINT8;
     payload.THIRD_LINE_TREND_UINT8 = series.THIRD_LINE_TREND_UINT8;
-    // The third- and fourth-metric lines only ship to platforms that compile them
-    // (WW_LINE_STYLE — aplite has no SERIES_FOURTH/FIFTH, so the keys would only
-    // spend weather-bundle bytes there). An unknown platform keeps the key:
-    // the capability table treats missing watchInfo as capable.
-    if (env.lineStyles) {
-        payload.FOURTH_LINE_TREND_UINT8 = series.FOURTH_LINE_TREND_UINT8;
-        payload.FIFTH_LINE_TREND_UINT8 = series.FIFTH_LINE_TREND_UINT8;
-    }
-    // The graph styles' spare row (emery): only while the shown styles' union has a fifth
-    // series (records ride only to a known emery). Left out otherwise, which costs no byte
+    payload.FOURTH_LINE_TREND_UINT8 = series.FOURTH_LINE_TREND_UINT8;
+    payload.FIFTH_LINE_TREND_UINT8 = series.FIFTH_LINE_TREND_UINT8;
+    // The graph styles' spare row: only while the shown styles' union has a fifth
+    // series. Left out otherwise, which costs no byte
     // and clears an earlier one on the watch (handle_forecast deletes a trend it is not sent).
     if (Object.prototype.hasOwnProperty.call(series, 'SPARE_LINE_TREND_UINT8')) {
         payload.SPARE_LINE_TREND_UINT8 = series.SPARE_LINE_TREND_UINT8;
@@ -620,19 +576,15 @@ function applyForecastSeries(payload, settings, watchInfo) {
  * Whether the watch wants a metric outside the forecast lines: a status slot shows
  * it (unfetched, the slot bakes empty), or its alert is on (ticked on an On demand
  * side of any bar, statusThresholds.alertOn). A placed alert needs the metric
- * with no slot showing it, and unfetched the alert can never fire. A known aplite has
- * no On demand (computeEnv), so it never fetches for an alert it cannot show; a
- * missing watchInfo counts as capable. The status half of every metric fetch gate
+ * with no slot showing it, and unfetched the alert can never fire. The status half of every metric fetch gate
  * below; each adds its own line or provider rule.
  * @param {Object} settings Clay settings (non-null).
  * @param {string} code 'uv' | 'aqi' | 'pollen'.
- * @param {?Object} [watchInfo] getActiveWatchInfo() result, or null/undefined.
  * @returns {boolean}
  */
-function metricWanted(settings, code, watchInfo) {
-    var env = platforms.computeEnv(watchInfo);
-    return statusThresholds.alertOn(settings, code, env)
-        || statusCatalog.selectedCodes(settings, env).indexOf(code) !== -1;
+function metricWanted(settings, code) {
+    return statusThresholds.alertOn(settings, code)
+        || statusCatalog.selectedCodes(settings).indexOf(code) !== -1;
 }
 
 /**
@@ -640,15 +592,14 @@ function metricWanted(settings, code, watchInfo) {
  * bake's settings, forecast-graphs/domain/graph-style-wire.js weatherSettings), in a status slot or
  * placed as an alert, so providers fetch it.
  * @param {Object} settings Clay settings.
- * @param {?Object} [watchInfo] getActiveWatchInfo() result, or null/undefined.
  * @returns {boolean} True when any rendered selection needs UV.
  */
-function needsUv(settings, watchInfo) {
+function needsUv(settings) {
     if (!settings) { return false; }
     if (settings.secondaryLine === 'uv' || settings.thirdLine === 'uv'
         || settings.fourthLine === 'uv' || settings.fifthLine === 'uv'
         || settings[lineStyle.SPARE_LINE.key] === 'uv') { return true; }
-    return metricWanted(settings, 'uv', watchInfo);
+    return metricWanted(settings, 'uv');
 }
 
 /**
@@ -659,14 +610,12 @@ function needsUv(settings, watchInfo) {
  * renderSignature, so switching a slot to Day max or placing an alert forces the
  * refetch that starts its record. No stored settings keep no record.
  * @param {Object} settings Clay settings.
- * @param {?Object} [watchInfo] getActiveWatchInfo() result, or null/undefined.
  * @returns {string[]} Codes out of 'uv' | 'wind' | 'gust' | 'aqi'.
  */
-function dayPeakCodes(settings, watchInfo) {
+function dayPeakCodes(settings) {
     if (!settings) { return []; }
-    var env = platforms.computeEnv(watchInfo);
     return statusCatalog.DAY_MAX_KINDS.filter(function (kind) {
-        return statusThresholds.alertOn(settings, kind, env) || statusCatalog.dayMaxInUse(settings, kind, env);
+        return statusThresholds.alertOn(settings, kind) || statusCatalog.dayMaxInUse(settings, kind);
     });
 }
 
@@ -675,26 +624,24 @@ function dayPeakCodes(settings, watchInfo) {
  * is status-only (never a forecast line), so unlike needsUv there is no
  * secondary/third check.
  * @param {Object} settings Clay settings.
- * @param {?Object} [watchInfo] getActiveWatchInfo() result, or null/undefined.
  * @returns {boolean} True when any status slot selects AQI, or its alert is placed.
  */
-function needsAqi(settings, watchInfo) {
+function needsAqi(settings) {
     if (!settings) { return false; }
-    return metricWanted(settings, 'aqi', watchInfo);
+    return metricWanted(settings, 'aqi');
 }
 
 /**
  * Whether feels-like data is needed: on a forecast line the watch can draw, or because
  * the temp slot's display mode shows the feels value ('feels'/'both'). Providers gate
  * the (sometimes Steadman-computed) apparent-temperature work on this so non-users
- * pay nothing — including an aplite watch whose stored feels line is never drawn.
+ * pay nothing.
  * @param {Object} settings Clay settings.
- * @param {Object} [watchInfo] getActiveWatchInfo() result, or null/undefined.
  * @returns {boolean} True when any rendered selection needs feels-like data.
  */
-function needsFeels(settings, watchInfo) {
+function needsFeels(settings) {
     if (!settings) { return false; }
-    if (tempAxisLineDrawn(settings, watchInfo, 'feels')) { return true; }
+    if (tempAxisLineDrawn(settings, 'feels')) { return true; }
     return Boolean(settings.tempSlotDisplay) && settings.tempSlotDisplay !== 'actual';
 }
 
@@ -702,13 +649,12 @@ function needsFeels(settings, watchInfo) {
  * Whether a DWD status slot selects pollen, or its alert is placed. Pollen is
  * DWD-only and status-only.
  * @param {Object} settings Clay settings.
- * @param {?Object} [watchInfo] getActiveWatchInfo() result, or null/undefined.
  * @returns {boolean} True when the effective provider and slot selection (or the
  *     pollen alert) need pollen.
  */
-function needsPollen(settings, watchInfo) {
+function needsPollen(settings) {
     if (!settings || settings.provider !== 'dwd') { return false; }
-    return metricWanted(settings, 'pollen', watchInfo);
+    return metricWanted(settings, 'pollen');
 }
 
 module.exports = {

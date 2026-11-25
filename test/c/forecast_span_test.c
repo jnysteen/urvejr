@@ -38,7 +38,6 @@ static struct tm start_at(int hour) {
     return t;
 }
 
-#if defined(PBL_PLATFORM_EMERY)
 // The forecast band (test/c/layout_test.c goldens: the emery bottom layer is 198 px, LAYOUT_PAD_X
 // 2 in from the screen's left edge, so the screen is layer columns -2 .. 197) and the plot
 // widths the host suite sweeps: W, from the plot's left edge to the screen's right edge. On
@@ -630,32 +629,9 @@ static void test_daylight_saving(void) {
           && strcmp(slots[5].label, "6") == 0, "spring forward: 0, (no 3), 6");
     set_zone("UTC0");
 }
-#else
-// Every other platform: the forecast keeps today's 24 slots and today's axis rule (a label on
-// every 3rd slot unless the screen edge would slice a two-digit one, a small tick on the
-// midpoint after each).
-static void test_basalt(void) {
-    CHECK(FORECAST_MAX_ENTRIES == 24 && FORECAST_MAX_ENTRIES == MAX_BOTTOM_VIEW_ENTRIES,
-          "FORECAST_MAX_ENTRIES %d", FORECAST_MAX_ENTRIES);
-    CHECK(FORECAST_NIGHTS_MAX == 3, "FORECAST_NIGHTS_MAX %d", FORECAST_NIGHTS_MAX);
-    ChartAxisSlot slots[FORECAST_MAX_ENTRIES];
-    const struct tm t = start_at(14);
-    // basalt's 144 px band from origin 20 at pitch 6: slot 21's label (hour 11) starts at
-    // 20 + 126 - 3 = 143, sliced, so it is dropped.
-    forecast_grid_fill_axis_slots(slots, 24, 20, 6, 144, &t);
-    for (int i = 0; i < 24; ++i) {
-        const int hour = (14 + i) % 24;
-        const bool sliced = hour >= 10 && (20 + i * 6 - 3) + 8 > 144;
-        CHECK((i % 3 == 0 && !sliced) == (slots[i].label[0] != '\0'), "slot %d label", i);
-        CHECK(slots[i].tick == (i % 3 == 1 ? TICK_SMALL : TICK_NONE), "slot %d tick", i);
-    }
-    CHECK(slots[21].label[0] == '\0' && strcmp(slots[18].label, "8") == 0, "the edge drop");
-}
-#endif
 
 int main(void) {
     set_zone("UTC0");
-#if defined(PBL_PLATFORM_EMERY)
     CHECK(FORECAST_MAX_ENTRIES == 68 && FORECAST_MAX_ENTRIES == (EMERY_SCREEN_W + 2) / 3 + 1,
           "FORECAST_MAX_ENTRIES %d", FORECAST_MAX_ENTRIES);
     CHECK(FORECAST_NIGHTS_MAX == 4, "FORECAST_NIGHTS_MAX %d", FORECAST_NIGHTS_MAX);
@@ -667,17 +643,10 @@ int main(void) {
     test_marks();
     test_mapping();
     test_daylight_saving();
-#else
-    test_basalt();
-#endif
     if (s_failures) {
         printf("forecast_span_test: %d failure(s)\n", s_failures);
         return 1;
     }
-#if defined(PBL_PLATFORM_EMERY)
     printf("forecast_span_test (emery) OK\n");
-#else
-    printf("forecast_span_test OK\n");
-#endif
     return 0;
 }

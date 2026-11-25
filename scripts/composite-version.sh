@@ -22,7 +22,7 @@ mkdir -p "$composite_dir"
 
 # Frame the README hero shots from the per-platform store captures
 # (screenshot/<ver>/store/<platform>/<config>.png). The config chosen for each
-# device frame is deliberate — one calendar, one wind, one radar — for variety.
+# device frame is deliberate.
 composite_shot() {
   local platform="$1"
   local config="$2"
@@ -39,6 +39,4 @@ composite_shot() {
   screenshot/composite_svg.sh "$frame" "$src" "$composite_dir/$output_name.png"
 }
 
-composite_shot "flint"  "1-calendar"         "pebble-time-red"   "pebble-time-red"
-composite_shot "flint"  "3-wind-gust"        "pebble2-duo-white" "pebble2-duo-white"
 composite_shot "emery"  "2-radar-multicolor" "pebble-time2-red"  "pebble-time2-red"

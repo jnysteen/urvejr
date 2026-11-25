@@ -35,11 +35,7 @@ static GRect content_rect(void) {
     // emery: the wider band clears the right-slot glyph at content_w, so the top-right
     // slot sits flush (aligned with the weather/health rows). The smaller-screen bands
     // clip a flush right slot, so they keep the small right pad.
-#ifdef PBL_PLATFORM_EMERY
     int16_t right = 0;
-#else
-    int16_t right = PADDING;
-#endif
     int16_t w = (int16_t)(bounds.size.w - left - right);
     if (w < 0) { w = 0; }
     return GRect((int16_t)(bounds.origin.x + left), bounds.origin.y, w, bounds.size.h);
@@ -93,11 +89,9 @@ void top_status_layer_set_full_date(bool full_date) {
     }
 }
 
-#if defined(WW_VIEW_CYCLE)
 Layer *top_status_layer_get_root(void) {
     return s_top_status_layer;
 }
-#endif
 
 // A Bluetooth or battery change reaches every bar's On demand items at once, not at
 // the next minute tick: the visible band bars, then this strip. Rows are
@@ -138,11 +132,9 @@ void top_status_layer_refresh() {
     layer_mark_dirty(s_top_status_layer);
 }
 
-#if defined(PBL_HEALTH)
 uint8_t top_status_layer_live_health(void) {
     return status_row_live_health(s_row);
 }
-#endif
 
 void top_status_layer_destroy() {
     MEMORY_LOG_HEAP("top_status_layer_destroy:before");

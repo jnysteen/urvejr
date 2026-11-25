@@ -63,8 +63,8 @@ function boot(opts) {
     getPhoneBattery: phoneBattery.bakeFacts,
     sendWeather: function (p) { h.sends.push(p); },
     // undefined falls through to the real status-lines baker.
-    buildStatusLines: opts.realBake ? undefined : function (payload, settings, watchInfo) {
-      h.bakes.push({ payload: payload, settings: settings, watchInfo: watchInfo });
+    buildStatusLines: opts.realBake ? undefined : function (payload, settings) {
+      h.bakes.push({ payload: payload, settings: settings });
       payload.STATUS_LINE_1_UINT8 = [1];
       payload.STATUS_LINE_2_UINT8 = [2];
       payload.STATUS_LINE_3_UINT8 = [3];

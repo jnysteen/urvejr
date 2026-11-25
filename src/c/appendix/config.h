@@ -43,7 +43,7 @@ typedef struct {
     bool axis_12h;
     bool start_mon;
     bool prev_week;
-    bool show_qt;
+    bool show_qt;   // retired with aplite's strip: never read, kept for the persisted layout
     bool show_bt;
     bool show_bt_disconnect;
     bool vibe;
@@ -75,9 +75,8 @@ typedef struct {
     // stray 2 or 3 reaching a B&W watch from a phone previously paired with a
     // color watch is harmless (2 renders dark, 3 renders light).
     uint8_t theme;
-    // --- top-strip battery (v1.8): show the battery only below 10%, taking over
-    // the top-right slot. Append-only; optional wire tuple (older phones omit it,
-    // leaving the memset-zeroed default false). ---
+    // --- top-strip battery (v1.8), retired with aplite's strip: never read, kept for the
+    // persisted layout. ---
     bool battery_low_only;
     // --- date order (v1.8): the no-calendar date slot renders numeric
     // dd.mm.yy by default, or mm.dd.yy when true. The phone derives it from the
@@ -96,15 +95,8 @@ typedef struct {
     // line is mapped onto, packed lo | (hi << 8). 0 = never set, which
     // hr_scale_resolve() turns into HEALTH_HR_LO/HEALTH_HR_HI. Appended at the END
     // to honour the append-only persist offsets.
-    //
-    // PBL_HEALTH-guarded: aplite has no sensors and compiles the health graph out
-    // entirely, so the field would be dead weight on the platform with the least
-    // room. That makes sizeof(Config) 2 B smaller there, which is safe — a config
-    // blob is written and read by one install on one platform, never shared.
-#if defined(PBL_HEALTH)
     uint16_t hr_scale;
-#endif
-    // --- larger graph fonts (emery only): step every graph axis label up one Gothic
+    // --- larger graph fonts: step every graph axis label up one Gothic
     // tier (left axes 18 -> 24, hour labels 14 -> 18). ON by default since the tier
     // stopped being an opt-in. Appended at the END to honour the append-only persist
     // offsets -- an upgrader from before the field existed has a shorter stored blob
@@ -112,32 +104,12 @@ typedef struct {
     // applies, which is the same value the phone sends them once seedDefaults
     // backfills the missing key. An install that stored the field keeps what it
     // stored, so a deliberate opt-out survives.
-    //
-    // PBL_PLATFORM_EMERY-guarded, for the same reason hr_scale above is PBL_HEALTH-
-    // guarded: no other platform can ever read it (every render-side branch is inside
-    // the same #ifdef -- 144 px screens have no room, and their graph left axis is
-    // already calendar-sized), so elsewhere the field and its dict_find would be dead
-    // weight. That is not academic on aplite: the field plus its wire parse measured
-    // +48 B of image there, and main builds 21788 B against a 21804 B launch-safety
-    // ceiling (scripts/check-aplite-size.sh). Guarding costs every non-emery platform
-    // exactly 0 B. A config blob is written and read by one install on one platform,
-    // never shared, so a per-platform sizeof(Config) is safe.
-#if defined(PBL_PLATFORM_EMERY)
     bool large_graph_font;
-#endif
     // --- date slot formats (v1.16): how SLOT_LIVE_DATE prints, one enum per string
     // (date_format.h DateMonthFormat / DateFullFormat; 0 = Auto = the pre-setting
     // behavior). Appended at the END to honour the append-only persist offsets;
     // optional wire tuple CLAY_DATE_FORMAT_UINT8 [month_year, full_date] (older
     // phone builds omit it, leaving the memset-zeroed Auto).
-    //
-    // !PBL_PLATFORM_APLITE-guarded, the large_graph_font argument above: aplite's
-    // frozen status-row twin keeps the hardcoded formats and its settings screen
-    // never shows the pickers (the Date edit sheet is thresholds-gated), so there
-    // the fields and their wire parse would be dead weight against the launch-size
-    // ceiling. A config blob never crosses installs, so a per-platform
-    // sizeof(Config) is safe.
-#if !defined(PBL_PLATFORM_APLITE)
     uint8_t date_month_format;
     uint8_t date_full_format;
     // --- custom layout v2 (v1.22): each view's EXT word — the high 16 bits of the
@@ -145,19 +117,15 @@ typedef struct {
     // view-cycle.js packExt), decoded by view_spec_apply_ext. 0 = "as before v2", so an
     // upgrader's shorter stored blob (which does not reach these bytes) keeps the seeded
     // zeros and renders exactly as it did. Appended at the END (append-only persist
-    // offsets). !PBL_PLATFORM_APLITE like the fields above: aplite folds every custom
-    // layout to a preset on the phone, and its config_wire arm never reads the high half.
+    // offsets).
     uint16_t view_ext[3];
-    // --- double flick (v2.1): switch views only on the second of two flicks within
-    // VIEW_FLICK_PAIR_MS (layout.h view_flick_accept). false = one flick, the behaviour
-    // before the option. Wire: bit 8 of CLAY_VIEW_RESET_MIN (config_wire.h VIEW_RESET_DOUBLE_FLICK).
-    // Appended at the END (append-only persist offsets): an upgrader's shorter stored blob
-    // does not reach this byte, so config_read_or_default()'s seeded false applies until the
-    // phone sends the bit. !PBL_PLATFORM_APLITE like the fields above: aplite has no flick.
-    // A config blob never crosses installs, so the per-platform sizeof(Config) is safe.
+    // --- double flick (v2.1), RETIRED: switched views only on the second of two wrist
+    // flicks. A tap on the screen switches views now (main_window.c touch_handler), and
+    // nothing reads this byte. It stays in place, as do its wire bit (bit 8 of
+    // CLAY_VIEW_RESET_MIN, config_wire.h VIEW_RESET_DOUBLE_FLICK) and its read: the fields
+    // after it keep their persist offsets.
     bool view_double_flick;
-#endif
-    // --- forecast left axis (v2.2, emery only): bits 1-7 of the CLAY_LARGE_GRAPH_FONT
+    // --- forecast left axis (v2.2): bits 1-7 of the CLAY_LARGE_GRAPH_FONT
     // graph-options word as sent (GRAPH_OPT_* below); 0 = every option at its default, today's
     // graph. Appended at the END (append-only persist offsets). It fills the struct's former
     // tail pad, so sizeof(Config) stays 56 B on emery (test/c/config_size_test.c) and an
@@ -166,11 +134,8 @@ typedef struct {
     // its fields were filled (config_parse_wire, persist_set_config's "callers must memset"
     // contract). Only an older, shorter blob does not reach it and keeps the seeded 0. A new
     // writer of a Config must keep that memset, or its stack garbage here reads back as axis
-    // options after an upgrade. PBL_PLATFORM_EMERY-guarded for large_graph_font's reason above;
-    // a config blob never crosses installs.
-#if defined(PBL_PLATFORM_EMERY)
+    // options after an upgrade.
     uint8_t forecast_axis;
-#endif
 } Config;
 
 // Read-only view of the loaded config. Non-NULL from config_load() until
@@ -179,21 +144,12 @@ typedef struct {
 // Only config.c writes the struct; everyone else reads through this pointer.
 const Config *config_get(void);
 
-// The one platform-aware accessor for the emery-only field above: constant false
-// everywhere else, so call-site branches fold away and non-emery platforms still pay
-// exactly 0 B (the aplite ceiling argument above). Call sites need no #ifdef of their
-// own -- this is the single place that knows the field only exists on emery.
+// The Larger graph fonts setting.
 static inline bool config_large_graph_font(void) {
-#if defined(PBL_PLATFORM_EMERY)
-    // emery: the only platform with the field (and the settings-UI row).
     return config_get()->large_graph_font;
-#else
-    return false;
-#endif
 }
 
-// The CLAY_LARGE_GRAPH_FONT graph-options word, which only emery reads (every other watch
-// skips the key): bit 0 Larger graph fonts (Config.large_graph_font); bits 1-7 the forecast's
+// The CLAY_LARGE_GRAPH_FONT graph-options word: bit 0 Larger graph fonts (Config.large_graph_font); bits 1-7 the forecast's
 // left axis, kept as sent in Config.forecast_axis. Bits 2-3 are one code: 00 the hi/lo
 // numbers on the axis (beside the axis line, left of the graph: today), 01 on the graph, 10
 // off (11 reads as off: any nonzero code takes the whole left axis away -- no strip, no axis
@@ -210,15 +166,9 @@ static inline bool config_large_graph_font(void) {
 #define GRAPH_OPT_SCALE_NUMS    0x20   // the numbers name the temperature scale's ends
 #define GRAPH_OPT_AXIS_MASK     0xFE   // bits 1-7: Config.forecast_axis
 
-// The left-axis options, the config_large_graph_font pattern: constant 0 (every option at its
-// default, today's graph) off emery, so call-site branches fold away there.
+// The left-axis options (0: every option at its default, today's graph).
 static inline uint8_t config_forecast_axis(void) {
-#if defined(PBL_PLATFORM_EMERY)
-    // emery: the only platform with the field (and the settings rows).
     return config_get()->forecast_axis;
-#else
-    return 0;
-#endif
 }
 
 void config_load();

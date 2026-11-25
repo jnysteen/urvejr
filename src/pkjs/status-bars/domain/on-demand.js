@@ -1,7 +1,7 @@
 /**
  * On demand: THE one reading of which items each status bar shows at its edges, and of
  * the Battery item's settings. Loaded on the phone (require) and in the settings page
- * (window.OnDemand), so the watch's wire bytes, the fetch gates, telemetry and the page's
+ * (window.OnDemand), so the watch's wire bytes, the fetch gates and the page's
  * summaries all read the settings the same way.
  *
  * Each bar has two sides, left and right. A side ticks a list of items
@@ -198,43 +198,22 @@
   }
 
   /**
-   * The facts this module reads off a platform env, with an omitted env (and an omitted
-   * fact) reading as capable — the reading the render signature and the page's own
-   * previews use. fineBattery is deliberately NOT capable by default: an unknown watch
-   * reads the 10 % steps (batteryLevel).
-   * @param {Object} [env] config-ui platform.js computeEnv() facts.
-   * @returns {{onDemand: boolean, radar: boolean, health: boolean, fineBattery: boolean}}
-   */
-  function facts(env) {
-    var e = env || {};
-    return {
-      onDemand: e.onDemand !== false,
-      radar: e.radar !== false,
-      health: e.health !== false,
-      fineBattery: e.fineBattery === true
-    };
-  }
-
-  /**
    * Whether a bar is on the watch at all: the Watch Status Bar and the forecast bar
-   * always; the radar bar and the health bar while the watch has the radar / health and a
-   * screen shows the bar (view-cycle.js barsShown: since 2.6 the Radar bar shows without
-   * radar data and the modes follow the screens, so the screens decide); a bar 4 to 6 while
-   * a screen shows it, which it does only once made, on a watch that has them (view-cycle.js
-   * extraBarOn).
+   * always; the radar bar and the health bar while a screen shows the bar (view-cycle.js
+   * barsShown: since 2.6 the Radar bar shows without radar data and the modes follow the
+   * screens, so the screens decide); a bar 4 to 6 while a screen shows it, which it does only
+   * once made (view-cycle.js extraBarOn).
    * @param {Object} S Settings blob.
    * @param {string} bar A BARS bar.
-   * @param {Object} [env] Platform env (omitted = capable).
    * @returns {boolean}
    */
-  function barExists(S, bar, env) {
-    var f = facts(env);
+  function barExists(S, bar) {
     var s = S || {};
     if (bar === 'top' || bar === 'forecast') { return true; }
-    if (bar === 'radar') { return f.radar && VC.barsShown(s, env).radar; }
-    if (bar === 'health') { return f.health && VC.barsShown(s, env).health; }
+    if (bar === 'radar') { return VC.barsShown(s).radar; }
+    if (bar === 'health') { return VC.barsShown(s).health; }
     // An unmade bar shows on no screen: asked first, as it skips compiling the screens.
-    if (VC.extraBar(bar)) { return VC.extraBarOn(s, bar, env) && VC.barsShown(s, env)[bar]; }
+    if (VC.extraBar(bar)) { return VC.extraBarOn(s, bar) && VC.barsShown(s)[bar]; }
     return false;
   }
 
@@ -245,11 +224,10 @@
    * @param {Object} S Settings blob.
    * @param {string} bar A BARS bar.
    * @param {string} code An ITEMS code.
-   * @param {Object} [env] Platform env (omitted = capable).
    * @returns {?string} 'left' | 'right', or null when the item is not ticked on that bar
    */
-  function tickedSide(S, bar, code, env) {
-    if (!facts(env).onDemand || prefixOf(bar) === null) { return null; }
+  function tickedSide(S, bar, code) {
+    if (prefixOf(bar) === null) { return null; }
     for (var s = 0; s < SIDES.length; s++) {
       if (parse(read(S, itemsKey(bar, SIDES[s]))).indexOf(code) >= 0) { return SIDES[s]; }
     }
@@ -263,23 +241,21 @@
    * @param {Object} S Settings blob.
    * @param {string} bar A BARS bar.
    * @param {string} code An ITEMS code.
-   * @param {Object} [env] Platform env (omitted = capable).
    * @returns {?string} 'left' | 'right', or null when the item does not show on that bar
    */
-  function sideOf(S, bar, code, env) {
-    var side = tickedSide(S, bar, code, env);
-    return side && barExists(S, bar, env) ? side : null;
+  function sideOf(S, bar, code) {
+    var side = tickedSide(S, bar, code);
+    return side && barExists(S, bar) ? side : null;
   }
 
   /**
    * @param {Object} S Settings blob.
    * @param {string} code An ITEMS code.
-   * @param {Object} [env] Platform env (omitted = capable).
    * @returns {boolean} whether the item shows on any bar (sideOf)
    */
-  function placedAnywhere(S, code, env) {
+  function placedAnywhere(S, code) {
     for (var b = 0; b < BARS.length; b++) {
-      if (sideOf(S, BARS[b].bar, code, env) !== null) { return true; }
+      if (sideOf(S, BARS[b].bar, code) !== null) { return true; }
     }
     return false;
   }
@@ -348,28 +324,25 @@
    * 1.24 upgrade (settings/domain/migrations/v1_24.js migrateOnDemand). Mutates S; any other radar mode
    * leaves it alone.
    * @param {Object} S Settings blob.
-   * @param {Object} [env] Platform env (omitted = capable).
    * @returns {boolean} whether anything changed
    */
-  function placeRainForCountdown(S, env) {
-    if (!S || S.radarMode !== 'countdown' || placedAnywhere(S, 'rain', env)) { return false; }
+  function placeRainForCountdown(S) {
+    if (!S || S.radarMode !== 'countdown' || placedAnywhere(S, 'rain')) { return false; }
     return tickOn(S, 'top', 'left', 'rain');
   }
 
   /**
    * The Battery item's effective warn level, THE rule for the page's slider, the card's
    * live text and the blob's byte 35: the stored level (batteryLowLevel) as an integer,
-   * 10 when it is not a number or outside 5..30; then, unless the watch reports its charge
-   * in 5 % steps (env.fineBattery, emery), rounded UP to the next 10 % step (5 -> 10,
-   * 15 -> 20, 25 -> 30). The stored string is never rewritten.
+   * 10 when it is not a number or outside 5..30. The watch reports its charge in 5 % steps.
+   * The stored string is never rewritten.
    * @param {Object} S Settings blob.
-   * @param {Object} [env] Platform env (omitted = 10 % steps).
    * @returns {number} 5..30
    */
-  function batteryLevel(S, env) {
+  function batteryLevel(S) {
     var v = parseInt(read(S, 'batteryLowLevel'), 10);
     if (isNaN(v) || v < BATTERY_LEVEL_MIN || v > BATTERY_LEVEL_MAX) { v = BATTERY_LEVEL_DEFAULT; }
-    return facts(env).fineBattery ? v : Math.ceil(v / 10) * 10;
+    return v;
   }
 
   /**
@@ -377,34 +350,6 @@
    * @returns {boolean} whether the Battery item's Look is Icon + value
    */
   function batteryShowsValue(S) { return read(S, 'batteryLowDisplay') === 'value'; }
-
-  /**
-   * The telemetry code: 40 characters, the first four bars in BARS order (bars 4 to 6 are
-   * not in it) and within a bar the items in ITEMS order. 'L'/'R' = ticked on a side of an
-   * existing bar, 'l'/'r' = ticked on a bar the modes remove, '-' = not ticked. An untouched
-   * install reads 'RLLLLRRR-R' followed by 30 '-'.
-   * @param {Object} S Settings blob.
-   * @param {Object} [env] Platform env (omitted = capable).
-   * @returns {(string|undefined)} undefined on a watch without On demand (aplite)
-   */
-  function telemetryCode(S, env) {
-    if (!facts(env).onDemand) { return undefined; }
-    var out = '';
-    for (var b = 0; b < BLOB_BARS.length; b++) {
-      var exists = barExists(S, BLOB_BARS[b].bar, env);
-      for (var i = 0; i < ITEMS.length; i++) {
-        var ch = '-';
-        for (var s = 0; s < SIDES.length && ch === '-'; s++) {
-          if (parse(read(S, itemsKey(BLOB_BARS[b].bar, SIDES[s]))).indexOf(ITEMS[i].code) >= 0) {
-            ch = SIDES[s] === 'left' ? 'l' : 'r';
-            if (exists) { ch = ch.toUpperCase(); }
-          }
-        }
-        out += ch;
-      }
-    }
-    return out;
-  }
 
   var api = {
     ITEMS: ITEMS,
@@ -434,8 +379,7 @@
     untickEverywhere: untickEverywhere,
     placeRainForCountdown: placeRainForCountdown,
     batteryLevel: batteryLevel,
-    batteryShowsValue: batteryShowsValue,
-    telemetryCode: telemetryCode
+    batteryShowsValue: batteryShowsValue
   };
 
   if (typeof module !== 'undefined' && module.exports) { module.exports = api; }

@@ -73,8 +73,7 @@ const fetchCycle = createFetchCycle({
   outbox: outbox,
   authBackoff: authBackoff,
   notices: notices,
-  trackWeatherFetch: function() {},
-  env: { waqiToken: '', rainbowEndpoint: '' },
+  env: { waqiToken: '' },
   now: function() { return new Date(nowMs); },
   // Everything answers synchronously, so every cycle settles before start() returns.
   setTimeout: function() {}

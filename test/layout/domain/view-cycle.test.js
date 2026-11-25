@@ -622,7 +622,7 @@ test('sizes compile to canonical codes: seat defaults absent, forecast never 2 r
   assert.equal(vc.isStacked(sized), true);
 });
 
-test('stackFits mirrors the watch arithmetic (spec cases, both screen families)', () => {
+test('stackFits mirrors the watch arithmetic (spec cases, the Pebble Time 2\'s screen)', () => {
   const view = (over) => vc.buildCustomCycle(customState(Object.assign({ healthMode: 'all',
     radarMode: 'graph', viewOrder0: 'TCAB' }, over)))[0];
   const B = view({ viewTop0: 'cal2', viewBody0: 'none' });
@@ -632,22 +632,16 @@ test('stackFits mirrors the watch arithmetic (spec cases, both screen families)'
   const over = view({ viewTop0: 'forecast', viewTopSize0: '4', viewBody0: 'health', viewBodySize0: '4',
     viewLower0: 'radar' });
   [B, C, cal3].forEach((s) => {
-    assert.deepEqual(vc.stackFits(s, 'basalt'), { fits: true, over: 0 });
     assert.deepEqual(vc.stackFits(s, 'emery'), { fits: true, over: 0 });
-    assert.equal(vc.stackFits(s, '').fits, true);
+    assert.equal(vc.stackFits(s).fits, true);
   });
-  // D + a row fits on the fullCal seats: 60 + 45 + 14 (the row rests on the graph in the
-  // reserve) + a 2-row fill floor = 149 of 155 (emery 194 of 202).
-  assert.deepEqual(vc.stackFits(D, 'basalt'), { fits: true, over: 0 });
+  // D + a row fits on the fullCal seats: 194 of 202.
   assert.deepEqual(vc.stackFits(D, 'emery'), { fits: true, over: 0 });
-  // ...a second row does not: 169 of 155, 214 of 202; an unknown watch takes the worse.
+  // ...a second row does not: 214 of 202.
   const D2 = view({ viewTop0: 'forecast', viewTopSize0: '4', viewBody0: 'health', viewLower0: 'radar' });
-  assert.deepEqual(vc.stackFits(D2, 'basalt'), { fits: false, over: 14 });
   assert.deepEqual(vc.stackFits(D2, 'emery'), { fits: false, over: 12 });
-  assert.deepEqual(vc.stackFits(D2, ''), { fits: false, over: 14 });
-  // The C golden's overflow clamp (sz10): 4-row top + clock + two rows + 4-row body →
-  // the body gets 16 of its 60 px on the 144 px watch = 44 px too tall.
-  assert.equal(vc.stackFits(over, 'basalt').over, 44);
+  // The C golden's overflow clamp (sz10): 4-row top + clock + two rows + 4-row body.
+  assert.equal(vc.stackFits(over, 'emery').over, 52);
   assert.deepEqual(vc.stackFits(null, 'emery'), { fits: true, over: 0 });
 });
 
@@ -658,25 +652,26 @@ test('stackFits: legacy-order views always fit; the watch\'s no-data fallbacks a
   // with a 31 px graph and cuts nothing (it used to read "too tall by 8 px").
   const legacy = view({ viewTop0: 'cal3', viewLower0: 'health' });
   assert.equal(vc.isStacked(legacy), false);
-  ['basalt', 'emery', ''].forEach((p) => assert.deepEqual(vc.stackFits(legacy, p), { fits: true, over: 0 }));
+  assert.deepEqual(vc.stackFits(legacy), { fits: true, over: 0 });
   // The budget is exact: every data state laid out as the watch folds it (resolveForFit).
-  // A 2-row radar top + weather/radar rows + a 2-row health graph needs 150 of 155 with all
-  // data, but without health the graph becomes a 3-row forecast: 165 — refused.
+  // A 2-row radar top + weather/radar rows + a 2-row health graph needs 182 of 202 with all
+  // data, and without health, where the graph becomes a 3-row forecast, 202: it fits. (On a
+  // 144 px screen, 150 and 165 of 155, family 0 below.)
   const h2 = view({ viewTop0: 'radar', viewTopSize0: '2', viewBody0: 'health', viewBodySize0: '2',
     viewLower0: 'radar', viewOrder0: 'TABC' });
   assert.equal(vc.stackNeed(vc.resolveForFit(h2, true, true), 0).need, 150);
   assert.equal(vc.stackNeed(vc.resolveForFit(h2, true, false), 0).need, 165);
-  assert.deepEqual(vc.stackFits(h2, 'basalt'), { fits: false, over: 10 });
+  assert.deepEqual(vc.stackFits(h2), { fits: true, over: 0 });
   // The Health bar stays without health data (3.0.0: a status bar like the others), so it
   // is budgeted in the health-less fold too: cal3 + a weather and a health row over a 2-row
-  // health graph needs 149 with health, 164 without (the graph becomes a 3-row forecast and
+  // health graph needs 194 with health, 214 without (the graph becomes a 3-row forecast and
   // the row stays) — refused.
   const healthBar = view({ viewTop0: 'cal3', viewBody0: 'health', viewBodySize0: '2',
     viewLower0: 'health', viewOrder0: 'TACB' });
   assert.equal(vc.resolveForFit(healthBar, true, false).statusLower, vc.STATUS_SRC_HEALTH, 'the bar is kept');
   assert.equal(vc.stackNeed(vc.resolveForFit(healthBar, true, true), 0).need, 149);
   assert.equal(vc.stackNeed(vc.resolveForFit(healthBar, true, false), 0).need, 164);
-  assert.deepEqual(vc.stackFits(healthBar, 'basalt'), { fits: false, over: 9 });
+  assert.deepEqual(vc.stackFits(healthBar), { fits: false, over: 12 });
   // A filling radar top folds to the calendar without radar data (the watch's
   // CALENDAR fold): 150 as the calendar, 137 at the radar's fill floor — it fits both ways.
   const rf = view({ viewTop0: 'radar', viewTopSize0: 'fill', viewBodySize0: '4', viewUpper0: 'off',
@@ -684,7 +679,7 @@ test('stackFits: legacy-order views always fit; the watch\'s no-data fallbacks a
   assert.equal(vc.resolveForFit(rf, false, true).top, vc.TOP_CAL);
   assert.equal(vc.stackNeed(vc.resolveForFit(rf, false, true), 0).need, 150);
   assert.equal(vc.stackNeed(vc.resolveForFit(rf, true, true), 0).need, 137);
-  assert.deepEqual(vc.stackFits(rf, 'basalt'), { fits: true, over: 0 });
+  assert.deepEqual(vc.stackFits(rf), { fits: true, over: 0 });
   // The Radar bar stays without radar data, so it is budgeted in the calendar fold too:
   // the same view with the bar under the clock needs 164 there (151 with the radar).
   const rfBar = view({ viewTop0: 'radar', viewTopSize0: 'fill', viewBodySize0: '4', viewUpper0: 'off',
@@ -692,7 +687,7 @@ test('stackFits: legacy-order views always fit; the watch\'s no-data fallbacks a
   assert.equal(vc.resolveForFit(rfBar, false, true).statusLower, vc.STATUS_SRC_RADAR, 'the bar is kept');
   assert.equal(vc.stackNeed(vc.resolveForFit(rfBar, false, true), 0).need, 164);
   assert.equal(vc.stackNeed(vc.resolveForFit(rfBar, true, true), 0).need, 151);
-  assert.deepEqual(vc.stackFits(rfBar, 'basalt'), { fits: false, over: 9 });
+  assert.deepEqual(vc.stackFits(rfBar), { fits: false, over: 12 });
   // Every state of every sizable shape is checked against the watch itself by
   // scripts/check-fit-lockstep.js (run from scripts/test-c.sh).
 });
@@ -874,11 +869,7 @@ test('weatherOnly: no top bar, radar on top, clock then weather row; health flic
   const cd = vc.buildViewCycle('weatherOnly', 'off', 'countdown');
   assert.equal(cd[0].stripOff, undefined, 'countdown keeps the top bar');
   assert.deepEqual(cd.map(vc.packWire), vc.buildViewCycle('noCal', 'off', 'off').map(vc.packWire));
-  // aplite has no radar and no view without top bar: a stored Weather only runs (and
-  // previews) as the Compact calendar its settings radio shows.
-  assert.equal(vc.presetKeyFor({ layoutPreset: 'weatherOnly' }, { platform: 'aplite' }), 'compactCal');
-  assert.equal(vc.presetKeyFor({ layoutPreset: 'weatherOnly' }, { platform: 'basalt' }), 'weatherOnly');
-  assert.equal(vc.presetKeyFor({ layoutPreset: 'weatherOnly' }, null), 'weatherOnly', 'unknown platform: capable');
+  assert.equal(vc.resolvePresetKey({ layoutPreset: 'weatherOnly' }), 'weatherOnly');
   // Health flicks are No calendar's, whatever the radar.
   ['status', 'all'].forEach((h) => {
     const wo = vc.buildViewCycle('weatherOnly', h, 'graph').slice(1).map(vc.packWire);
@@ -888,17 +879,14 @@ test('weatherOnly: no top bar, radar on top, clock then weather row; health flic
   assert.equal(vc.resolvePresetKey({ layoutPreset: 'weatherOnly' }), 'weatherOnly');
 });
 
-test('resolveViewCycle: custom compiles the view keys, except on aplite; presets fold per watch', () => {
+test('resolveViewCycle: custom compiles the view keys; presets build their cycle', () => {
   const custom = { layoutPreset: 'custom', viewCount: '2', viewTop0: 'none', viewBody0: 'forecast',
     viewUpper0: 'weather', viewLower0: 'off', viewStripOff0: true, viewTop1: 'cal', viewBody1: 'radar',
     radarMode: 'graph', healthMode: 'off' };
-  assert.deepEqual(vc.resolveViewCycle(custom, { platform: 'basalt' }), vc.buildCustomCycle(custom));
-  assert.deepEqual(vc.resolveViewCycle(custom, null), vc.buildCustomCycle(custom), 'unknown platform: custom-capable');
-  assert.deepEqual(vc.resolveViewCycle(custom, { platform: 'aplite' }), vc.buildViewCycle('compactCal', 'off', 'graph', false),
-    'aplite folds custom to compactCal');
+  assert.deepEqual(vc.resolveViewCycle(custom), vc.buildCustomCycle(custom));
+  assert.deepEqual(vc.resolveViewCycle(custom), vc.buildCustomCycle(custom), 'unknown platform: custom-capable');
   const wo = { layoutPreset: 'weatherOnly', radarMode: 'status', healthMode: 'all' };
-  assert.deepEqual(vc.resolveViewCycle(wo, { platform: 'emery' }), vc.buildViewCycle('weatherOnly', 'all', 'status', false));
-  assert.deepEqual(vc.resolveViewCycle(wo, { platform: 'aplite' }), vc.buildViewCycle('compactCal', 'all', 'status', false));
+  assert.deepEqual(vc.resolveViewCycle(wo), vc.buildViewCycle('weatherOnly', 'all', 'status', false));
   // Absent modes read healthMode off and radarMode graph; no settings at all is compactCal.
   assert.deepEqual(vc.resolveViewCycle({ layoutPreset: 'compactCal', swapClockStatus: 1 }),
     vc.buildViewCycle('compactCal', 'off', 'graph', true));
@@ -911,8 +899,7 @@ test('resolveViewCycle: custom compiles the view keys, except on aplite; presets
 test('stackSeats: the seats stackNeed sums, the filling band marked', () => {
   const specs = [];
   ['fullCal', 'compactCal', 'compactDense', 'noCal', 'weatherOnly'].forEach((preset) => {
-    vc.resolveViewCycle({ layoutPreset: preset, radarMode: 'graph', healthMode: 'all' },
-      { platform: 'basalt', color: true, health: true }).forEach((s) => { if (s) { specs.push(s); } });
+    vc.resolveViewCycle({ layoutPreset: preset, radarMode: 'graph', healthMode: 'all' }).forEach((s) => { if (s) { specs.push(s); } });
   });
   // Every stacked order over a three-row top, the clock, two rows and a sized body.
   for (let order = 0; order < vc.STACK_ORDERS.length; order++) {

@@ -118,14 +118,12 @@
     function r1(v) { return Math.round(v * 10) / 10; }
 
     /**
-     * The theme the watch draws: the picked one, or dark on a watch without the light
-     * polarity (aplite), as the Status bars preview reads it.
+     * The theme the watch draws: the picked one, dark without one.
      * @param {Object} S Settings.
-     * @param {Object} env Platform env.
      * @returns {string} 'dark' | 'light' | 'bw' | 'bw-light'.
      */
-    function themeOf(S, env) {
-        return env && env.themePolarity === false ? 'dark' : (S.theme || 'dark');
+    function themeOf(S) {
+        return S.theme || 'dark';
     }
 
     /**
@@ -142,7 +140,7 @@
      *     The top bar's height (0 without one), the status rows' tier and each band's rows.
      */
     function layoutView(spec, f, ink) {
-        var lay = WL.stackLayout(spec, f, ink || clockInk(null, f, false));
+        var lay = WL.stackLayout(spec, f, ink || clockInk(null, f));
         var last = lay.bands[lay.bands.length - 1];
         if (last && last.band === lay.fill) { last.h = SCREEN[f].h - last.y; }
         return { strip: spec.stripOff ? 0 : STRIP[f].h, tier: lay.tier, bands: lay.bands };
@@ -153,12 +151,11 @@
      * offset in the band and the digits' ink height (clockSet's).
      * @param {?Object} S Settings (timeFont), null for Roboto.
      * @param {number} f Screen family.
-     * @param {boolean} bw A black-and-white watch or theme (the 1-bit faces).
      * @returns {{centreOff: number, inkH: number}}
      */
-    function clockInk(S, f, bw) {
+    function clockInk(S, f) {
         var font = S && (S.timeFont === 'leco' || S.timeFont === 'bitham') ? S.timeFont : 'roboto';
-        var row = clockGlyphs ? clockGlyphs.ink[f][font] : null, set = clockSet(font, { f: f, bw: bw });
+        var row = clockGlyphs ? clockGlyphs.ink[f][font] : null, set = clockSet(font, { f: f });
         return { centreOff: row ? row.centreOff : 0, inkH: set ? set.inkH : (f ? 46 : 35) };
     }
 
@@ -247,13 +244,8 @@
     }
 
     // The system font each time font draws from where the watch has no anti-aliased glyphs
-    // (clock_ink.h's table): LECO on every watch, and all three faces on the 144 px
-    // black-and-white ones.
-    var SYSTEM_CLOCK_FONT = {
-        0: { leco: 'LECO_42_NUMBERS' },
-        1: { leco: 'LECO_60_NUMBERS_AM_PM' },
-        bw: { roboto: 'ROBOTO_BOLD_SUBSET_49', leco: 'LECO_42_NUMBERS', bitham: 'BITHAM_42_MEDIUM_NUMBERS' }
-    };
+    // (clock_ink.h's table): LECO.
+    var SYSTEM_CLOCK_FONT = { leco: 'LECO_60_NUMBERS_AM_PM' };
 
     /**
      * The clock's digits for a time font on this watch: the anti-aliased glyph images where the
@@ -261,12 +253,12 @@
      * height, left bearing, top (rows below the set's line top), advance, PNG base64], and the
      * digits' union ink rows (inkTop, inkH: the ink height the band seats, clock_ink.c's).
      * @param {string} font 'roboto' | 'leco' | 'bitham'.
-     * @param {{bw: boolean, f: number}} cx Draw context.
+     * @param {{f: number}} cx Draw context.
      * @returns {?{glyphs: !Array, inkTop: number, inkH: number}}
      */
     function clockSet(font, cx) {
         if (!clockGlyphs) { return null; }
-        var name = (cx.bw ? SYSTEM_CLOCK_FONT.bw : SYSTEM_CLOCK_FONT[cx.f])[font];
+        var name = SYSTEM_CLOCK_FONT[font];
         if (name) { return clockGlyphs.system[name] || null; }
         var aa = clockGlyphs.faces[cx.f] ? clockGlyphs.faces[cx.f][font] : null;
         return aa ? { inkTop: 0, inkH: aa.inkH, glyphs: aa.glyphs.map(function (g) {
@@ -284,7 +276,7 @@
      * takes them crisp, every alpha cut at half coverage (clock_glyphs.c).
      * @param {Object} S Settings.
      * @param {{x: number, y: number, w: number, h: number}} box The band.
-     * @param {{fg: string, color: boolean, bw: boolean, f: number}} cx Draw context.
+     * @param {{fg: string, color: boolean, f: number}} cx Draw context.
      * @param {string} tag The band's id suffix.
      * @returns {string} SVG markup.
      */
@@ -356,46 +348,37 @@
     }
 
     /**
-     * Which of the watch's drawings a platform draws: the Pebble Time 2's, the Pebble Classic and
-     * Steel's bit masks, or the 144 px watches' (status_pixel_icons.generated.h).
-     * @param {Object} env Platform env.
-     * @returns {string} 'emery', 'aplite' or 'basalt'.
+     * Which of the watch's drawings the watch draws (status_pixel_icons.generated.h).
+     * @param {Object} env Platform env; unused.
+     * @returns {string} 'emery'.
      */
     function watchFamily(env) {
-        var p = env && env.platform;
-        return p === 'emery' ? 'emery' : p === 'aplite' ? 'aplite' : 'basalt';
+        return 'emery';
     }
 
     /**
      * The drawing the watch draws a slot's icon with in a row whose icon height is `iconH`: the
-     * family's drawing for the box that height paints (or the next smaller box's), the Pebble
-     * Classic and Steel's bit mask on aplite.
+     * family's drawing for the box that height paints (or the next smaller box's).
      * @param {?string} key The drawing's key (preview-status-bars.js slotDrawing).
      * @param {number} iconH The row's icon height.
-     * @param {string} fam 'basalt' (the 144 px watches), 'emery' or 'aplite'.
+     * @param {string} fam 'emery'.
      * @returns {?{w: number, rows: !Array<number>}} The drawing; null for none.
      */
     function drawingAt(key, iconH, fam) {
         if (!key) { return null; }
-        if (fam === 'aplite') {
-            var sizes = PixelIcon.pixels.icons[key];
-            return sizes && sizes.A ? sizes.A : null;
-        }
         return PixelIcon.forBox(key, fam, iconH & 1 ? iconH + 2 : iconH + 1);
     }
 
     /**
      * A slot's drawing on the row, its lit pixels as the watch lights them: its box's middle row
-     * on the cap centre, its seat drawn into the box (status_icon_size.h status_icon_top_y); a
-     * bit mask its row n / 2 one below (status_row_aplite.c status_mask_draw).
+     * on the cap centre, its seat drawn into the box (status_icon_size.h status_icon_top_y).
      * @param {{w: number, rows: !Array<number>}} p The drawing.
      * @param {number} x Its left edge. @param {number} mid The row's cap centre.
-     * @param {string} fg Ink. @param {boolean} mask A bit mask.
+     * @param {string} fg Ink.
      * @returns {string} SVG markup.
      */
-    function drawingOnRow(p, x, mid, fg, mask) {
-        var n = p.rows.length;
-        var top = mask ? mid + 1 - Math.floor(n / 2) : mid - Math.floor((n - 1) / 2);
+    function drawingOnRow(p, x, mid, fg) {
+        var top = mid - Math.floor((p.rows.length - 1) / 2);
         return '<path transform="translate(' + r1(x) + ' ' + r1(top) + ')" fill="' + fg + '" d="' + PixelIcon.path(p)
             + '" shape-rendering="crispEdges"></path>';
     }
@@ -541,7 +524,7 @@
      * @param {Array<Object>} bars The bar's slots (preview-status-bars.js barSlots).
      * @param {number} cw The row's content width. @param {number} ch Its Gothic size.
      * @param {number} iconH Its icon height. @param {number} f Screen family.
-     * @param {string} fam The watch's drawings: 'basalt', 'emery' or 'aplite' (watchFamily).
+     * @param {string} fam The watch's drawings: 'emery' (watchFamily).
      * @returns {{slots: Array<?Object>, placed: Array<?Object>}} Left, middle and right: each
      *     slot's measures and final label, and where it goes (placeSlots).
      */
@@ -579,11 +562,11 @@
      * @returns {{left: string, mid: string, right: string}} Each slot's text.
      */
     function barLabels(S, env, bar, spec, bars) {
-        var f = env && env.platform === 'emery' ? 1 : 0, sc = SCREEN[f], pad = f ? 2 : 0, ch;
+        var f = 1, sc = SCREEN[f], pad = f ? 2 : 0, ch;
         if (bar === 'top') { ch = f ? 24 : 18; }
         else {
             var rowFull = Boolean(spec)
-                && layoutView(spec, f, clockInk(S, f, Boolean(env && env.color === false))).tier === VC.TIER_FULL;
+                && layoutView(spec, f, clockInk(S, f)).tier === VC.TIER_FULL;
             ch = f ? (rowFull ? 18 : 24) : (rowFull ? 14 : 18);
         }
         var slots = rowLayout(bars, sc.w - 2 * pad - 2 * ROW_MARGIN, ch, rowIconH(bar === 'top', ch, Infinity), f, watchFamily(env)).slots;
@@ -618,7 +601,7 @@
             if (!p) { return; }
             var it = slots[i], x = x0 + p.x;
             if (it.glyph) { e += batteryGlyph(x, mid, cx.fg); }
-            else if (it.drawing) { e += drawingOnRow(it.drawing, x, mid, cx.fg, fam === 'aplite'); }
+            else if (it.drawing) { e += drawingOnRow(it.drawing, x, mid, cx.fg); }
             else if (it.icon) { e += iconAt(it.icon, x, mid, iconH, cx.fg); }
             var tx = x + it.iw + (it.iw > 0 && p.tw > 0 ? ICON_GAP : 0);
             if (p.tw > 0) { e += WT.line(ch, false, tx, lineTop, cx.fg, WT.fit(ch, false, it.label, p.tw)); }
@@ -643,7 +626,7 @@
     function graphBand(kind, S, env, userData, box, tag) {
         var frame;
         if (kind === 'forecast') {
-            var hours = spanHours.shownHours(S, env);
+            var hours = spanHours.shownHours(S);
             // The band at the watch's own scale (forecastPreview opts.watch): u frame units a
             // watch pixel, its hour axis BOTTOM_VIEW_AXIS_H over the band's foot (emery's 10 more
             // for its labels, BOTTOM_VIEW_BOTTOM_PAD, over the window's bottom pad).
@@ -753,11 +736,11 @@
      *     as spoken (describe), and the watch's background it is drawn on.
      */
     function screenSvg(spec, vi, S, env, userData, f, now, idPrefix) {
-        var sc = SCREEN[f], theme = themeOf(S, env), ink = svgLib.previewInk(theme);
-        var cx = { fg: ink.fg, color: resolveInk.drawsColor(env, theme), bw: Boolean(env && env.color === false),
+        var sc = SCREEN[f], theme = themeOf(S), ink = svgLib.previewInk(theme);
+        var cx = { fg: ink.fg, color: resolveInk.drawsColor(theme),
                    f: f, now: now, fullDate: !statusBars.calendarShown(spec),
                    holidays: (userData && userData.holidays) || null };
-        var lay = layoutView(spec, f, clockInk(S, f, cx.bw)), e = '';
+        var lay = layoutView(spec, f, clockInk(S, f)), e = '';
         // The forecast graph draws the screen's graph style, as the watch does (the view's
         // style, where the watch has styles and the style exists); every other band the
         // settings as they are.
@@ -800,7 +783,7 @@
         + 'body.light .wpv-card{box-shadow:0 4px 12px rgba(0,0,0,.16),0 0 0 1px var(--card-line)}'
         + '.wpv-scr{display:block;width:100%;height:auto}'
         + '.wpv-cap{display:block;margin-top:7px;font:700 11.5px Inter,-apple-system,system-ui,sans-serif;color:var(--muted)}'
-        // A screen is a button that opens its editor (screens-page.js), on every watch but aplite.
+        // A screen is a button that opens its editor (screens-page.js).
         + '.wpv-btn{border:none;background:none;padding:0;margin:0;cursor:pointer;font:inherit;color:inherit}'
         + '.wpv-btn:focus-visible .wpv-card{box-shadow:0 0 0 2px var(--link)}'
         + '.wpv-tap{display:block;margin-top:8px;text-align:center;font:500 11px Inter,-apple-system,system-ui,sans-serif;color:var(--faint)}';
@@ -818,10 +801,9 @@
     }
 
     /**
-     * The block: every screen as the watch draws it, side by side and named. On every watch
-     * but aplite each is a button that opens its editor (screens-page.js openScreen), a
-     * screen with nothing on it too (its bare screen: the watch skips it); aplite draws its
-     * one screen.
+     * The block: every screen as the watch draws it, side by side and named. Each is a
+     * button that opens its editor (screens-page.js openScreen), a screen with nothing on
+     * it too (its bare screen: the watch skips it).
      * @param {Object} S Live settings.
      * @param {Object} env Platform env.
      * @param {Object} [userData] Page userData.
@@ -829,10 +811,10 @@
      */
     function watchPreview(S, env, userData) {
         var st = S || {};
-        var views = VC.resolveViewCycle(st, env);
-        var editable = !(env && env.platform === 'aplite');
-        var f = env && env.platform === 'emery' ? 1 : 0, now = new Date();
-        var bg = svgLib.previewInk(themeOf(st, env)).bg;
+        var views = VC.resolveViewCycle(st);
+        var editable = true;
+        var f = 1, now = new Date();
+        var bg = svgLib.previewInk(themeOf(st)).bg;
         var n = 0, figs = '';
         views.forEach(function (spec, i) {
             if (!spec && !editable) { return; }
@@ -865,10 +847,10 @@
      *     watch's background.
      */
     function viewScreen(S, env, i, userData) {
-        var st = S || {}, f = env && env.platform === 'emery' ? 1 : 0, sc = SCREEN[f];
-        var spec = VC.resolveViewCycle(st, env)[i] || null;
+        var st = S || {}, f = 1, sc = SCREEN[f];
+        var spec = VC.resolveViewCycle(st)[i] || null;
         if (spec) { return screenSvg(spec, i, st, env, userData || {}, f, new Date(), 've' + i + '-'); }
-        var ink = svgLib.previewInk(themeOf(st, env));
+        var ink = svgLib.previewInk(themeOf(st));
         return { svg: framedSvg(sc.w, sc.h, ink.bg,
             text(sc.w / 2, sc.h / 2 + 4, f ? 15 : 12, ink.rgba('0.6'), 'middle', 600, 'Nothing to show')),
             bg: ink.bg,
@@ -887,9 +869,9 @@
      */
     function fontPicture(S, env, args) {
         var st = Object.assign({}, S || {}, { timeFont: args.value });
-        var theme = themeOf(st, env), ink = svgLib.previewInk(theme);
-        var f = env && env.platform === 'emery' ? 1 : 0, w = SCREEN[f].w, h = f ? 64 : 49;
-        var cx = { fg: ink.fg, color: resolveInk.drawsColor(env, theme), bw: Boolean(env && env.color === false), f: f };
+        var theme = themeOf(st), ink = svgLib.previewInk(theme);
+        var f = 1, w = SCREEN[f].w, h = f ? 64 : 49;
+        var cx = { fg: ink.fg, color: resolveInk.drawsColor(theme), f: f };
         return framedSvg(w, h, ink.bg,
             clockBand(st, { x: 0, y: 0, w: w, h: h }, cx, 'tf' + String(args.value).replace(/[^A-Za-z0-9]/g, '') + '-'));
     }

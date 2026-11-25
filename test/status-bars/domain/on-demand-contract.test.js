@@ -2,15 +2,13 @@
 // The On demand contract between the phone (src/pkjs/status-bars/domain/on-demand.js) and the watch: the
 // item order (on_demand.h OdItem), the side values (OdSide), the bar order (ThreshBar)
 // and the compiled defaults the watch reads until a 48-B blob arrives
-// (status_threshold.c OD_DEFAULT_TOP), plus the platform fact that hides the settings
-// where the watch compiles the feature out (wscript WW_ON_DEMAND). Read from the C
-// sources, the date-format-contract pattern.
+// (status_threshold.c OD_DEFAULT_TOP). Read from the C sources, the date-format-contract
+// pattern.
 const test = require('node:test');
 const assert = require('node:assert');
 const fs = require('node:fs');
 const path = require('node:path');
 const OD = require('../../../src/pkjs/status-bars/domain/on-demand.js');
-const platform = require('../../../src/pkjs/config-ui/lib/platform.js');
 const { cEnum } = require('../../helpers/c-source.js');
 
 const ROOT = path.join(__dirname, '..', '..', '..');
@@ -88,13 +86,4 @@ test('the compiled Watch Status Bar defaults are the phone\'s DEFAULTS', () => {
   assert.match(thresholdH, new RegExp('#define THRESH_BATTERY_LEVEL_MAX ' + OD.BATTERY_LEVEL_MAX + '\\b'));
   assert.equal(OD.batteryLevel({}), OD.BATTERY_LEVEL_DEFAULT);
   assert.equal(OD.DEFAULTS.batteryLowDisplay, 'icon');
-});
-
-test('env.onDemand is false exactly where wscript leaves WW_ON_DEMAND undefined', () => {
-  const wscript = read('wscript');
-  const guard = wscript.match(/if platform != '(\w+)':\s*\n\s*ctx\.env\.CFLAGS \+= \['-DWW_ON_DEMAND=1'\]/);
-  assert.ok(guard, 'wscript no longer defines WW_ON_DEMAND for every platform but one');
-  ['aplite', 'basalt', 'diorite', 'emery', 'flint'].forEach((p) => {
-    assert.equal(platform.computeEnv({platform: p}).onDemand, p !== guard[1], p);
-  });
 });

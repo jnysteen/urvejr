@@ -30,7 +30,7 @@ function baseSettings() {
 }
 
 test('buildClayPayload maps settings to CLAY_ keys', function() {
-  const p = buildClayPayload(baseSettings(), { platform: 'emery' }, NOW);
+  const p = buildClayPayload(baseSettings(), NOW);
   assert.equal(p.CLAY_CELSIUS, true);
   assert.equal(p.CLAY_AXIS_12H, false);
   assert.equal(p.CLAY_TIME_FONT, 1);            // ['roboto','leco','bitham'].indexOf('leco')
@@ -41,14 +41,14 @@ test('buildClayPayload maps settings to CLAY_ keys', function() {
 test('countdown target dates are phone-only and never ride the Clay AppMessage', () => {
   const s = baseSettings();
   s.statusForecastLeftCountdown = '2030-04-05';
-  const p = buildClayPayload(s, { platform: 'emery' }, NOW);
+  const p = buildClayPayload(s, NOW);
   assert.equal(Object.prototype.hasOwnProperty.call(
     p, 'statusForecastLeftCountdown'), false);
   assert.equal(Object.keys(p).some((key) => /Countdown$/.test(key)), false);
 });
 
 test('buildClayPayload packs the holiday window as an 8-byte array', function() {
-  const p = buildClayPayload(baseSettings(), { platform: 'emery' }, NOW);
+  const p = buildClayPayload(baseSettings(), NOW);
   assert.ok(Array.isArray(p.HOLIDAYS));
   assert.equal(p.HOLIDAYS.length, 8);
 });
@@ -61,28 +61,12 @@ test('HOLIDAYS reads the flat holidayRegion key, not the obsolete per-country ho
   s.holidayCountry = 'DE';
   s.holidayRegion = 'BY';                 // Bavaria — a real ISO-3166-2 subdivision
   let seenRegion = null;
-  buildClayPayload(s, { platform: 'emery' }, NOW, (country, region) => { seenRegion = region; return false; });
+  buildClayPayload(s, NOW, (country, region) => { seenRegion = region; return false; });
   assert.equal(seenRegion, 'BY');
 });
 
-// The low-battery takeover of the right slot is aplite's alone (every other watch shows
-// the battery as the On demand Battery item), so only a KNOWN aplite gets the key: an
-// unknown platform is treated as capable and goes without it (the Clay floor, §4.4 of
-// the On demand spec; test/repo/inbox-size.test.js).
-test('CLAY_BATTERY_LOW_ONLY reflects the batteryLowOnly setting (default false), on aplite only', () => {
-  assert.equal(buildClayPayload(baseSettings(), { platform: 'aplite' }, NOW).CLAY_BATTERY_LOW_ONLY, false);
-  const s = baseSettings();
-  s.batteryLowOnly = true;
-  assert.equal(buildClayPayload(s, { platform: 'aplite' }, NOW).CLAY_BATTERY_LOW_ONLY, true);
-  [{ platform: 'basalt' }, { platform: 'diorite' }, { platform: 'emery' }, { platform: 'flint' },
-    null, {}].forEach((wi) => {
-    assert.equal(Object.prototype.hasOwnProperty.call(buildClayPayload(s, wi, NOW), 'CLAY_BATTERY_LOW_ONLY'),
-      false, JSON.stringify(wi));
-  });
-});
-
 test('buildClayPayload includes the rain/radar palette tuples', function() {
-  const p = buildClayPayload(baseSettings(), { platform: 'emery' }, NOW);
+  const p = buildClayPayload(baseSettings(), NOW);
   assert.ok(Array.isArray(p.BAR_PALETTE_UINT8));
   assert.ok(Array.isArray(p.RADAR_PALETTE_UINT8));
   assert.equal(p.BAR_PALETTE_UINT8.length, 15);   // multicolor → 5 stops
@@ -90,16 +74,16 @@ test('buildClayPayload includes the rain/radar palette tuples', function() {
 
 test('buildClayPayload palette reflects rainBarColor', function() {
   const s = baseSettings(); s.rainBarColor = 'white';
-  const p = buildClayPayload(s, { platform: 'emery' }, NOW);
+  const p = buildClayPayload(s, NOW);
   assert.equal(p.BAR_PALETTE_UINT8.length, 3);    // white → single stop
 });
 
 test('maps healthMode to CLAY_HEALTH_MODE', () => {
-    assert.strictEqual(buildClayPayload({ healthMode: 'all' }, null, new Date()).CLAY_HEALTH_MODE, 2);
-    assert.strictEqual(buildClayPayload({ healthMode: 'status' }, null, new Date()).CLAY_HEALTH_MODE, 1);
-    assert.strictEqual(buildClayPayload({ healthMode: 'off' }, null, new Date()).CLAY_HEALTH_MODE, 0);
-    assert.strictEqual(buildClayPayload({}, null, new Date()).CLAY_HEALTH_MODE, 0); // default off when unset
-    assert.strictEqual(buildClayPayload({ healthMode: 'slot' }, null, new Date()).CLAY_HEALTH_MODE, 3);
+    assert.strictEqual(buildClayPayload({ healthMode: 'all' }, new Date()).CLAY_HEALTH_MODE, 2);
+    assert.strictEqual(buildClayPayload({ healthMode: 'status' }, new Date()).CLAY_HEALTH_MODE, 1);
+    assert.strictEqual(buildClayPayload({ healthMode: 'off' }, new Date()).CLAY_HEALTH_MODE, 0);
+    assert.strictEqual(buildClayPayload({}, new Date()).CLAY_HEALTH_MODE, 0); // default off when unset
+    assert.strictEqual(buildClayPayload({ healthMode: 'slot' }, new Date()).CLAY_HEALTH_MODE, 3);
 });
 
 test('maps rainCountdownHorizon to CLAY_RAIN_COUNTDOWN_HORIZON', () => {
@@ -107,21 +91,21 @@ test('maps rainCountdownHorizon to CLAY_RAIN_COUNTDOWN_HORIZON', () => {
   base.radarMode = 'graph';
   // explicit value
   base.rainCountdownHorizon = '30';
-  assert.strictEqual(buildClayPayload(base, null, NOW).CLAY_RAIN_COUNTDOWN_HORIZON, 30);
+  assert.strictEqual(buildClayPayload(base, NOW).CLAY_RAIN_COUNTDOWN_HORIZON, 30);
   // off (0) is preserved, not coerced to the default
   base.rainCountdownHorizon = '0';
-  assert.strictEqual(buildClayPayload(base, null, NOW).CLAY_RAIN_COUNTDOWN_HORIZON, 0);
+  assert.strictEqual(buildClayPayload(base, NOW).CLAY_RAIN_COUNTDOWN_HORIZON, 0);
   // unset → default 60
   delete base.rainCountdownHorizon;
-  assert.strictEqual(buildClayPayload(base, null, NOW).CLAY_RAIN_COUNTDOWN_HORIZON, 60);
+  assert.strictEqual(buildClayPayload(base, NOW).CLAY_RAIN_COUNTDOWN_HORIZON, 60);
   // radar off forces 0 even if a horizon is set
   base.radarMode = 'off';
   base.rainCountdownHorizon = '120';
-  assert.strictEqual(buildClayPayload(base, null, NOW).CLAY_RAIN_COUNTDOWN_HORIZON, 0);
+  assert.strictEqual(buildClayPayload(base, NOW).CLAY_RAIN_COUNTDOWN_HORIZON, 0);
   // countdown mode keeps the horizon (only 'off' zeroes it)
   base.radarMode = 'countdown';
   base.rainCountdownHorizon = '120';
-  assert.strictEqual(buildClayPayload(base, null, NOW).CLAY_RAIN_COUNTDOWN_HORIZON, 120);
+  assert.strictEqual(buildClayPayload(base, NOW).CLAY_RAIN_COUNTDOWN_HORIZON, 120);
 });
 
 // The horizon reads the window through the contract (status-thresholds.js rainAlert, the
@@ -140,18 +124,18 @@ test('CLAY_RAIN_COUNTDOWN_HORIZON on every combination of window and radar mode'
       const s = baseSettings();
       put(s, 'rainCountdownHorizon', h);
       put(s, 'radarMode', mode);
-      assert.strictEqual(buildClayPayload(s, null, NOW).CLAY_RAIN_COUNTDOWN_HORIZON, expected(s),
+      assert.strictEqual(buildClayPayload(s, NOW).CLAY_RAIN_COUNTDOWN_HORIZON, expected(s),
         JSON.stringify([h, mode]));
     });
   });
 });
 
 test('maps topViewMode to CLAY_TOP_VIEW_MODE int (full=0, compact=1, none=2), default compact', () => {
-  assert.strictEqual(buildClayPayload(baseSettings(), null, NOW).CLAY_TOP_VIEW_MODE, 1); // unset → compact
+  assert.strictEqual(buildClayPayload(baseSettings(), NOW).CLAY_TOP_VIEW_MODE, 1); // unset → compact
   const full = baseSettings(); full.topViewMode = 'full';
-  assert.strictEqual(buildClayPayload(full, null, NOW).CLAY_TOP_VIEW_MODE, 0);
+  assert.strictEqual(buildClayPayload(full, NOW).CLAY_TOP_VIEW_MODE, 0);
   const none = baseSettings(); none.topViewMode = 'none';
-  assert.strictEqual(buildClayPayload(none, null, NOW).CLAY_TOP_VIEW_MODE, 2);
+  assert.strictEqual(buildClayPayload(none, NOW).CLAY_TOP_VIEW_MODE, 2);
 });
 
 test('compact top view anchors the holiday window to the current week (prevWeek forced false)', () => {
@@ -160,7 +144,7 @@ test('compact top view anchors the holiday window to the current week (prevWeek 
   s.firstWeek = 'prev';          // would normally anchor a week earlier
   s.holidayCountry = 'US';
   s.topViewMode = 'compact';
-  const got = anchorOf(buildClayPayload(s, null, NOW).HOLIDAYS);
+  const got = anchorOf(buildClayPayload(s, NOW).HOLIDAYS);
   const expectCurrent = holidayMask.build(
     { startMon: s.weekStartDay === 'mon', prevWeek: false, country: 'US', region: 'all', enabled: true }, NOW, () => false).anchor;
   const prevAnchor = holidayMask.build(
@@ -183,36 +167,35 @@ test('a 3-row calendar on a flick view anchors the holiday window on the previou
     layoutPreset: 'custom', viewCount: '2', viewTop0: 'cal2', viewTop1: top1,
     firstWeek: 'prev', weekStartDay: 'mon', holidayCountry: 'DE'
   }, extra);
-  const BASALT = { platform: 'basalt' };
+  const BASALT = { platform: 'emery' };
 
-  const flickCal3 = buildClayPayload(custom('cal3'), BASALT, MON_OCT_5);
+  const flickCal3 = buildClayPayload(custom('cal3'), MON_OCT_5);
   assert.equal(anchorOf(flickCal3.HOLIDAYS), windowAt(true),
     'the 3-row flick view starts on Mon 28 Sep, so the window must too');
   assert.equal(flickCal3.CLAY_TOP_VIEW_MODE, 1, 'the boot hint stays the default slot (compact)');
 
-  const flickRadar = buildClayPayload(custom('radar', { radarMode: 'graph' }), BASALT, MON_OCT_5);
+  const flickRadar = buildClayPayload(custom('radar', { radarMode: 'graph' }), MON_OCT_5);
   assert.equal(anchorOf(flickRadar.HOLIDAYS), windowAt(true),
     'a radar top is FULL-tier: the watch draws it as the 3-row calendar without radar data');
 
-  const firstWeekCurr = buildClayPayload(custom('cal3', { firstWeek: 'curr' }), BASALT, MON_OCT_5);
+  const firstWeekCurr = buildClayPayload(custom('cal3', { firstWeek: 'curr' }), MON_OCT_5);
   assert.equal(anchorOf(firstWeekCurr.HOLIDAYS), windowAt(false), 'curr keeps the current week');
 
-  const noFull = buildClayPayload(custom('cal2'), BASALT, MON_OCT_5);
+  const noFull = buildClayPayload(custom('cal2'), MON_OCT_5);
   assert.equal(anchorOf(noFull.HOLIDAYS), windowAt(false),
     'with no 3-row view the window keeps its two weeks of headroom');
 });
 
 // index.js's holiday prefetch hands holidayWindowOpts to holidayMask.windowYears and
 // nagerSource.ensure prunes every year outside that list, so the helper must describe
-// exactly the window the HOLIDAYS tuple scans — for every layout shape, the aplite
-// custom fold and the unknown-platform (null watchInfo) case included.
+// exactly the window the HOLIDAYS tuple scans — for every layout shape, the unknown-platform
+// (null watchInfo) case included.
 test('holidayWindowOpts is the window the HOLIDAYS tuple anchors on, for every layout shape', () => {
   const { holidayWindowOpts } = require('../../../src/pkjs/settings/domain/clay-payload');
   const daysFromCivil = require('../../../src/pkjs/calendar/domain/serial-day');
   const anchorOf = (b) => (b[0] | (b[1] << 8) | (b[2] << 16) | (b[3] << 24));
   const serialOf = (d) => daysFromCivil(d.getFullYear(), d.getMonth() + 1, d.getDate());
-  const BASALT = { platform: 'basalt' };
-  const APLITE = { platform: 'aplite' };
+  const BASALT = { platform: 'emery' };
   const cal3Custom = { layoutPreset: 'custom', viewCount: '1', viewTop0: 'cal3' };
   const shapes = [
     ['compactCal', { layoutPreset: 'compactCal' }, BASALT],
@@ -223,7 +206,6 @@ test('holidayWindowOpts is the window the HOLIDAYS tuple anchors on, for every l
     ['custom with a 3-row flick view',
       { layoutPreset: 'custom', viewCount: '2', viewTop0: 'cal2', viewTop1: 'cal3' }, BASALT],
     ['custom, unknown platform', cal3Custom, null],
-    ['aplite folds a dormant custom layout', cal3Custom, APLITE],
   ];
   // Around a year boundary, where a drifted window starts fetching the wrong year.
   const days = [new Date(2028, 11, 25), new Date(2029, 0, 1), new Date(2029, 0, 2),
@@ -233,8 +215,8 @@ test('holidayWindowOpts is the window the HOLIDAYS tuple anchors on, for every l
       ['mon', 'sun'].forEach((weekStartDay) => {
         const s = Object.assign(baseSettings(), over, { firstWeek, weekStartDay });
         days.forEach((now) => {
-          const opts = holidayWindowOpts(s, wi);
-          const anchor = anchorOf(buildClayPayload(s, wi, now).HOLIDAYS);
+          const opts = holidayWindowOpts(s);
+          const anchor = anchorOf(buildClayPayload(s, now).HOLIDAYS);
           const cell0 = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 21);
           let first = null;
           for (let i = 0; i < 49 && first === null; i++) {
@@ -254,21 +236,21 @@ test('holidayWindowOpts is the window the HOLIDAYS tuple anchors on, for every l
 });
 
 test('maps theme to CLAY_THEME', () => {
-  assert.strictEqual(buildClayPayload({ theme: 'light' }, null, NOW).CLAY_THEME, 1);
-  assert.strictEqual(buildClayPayload({ theme: 'bw' }, null, NOW).CLAY_THEME, 2);
-  assert.strictEqual(buildClayPayload({ theme: 'bw-light' }, null, NOW).CLAY_THEME, 3);
-  assert.strictEqual(buildClayPayload({}, null, NOW).CLAY_THEME, 0, 'defaults to dark (0) when unset');
+  assert.strictEqual(buildClayPayload({ theme: 'light' }, NOW).CLAY_THEME, 1);
+  assert.strictEqual(buildClayPayload({ theme: 'bw' }, NOW).CLAY_THEME, 2);
+  assert.strictEqual(buildClayPayload({ theme: 'bw-light' }, NOW).CLAY_THEME, 3);
+  assert.strictEqual(buildClayPayload({}, NOW).CLAY_THEME, 0, 'defaults to dark (0) when unset');
 });
 
 test('CLAY_COLOR_TIME default is theme-aware: white in dark/bw, black in light/bw-light', () => {
-  assert.strictEqual(buildClayPayload({ theme: 'dark' }, null, NOW).CLAY_COLOR_TIME, 0xFFFFFF);
-  assert.strictEqual(buildClayPayload({ theme: 'bw' }, null, NOW).CLAY_COLOR_TIME, 0xFFFFFF);
-  assert.strictEqual(buildClayPayload({ theme: 'light' }, null, NOW).CLAY_COLOR_TIME, 0x000000);
-  assert.strictEqual(buildClayPayload({ theme: 'bw-light' }, null, NOW).CLAY_COLOR_TIME, 0x000000);
+  assert.strictEqual(buildClayPayload({ theme: 'dark' }, NOW).CLAY_COLOR_TIME, 0xFFFFFF);
+  assert.strictEqual(buildClayPayload({ theme: 'bw' }, NOW).CLAY_COLOR_TIME, 0xFFFFFF);
+  assert.strictEqual(buildClayPayload({ theme: 'light' }, NOW).CLAY_COLOR_TIME, 0x000000);
+  assert.strictEqual(buildClayPayload({ theme: 'bw-light' }, NOW).CLAY_COLOR_TIME, 0x000000);
 });
 
 test('CLAY_COLOR_TIME an explicit colorTime setting is never overridden by theme', () => {
-  const p = buildClayPayload({ theme: 'light', colorTime: 0xFF0000 }, null, NOW);
+  const p = buildClayPayload({ theme: 'light', colorTime: 0xFF0000 }, NOW);
   assert.strictEqual(p.CLAY_COLOR_TIME, 0xFF0000);
 });
 
@@ -278,7 +260,7 @@ test('swapClockStatus moves the compactCal forecast row to the lower slot in the
   s.radarMode = 'off';
   s.healthMode = 'off';
   s.swapClockStatus = true;
-  const p = buildClayPayload(s, { platform: 'emery' }, NOW);
+  const p = buildClayPayload(s, NOW);
   const s0 = viewCycle.unpackSpec(p.CLAY_VIEW_0);
   assert.equal(s0.statusUpper, viewCycle.STATUS_SRC_NONE);
   assert.equal(s0.statusLower, viewCycle.STATUS_SRC_FORECAST);
@@ -287,7 +269,7 @@ test('swapClockStatus moves the compactCal forecast row to the lower slot in the
 test('configTheme is a settings-only key and never rides the Clay AppMessage', function() {
   const s = baseSettings();
   s.configTheme = 'light';
-  const p = buildClayPayload(s, { platform: 'emery' }, NOW);
+  const p = buildClayPayload(s, NOW);
   assert.equal(Object.prototype.hasOwnProperty.call(p, 'configTheme'), false);
 });
 
@@ -295,7 +277,7 @@ test('CLAY_HR_SCALE packs the hrScale pair as lo | (hi << 8)', function() {
   const s = baseSettings();
   s.healthMode = 'all';
   s.hrScale = '50-100';   // >= minSpan (50) apart, so the UI can actually produce it
-  const p = buildClayPayload(s, { platform: 'diorite' }, NOW);
+  const p = buildClayPayload(s, NOW);
   assert.equal(p.CLAY_HR_SCALE, 50 | (100 << 8));
   // Both operands must survive the round trip as bytes.
   assert.equal(p.CLAY_HR_SCALE & 0xFF, 50);
@@ -305,20 +287,20 @@ test('CLAY_HR_SCALE packs the hrScale pair as lo | (hi << 8)', function() {
 test('CLAY_NORAIN_TEXT packs the trimmed radarNoRainText', function() {
   const s = baseSettings();
   s.radarNoRainText = '  Dry skies today  ';
-  const p = buildClayPayload(s, { platform: 'basalt' }, NOW);
+  const p = buildClayPayload(s, NOW);
   assert.equal(p.CLAY_NORAIN_TEXT, 'Dry skies today');
 });
 
 test('CLAY_NORAIN_TEXT: unset sends the built-in text, empty or whitespace sends "" (no line)', function() {
   // Unset (pre-seed upgrade blob): the key still rides, with the built-in text, so a
   // watch holding an old custom text is set back to the default.
-  assert.equal(buildClayPayload(baseSettings(), { platform: 'basalt' }, NOW).CLAY_NORAIN_TEXT, "You're good :)");
+  assert.equal(buildClayPayload(baseSettings(), NOW).CLAY_NORAIN_TEXT, "You're good :)");
   // Cleared by the user: an empty text, which the watch stores and draws as no line.
   const s = baseSettings();
   s.radarNoRainText = '   ';
-  assert.equal(buildClayPayload(s, { platform: 'basalt' }, NOW).CLAY_NORAIN_TEXT, '');
+  assert.equal(buildClayPayload(s, NOW).CLAY_NORAIN_TEXT, '');
   s.radarNoRainText = '';
-  assert.equal(buildClayPayload(s, { platform: 'basalt' }, NOW).CLAY_NORAIN_TEXT, '');
+  assert.equal(buildClayPayload(s, NOW).CLAY_NORAIN_TEXT, '');
 });
 
 test('the built-in no-rain text is one string: payload default, schema default, watch fallback', function() {
@@ -350,7 +332,7 @@ test('the built-in no-rain text is one string: payload default, schema default, 
 test('CLAY_NORAIN_TEXT truncates to 24 UTF-8 bytes, not 24 chars', function() {
   const s = baseSettings();
   s.radarNoRainText = 'ÄÄÄÄÄÄÄÄÄÄÄÄÄ';   // 13 chars x 2 bytes = 26 bytes
-  const p = buildClayPayload(s, { platform: 'basalt' }, NOW);
+  const p = buildClayPayload(s, NOW);
   assert.equal(p.CLAY_NORAIN_TEXT, 'ÄÄÄÄÄÄÄÄÄÄÄÄ');   // 12 chars = 24 bytes
   assert.equal(Buffer.byteLength(p.CLAY_NORAIN_TEXT, 'utf8'), 24);
 });
@@ -360,19 +342,9 @@ test('CLAY_NORAIN_TEXT never splits a multi-byte sequence at the 24-byte boundar
   // 23 ASCII bytes + a 2-byte umlaut would land on 25 — the umlaut must be
   // dropped whole, never emitted as half a sequence.
   s.radarNoRainText = 'aaaaaaaaaaaaaaaaaaaaaaaü';
-  const p = buildClayPayload(s, { platform: 'basalt' }, NOW);
+  const p = buildClayPayload(s, NOW);
   assert.equal(p.CLAY_NORAIN_TEXT, 'aaaaaaaaaaaaaaaaaaaaaaa');
   assert.equal(Buffer.byteLength(p.CLAY_NORAIN_TEXT, 'utf8'), 23);
-});
-
-test('CLAY_NORAIN_TEXT is omitted for a radar-less watch (aplite) but kept for unknown platforms', function() {
-  const s = baseSettings();
-  s.radarNoRainText = 'Dry';
-  const aplite = buildClayPayload(s, { platform: 'aplite' }, NOW);
-  assert.equal(Object.prototype.hasOwnProperty.call(aplite, 'CLAY_NORAIN_TEXT'), false);
-  // Unknown watchInfo must never drop a real feature (computeEnv convention).
-  const unknown = buildClayPayload(s, null, NOW);
-  assert.equal(unknown.CLAY_NORAIN_TEXT, 'Dry');
 });
 
 test('truncateUtf8Bytes keeps or drops a surrogate pair whole (4-byte emoji)', function() {
@@ -396,7 +368,7 @@ test('CLAY_CURVE_INSET_UINT8 sends the fixed [7,0,0,0,0] when feels is not selec
   // BOTTOM_VIEW_PRIMARY_LINE_INSET_Y), with the five per-series bytes (Series id
   // order: temp, main, second, third, fourth metric) only marking which metric
   // channel carries a temperature-axis metric.
-  const p = buildClayPayload(baseSettings(), { platform: 'emery' }, NOW);
+  const p = buildClayPayload(baseSettings(), NOW);
   assert.deepEqual(p.CLAY_CURVE_INSET_UINT8, [7, 0, 0, 0, 0]);
 });
 
@@ -404,7 +376,7 @@ test('CLAY_CURVE_INSET_UINT8: feels on the secondary line shares the temp inset'
   const s = baseSettings();
   s.secondaryLine = 'feels';
   s.thirdLine = 'uv';
-  const p = buildClayPayload(s, { platform: 'basalt' }, NOW);
+  const p = buildClayPayload(s, NOW);
   assert.deepEqual(p.CLAY_CURVE_INSET_UINT8, [7, 7, 0, 0, 0]);
 });
 
@@ -412,7 +384,7 @@ test('CLAY_CURVE_INSET_UINT8: feels on the third line shares the temp inset', fu
   const s = baseSettings();
   s.secondaryLine = 'precip_prob';
   s.thirdLine = 'feels';
-  const p = buildClayPayload(s, { platform: 'basalt' }, NOW);
+  const p = buildClayPayload(s, NOW);
   assert.deepEqual(p.CLAY_CURVE_INSET_UINT8, [7, 0, 7, 0, 0]);
 });
 
@@ -420,17 +392,17 @@ test('CLAY_CURVE_INSET_UINT8: dew point shares the temp inset on either line', f
   const s = baseSettings();
   s.secondaryLine = 'dew';
   s.thirdLine = 'feels';
-  assert.deepEqual(buildClayPayload(s, { platform: 'basalt' }, NOW).CLAY_CURVE_INSET_UINT8, [7, 7, 7, 0, 0]);
+  assert.deepEqual(buildClayPayload(s, NOW).CLAY_CURVE_INSET_UINT8, [7, 7, 7, 0, 0]);
   s.secondaryLine = 'wind';
   s.thirdLine = 'dew';
-  assert.deepEqual(buildClayPayload(s, { platform: 'basalt' }, NOW).CLAY_CURVE_INSET_UINT8, [7, 0, 7, 0, 0]);
+  assert.deepEqual(buildClayPayload(s, NOW).CLAY_CURVE_INSET_UINT8, [7, 0, 7, 0, 0]);
 });
 
 test('CLAY_CURVE_INSET_UINT8: the third- and fourth-metric lines get an inset byte of their own', function() {
   const s = Object.assign(baseSettings(), { secondaryLine: 'feels', thirdLine: 'wind', fourthLine: 'dew' });
-  assert.deepEqual(buildClayPayload(s, { platform: 'basalt' }, NOW).CLAY_CURVE_INSET_UINT8, [7, 7, 0, 7, 0]);
+  assert.deepEqual(buildClayPayload(s, NOW).CLAY_CURVE_INSET_UINT8, [7, 7, 0, 7, 0]);
   const fifth = Object.assign(baseSettings(), { secondaryLine: 'precip_prob', thirdLine: 'uv', fifthLine: 'feels' });
-  assert.deepEqual(buildClayPayload(fifth, { platform: 'emery' }, NOW).CLAY_CURVE_INSET_UINT8, [7, 0, 0, 0, 7]);
+  assert.deepEqual(buildClayPayload(fifth, NOW).CLAY_CURVE_INSET_UINT8, [7, 0, 0, 0, 7]);
 });
 
 test('CLAY_CURVE_INSET_UINT8 reads the RAW settings: a duplicate pick still gets its byte', function() {
@@ -439,62 +411,32 @@ test('CLAY_CURVE_INSET_UINT8 reads the RAW settings: a duplicate pick still gets
   // The tuple does not resolve effective metrics — a byte nobody reads is harmless.
   const s = Object.assign(baseSettings(), { secondaryLine: 'wind', thirdLine: 'feels', fourthLine: 'feels' });
   assert.equal(lineStyle.effectiveLineMetric(s, 'fourthLine'), null, 'the duplicate line is not drawn');
-  assert.deepEqual(buildClayPayload(s, { platform: 'basalt' }, NOW).CLAY_CURVE_INSET_UINT8, [7, 0, 7, 7, 0]);
-});
-
-test('CLAY_CURVE_INSET_UINT8 is omitted for aplite (WW_CURVE_INSET compiled out) but kept for unknown platforms', function() {
-  const s = baseSettings();
-  const aplite = buildClayPayload(s, { platform: 'aplite' }, NOW);
-  assert.equal(Object.prototype.hasOwnProperty.call(aplite, 'CLAY_CURVE_INSET_UINT8'), false);
-  // Even with every line on a temperature-axis metric, aplite never gets the tuple.
-  const apliteAxis = buildClayPayload(Object.assign(baseSettings(),
-    { secondaryLine: 'feels', thirdLine: 'dew', fourthLine: 'feels', fifthLine: 'dew' }), { platform: 'aplite' }, NOW);
-  assert.equal(Object.prototype.hasOwnProperty.call(apliteAxis, 'CLAY_CURVE_INSET_UINT8'), false);
-  // Unknown watchInfo must never drop a real feature (computeEnv convention).
-  const unknown = buildClayPayload(s, null, NOW);
-  assert.deepEqual(unknown.CLAY_CURVE_INSET_UINT8, [7, 0, 0, 0, 0]);
+  assert.deepEqual(buildClayPayload(s, NOW).CLAY_CURVE_INSET_UINT8, [7, 0, 7, 7, 0]);
 });
 
 test('the Clay message carries the graph line styling', function() {
   const s = Object.assign(baseSettings(), {
     secondaryLine: 'wind', thirdLine: 'gust', theme: 'dark'
   });
-  const p = buildClayPayload(s, { platform: 'emery' }, NOW);
+  const p = buildClayPayload(s, NOW);
   assert.ok(Array.isArray(p.CLAY_LINE_STYLE_UINT8));
   assert.equal(p.CLAY_LINE_STYLE_UINT8.length, 14);
   // Packed by the one graph packer (forecast-graphs/domain/graph-wire.js, over the resolver both the
   // wire and the render read), so the Clay tuple can't drift from what the graph
   // builder assumes.
   assert.deepEqual(p.CLAY_LINE_STYLE_UINT8,
-    graphWire.buildLineStyleBytes(s, { platform: 'emery' }));
-});
-
-test('aplite gets the line styling too (it has the forecast graph)', function() {
-  // Unlike the threshold blob / no-rain text / curve insets, nothing about the
-  // graph's line colours is compiled out on aplite — it draws the same two metric
-  // lines — so this tuple is NOT platform-gated. The full 14 bytes ship there too:
-  // aplite parses [0..3] and ignores the tail blocks it has no arms for (the same
-  // way pre-feature watches ignore bytes they postdate), which is cheaper than a
-  // per-platform pack.
-  const s = Object.assign(baseSettings(), {
-    secondaryLine: 'wind', thirdLine: 'off', theme: 'dark'
-  });
-  assert.equal(buildClayPayload(s, { platform: 'aplite' }, NOW).CLAY_LINE_STYLE_UINT8.length, 14);
-  // ... and an unknown watchInfo never drops it either.
-  assert.equal(buildClayPayload(s, null, NOW).CLAY_LINE_STYLE_UINT8.length, 14);
+    graphWire.buildLineStyleBytes(s));
 });
 
 // Draw from / Bars from ride bits of tuples the Clay message already carries (the line
-// style bytes, the two palettes): no tuple joins and none grows. aplite draws nothing
-// from the top, so its whole payload is byte-identical with every key on Top.
-test('Draw from / Bars from: aplite\'s payload is byte-identical on Top; basalt\'s moves only the flag bits', () => {
+// style bytes, the two palettes): no tuple joins and none grows.
+test('Draw from / Bars from: Top moves only the flag bits', () => {
   const s = Object.assign(baseSettings(), { secondaryLine: 'precip_prob', thirdLine: 'wind', theme: 'dark',
     barSource: 'rain', radarMode: 'graph' });
   const top = Object.assign({}, s, { precipLineFrom: 'top', cloudLineFrom: 'top', windLineFrom: 'top',
     uvLineFrom: 'top', rainBarFrom: 'top', radarBarFrom: 'top' });
-  assert.deepEqual(buildClayPayload(top, { platform: 'aplite' }, NOW), buildClayPayload(s, { platform: 'aplite' }, NOW));
-  const plain = buildClayPayload(s, { platform: 'basalt' }, NOW);
-  const hung = buildClayPayload(top, { platform: 'basalt' }, NOW);
+  const plain = buildClayPayload(s, NOW);
+  const hung = buildClayPayload(top, NOW);
   assert.deepEqual(Object.keys(hung).sort(), Object.keys(plain).sort(), 'no tuple joins or leaves');
   Object.keys(plain).forEach((k) => {
     if (['CLAY_LINE_STYLE_UINT8', 'BAR_PALETTE_UINT8', 'RADAR_PALETTE_UINT8'].indexOf(k) === -1) {
@@ -511,16 +453,16 @@ test('Draw from / Bars from: aplite\'s payload is byte-identical on Top; basalt\
 test('CLAY_HR_SCALE falls back to 40-150 when unset or malformed', function() {
   const expected = 40 | (150 << 8);
   const s = baseSettings();
-  assert.equal(buildClayPayload(s, { platform: 'diorite' }, NOW).CLAY_HR_SCALE, expected,
+  assert.equal(buildClayPayload(s, NOW).CLAY_HR_SCALE, expected,
     'unset');
   s.hrScale = 'nonsense';
-  assert.equal(buildClayPayload(s, { platform: 'diorite' }, NOW).CLAY_HR_SCALE, expected,
+  assert.equal(buildClayPayload(s, NOW).CLAY_HR_SCALE, expected,
     'malformed');
   s.hrScale = '95-55';
-  assert.equal(buildClayPayload(s, { platform: 'diorite' }, NOW).CLAY_HR_SCALE, expected,
+  assert.equal(buildClayPayload(s, NOW).CLAY_HR_SCALE, expected,
     'inverted');
   s.hrScale = '300-400';
-  assert.equal(buildClayPayload(s, { platform: 'diorite' }, NOW).CLAY_HR_SCALE, expected,
+  assert.equal(buildClayPayload(s, NOW).CLAY_HR_SCALE, expected,
     'out of byte range');
 });
 
@@ -530,10 +472,10 @@ test('CLAY_HR_SCALE falls back to 40-150 when unset or malformed', function() {
 // setting, and while the left axis options sit at their defaults (bits 1-5 all 0) it is the
 // bare boolean it always was.
 test('CLAY_LARGE_GRAPH_FONT reflects the largeGraphFont setting (absent reads as off)', () => {
-  assert.strictEqual(buildClayPayload(baseSettings(), { platform: 'emery' }, NOW).CLAY_LARGE_GRAPH_FONT, false);
+  assert.strictEqual(buildClayPayload(baseSettings(), NOW).CLAY_LARGE_GRAPH_FONT, false);
   const on = baseSettings();
   on.largeGraphFont = true;
-  assert.strictEqual(buildClayPayload(on, { platform: 'emery' }, NOW).CLAY_LARGE_GRAPH_FONT, true);
+  assert.strictEqual(buildClayPayload(on, NOW).CLAY_LARGE_GRAPH_FONT, true);
 });
 
 // With every left axis option at its default the whole payload is what it always was, on every
@@ -543,16 +485,16 @@ test('CLAY_LARGE_GRAPH_FONT: the defaults keep the bare boolean on every platfor
   [false, true].forEach((large) => {
     const s = Object.assign(baseSettings(), { largeGraphFont: large,
       forecastAxisNumbers: 'axis', forecastAxisScale: false });
-    [null, {}, { platform: 'emery' }, { platform: 'basalt' }]
+    [null, {}, { platform: 'emery' }, { platform: 'emery' }]
       .forEach((info) => {
-        const v = buildClayPayload(s, info, NOW).CLAY_LARGE_GRAPH_FONT;
+        const v = buildClayPayload(s, NOW).CLAY_LARGE_GRAPH_FONT;
         assert.strictEqual(v, large, JSON.stringify(info) + ' ' + large);
       });
     // A dormant value (scale with no feels-like / dew point line) and the betas' retired
     // Axis line / Number outline keys keep it too.
     const dormant = Object.assign({}, s, { forecastAxisLine: false, forecastAxisOutline: false,
       forecastAxisScale: true });
-    assert.strictEqual(buildClayPayload(dormant, { platform: 'emery' }, NOW).CLAY_LARGE_GRAPH_FONT,
+    assert.strictEqual(buildClayPayload(dormant, NOW).CLAY_LARGE_GRAPH_FONT,
       large, 'dormant ' + large);
   });
 });
@@ -561,8 +503,7 @@ test('CLAY_LARGE_GRAPH_FONT: the defaults keep the bare boolean on every platfor
 // (src/c/appendix/config.h GRAPH_OPT_*; bits 1 and 4 retired), canonical: a dormant value packs
 // nothing.
 test('CLAY_LARGE_GRAPH_FONT: emery carries the left axis options in bits 2, 3 and 5', () => {
-  const word = (extra, platform) => buildClayPayload(Object.assign(baseSettings(), extra),
-    platform === undefined ? { platform: 'emery' } : platform, NOW).CLAY_LARGE_GRAPH_FONT;
+  const word = (extra, platform) => buildClayPayload(Object.assign(baseSettings(), extra), NOW).CLAY_LARGE_GRAPH_FONT;
   const dew = { secondaryLine: 'dew' };
   assert.equal(word({ forecastAxisNumbers: 'graph' }), 0x04, 'numbers on the graph');
   assert.equal(word({ forecastAxisNumbers: 'off' }), 0x08, 'numbers off');
@@ -592,43 +533,15 @@ test('CLAY_LARGE_GRAPH_FONT: emery carries the left axis options in bits 2, 3 an
   assert.strictEqual(word({}, null), false, 'unknown platform, defaults: the bare boolean');
 });
 
-// A KNOWN non-emery watch never reads the key: it gets exactly the bare boolean it always
-// got, whatever left axis options a shared settings blob stores.
-test('CLAY_LARGE_GRAPH_FONT: a known non-emery watch gets the bare boolean', () => {
-  const all = { forecastAxisNumbers: 'graph', forecastAxisScale: true, secondaryLine: 'dew' };
-  ['aplite', 'basalt', 'diorite', 'flint'].forEach((platform) => {
-    [false, true].forEach((large) => {
-      const s = Object.assign(baseSettings(), all, { largeGraphFont: large });
-      const v = buildClayPayload(s, { platform }, NOW).CLAY_LARGE_GRAPH_FONT;
-      assert.equal(typeof v, 'boolean', platform);
-      assert.equal(v, large, platform + ' ' + large);
-      // The options change nothing else in its payload either.
-      const plain = Object.assign(baseSettings(), { secondaryLine: 'dew', largeGraphFont: large });
-      assert.deepEqual(buildClayPayload(s, { platform }, NOW), buildClayPayload(plain, { platform }, NOW),
-        platform + ': the options cost nothing');
-    });
-  });
-});
-
-test('CLAY_LARGE_GRAPH_FONT rides every platform (only the WATCH gates it)', () => {
-  // Unlike CLAY_NORAIN_TEXT / CLAY_CURVE_INSET_UINT8 / CLAY_THRESHOLDS_UINT8, this key is
-  // NOT platform-gated on the phone: it is 11 B, every non-emery Clay bundle has room, and
-  // sending it unconditionally means an emery watch can't be starved of the setting by a
-  // watchInfo hiccup. The watch does the skipping -- config_wire.c only spends a dict_find
-  // on it under PBL_PLATFORM_EMERY (config.h's field carries the same guard).
-  const p = buildClayPayload(baseSettings(), { platform: 'aplite' }, NOW);
-  assert.equal(Object.prototype.hasOwnProperty.call(p, 'CLAY_LARGE_GRAPH_FONT'), true);
-});
-
 // The forecast's time span rides the weather message's NUM_ENTRIES alone (forecast-span.js,
-// src/c/appendix/forecast_span.h): it costs the Clay message nothing on any watch.
+// src/c/appendix/forecast_span.h): it costs the Clay message nothing.
 test('forecastHours adds nothing to the Clay message', () => {
-  ['emery', 'basalt', 'aplite'].forEach((platform) => {
+  ['emery'].forEach((platform) => {
     const s48 = Object.assign(baseSettings(), { forecastHours: '48' });
     const s12 = Object.assign(baseSettings(), { forecastHours: '12' });
-    const base = buildClayPayload(baseSettings(), { platform }, NOW);
-    assert.deepEqual(buildClayPayload(s48, { platform }, NOW), base, platform + ' 48');
-    assert.deepEqual(buildClayPayload(s12, { platform }, NOW), base, platform + ' 12');
+    const base = buildClayPayload(baseSettings(), NOW);
+    assert.deepEqual(buildClayPayload(s48, NOW), base, platform + ' 48');
+    assert.deepEqual(buildClayPayload(s12, NOW), base, platform + ' 12');
   });
 });
 
@@ -640,10 +553,10 @@ test('CLAY_NIGHT_LIGHT_UINT8 is the five bytes night-light.js packs', () => {
     backlightDimStartHour: '22', backlightDimEndHour: '6',
     backlightDimColor: '96,0,0'
   });
-  const p = buildClayPayload(s, { platform: 'emery' }, NOW);
+  const p = buildClayPayload(s, NOW);
   assert.deepEqual(p.CLAY_NIGHT_LIGHT_UINT8, [96, 0, 0, 22, 6]);
   // Packed by the module, not re-derived here, so the tuple can't drift from the
-  // resolution rules the settings page and telemetry read the same keys with.
+  // resolution rules the settings page reads the same keys with.
   assert.deepEqual(p.CLAY_NIGHT_LIGHT_UINT8, nightLight.buildNightLightBytes(s));
   assert.equal(p.CLAY_NIGHT_LIGHT_UINT8.length, 5);
 });
@@ -658,28 +571,15 @@ test('the Dim backlight window on the wire is the feature own hours, always', ()
     // Explicit, so this window test does not ride on whatever the colour default is.
     backlightDimColor: '96,0,0'
   });
-  assert.deepEqual(buildClayPayload(s, { platform: 'emery' }, NOW).CLAY_NIGHT_LIGHT_UINT8,
+  assert.deepEqual(buildClayPayload(s, NOW).CLAY_NIGHT_LIGHT_UINT8,
     [96, 0, 0, 22, 6]);
 });
 
 test('the Dim backlight switch OFF rides the wire as the zeroed tuple', () => {
   // start === end is the app's "never" window, so the watch needs no enabled flag.
   const s = Object.assign(baseSettings(), { backlightDim: false, backlightDimColor: '1,2,3' });
-  assert.deepEqual(buildClayPayload(s, { platform: 'emery' }, NOW).CLAY_NIGHT_LIGHT_UINT8,
+  assert.deepEqual(buildClayPayload(s, NOW).CLAY_NIGHT_LIGHT_UINT8,
     [0, 0, 0, 0, 0]);
-});
-
-test('CLAY_NIGHT_LIGHT_UINT8 rides every platform (only the WATCH gates it)', () => {
-  // The LED is emery-only, but computeEnv reports colorBacklight FALSE for an unknown
-  // platform, so gating the key would starve a real emery watch of the setting over a
-  // watchInfo hiccup -- CLAY_LARGE_GRAPH_FONT's reasoning above. Sending it everywhere
-  // is harmless: light_set_color_rgb888() is a documented no-op without the LED.
-  [{ platform: 'aplite' }, { platform: 'basalt' }, null]
-    .forEach((watchInfo) => {
-      const p = buildClayPayload(baseSettings(), watchInfo, NOW);
-      assert.equal(p.CLAY_NIGHT_LIGHT_UINT8.length, 5,
-        'dropped for ' + JSON.stringify(watchInfo));
-    });
 });
 
 test('every Dim backlight key moves the Clay payload (so the outbox re-sends it)', () => {
@@ -692,7 +592,7 @@ test('every Dim backlight key moves the Clay payload (so the outbox re-sends it)
       backlightDimColor: '10,20,30'
     });
   }
-  const packed = JSON.stringify(buildClayPayload(base(), { platform: 'emery' }, NOW));
+  const packed = JSON.stringify(buildClayPayload(base(), NOW));
   const edits = {
     backlightDim: false, backlightDimStartHour: '21',
     backlightDimEndHour: '5', backlightDimColor: '11,20,30'
@@ -700,7 +600,7 @@ test('every Dim backlight key moves the Clay payload (so the outbox re-sends it)
   Object.keys(edits).forEach((key) => {
     const s = base();
     s[key] = edits[key];
-    assert.notEqual(JSON.stringify(buildClayPayload(s, { platform: 'emery' }, NOW)), packed,
+    assert.notEqual(JSON.stringify(buildClayPayload(s, NOW)), packed,
       key + ' must dirty the Clay payload');
   });
 });
@@ -715,7 +615,7 @@ test('layoutPreset custom compiles the per-view keys onto CLAY_VIEW_*', () => {
     viewTop1: 'none', viewBody1: 'forecast', viewUpper1: 'off', viewLower1: 'off', viewOrder1: 'CTAB',
     viewClockOff1: true, viewStripOff1: true,
   });
-  const p = buildClayPayload(s, { platform: 'basalt' }, NOW);
+  const p = buildClayPayload(s, NOW);
   const want = viewCycle.buildCustomCycle(s).map(viewCycle.packWire);
   assert.deepStrictEqual([p.CLAY_VIEW_0, p.CLAY_VIEW_1, p.CLAY_VIEW_2], [want[0], want[1], 0]);
   assert.equal(p.CLAY_VIEW_1 & 0xC00, 0xC00, 'flick carries clockOff+stripOff');
@@ -730,7 +630,7 @@ test('a graphless custom view sends its Position in the high half of CLAY_VIEW_n
     viewTop1: 'cal2', viewBody1: 'none', viewUpper1: 'weather', viewLower1: 'off', viewOrder1: 'TACB',
     viewClockOff1: false, viewStripOff1: false, viewAlign1: 'bottom',
   });
-  const p = buildClayPayload(s, { platform: 'basalt' }, NOW);
+  const p = buildClayPayload(s, NOW);
   assert.equal(p.CLAY_VIEW_0 >>> 16, 0, 'the Default keeps its graph: no ext');
   assert.equal((p.CLAY_VIEW_1 >> 4) & 3, viewCycle.BODY_NONE, 'body code 3 = no graph');
   assert.equal((p.CLAY_VIEW_1 >>> 16) >> 7, viewCycle.ALIGN_BOTTOM, 'align in ext bits 7-8');
@@ -740,27 +640,13 @@ test('a graphless custom view sends its Position in the high half of CLAY_VIEW_n
   });
 });
 
-test('an aplite watch folds custom to the EXPLICIT compactCal preset cycle', () => {
-  const s = Object.assign(baseSettings(), {
-    layoutPreset: 'custom', healthMode: 'off', radarMode: 'off',
-    // Legacy residue that must NOT redirect the fold:
-    topViewMode: 'full',
-    viewCount: '2', viewTop0: 'none', viewOrder0: 'ABCT',
-  });
-  const p = buildClayPayload(s, { platform: 'aplite' }, NOW);
-  const compact = viewCycle.buildViewCycle('compactCal', 'off', 'off', false).map(viewCycle.packSpec);
-  assert.deepStrictEqual([p.CLAY_VIEW_0, p.CLAY_VIEW_1, p.CLAY_VIEW_2],
-    [compact[0], compact[1] || 0, compact[2] || 0]);
-  assert.equal(p.CLAY_VIEW_0 >>> 10, 0, 'no custom bits and no ext word reach an aplite watch');
-});
-
 test('an UNKNOWN platform is treated as custom-capable (missing watchInfo never folds)', () => {
   const s = Object.assign(baseSettings(), {
     layoutPreset: 'custom', healthMode: 'off', radarMode: 'off',
     viewCount: '1', viewTop0: 'none', viewBody0: 'forecast',
     viewUpper0: 'off', viewLower0: 'off', viewOrder0: 'TACB',
   });
-  const p = buildClayPayload(s, null, NOW);
+  const p = buildClayPayload(s, NOW);
   assert.deepStrictEqual(p.CLAY_VIEW_0,
     viewCycle.buildCustomCycle(s).map(viewCycle.packWire)[0]);
 });
@@ -783,8 +669,8 @@ test('an UNKNOWN platform is treated as custom-capable (missing watchInfo never 
 
   test('auto theme, light day / dark night: CLAY_COLOR_TIME is white (an int) at night', () => {
     const blob = savedBlob({ themeAuto: true, theme: 'light', themeNight: 'dark', colorTime: '#000000' });
-    const day = buildClayPayload(themeSchedule.effectiveSettings(blob, false), BASALT, NOW);
-    const night = buildClayPayload(themeSchedule.effectiveSettings(blob, true), BASALT, NOW);
+    const day = buildClayPayload(themeSchedule.effectiveSettings(blob, false), NOW);
+    const night = buildClayPayload(themeSchedule.effectiveSettings(blob, true), NOW);
     assert.strictEqual(day.CLAY_THEME, 1);
     assert.strictEqual(day.CLAY_COLOR_TIME, 0x000000);
     assert.strictEqual(night.CLAY_THEME, 0);
@@ -795,7 +681,7 @@ test('an UNKNOWN platform is treated as custom-capable (missing watchInfo never 
     const blob = claySettings.getDefaults({ white: pebbleColors.GColorWhite,
       folly: pebbleColors.GColorFolly, holiday: pebbleColors.GColorBlueMoon });
     blob.themeAuto = true; blob.themeNight = 'light';
-    const night = buildClayPayload(themeSchedule.effectiveSettings(blob, true), BASALT, NOW);
+    const night = buildClayPayload(themeSchedule.effectiveSettings(blob, true), NOW);
     assert.strictEqual(night.CLAY_THEME, 1);
     assert.strictEqual(night.CLAY_COLOR_TIME, 0x000000);
   });
@@ -803,24 +689,13 @@ test('an UNKNOWN platform is treated as custom-capable (missing watchInfo never 
   test('auto theme, light day / dark night: an auto threshold danger colour packs white', () => {
     const blob = savedBlob({ themeAuto: true, theme: 'light', themeNight: 'dark',
       threshWindWarn: '20', threshWindDanger: '40', threshWindDangerColor: '#000000' });
-    const night = buildClayPayload(themeSchedule.effectiveSettings(blob, true), BASALT, NOW);
+    const night = buildClayPayload(themeSchedule.effectiveSettings(blob, true), NOW);
     const wind = statusThresholds.KINDS.map((k) => k.key).indexOf('Wind');
     assert.strictEqual(
       night.CLAY_THRESHOLDS_UINT8[statusWire.COLORS_OFFSET + 2 * wind + 1], 0xFF,
       'GColorWhite (argb 0xFF), not the day face\'s black (0xC0)');
   });
 }
-
-test('Weather only folds to Compact calendar on aplite, the preset its radio shows there', function() {
-  const s = baseSettings();
-  s.layoutPreset = 'weatherOnly';
-  s.radarMode = 'graph';
-  const colour = buildClayPayload(s, { platform: 'basalt' }, NOW);
-  const aplite = buildClayPayload(s, { platform: 'aplite' }, NOW);
-  const compact = buildClayPayload(Object.assign({}, s, { layoutPreset: 'compactCal' }), { platform: 'aplite' }, NOW);
-  assert.equal(colour.CLAY_VIEW_0 & 0x800, 0x800, 'colour: the Default view has no top bar');
-  assert.equal(aplite.CLAY_VIEW_0, compact.CLAY_VIEW_0, 'aplite: exactly Compact calendar');
-});
 
 test('radar sky rows are on by default: a missing key sends them', function() {
   const radarSky = require('../../../src/pkjs/weather/domain/radar/radar-sky.js');

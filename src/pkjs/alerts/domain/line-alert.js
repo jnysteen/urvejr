@@ -2,7 +2,7 @@
 // wind gust and UV index lines (the graph metrics with Alert levels) can each be drawn
 // whole (All) or only where the value reaches the metric's warn level (Alert). THE one
 // reading of the setting and of the scale Alert puts the line on, for the bake
-// (forecast-series.js), the render signature, telemetry and the settings page (the
+// (forecast-series.js), the render signature and the settings page (the
 // row's hint, the scale hints, the forecast preview), so they can never disagree.
 //
 // Phone-side only, by design: a sample below the warn level ships as wire byte 0, which
@@ -11,13 +11,6 @@
 // warn row next to a reading), and a sample at or above it is scaled from the band's
 // bottom to its top (a line drawn as a stripe: its cell is shaded by the same place in
 // the band, scalePercent). No watch code, no wire format.
-// A watch without Alert settings (aplite: no WW_ON_DEMAND) hides the row and always
-// draws All (alertBands).
-//
-// THE WATCH. drawnMetrics and alertBands take it as `env`, config-ui platform.js
-// computeEnv() facts (the phone's of the connected watch, or the settings page's own):
-// `lineStyles` (the Third and Fourth metric lines) and `onDemand` (Show: Alert). Only an
-// explicit false (aplite) lacks one, so null or an env without the fact reads capable.
 //
 // THE SETTING. One key per metric (METRICS: <metric>LineShow), holding 'all' or 'alert'
 // (SHOW_ALL, SHOW_ALERT); showValue reads anything but 'alert' as 'all'. The settings
@@ -120,18 +113,6 @@
     }
 
     /**
-     * Whether a watch has one capability (see the header): every watch but one whose env
-     * says false (aplite), so an unknown watch or an env without the fact reads capable,
-     * as on-demand.js facts() does.
-     * @param {?Object} env config-ui platform.js computeEnv() facts.
-     * @param {string} fact 'lineStyles' | 'onDemand'.
-     * @returns {boolean}
-     */
-    function capable(env, fact) {
-        return !(env && env[fact] === false);
-    }
-
-    /**
      * How many series units one display unit is: km/h per wind unit for wind and
      * gusts, 10 for UV (the series carries UV x 10).
      * @param {Object} settings Clay settings blob (windUnits).
@@ -203,19 +184,15 @@
 
     /**
      * The metrics the watch draws: each forecast line's effective metric (line-style.js
-     * effectiveLineMetric — off and repeat-of-an-earlier-line draw nothing), the Third
-     * and Fourth metric lines only on a watch that carries them (env.lineStyles, the
-     * WW_LINE_STYLE mirror: not aplite), and after them the graph styles' spare row, which
+     * effectiveLineMetric — off and repeat-of-an-earlier-line draw nothing), and after them
+     * the graph styles' spare row, which
      * only the bake's settings copy names (line-style.js BAKE_LINES).
      * @param {Object} settings Clay settings blob.
-     * @param {?Object} [env] Platform env (capable; see the header).
      * @returns {string[]} Drawn metric ids, in line order.
      */
-    function drawnMetrics(settings, env) {
-        var allLines = capable(env, 'lineStyles');
+    function drawnMetrics(settings) {
         var out = [];
         for (var i = 0; i < lineStyle.BAKE_LINES.length; i++) {
-            if (i >= 2 && !allLines) { break; }
             var m = lineStyle.effectiveLineMetric(settings, lineStyle.BAKE_LINES[i].key);
             if (m) { out.push(m); }
         }
@@ -260,18 +237,14 @@
     }
 
     /**
-     * Every drawn Show: Alert line's band, by metric (the lines drawnMetrics answers). None
-     * on a watch without Alert settings (env.onDemand, the WW_ON_DEMAND mirror: aplite),
-     * which draws every line All, whatever is stored; the page hides the row there.
+     * Every drawn Show: Alert line's band, by metric (the lines drawnMetrics answers).
      * @param {Object} settings Clay settings blob.
-     * @param {?Object} [env] Platform env (capable; see the header).
      * @returns {Object<string, {bottom: number, top: number, topDanger: ?string}>} {}
      *   when no drawn line shows Alert.
      */
-    function alertBands(settings, env) {
+    function alertBands(settings) {
         var out = {};
-        if (!capable(env, 'onDemand')) { return out; }
-        var drawn = drawnMetrics(settings, env);
+        var drawn = drawnMetrics(settings);
         for (var i = 0; i < drawn.length; i++) {
             var band = alertBand(settings, drawn[i], drawn);
             if (band) { out[drawn[i]] = band; }
@@ -388,7 +361,7 @@
      * @returns {string} e.g. 'wind,uv'; '' for none.
      */
     function signature(settings) {
-        var drawn = drawnMetrics(settings, null);
+        var drawn = drawnMetrics(settings);
         var out = [];
         for (var i = 0; i < drawn.length; i++) {
             if (showsAlert(settings, drawn[i])) { out.push(drawn[i]); }
@@ -407,7 +380,6 @@
         showValue: showValue,
         showOf: showOf,
         showsAlert: showsAlert,
-        capable: capable,
         shownNumber: shownNumber,
         reachesWarn: reachesWarn,
         scaleTop: scaleTop,

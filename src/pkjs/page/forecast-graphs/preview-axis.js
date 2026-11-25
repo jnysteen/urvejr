@@ -53,14 +53,12 @@
      * samples model no pitch): 12 h a label every 2nd slot, 24 h every 3rd, a tick on each,
      * both counted from slot 0; the long span (option 48) the clock's marks, a label every
      * 6 clock hours (a full feed's 3 px pitch) and a small tick on the other 3-hour marks.
-     * The span is forecast-span-hours.js option's: every watch but emery (env.forecastSpan)
-     * draws 24 h.
      * @param {?Object} state Clay settings.
-     * @param {?Object} env computeEnv() result.
+     * @param {?Object} env Config-UI env; unused.
      * @returns {{labelEvery: number, tickEvery: number, byClock: boolean}}
      */
     function axisCadence(state, env) {
-        var span = spanHours.option(state, env);
+        var span = spanHours.storedHours(state);
         if (span === 12) { return { labelEvery: 2, tickEvery: 1, byClock: false }; }
         if (span === 48) { return { labelEvery: 6, tickEvery: 3, byClock: true }; }
         return { labelEvery: 3, tickEvery: 1, byClock: false };

@@ -1,14 +1,14 @@
 // ES5-safe polyfills for the PKJS runtime.
 //
-// aplite (Pebble Classic / Steel) runs an old JavaScriptCore that predates
-// ES6, so Object.assign and several Array.prototype methods are undefined.
-// The bundle calls Object.assign on the weather-fetch path; on aplite that
-// threw "undefined is not a function" and aborted every fetch silently.
+// The code was written for aplite's (Pebble Classic / Steel) old JavaScriptCore,
+// which predates ES6: Object.assign and several Array.prototype methods are
+// undefined there, and a call threw "undefined is not a function". The bundle
+// stays ES5 (AGENTS.md), so these polyfills stay too.
 //
 // This module installs the missing methods as a side effect of being
 // required, so requiring it FIRST in the entry file makes the whole bundle
-// ES5-safe before any other code runs. Each polyfill is guarded so modern
-// platforms (basalt/diorite/emery/flint) keep their faster native versions.
+// ES5-safe before any other code runs. Each polyfill is guarded so a modern
+// runtime keeps its faster native versions.
 // install() is also exported so tests can re-run it against a stripped-down
 // runtime.
 

@@ -9,7 +9,7 @@
 // marked `setup` (Classic, Clean, Stripes: its picker is one row, setupLooks); the others,
 // which show what else the graph can draw (the owner's asks, 2026-11-09 and 2026-11-10: better too
 // many than too few), are Add a screen's and New graph's. Each look is a full set of the graph
-// settings it governs (governed): the four lines' metrics and styles, the Main metric's fill, the
+// settings it governs (KEYS): the four lines' metrics and styles, the Main metric's fill, the
 // rain bars and their colour, every Draw from key, Day / night shading, and on emery where the
 // high and low go. Each lays its own values over the graph's defaults as the theme starts them
 // (engine themedDefaults), and each has the night shading on. Every word the page says about a
@@ -215,7 +215,7 @@
     /**
      * How a line of a look draws on this watch (HOW's ids), as the watch reads it: its style
      * (line-style.js lineStyleValue: a stripe on a metric that can't be one draws as a line),
-     * a thin line on a watch without line styles, and the Main metric's thin or thick line as a
+     * and the Main metric's thin or thick line as a
      * shaded area where the watch fills it (line-style.js mainLineFills).
      * @param {Object<string, *>} over A look's values.
      * @param {{key: string, styleKey: string}} line A line (line-style.js FORECAST_LINES).
@@ -223,9 +223,9 @@
      * @returns {string}
      */
     function howOf(over, line, env) {
-        var style = drawFrom.capable(env) ? lineStyle.lineStyleValue(over, line.styleKey) : 'line';
+        var style = lineStyle.lineStyleValue(over, line.styleKey);
         var solid = style === 'line' || style === 'bold';
-        return solid && line.key === 'secondaryLine' && lineStyle.mainLineFills(over, env) ? 'area' : style;
+        return solid && line.key === 'secondaryLine' && lineStyle.mainLineFills(over) ? 'area' : style;
     }
 
     /**
@@ -239,7 +239,7 @@
      */
     function drawnPhrases(over, env, words) {
         var groups = words.seed ? { line: words.seed.slice() } : {};
-        graphStyles.seriesOf(over, env).forEach(function (series, i) {
+        graphStyles.seriesOf(over).forEach(function (series, i) {
             if (!series) { return; }
             var how = howOf(over, lineStyle.FORECAST_LINES[i], env);
             (groups[how] = groups[how] || []).push(words.article + metrics.words(series.metric));
@@ -250,8 +250,8 @@
             if (names) { out.push(html.andList(names) + (h[words.form] || h.long)[names.length > 1 ? 1 : 0]); }
         });
         if (over[BARS] === 'rain') {
-            out.push((over[BAR_COLOR] === 'white' && env && env.color ? 'solid ' : '') + 'rain bars'
-                + (drawFrom.barsFromTop(over, 'rain', env) ? words.barsTop : ''));
+            out.push((over[BAR_COLOR] === 'white' ? 'solid ' : '') + 'rain bars'
+                + (drawFrom.barsFromTop(over, 'rain') ? words.barsTop : ''));
         }
         return out;
     }
@@ -269,8 +269,7 @@
      * What a graph draws on this watch as setup's sentence lists it (THE WORDS: SENTENCE), the last
      * phrase after ", and", the sentence's own rhythm as setup has always said it: "the temperature
      * and the UV index as lines, the rain chance as a shaded area, and solid rain bars that hang
-     * from the top". Solid bars are solid only where the watch colours them: a black-and-white
-     * watch outlines its bars.
+     * from the top".
      * @param {Object<string, *>} values A look's values, or a graph's settings.
      * @param {?Object} env Platform env.
      * @returns {string}
@@ -282,16 +281,14 @@
     }
 
     /**
-     * Where a graph puts the high and low, as a sentence after its list says it: on emery only
-     * (the 144 px watches keep the left axis in every look).
+     * Where a graph puts the high and low, as a sentence after its list says it.
      * @param {Object<string, *>} values A look's values, or a graph's settings.
-     * @param {?Object} env Platform env.
-     * @returns {string} ' The high and low go on the graph.'; '' off emery
+     * @param {?Object} env Platform env; unused.
+     * @returns {string} ' The high and low go on the graph.'
      */
     function highLowWords(values, env) {
         var numbers = forecastAxis.numbers(values);
-        return !forecastAxis.isEmery(env) ? ''
-            : numbers === forecastAxis.OFF ? ' The graph shows no high and low.'
+        return numbers === forecastAxis.OFF ? ' The graph shows no high and low.'
             : ' The high and low go ' + (numbers === forecastAxis.GRAPH ? 'on the graph.' : 'beside the axis.');
     }
 
@@ -314,31 +311,31 @@
      * The length a look starts on, or another length of its graph, as the Forecast length picker
      * names it on these settings (forecast-span-hours.js spanLabel): "24 h", or the long span by
      * the hours it shows for the user's weather service and the look's Left axis values ("66 h",
-     * "40 h" with OpenWeatherMap). On a watch with a Forecast length (emery) only.
+     * "40 h" with OpenWeatherMap).
      * @param {string} id A look's id.
      * @param {?Object} env Platform env.
      * @param {?Object} S The user's settings (the weather service and the layout).
      * @param {string} [span] A length ('12' | '24' | '48'); the look's own without.
-     * @returns {string} '' for no such look, or a watch without the length
+     * @returns {string} '' for no such look
      */
     function spanLabel(id, env, S, span) {
         var look = lookOf(id);
-        if (!look || !(env && env.forecastSpan)) { return ''; }
+        if (!look) { return ''; }
         return spanHours.spanLabel(Object.assign({}, S, look.over, { forecastHours: span || look.span }));
     }
 
     /**
      * A look's graph's lengths as the Forecast length picker names them on these settings
      * (forecast-span-hours.js spanOptions: the long span by the hours the look shows): Add a
-     * screen's Forecast length. On a watch with a Forecast length (emery) only.
+     * screen's Forecast length.
      * @param {string} id A look's id.
      * @param {?Object} env Platform env.
      * @param {?Object} S The user's settings.
-     * @returns {Array<Array<string>>} [label, value] pairs; none for no such look or watch
+     * @returns {Array<Array<string>>} [label, value] pairs; none for no such look
      */
     function lookSpanOptions(id, env, S) {
         var look = lookOf(id);
-        if (!look || !(env && env.forecastSpan)) { return []; }
+        if (!look) { return []; }
         return spanHours.spanOptions(Object.assign({}, S, look.over));
     }
 
@@ -361,20 +358,6 @@
     var FRAME_H = 128;
 
     /**
-     * The keys the looks govern on this watch: not where the high and low go off emery, nor the
-     * bars' colour on a black-and-white watch, which outlines its bars. Each is dormant there.
-     * @param {?Object} env Platform env.
-     * @returns {string[]}
-     */
-    function governed(env) {
-        return KEYS.filter(function (k) {
-            if (k === AXIS_NUMBERS) { return forecastAxis.isEmery(env); }
-            if (k === BAR_COLOR) { return Boolean(env && env.color); }
-            return true;
-        });
-    }
-
-    /**
      * One governed setting as the watch reads it from `s` ('' for one that reads nothing there).
      * @param {string} k A governed key.
      * @param {Object} s Settings.
@@ -385,7 +368,7 @@
         if (LINE_OF_STYLE[k]) {
             return lineStyle.effectiveLineMetric(s, LINE_OF_STYLE[k]) ? lineStyle.lineStyleValue(s, k) : '';
         }
-        if (FROM_KEYS.indexOf(k) !== -1) { return drawFrom.rowLine(s, k, env) ? drawFrom.value(s[k]) : ''; }
+        if (FROM_KEYS.indexOf(k) !== -1) { return drawFrom.rowLine(s, k) ? drawFrom.value(s[k]) : ''; }
         if (k === BAR_FROM) { return s[BARS] === 'rain' ? drawFrom.value(s[k]) : ''; }
         if (k === FILL) { return Boolean(s[k]); }
         if (k === AXIS_NUMBERS) { return forecastAxis.numbers(s); }
@@ -428,12 +411,12 @@
      */
     function valuesOf(look, S, env, defaults, span) {
         var out = {}, over = overAt(look, span);
-        governed(env).forEach(function (k) {
+        KEYS.forEach(function (k) {
             out[k] = Object.prototype.hasOwnProperty.call(over, k) ? over[k] : defaults[k];
         });
         var drawn = Object.assign({}, S, out);
         FROM_KEYS.forEach(function (k) {
-            if (!drawFrom.rowLine(drawn, k, env)) { delete out[k]; }
+            if (!drawFrom.rowLine(drawn, k)) { delete out[k]; }
         });
         return out;
     }
@@ -447,7 +430,7 @@
      */
     function state(S, env) {
         var values = {};
-        governed(env).forEach(function (k) { values[k] = S[k]; });
+        KEYS.forEach(function (k) { values[k] = S[k]; });
         return { values: values, span: spanOf(S) };
     }
 
@@ -553,7 +536,7 @@
      * @returns {string} SVG markup.
      */
     function previewSvg(S, env, userData, opts) {
-        var hours = spanHours.shownHours(S, env), bare = Boolean(opts && opts.bare);
+        var hours = spanHours.shownHours(S), bare = Boolean(opts && opts.bare);
         var drawn = previewForecast.forecastPreview(S, env, userData, {
             sample: forecastSample.sample(hours + 1, S.temperatureUnits), minHeight: bare ? 0 : FRAME_H, bleed: false,
             bare: bare });
@@ -574,7 +557,6 @@
         summary: summary,
         spanLabel: spanLabel,
         lookOf: lookOf,
-        governed: governed,
         same: same,
         state: state,
         looks: looks,

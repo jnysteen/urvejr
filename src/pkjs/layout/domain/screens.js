@@ -242,31 +242,14 @@
   }
 
   /**
-   * Whether this watch draws a kind at all: the radar and health blocks need the watch's
-   * radar and health (aplite has neither), bars 4 to 6 a watch that has them (env.extraBars,
-   * the Pebble Time 2). An unknown platform is capable of the rest.
-   * @param {string} k A kind.
-   * @param {?Object} env config-ui/lib/platform.js computeEnv() result.
-   * @returns {boolean}
-   */
-  function capable(k, env) {
-    var e = env || {};
-    if (k === 'radar' || k === 'radarbar') { return e.radar !== false; }
-    if (k === 'health' || k === 'healthbar') { return e.health !== false; }
-    if (VC.extraBar(k)) { return e.extraBars === true; }
-    return true;
-  }
-
-  /**
-   * Whether a kind can go onto a screen: the watch draws it (capable), and a bar 4 to 6 is
-   * made (view-cycle.js barMade: New status bar makes one).
+   * Whether a kind can go onto a screen: any but a bar 4 to 6 not yet made (view-cycle.js
+   * barMade: New status bar makes one).
    * @param {string} k A kind.
    * @param {?Object} S Settings.
-   * @param {?Object} env Platform env.
    * @returns {boolean}
    */
-  function offered(k, S, env) {
-    return capable(k, env) && (!VC.extraBar(k) || VC.barMade(S, k));
+  function offered(k, S) {
+    return !VC.extraBar(k) || VC.barMade(S, k);
   }
 
   /**
@@ -274,17 +257,16 @@
    * your bars 4 to 6 among them once made (offered). Whether the result fits the watch is
    * fits()'s question.
    * @param {Array<Object>} list A screen.
-   * @param {?Object} [env] Platform env (omitted = capable).
    * @param {?Object} [S] Settings (which bars 4 to 6 are made; omitted = none).
    * @returns {Array<string>} kinds
    */
-  function addable(list, env, S) {
+  function addable(list, S) {
     var bars = count(list, isBar);
     var graphs = count(list, isGraph);
     var topTaken = topRows(list).length > 0;
     var bot = bottom(list);
     return ADD_ORDER.filter(function (k) {
-      if (idxOf(list, k) >= 0 || !offered(k, S, env)) { return false; }
+      if (idxOf(list, k) >= 0 || !offered(k, S)) { return false; }
       if (k === 'cal') { return !topTaken; }
       if (KINDS[k].bar) { return bars < SCREEN_BARS; }
       if (KINDS[k].graph) { return graphs < 2 && (!bot || !topTaken); }
@@ -492,14 +474,13 @@
   /**
    * The slots of the screens that pass a test, the Default first.
    * @param {Object} S Settings.
-   * @param {?Object} env Platform env.
    * @param {function(Array<Object>): boolean} pred A screen's test, on its list.
-   * @param {Array<?Object>} [cycle] screensCycle(S, env), when the caller has it already.
+   * @param {Array<?Object>} [cycle] screensCycle(S), when the caller has it already.
    * @returns {number[]}
    */
-  function placesWhere(S, env, pred, cycle) {
+  function placesWhere(S, pred, cycle) {
     var out = [];
-    screensOf(S, env, cycle).forEach(function (list, i) { if (pred(list)) { out.push(i); } });
+    screensOf(S, cycle).forEach(function (list, i) { if (pred(list)) { out.push(i); } });
     return out;
   }
 
@@ -508,14 +489,13 @@
    * screens show (view-cycle.js screensCycle: a custom layout with every seat kind on, since
    * the modes follow the screens).
    * @param {Object} S Settings.
-   * @param {?Object} [env] Platform env.
-   * @param {Array<?Object>} [cycle] screensCycle(S, env), when the caller has it already.
+   * @param {Array<?Object>} [cycle] screensCycle(S), when the caller has it already.
    * @returns {Array<Array<Object>>} the screens, the Default first
    */
-  function screensOf(S, env, cycle) {
+  function screensOf(S, cycle) {
     var s = S || {};
     var custom = s.layoutPreset === 'custom';
-    return (cycle || VC.screensCycle(s, env)).map(function (spec, i) {
+    return (cycle || VC.screensCycle(s)).map(function (spec, i) {
       return listFromSpec(spec, !(custom && s['viewStripOff' + i]));
     });
   }
@@ -547,18 +527,16 @@
    *     shows (the radar is fetched for it alone); else 'off'.
    *   healthMode — 'all' when a screen shows the health graph; on a preset, 'status' when one
    *     shows the Health bar; 'slot' when a status slot of a bar a screen shows holds a
-   *     health item; else 'off' (always on a watch without health).
+   *     health item; else 'off'.
    * On a custom layout a bar is a status bar like the others (THE NAMES: a bar is what it
    * holds, not its kind), so the Radar bar alone fetches no radar and the Health bar alone
    * reads no health: what is on the shown bars decides.
    * @param {Object} S Settings.
-   * @param {?Object} [env] Platform env (omitted = capable).
    * @returns {{radarMode: string, healthMode: string}}
    */
-  function deriveModes(S, env) {
+  function deriveModes(S) {
     var s = S || {};
-    var e = env || {};
-    var cycle = VC.screensCycle(s, env);
+    var cycle = VC.screensCycle(s);
     var bars = VC.barsIn(cycle);
     var graphs = VC.graphsIn(cycle);
     var barNames = onDemand.BARS.map(function (b) { return b.bar; });
@@ -571,24 +549,22 @@
       return false;
     }
     var radarMode = 'off';
-    if (e.radar !== false && s.radarEnabled !== false) {
+    if (s.radarEnabled !== false) {
       if (graphs.radar) {
         radarMode = 'graph';
       } else if (preset && bars.radar) {
         radarMode = 'status';
-      } else if (anyShownBar(function (bar) { return onDemand.sideOf(s, bar, 'rain', env) !== null; })) {
+      } else if (anyShownBar(function (bar) { return onDemand.sideOf(s, bar, 'rain') !== null; })) {
         radarMode = 'countdown';
       }
     }
     var healthMode = 'off';
-    if (e.health !== false) {
-      if (graphs.health) {
-        healthMode = 'all';
-      } else if (preset && bars.health) {
-        healthMode = 'status';
-      } else if (anyShownBar(function (bar) { return catalog.healthSlots(s, bar, env).length > 0; })) {
-        healthMode = 'slot';
-      }
+    if (graphs.health) {
+      healthMode = 'all';
+    } else if (preset && bars.health) {
+      healthMode = 'status';
+    } else if (anyShownBar(function (bar) { return catalog.healthSlots(s, bar).length > 0; })) {
+      healthMode = 'slot';
     }
     return { radarMode: radarMode, healthMode: healthMode };
   }
@@ -628,26 +604,23 @@
    * Your status bars on this watch (YOUR STATUS BARS above), in the Status bars tab's order (on-demand.js
    * PAGE_BARS).
    * @param {?Object} S Settings.
-   * @param {?Object} env Platform env.
    * @returns {string[]} bars
    */
-  function yourBars(S, env) {
+  function yourBars(S) {
     return onDemand.PAGE_BARS.filter(function (b) {
-      return b.bar !== 'top' && offered(KIND_OF_BAR[b.bar], S, env);
+      return b.bar !== 'top' && offered(KIND_OF_BAR[b.bar], S);
     }).map(function (b) { return b.bar; });
   }
 
   /**
    * The bar New status bar makes next: the first of bars 4 to 6 not made yet.
    * @param {?Object} S Settings.
-   * @param {?Object} env Platform env.
-   * @returns {?string} 'bar4' | 'bar5' | 'bar6', null when all three are made or the watch
-   *   has none (capable)
+   * @returns {?string} 'bar4' | 'bar5' | 'bar6', null when all three are made
    */
-  function freeBar(S, env) {
+  function freeBar(S) {
     for (var i = 0; i < VC.EXTRA_BARS.length; i++) {
       var bar = VC.EXTRA_BARS[i].bar;
-      if (capable(bar, env) && !VC.barMade(S, bar)) { return bar; }
+      if (!VC.barMade(S, bar)) { return bar; }
     }
     return null;
   }
@@ -657,11 +630,10 @@
    * has room for another bar (SCREEN_BARS, as addable offers bars).
    * @param {Array<Object>} list A screen.
    * @param {?Object} S Settings.
-   * @param {?Object} env Platform env.
    * @returns {?string} 'bar4' | 'bar5' | 'bar6', null for none
    */
-  function newBarFor(list, S, env) {
-    return count(list, isBar) < SCREEN_BARS ? freeBar(S, env) : null;
+  function newBarFor(list, S) {
+    return count(list, isBar) < SCREEN_BARS ? freeBar(S) : null;
   }
 
   /**
@@ -683,18 +655,17 @@
    * so '' is stored), unless another bar was renamed to that: then a name none of your bars has
    * (freeName). Mutates S.
    * @param {Object} S Settings.
-   * @param {?Object} env Platform env.
    * @returns {?string} the bar made, null for none (all made, or a watch without them)
    */
-  function makeBar(S, env) {
-    var bar = freeBar(S, env);
+  function makeBar(S) {
+    var bar = freeBar(S);
     if (!bar) { return null; }
-    var taken = yourBars(S, env).map(function (other) { return barName(S, other); });
+    var taken = yourBars(S).map(function (other) { return barName(S, other); });
     var own = KINDS[KIND_OF_BAR[bar]].name;
     S[VC.extraBar(bar).prefix + 'Made'] = true;
     S[barNameKey(bar)] = taken.indexOf(own) === -1 ? '' : freeName(taken, own);
     catalog.lineById(bar).slots.forEach(function (key) {
-      S[key] = catalog.slotDefault(key, env);
+      S[key] = catalog.slotDefault(key);
       if (S[key + 'Countdown'] !== undefined) { S[key + 'Countdown'] = undefined; }
     });
     onDemand.SIDES.forEach(function (side) { S[onDemand.itemsKey(bar, side)] = ''; });
@@ -708,16 +679,15 @@
    * the modes out again.
    * @param {Object} S Settings.
    * @param {string} bar 'bar4' | 'bar5' | 'bar6'
-   * @param {?Object} [env] Platform env (omitted: capable).
    * @returns {?Object<string, *>} the keys it wrote with the values they had (the page's
    *   Undo puts them back), null when no made bar went
    */
-  function unmakeBar(S, bar, env) {
+  function unmakeBar(S, bar) {
     var b = VC.extraBar(bar);
     if (!b || !VC.barMade(S, bar)) { return null; }
     // Read while the bar is still made, so the screens hold its row.
     var kind = KIND_OF_BAR[bar], redone = [];
-    screensOf(S, env).forEach(function (list, i) {
+    screensOf(S).forEach(function (list, i) {
       var j = idxOf(list, kind);
       if (j >= 0) { redone.push(compileKeys(remove(list, j), i)); }
     });
@@ -768,7 +738,6 @@
     bottom: bottom,
     topRows: topRows,
     problem: problem,
-    capable: capable,
     offered: offered,
     addable: addable,
     oneFill: oneFill,

@@ -1,8 +1,3 @@
-// Every include stays ABOVE the WW_ON_DEMAND guard, on purpose: waf's dependency
-// scanner does not evaluate -D macros, so an `#include <pebble.h>` inside the guard
-// would be invisible to it and this file could compile before the generated
-// src/resource_ids.auto.h exists (night_light.c records the failure). Including a
-// header emits no code, so aplite still compiles this file to an empty object.
 #include <pebble.h>
 #include <stdio.h>
 #include <string.h>
@@ -22,8 +17,6 @@
 #include "../appendix/status_threshold.h"
 #include "../appendix/theme.h"
 #include "../services/watch_services.h"
-
-#if defined(WW_ON_DEMAND)
 
 // Glyph keys: the metric icons are their StatusIconId (to STATUS_ICON_MAX), the system
 // glyphs and Heavy rain their in-memory ids (status_icon_size.h); the rain alert's glyph is
@@ -493,4 +486,3 @@ void status_on_demand_paint(GContext *ctx, const StatusOnDemandRow *row,
     }
 }
 
-#endif

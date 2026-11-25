@@ -3,8 +3,8 @@
 // link row and the Default view note) and the item rows under it, the sheet behind every
 // row (Battery, Bluetooth, Quiet time, Sleep, Rain and the five metric alerts, each leading
 // with its Shows on grid), the alert-level cards, the eight side lists' hidden items, and
-// the pieces the other tabs show: a bar's Alerts row (Status bars tab) and the Bluetooth
-// icon's choices (aplite's Watch Status Bar). schema.js's alert slot sheets
+// the piece the other tabs show: a bar's Alerts row (Status bars tab). schema.js's alert
+// slot sheets
 // read the kinds, their contract codes and the placement leaf from here.
 // It reads the shared gates (schema-gates.js) and the level group (level-rows-schema.js),
 // never schema.js, so the dependency points one way. Plain CommonJS with an unguarded
@@ -14,8 +14,6 @@ var STATUS_THRESHOLDS = require('../../alerts/domain/status-thresholds.js');
 // On demand: the items, the side keys and their defaults (the phone's reading too).
 var ON_DEMAND = require('../../status-bars/domain/on-demand.js');
 var gates = require('../settings/schema-gates.js');
-var ON_DEMAND_WHEN = gates.ON_DEMAND_WHEN;
-var FINE_BATTERY_WHEN = gates.FINE_BATTERY_WHEN;
 var tabLink = gates.tabLink;
 var linkRow = gates.linkRow;
 var levelRowsSchema = require('./level-rows-schema.js');
@@ -119,7 +117,6 @@ function rainAlertSheet() {
     return {
         sheetOnly: true,
         sheetId: 'alertRain',
-        showWhen: ON_DEMAND_WHEN,
         title: 'Rain alert',
         // The watch shows it while rain falls now, whatever the window, and hides it while
         // the radar is snoozed for the Battery saver hours (rain_countdown.c).
@@ -245,7 +242,6 @@ function alertSheet(keyStem, title, subject, iconName, hint, coda, why) {
     return {
         sheetOnly: true,
         sheetId: key,
-        showWhen: ON_DEMAND_WHEN,
         title: title + ' alert',
         // "reaches … today": the entry fires on the highest value left today, so the
         // morning icon for an afternoon peak is by design (status-wire alertReading).
@@ -449,7 +445,7 @@ var ALERT_KINDS = [
  * ("Left" + icons, "Right" + icons; alerts-page.js onDemandBarIcons), or "None". No key and no
  * Edit button: each item's sheet on the Alerts tab places it.
  * @param {string} prefix The bar's key prefix, e.g. 'statusTop'.
- * @param {?Object} barWhen The bar's gate (RADAR_BAR_WHEN …), or null.
+ * @param {?Object} barWhen The bar's gate (a made bar 4 to 6's), or null.
  * @returns {Object} The row.
  */
 function onDemandRow(prefix, barWhen) {
@@ -457,14 +453,15 @@ function onDemandRow(prefix, barWhen) {
     ON_DEMAND.BARS.forEach(function (b) { if (b.prefix === prefix) { bar = b.bar; } });
     // A nav row: its summary shows the icons of the alerts placed on each side, and a tap
     // brings the Alerts tab, where each alert's dialog places it, to the front.
-    return {
+    var row = {
         type: 'button',
         label: 'Alerts',
         gotoTab: 'alerts',
         navNote: 'Alerts',
-        hintFrom: {resolver: 'onDemandBarIcons', args: {bar: bar, where: 'None'}},
-        showWhen: barWhen ? {all: [ON_DEMAND_WHEN, barWhen]} : ON_DEMAND_WHEN
+        hintFrom: {resolver: 'onDemandBarIcons', args: {bar: bar, where: 'None'}}
     };
+    if (barWhen) { row.showWhen = barWhen; }
+    return row;
 }
 /**
  * The eight side lists (status<Bar>OnDemand<Left|Right>Items), never drawn: the ONE item
@@ -482,33 +479,27 @@ function onDemandListsSection() {
             items.push({type: 'hidden', messageKey: key, defaultValue: ON_DEMAND.DEFAULTS[key]});
         });
     });
-    return {sheetOnly: true, sheetId: 'odLists', showWhen: ON_DEMAND_WHEN, items: items};
+    return {sheetOnly: true, sheetId: 'odLists', items: items};
 }
 /**
- * The Battery item's warn level on one platform family: a one-thumb slider in the watch's
- * charge steps (5 % on emery, which reports the charge that finely, 10 % elsewhere). The
- * two rows share the key and are gated apart; a stored 5/15/25 shows on the 10 % slider at
- * the next step up (the `single` snap-up — on-demand.js batteryLevel, what the phone sends).
- * The slider and batteryLevel agree only inside 5..30: a level outside it, which only a
- * hand-edited blob can hold, shows at the nearest bound (the slider's clamp: '31' as 30,
- * '0' on emery as 5) but is sent as 10 (batteryLevel's fallback) until the thumb moves.
- * @param {number} step 5 | 10.
- * @param {Object} showWhen The row's platform gate.
+ * The Battery item's warn level: a one-thumb slider in the watch's 5 % charge steps. A
+ * level outside 5..30, which only a hand-edited blob can hold, shows at the nearest bound
+ * (the slider's clamp) but is sent as 10 (on-demand.js batteryLevel's fallback) until the
+ * thumb moves.
  * @returns {Object} Schema item.
  */
-function batteryLevelRow(step, showWhen) {
+function batteryLevelRow() {
     return {
         type: 'range',
         single: true,
         messageKey: 'batteryLowLevel',
         label: 'Warn level',
-        min: step,
+        min: 5,
         max: ON_DEMAND.BATTERY_LEVEL_MAX,
-        step: step,
+        step: 5,
         unit: '%',
         defaultValue: ON_DEMAND.DEFAULTS.batteryLowLevel,
-        hint: 'Shows the battery icon when the battery is at or below this level.',
-        showWhen: showWhen
+        hint: 'Shows the battery icon when the battery is at or below this level.'
     };
 }
 // The end of the Battery Look's value hint: its value gives way where an alert's does (the
@@ -544,7 +535,6 @@ function batterySheet() {
     return {
         sheetOnly: true,
         sheetId: 'odBattery',
-        showWhen: ON_DEMAND_WHEN,
         title: 'Battery',
         // The stand-in rule (status_on_demand.c battery_slots): a bar that shows the
         // watch battery in any slot leaves the item out until the make-room order has
@@ -554,8 +544,7 @@ function batterySheet() {
             + 'percentage), the icon stays off that bar until that slot is hidden to make room.',
         items: showsOnRows('battery').concat([
             {type: 'subheader', text: 'Alert'},
-            batteryLevelRow(5, FINE_BATTERY_WHEN),
-            batteryLevelRow(10, {not: FINE_BATTERY_WHEN}),
+            batteryLevelRow(),
             valueLookRow('batteryLowDisplay', ON_DEMAND.DEFAULTS.batteryLowDisplay,
                 'Adds the charge after the icon, like 8%.')
         ])
@@ -563,21 +552,13 @@ function batterySheet() {
 }
 /**
  * The Bluetooth item's sheet (sheetId odBluetooth): its Shows on grid and note, when the
- * icon shows, and the vibration on disconnect. The keys are the ones the Watch Status Bar
- * held (aplite keeps its own copies of both rows there).
- *
- * Both rows carry ON_DEMAND_WHEN on the ITEM as well as the section: the engine finds a
- * key's shown copy (findShownItem: the select modal's title, a trigger's relabel) by the
- * item's own gate alone, so without it aplite's Watch Status Bar "Show icon for
- * bluetooth" picker would open under this sheet's "Show" label. Gated at item level, the
- * two copies are mutually exclusive (the tomorrowioApiKey precedent).
+ * icon shows, and the vibration on disconnect.
  * @returns {Object} Schema section (sheetOnly).
  */
 function bluetoothSheet() {
     return {
         sheetOnly: true,
         sheetId: 'odBluetooth',
-        showWhen: ON_DEMAND_WHEN,
         title: 'Bluetooth',
         intro: 'Shows the Bluetooth icon at the edge of a status bar.',
         items: showsOnRows('bt').concat([{type: 'subheader', text: 'Alert'}, {
@@ -589,24 +570,20 @@ function bluetoothSheet() {
             hintByValue: {
                 both: 'Shows the icon while connected and a crossed-out icon while disconnected.',
                 none: 'The icon never shows. Vibrate on disconnect still works.'
-            },
-            showWhen: ON_DEMAND_WHEN
+            }
         }, {
             type: 'toggle',
             messageKey: 'vibe',
             label: 'Vibrate on disconnect',
-            // ON out of the box (2.2.0), as aplite's Watch Status Bar copy: the buzz is
-            // how a lost phone link gets noticed. Fresh installs and a reset only.
+            // ON out of the box (2.2.0): the buzz is how a lost phone link gets noticed. Fresh installs and a reset only.
             defaultValue: true,
             // The watch skips the buzz while Quiet Time is on (services/disconnect_vibe.h).
             hint: 'Stays quiet during Quiet Time.',
-            joinPrevious: 'loose',
-            showWhen: ON_DEMAND_WHEN
+            joinPrevious: 'loose'
         }])
     };
 }
-// The Bluetooth icon's choices, shared by the Bluetooth sheet and aplite's Watch Status
-// Bar row.
+// The Bluetooth icon's choices.
 var BT_ICON_OPTIONS = [['Disconnected', 'disconnected'], ['Connected', 'connected'], ['Both', 'both'], ['None', 'none']];
 /**
  * A settings-less item's sheet (Quiet time, Sleep): its Shows on grid and note alone, the
@@ -622,7 +599,6 @@ function placementSheet(sheetId, title, code, intro) {
     return {
         sheetOnly: true,
         sheetId: sheetId,
-        showWhen: ON_DEMAND_WHEN,
         title: title,
         intro: intro,
         items: showsOnRows(code)
@@ -709,7 +685,6 @@ function cardSections() {
     return [{
         id: 'onDemand',
         title: 'About alerts',
-        showWhen: ON_DEMAND_WHEN,
         intro: ON_DEMAND_INTRO,
         items: [linkRow('resetOnDemand', 'Reset alert settings to defaults'), {
             // The Default view the watch runs has no Watch bar and none of the bars
@@ -725,7 +700,6 @@ function cardSections() {
     }, {
         // System info, then Weather alerts: each subheader opens a card of its own.
         id: 'onDemandItems',
-        showWhen: ON_DEMAND_WHEN,
         items: onDemandCardItems()
     }];
 }
@@ -751,7 +725,6 @@ function sheetSections() {
 module.exports = {
     ALERT_KINDS: ALERT_KINDS,
     ALERT_DAYS_OPTIONS: ALERT_DAYS_OPTIONS,
-    BT_ICON_OPTIONS: BT_ICON_OPTIONS,
     alertCodeOf: alertCodeOf,
     onDemandPlacedWhen: onDemandPlacedWhen,
     onDemandRow: onDemandRow,

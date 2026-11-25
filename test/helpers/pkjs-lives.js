@@ -37,7 +37,7 @@ function healthyNetwork(url, aqi) {
 /**
  * A fresh phone store holding the given Clay settings over the harness base
  * (manual Berlin coordinates, Open-Meteo, radar off, 15-minute refresh, battery
- * saver off), with the daily update check and the day-change Clay resend kept
+ * saver off), with the day-change Clay resend kept
  * quiet.
  *
  * @param {Object} [settings] Clay settings overrides.
@@ -50,7 +50,6 @@ function freshStore(settings) {
     sleepNightEnabled: false,
   }, settings || {}));
   const d = new Date(HARNESS_NOW);
-  store.last_update_check = String(HARNESS_NOW);
   store.last_holiday_day = d.getFullYear() + '-' + d.getMonth() + '-' + d.getDate();
   return store;
 }

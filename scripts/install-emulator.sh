@@ -3,7 +3,7 @@
 set -euo pipefail
 
 profile="dev"
-emulator="${PEBBLE_EMULATOR:-basalt}"
+emulator="${PEBBLE_EMULATOR:-emery}"
 install_args=()
 
 if [[ "${1:-}" == "release" || "${1:-}" == "dev" ]]; then
@@ -29,7 +29,7 @@ while (($#)); do
       emulator="${1#*=}"
       shift
       ;;
-    aplite|basalt|diorite|emery|flint)
+    emery)
       emulator="$1"
       shift
       ;;
@@ -42,10 +42,10 @@ done
 
 if [[ "$profile" == "dev" ]]; then
   mise run build -- dev
-  pbw_path="build/warnweather-dev.pbw"
+  pbw_path="build/urvejr-dev.pbw"
 else
   mise run build -- release
-  pbw_path="build/warnweather.pbw"
+  pbw_path="build/urvejr.pbw"
 fi
 
 if ((${#install_args[@]})); then

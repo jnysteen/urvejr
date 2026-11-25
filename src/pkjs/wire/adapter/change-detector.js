@@ -5,8 +5,8 @@
  * plug in alignment-aware logic without the detector knowing radar's wire shape.
  *
  * The result object is the single source for everything downstream in the
- * outbox: the outgoing AppMessage (changed subsets), the ACK-time cache writes
- * (changed {cacheKey, serialized}), and the dev-stats event descriptor.
+ * outbox: the outgoing AppMessage (changed subsets) and the ACK-time cache writes
+ * (changed {cacheKey, serialized}).
  */
 
 /**

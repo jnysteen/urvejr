@@ -1,7 +1,7 @@
 # Weather plugins
 
 These are weather plugins for the Pebble app's plugin system. They are built and released
-separately from the WarnWeather watchface. Each one is a plugin-only pbw (no watch binary) that
+separately from the urvejr watchface. Each one is a plugin-only pbw (no watch binary) that
 answers `weather/location` for any watchface or watchapp, for the Pebble app's own weather
 (Settings > Weather > Weather provider) and for Index.
 

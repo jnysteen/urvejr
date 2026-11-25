@@ -7,8 +7,7 @@
 // every host the code requests must be declared, and every URL in the code that is NOT a request (a
 // link in a hint, a source comment, a header value) is named below with why. A new URL fails
 // here until it is one or the other. (Buy Me a Coffee, only linked, is declared all the same: the
-// owner's, 2026-11-14.) scripts/lib/uses-permissions.js adds the build-injected
-// endpoints' hosts (telemetry, the Rainbow proxy, news) at build time, as an entry of their own.
+// owner's, 2026-11-14.)
 const test = require('node:test');
 const assert = require('node:assert');
 const fs = require('fs');
@@ -34,9 +33,8 @@ const NOT_REQUESTED = {
   'creativecommons.org': 'the CC BY 4.0 licence link in Setup › Privacy & data sources',
   'openweathermap.org': 'the OpenWeatherMap signup and plan links',
   'yandex.com': 'the Yandex Weather API key link',
-  'apps.repebble.com': 'the store listing link in the news panel',
   'github.com': 'the issues links, and the User-Agent and Origin values met.no asks for',
-  'toasbi.github.io': 'the emulator\'s settings page helper, opened with Pebble.openURL under the emulator only',
+  'jnysteen.github.io': 'the emulator\'s settings page helper, opened with Pebble.openURL under the emulator only',
   'developer.repebble.com': 'a source comment',
   'tabler.io': 'the icons\' attribution comment',
   'www.w3.org': 'the XLink namespace',
@@ -79,7 +77,7 @@ const uses = pebble.usesPermissions || [];
 const domains = perms.declaredDomains(uses);
 // The permissions this app declares. Names the phone app knows (its PermissionRegistry; Health is
 // not enforced yet, and declared anyway as the docs ask).
-const NAMES = ['Health', 'Internet', 'Location', 'ShowNotifications'];
+const NAMES = ['Health', 'Internet', 'Location'];
 
 /**
  * The Internet entry that lists `domain`.
@@ -140,12 +138,10 @@ test('every declared domain is one the code requests (or, Buy Me a Coffee, links
 
 // Required (the owner's, 2026-11-13 and 2026-11-14): every weather service the app can fetch
 // from (the forecast and radar services, keyed or not, air quality, DWD pollen), the town's name
-// and the settings' place search, the public holidays (Nager.Date), Buy Me a Coffee and the app's
-// own backend (the build adds its entry, required). Installing then waits for an answer on all of
+// and the settings' place search, the public holidays (Nager.Date) and Buy Me a Coffee. Installing then waits for an answer on all of
 // them, so switching services or opening settings never meets a first request that fails while
 // the phone asks; a "no" is an answer too, and the install goes on. Optional, asked about when
-// first used: LocationIQ (only a typed Manual location uses it), the update check, notifications
-// and Health.
+// first used: LocationIQ (only a typed Manual location uses it) and Health.
 test('every weather service, place name, holidays and Buy Me a Coffee are required; the rest is not', () => {
   ['api.weather.com', 'www.wunderground.com', 'api.open-meteo.com', 'api.met.no', 'api.brightsky.dev',
     'api.openweathermap.org', 'api.tomorrow.io', 'api.weather.yandex.ru', 'api.rainbow.ai',
@@ -153,11 +149,9 @@ test('every weather service, place name, holidays and Buy Me a Coffee are requir
     'geocode.arcgis.com', 'geocoding-api.open-meteo.com', 'date.nager.at', 'buymeacoffee.com'].forEach((d) => {
     assert.equal(entryOf(d).required, true, d + ' is required');
   });
-  ['us1.locationiq.com', 'appstore-api.repebble.com', 'appstore-api.rebble.io'].forEach((d) => {
-    assert.equal(entryOf(d).required, false, d + ' is optional');
-  });
+  assert.equal(entryOf('us1.locationiq.com').required, false, 'LocationIQ is optional');
   assert.equal(uses.find((p) => p.name === 'Location').required, true, 'the forecast is for where you are');
-  ['ShowNotifications', 'Health'].forEach((n) => assert.equal(uses.find((p) => p.name === n).required, false, n));
+  assert.equal(uses.find((p) => p.name === 'Health').required, false, 'Health');
 });
 
 // The phone lists each domain as a row of its own ("Connect to <domain>"), its entry's reason under
@@ -178,48 +172,15 @@ test('each service has an entry of its own, whose reason names it', () => {
     assert.deepEqual(entry.parameters.domains, [d], d + ' has an entry of its own');
     assert.ok(entry.reason.indexOf(NAMED[d]) !== -1, d + ': "' + entry.reason + '" names ' + NAMED[d]);
   });
-  // The two app stores are one service, the update check.
-  assert.deepEqual(entryOf('appstore-api.rebble.io').parameters.domains, ['appstore-api.rebble.io', 'appstore-api.repebble.com']);
-  domains.forEach((d) => assert.ok(NAMED[d] || /^appstore-api\./.test(d), d + ': name its service here'));
+  domains.forEach((d) => assert.ok(NAMED[d], d + ': name its service here'));
 });
 
-// Pebble app 1.18.0: Pebble.showSimpleNotificationOnPebble needs ShowNotifications, or the phone drops
-// the notification; navigator.geolocation needs Location.
-test('ShowNotifications and Location are declared because the code uses them', () => {
+// Pebble app 1.18.0: navigator.geolocation needs Location. Nothing shows a notification on the
+// watch, so ShowNotifications is not asked for.
+test('Location is declared because the code uses it, ShowNotifications is not', () => {
   const code = sources().map((f) => fs.readFileSync(f, 'utf8')).join('\n');
-  assert.match(code, /showSimpleNotificationOnPebble/, 'premise: the code shows notifications on the watch');
-  assert.ok(uses.some((p) => p.name === 'ShowNotifications'), 'ShowNotifications is declared');
+  assert.doesNotMatch(code, /showSimpleNotificationOnPebble/, 'premise: no notifications on the watch');
+  assert.ok(!uses.some((p) => p.name === 'ShowNotifications'), 'ShowNotifications is not declared');
   assert.match(code, /navigator\.geolocation/, 'premise: the code asks for the location');
   assert.ok(uses.some((p) => p.name === 'Location'), 'Location is declared');
-});
-
-test('the build adds the injected endpoints\' hosts as a required entry of their own, once', () => {
-  const pkg = { usesPermissions: [{ name: 'Location', reason: 'To x', required: true },
-    { name: 'Internet', parameters: { domains: ['api.met.no'] }, reason: 'To a', required: true },
-    { name: 'Internet', parameters: { domains: ['date.nager.at'] }, reason: 'To b', required: false }] };
-  const added = perms.addEndpointHosts(pkg, ['https://abc.supabase.co/functions/v1/telemetry-ingest',
-    'https://abc.supabase.co/functions/v1/rainbow-nowcast', '', 'https://api.met.no/x']);
-  assert.deepEqual(added, ['abc.supabase.co']);
-  assert.deepEqual(pkg.usesPermissions[2], { name: 'Internet', parameters: { domains: ['abc.supabase.co'] },
-    reason: perms.ENDPOINTS_REASON, required: true }, 'after the last required Internet entry');
-  assert.equal(pkg.usesPermissions.length, 4);
-  assert.deepEqual(perms.addEndpointHosts(pkg, ['https://abc.supabase.co/functions/v1/news']), [],
-    'a host already declared adds nothing');
-  // An optional entry covering the host leaves it to a question the user may decline: the app's
-  // own backend still gets its required entry.
-  const optional = { usesPermissions: [{ name: 'Internet', parameters: { domains: ['api.met.no'] }, reason: 'To a', required: true },
-    { name: 'Internet', parameters: { domains: ['supabase.co'] }, reason: 'To b', required: false }] };
-  assert.deepEqual(perms.addEndpointHosts(optional, ['https://abc.supabase.co/functions/v1/news']), ['abc.supabase.co']);
-  assert.equal(optional.usesPermissions[1].required, true, 'its own required entry, after the required one');
-  // A dev build without the endpoints adds no entry: one without domains would reach every site.
-  const dev = { usesPermissions: [{ name: 'Internet', parameters: { domains: ['api.met.no'] }, reason: 'To a', required: true }] };
-  assert.deepEqual(perms.addEndpointHosts(dev, ['', '', '']), []);
-  assert.equal(dev.usesPermissions.length, 1);
-  assert.throws(() => perms.addEndpointHosts({ usesPermissions: [{ name: 'Location' }] }, ['https://x.y']), /no Internet permission/);
-  assert.equal(perms.hostOf('HTTPS://Abc.Supabase.co:443/f'), 'abc.supabase.co');
-  assert.equal(perms.hostOf(''), null);
-  assert.match(perms.ENDPOINTS_REASON, /^WarnWeather server: /, 'the label names the server');
-  const script = fs.readFileSync(path.join(ROOT, 'scripts/prepare-package.sh'), 'utf8');
-  assert.match(script, /addEndpointHosts\(pkg\.pebble,\s*\[telemetryEndpoint, rainbowEndpoint, newsEndpoint\]\)/,
-    'prepare-package.sh passes all three endpoints');
 });

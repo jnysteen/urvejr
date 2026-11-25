@@ -36,7 +36,7 @@
      * up (status_icon_size.h status_icon_drawing): the box's own, else the icon's for the tallest
      * smaller box.
      * @param {string} key The icon's key (status-pixels ids).
-     * @param {string} family 'basalt' (the 144 px watches) or 'emery'.
+     * @param {string} family 'emery'.
      * @param {number} box The rows the bar's icon height paints.
      * @returns {?{w: number, rows: !Array<number>}} The drawing; null for none.
      */

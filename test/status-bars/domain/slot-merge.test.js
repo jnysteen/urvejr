@@ -6,8 +6,7 @@
 // mergedAlert) and the watch draws the slot at the alert's level, its item only where
 // the slot hides (src/c/appendix/alert_set.c alert_set_merge, test/c/alert_set_test.c
 // and test/c/on_demand_merge_test.c). The middle slot and the far side never merge,
-// Wind speed never takes a gust alert, and a watch the entries do not ride to (aplite)
-// bakes exactly as before.
+// Wind speed never takes a gust alert.
 const test = require('node:test');
 const { bakeEnv } = require('../../../src/pkjs/status-bars/domain/status-lines.js');
 const assert = require('node:assert/strict');
@@ -87,8 +86,6 @@ test('with no reading of its own, or no room for the pair, the slot shows the al
 
 // --- the bake: status-lines.js -------------------------------------------------------
 
-const BASALT = { platform: 'basalt' };
-const APLITE = { platform: 'aplite' };
 
 // Decode one packed line into its three slots' texts (the wind arrow's trailing
 // control byte kept as a code point).
@@ -106,7 +103,7 @@ function texts(bytes) {
 // The Watch Status Bar's slots after a bake.
 function topTexts(payload, settings, watch) {
   const p = Object.assign({}, payload);
-  statusLines.buildStatusLines(p, settings, watch || BASALT, BAKE_TIME);
+  statusLines.buildStatusLines(p, settings, BAKE_TIME);
   const line = catalog.LINES.filter((l) => l.id === 'top')[0];
   return { slots: texts(p[line.wireKey]).map(utf8), entries: p.ALERT_ENTRIES_UINT8 };
 }
@@ -209,20 +206,11 @@ test('a slot with no reading of its own draws no wind arrow beside a merged valu
     topSettings('empty', 'empty', 'gust', S)).slots, ['', '', '40/90\x05']);
 });
 
-test('a watch the entries do not ride to bakes its slots exactly as before', () => {
-  const right = placeOn(Object.assign({ alertUvDisplay: 'value' }, NOTHING_PLACED),
-    'top', 'right', 'uv');
-  const out = topTexts(UV, topSettings('empty', 'empty', 'uv', right), APLITE);
-  assert.deepEqual(out.slots, ['', '', '3']);
-  assert.equal(out.entries, undefined);
-});
-
 // Random sweep: on a watch the entries ride to, every slot that is not an edge slot
 // showing the metric of an alert on its side bakes byte for byte what it bakes with no
-// alert at all; on aplite every slot does.
+// alert at all.
 test('slots without such a pair bake byte for byte as with no alert at all', () => {
   const OD = require('../../../src/pkjs/status-bars/domain/on-demand.js');
-  const platform = require('../../../src/pkjs/config-ui/lib/platform.js');
   const codes = ['empty', 'temp', 'uv', 'wind', 'gust', 'aqi', 'pollen', 'city', 'dew', 'pressure'];
   const alerts = ['gust', 'uv', 'aqi', 'pollen', 'wind'];
   let seed = 7;
@@ -257,17 +245,16 @@ test('slots without such a pair bake byte for byte as with no alert at all', () 
       AQI_TREND: [rnd(150)], AQI_DAY_PEAKS: [rnd(160), rnd(160), 0],
       POLLEN_TODAY: ['0', '1', '1-2', '2-3', '3'][rnd(5)], POLLEN_TOMORROW: ['1', '2', '3'][rnd(3)]
     };
-    [BASALT, APLITE].forEach((watch) => {
-      const env = platform.computeEnv(watch);
-      env.phoneBattery = false;
-      const baked = env.thresholds ? wire.bakedAlerts(payload, S) : null;
+    {
+      const env = { phoneBattery: false };
+      const baked = wire.bakedAlerts(payload, S);
       catalog.LINES.forEach((line) => {
         const withAlerts = texts(statusLines.packLine(line, payload, S, env, baked, bakeEnv(BAKE_TIME)));
         const without = texts(statusLines.packLine(line, payload, S, env, null, bakeEnv(BAKE_TIME)));
         for (let s = 0; s < 3; s++) {
           const code = S[line.slots[s]];
           const paired = Boolean(baked) && s !== 1 && baked.some((a) => a.code === code)
-            && OD.sideOf(S, line.id, code, env) === (s ? 'right' : 'left');
+            && OD.sideOf(S, line.id, code) === (s ? 'right' : 'left');
           if (!paired) {
             assert.equal(withAlerts[s], without[s], JSON.stringify({ trial, line: line.id, s }));
           } else if (withAlerts[s] !== without[s]) {
@@ -275,7 +262,7 @@ test('slots without such a pair bake byte for byte as with no alert at all', () 
           }
         }
       });
-    });
+    }
   }
   assert.ok(merged > 100, 'the sweep merges slots too: ' + merged);
 });

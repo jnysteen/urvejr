@@ -7,11 +7,6 @@
 // draws is status_threshold_look()'s call; this is HOW, so a slot and the alert icon
 // of its kind cannot look different at the same level. The frames stay the callers':
 // a slot's box hugs its measured icon + text, an item's box is its whole footprint.
-//
-// NOT LINKED ON APLITE: aplite paints its rows from the lean status_row_aplite.c twin,
-// which carries no highlighting, and has no On demand. The .c body sits behind
-// WW_THRESHOLD_HIGHLIGHT (wscript) and compiles to an empty object there; these
-// declarations emit nothing.
 
 // Paint `look`'s box over `frame`: a rounded-rect outline in the look's accent, filled
 // first for THRESH_BOX_FILL; nothing for THRESH_BOX_NONE. Returns the ink the cell's

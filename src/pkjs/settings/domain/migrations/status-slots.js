@@ -4,11 +4,8 @@
 // run(blob, ctx) -> {changed, send}, mutating the blob in place; the runner in
 // clay-migrations.js owns the marker, the save and the send.
 
-var platformLib = require('../../../config-ui/lib/platform.js');   // isHrPlatform (emery + diorite)
-
 /**
- * Upgrade the seeded health-line defaults to the HR-capable triple (emery +
- * diorite) (steps/sleep/hr). Only rewrites slots still holding the static
+ * Upgrade the seeded health-line defaults to the HR-capable triple (steps/sleep/hr). Only rewrites slots still holding the static
  * defaults, so a user's explicit choice is never clobbered.
  *
  * @param {Object} blob Stored settings, mutated in place.
@@ -16,8 +13,7 @@ var platformLib = require('../../../config-ui/lib/platform.js');   // isHrPlatfo
  * @returns {{changed: boolean, send: boolean}}
  */
 function migrateStatusLineHealthDefaults(blob, ctx) {
-    if (!platformLib.isHrPlatform(ctx.platform)
-            || blob.statusHealthLeft !== 'steps'
+    if (blob.statusHealthLeft !== 'steps'
             || blob.statusHealthMid !== 'empty'
             || blob.statusHealthRight !== 'sleep') {
         return { changed: false, send: false };
@@ -46,13 +42,10 @@ function migrateStatusTopRightBattery(blob) {
     return { changed: true, send: false };
 }
 
-// The slots whose default 3.0.0 changed, each with the default it had before, per display
-// (status-line-catalog.js: the Forecast bar's right-hand slot everywhere; the top row's
-// right-hand corner on emery and its left slot on the narrow watches).
-var SLOT_DEFAULTS_BEFORE_2_7 = {
-    emery: { statusForecastRight: 'aqi', statusTopRight: 'sun' },
-    narrow: { statusForecastRight: 'aqi', statusTopLeft: 'empty' }
-};
+// The slots whose default 3.0.0 changed, each with the default it had before
+// (status-line-catalog.js: the Forecast bar's right-hand slot and the top row's right-hand
+// corner).
+var SLOT_DEFAULTS_BEFORE_2_7 = { statusForecastRight: 'aqi', statusTopRight: 'sun' };
 
 /**
  * 3.0.0 swapped air quality and sunrise/sunset between the Forecast bar and the top row
@@ -61,21 +54,18 @@ var SLOT_DEFAULTS_BEFORE_2_7 = {
  * slot's default, and the new defaults would move an upgrader's readings. This writes the
  * old default into each changed slot an existing install leaves unset: a changed default
  * is for a fresh install and a reset (clay-settings.js upgradeBackfill). A stored pick
- * stays. On a watch that did not say its platform only the Forecast bar's slot is
- * written: its old default was the same on every watch, the top row's was not.
+ * stays.
  *
  * @param {Object} blob Stored settings, mutated in place.
- * @param {{knownPlatform: string, hadExistingInstall: boolean}} ctx Runner context.
+ * @param {{hadExistingInstall: boolean}} ctx Runner context.
  * @returns {{changed: boolean, send: boolean}}
  */
 function keepSlotDefaults27(blob, ctx) {
     if (!ctx || !ctx.hadExistingInstall) { return { changed: false, send: false }; }
-    var platform = ctx.knownPlatform || '';
-    var before = SLOT_DEFAULTS_BEFORE_2_7[platform === 'emery' ? 'emery' : 'narrow'];
+    var before = SLOT_DEFAULTS_BEFORE_2_7;
     var changed = false;
     Object.keys(before).forEach(function (key) {
         if (Object.prototype.hasOwnProperty.call(blob, key)) { return; }
-        if (!platform && key !== 'statusForecastRight') { return; }
         blob[key] = before[key];
         changed = true;
     });

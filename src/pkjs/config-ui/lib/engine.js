@@ -1250,8 +1250,8 @@ var PConf = (typeof PConf !== 'undefined') ? PConf
     if (!cx.openEdit) { return ''; }
     var sec = findSheetSection(schema, cx.openEdit);
     if (!sec) { return ''; }
-    // The sheet honors its section gate even when forced open — on aplite
-    // (env.thresholds false) it must stay empty regardless of how it was opened.
+    // The sheet honors its section gate even when forced open: a hidden sheet stays empty
+    // however it was opened.
     if (sec.showWhen && !PConf.showWhen.isVisible(sec, cx.evalCtx)) { return ''; }
     var cards = buildCards(sec, cx, 'dlg:' + cx.openEdit, true);
     var body = cards.map(function (c) { return c.html; }).join('');
@@ -2207,10 +2207,9 @@ var PConf = (typeof PConf !== 'undefined') ? PConf
   // `more` rows render in place and the intro shows. A standalone section renders through
   // buildCards instead.
   function buildSectionBody(sec, cx) {
-    // A section may carry its own showWhen, for a whole feature card that a platform
-    // cannot render (e.g. threshold highlighting on aplite). Reporting it as empty is
-    // enough for both callers to drop it — card, sub-header, intro and all — without
-    // duplicating the rule. Item-level showWhen/capabilities still apply inside.
+    // A section may carry its own showWhen, for a whole feature card. Reporting it as
+    // empty is enough for both callers to drop it — card, sub-header, intro and all —
+    // without duplicating the rule. Item-level showWhen still applies inside.
     if (sec.showWhen && !PConf.showWhen.isVisible(sec, cx.evalCtx)) {
       return { body: '', isEmpty: true };
     }

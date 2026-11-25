@@ -2,15 +2,9 @@
 #include <pebble.h>
 #include "c/appendix/chart.h"
 #include "c/appendix/series.h"
-#include "c/appendix/display_width.h"
 
-#if defined(DISPLAY_WIDTH_200)
     #define FORECAST_GRID_BAR_W 5
     #define FORECAST_GRID_PAD   1
-#elif defined(DISPLAY_WIDTH_144)
-    #define FORECAST_GRID_BAR_W 4
-    #define FORECAST_GRID_PAD   1
-#endif
 
 extern const ChartDef FORECAST_GRID_DEF;
 
@@ -21,7 +15,6 @@ void forecast_grid_fill_axis_slots(ChartAxisSlot *slots, int num_slots,
                                    int origin_x, int pitch, int visible_w,
                                    const struct tm *start_local);
 
-#if defined(PBL_PLATFORM_EMERY)
 // emery: the forecast's grid for its span (forecast_span.h): FORECAST_GRID_DEF's for the 24 h
 // class (itself up to 24 hours), the 12 h / long grids otherwise. The health graph keeps
 // FORECAST_GRID_DEF.
@@ -34,4 +27,3 @@ ChartDef forecast_grid_def_for(ForecastSpan span);
 // (forecast_span_label_fits; `large`: the hour labels' GOTHIC_18, Larger graph fonts).
 void forecast_grid_fill_axis_span(ChartAxisSlot *slots, ForecastSpan span, time_t start,
                                   int x0, int left, int right, bool large, bool skip_first);
-#endif

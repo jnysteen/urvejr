@@ -1,6 +1,5 @@
 #include "clock_glyphs.h"
 
-#if defined(PBL_COLOR)
 
 #include "c/appendix/config.h"      // TimeFont
 #include "c/appendix/theme.h"       // theme_is_bw
@@ -73,7 +72,7 @@ void clock_glyphs_draw(GContext *ctx, int16_t time_font, const char *text, GPoin
         if (i < 0) { continue; }
         const ClockGlyph *g = &face->glyphs[i];
         // One glyph at a time, freed before the next loads: the heap holds at most one glyph
-        // (basalt's widest is 0.3 KB) rather than the face's whole set. A glyph that fails to
+        // rather than the face's whole set. A glyph that fails to
         // load ends this frame's digits there: skipping it alone could leave a narrower glyph
         // after it to load and show a wrong time ("21:11" as " 1:11"), while a cut-short
         // H:MM / HH:MM always lacks its last minute digit, so it never reads as a whole time.
@@ -102,4 +101,3 @@ void clock_glyphs_draw(GContext *ctx, int16_t time_font, const char *text, GPoin
     graphics_context_set_compositing_mode(ctx, GCompOpAssign);
 }
 
-#endif   /* PBL_COLOR — the B/W platforms keep the 1-bit system fonts */

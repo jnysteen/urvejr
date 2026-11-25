@@ -1,7 +1,7 @@
-// src/pkjs/forecast-graphs/domain/forecast-axis.js — ES5. The forecast graph's left axis options (emery only;
+// src/pkjs/forecast-graphs/domain/forecast-axis.js — ES5. The forecast graph's left axis options (
 // Graphs > Forecast > a graph > Left axis): THE one reading of the two settings, for the wire
 // (clay-payload.js graphOptionsWord), the bake (forecast-series.js: the numbers' values), the
-// hours sent (forecast-span.js: 24 h on the whole screen), the render signature, telemetry,
+// hours sent (forecast-span.js: 24 h on the whole screen), the render signature,
 // the settings page's gate (when-resolvers.js tempAxisLineDrawn) and the forecast preview, so
 // they can never disagree.
 //
@@ -30,16 +30,9 @@
 // the wire bits stay canonical (all zero exactly when the graph is today's) and a dormant flip
 // resends nothing.
 //
-// THE WATCH. emery only. The wire bits ride the CLAY_LARGE_GRAPH_FONT int (bit 0 Larger graph
-// fonts, bits 2, 3 and 5 these; src/c/appendix/config.h GRAPH_OPT_*), which only emery's C
-// reads. The 144 px watches keep the left axis (the owner's call, 2026-11-07): emery's numbers
-// On graph (forecast_numbers.h and its callers) measured 2144 B of basalt's 64 KB image, and
-// basalt's lowest free heap would fall from about 5.0 KB to 2.8 KB, under its 4.5 KB gate
-// (scripts/check-64k-size.sh). Porting them waits for that much image to be reclaimed there. Bits 1 and 4 (the betas' axis line off and outline off) are retired, reserved and
-// never sent. An UNKNOWN platform (no watchInfo) is capable, as everywhere on the Clay message,
-// so a watchInfo hiccup cannot reset an emery's options; a KNOWN non-emery watch is sent
-// nothing of this. The scale bake (TEMP_MIN / TEMP_MAX) and the 24 h span's 26 hours change
-// only for a KNOWN emery: every platform prints those keys.
+// THE WATCH. The wire bits ride the CLAY_LARGE_GRAPH_FONT int (bit 0 Larger graph fonts, bits
+// 2, 3 and 5 these; src/c/appendix/config.h GRAPH_OPT_*). Bits 1 and 4 (the betas' axis line
+// off and outline off) are retired, reserved and never sent.
 //
 // Dual-context: a CommonJS module on the phone and in the tests, a plain concatenated
 // <script> in the settings-page webview (scripts/build-config-page.js' APP_FILES, after
@@ -95,90 +88,52 @@
     }
 
     /**
-     * Whether the watch is a KNOWN emery (the bake's and the settings page's test).
-     * @param {?Object} env config-ui/lib/platform.js computeEnv() result.
-     * @returns {boolean}
-     */
-    function isEmery(env) {
-        return Boolean(env) && env.platform === 'emery';
-    }
-
-    /**
-     * Whether the Clay word carries the options: emery, or an unknown platform (capable, the
-     * Clay message's rule). False for a KNOWN non-emery watch.
-     * @param {?Object} env config-ui/lib/platform.js computeEnv() result.
-     * @returns {boolean}
-     */
-    function carried(env) {
-        return !env || !env.platform || env.platform === 'emery';
-    }
-
-    /**
      * Whether a feels-like or dew point line is drawn: one of the forecast lines draws a
-     * temperature-axis metric (line-style.js firstDrawnLine). The Third and Fourth metric
-     * lines (fourthLine / fifthLine) count only where the watch draws them (env.lineStyles,
-     * read truthy as when-resolvers.js hostLine reads it), so the settings gate, the wire and
-     * the preview agree.
+     * temperature-axis metric (line-style.js firstDrawnLine), so the settings gate, the wire
+     * and the preview agree.
      * @param {?Object} s Clay settings.
-     * @param {?Object} env computeEnv() result (only its lineStyles is read).
      * @returns {boolean}
      */
-    function tempAxisLineDrawn(s, env) {
-        return lineStyle.firstDrawnLine(s, Boolean(env && env.lineStyles),
-            lineStyle.isTempAxisMetric) !== null;
+    function tempAxisLineDrawn(s) {
+        return lineStyle.firstDrawnLine(s, lineStyle.isTempAxisMetric) !== null;
     }
 
     /**
-     * The options as drawn, dormant values read as their defaults; every option at its
-     * default when `on` is false.
+     * The options as drawn, dormant values read as their defaults (the wire's and the settings
+     * preview's reading).
      * @param {?Object} s Clay settings.
-     * @param {?Object} env computeEnv() result.
-     * @param {boolean} on Whether the options apply at all.
      * @returns {{numbers: string, scale: boolean}}
      */
-    function effective(s, env, on) {
-        var nums = on ? numbers(s) : AXIS;
+    function resolved(s) {
+        var nums = numbers(s);
         return {
             numbers: nums,
-            scale: on && nums !== OFF && scale(s) && tempAxisLineDrawn(s, env)
+            scale: nums !== OFF && scale(s) && tempAxisLineDrawn(s)
         };
     }
 
     /**
-     * The options this watch draws: the stored ones on a known emery, else the defaults (the
-     * settings preview's reading).
-     * @param {?Object} s Clay settings.
-     * @param {?Object} env computeEnv() result.
-     * @returns {{numbers: string, scale: boolean}}
-     */
-    function resolved(s, env) {
-        return effective(s, env, isEmery(env));
-    }
-
-    /**
      * The options' bits of the CLAY_LARGE_GRAPH_FONT word (never bit 0 or a retired bit:
-     * within 0x2C): 0 exactly when the graph is today's, and for a known non-emery watch.
+     * within 0x2C): 0 exactly when the graph is today's.
      * @param {?Object} s Clay settings.
-     * @param {?Object} env computeEnv() result.
      * @returns {number}
      */
-    function wireBits(s, env) {
-        var a = effective(s, env, carried(env));
+    function wireBits(s) {
+        var a = resolved(s);
         return (a.numbers === GRAPH ? BIT.NUMS_GRAPH : 0)
             | (a.numbers === OFF ? BIT.NUMS_OFF : 0)
             | (a.scale ? BIT.SCALE : 0);
     }
 
     /**
-     * Whether the bake puts the temperature scale's ends in TEMP_MIN / TEMP_MAX: a known emery
-     * with the scale stored on. Deliberately blind to the numbers and the lines: with no line
+     * Whether the bake puts the temperature scale's ends in TEMP_MIN / TEMP_MAX: the scale
+     * stored on. Deliberately blind to the numbers and the lines: with no line
      * drawn the scale's ends are the air's, and a numbers flip never re-bakes them.
      * @param {?Object} s Clay settings.
-     * @param {?Object} env computeEnv() result.
      * @returns {boolean}
      */
-    function bakesScale(s, env) {
-        return isEmery(env) && scale(s);
+    function bakesScale(s) {
+        return scale(s);
     }
 
     /**
@@ -189,7 +144,7 @@
      * @returns {string} '' or 'scale'.
      */
     function signature(s) {
-        return (scale(s) && tempAxisLineDrawn(s, { lineStyles: true })) ? 'scale' : '';
+        return (scale(s) && tempAxisLineDrawn(s)) ? 'scale' : '';
     }
 
     var api = {
@@ -203,8 +158,6 @@
         AXIS_MASK: AXIS_MASK,
         numbers: numbers,
         scale: scale,
-        isEmery: isEmery,
-        carried: carried,
         tempAxisLineDrawn: tempAxisLineDrawn,
         resolved: resolved,
         wireBits: wireBits,

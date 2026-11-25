@@ -313,10 +313,9 @@ function openSetup(over) {
   const o = over || {};
   const engine = require('../../src/pkjs/config-ui/lib/engine.js');
   const schema = require('../../src/pkjs/page/settings/schema.js');
-  const platform = require('../../src/pkjs/config-ui/lib/platform.js');
   const finish = require('../../src/pkjs/page/settings/wizard/wizard-finish.js');
   const dom = fakeWizardDom();
-  const ENV = platform.computeEnv({ platform: o.platform || 'basalt' });
+  const ENV = {};
   const calls = { save: 0, render: 0 };
   const cfg = o.fresh ? {} : { onboardingDone: true };
   const ctx = {

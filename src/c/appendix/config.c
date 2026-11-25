@@ -23,14 +23,9 @@ static Config config_defaults(void) {
         .axis_12h = false,
         .start_mon = true,
         .prev_week = true,
-        .show_qt = true,
         .show_bt = false,
         .show_bt_disconnect = true,
-        // false although the phone ships Vibrate on disconnect ON since 2.2.0: this default only
-        // covers a fresh install until its first Clay message (seconds), which carries the
-        // phone's seeded true, and storing a nonzero constant here costs 4 B of image on the
-        // 64 KB watches, which sit at their ceilings (scripts/check-64k-size.sh).
-        .vibe = false,
+        .vibe = true,   // the phone's default, until its first Clay message
         .show_am_pm = false,
         .time_font = TIME_FONT_ROBOTO,
         .color_today = GColorBlack,
@@ -54,17 +49,13 @@ static Config config_defaults(void) {
         // only covers the first boot / a phone that predates the view keys.
         .view_spec2 = { 0x244, 0x000, 0x000 },
         .theme = 0,   // dark — today's look, unchanged until the user picks otherwise
-        .battery_low_only = true,
         .date_month_first = false,  // day-first (dd.mm.yy); phone overrides per holiday country
-#if defined(PBL_PLATFORM_EMERY)
         // emery: on out of the box, matching the phone's schema default -- this covers
         // only the window before the first Clay message (a fresh install, or a phone
         // that predates the key), and starting it false would flip the axis labels
         // small -> large a moment after boot. Guarded because the field itself is
         // (see config.h).
         .large_graph_font = true,
-#endif
-#if !defined(PBL_PLATFORM_APLITE)
         // Auto — today's formats ("%b %Y" / dd.mm.yy per date_month_first) until
         // the user picks otherwise on the Date slot's edit sheet.
         .date_month_format = DATE_MONTH_AUTO,
@@ -74,12 +65,9 @@ static Config config_defaults(void) {
         .view_ext = { 0, 0, 0 },
         // One flick switches views, as it always has, until the user turns Double flick on.
         .view_double_flick = false,
-#endif
-#if defined(PBL_PLATFORM_EMERY)
         // emery: the forecast's left axis as it always was (config.h GRAPH_OPT_*), until the
         // phone sends the graph-options word. Guarded because the field itself is.
         .forecast_axis = 0,
-#endif
     };
 }
 
@@ -156,12 +144,8 @@ int config_n_today(uint8_t calendar_rows) {
 GFont config_time_font() {
     const char *font_keys[] = {
         [TIME_FONT_ROBOTO] = FONT_KEY_ROBOTO_BOLD_SUBSET_49,
-#ifdef PBL_PLATFORM_EMERY
         // emery: use larger LECO font size
         [TIME_FONT_LECO] = FONT_KEY_LECO_60_NUMBERS_AM_PM,
-#else
-        [TIME_FONT_LECO] = FONT_KEY_LECO_42_NUMBERS,
-#endif
         [TIME_FONT_BITHAM] = FONT_KEY_BITHAM_42_MEDIUM_NUMBERS
     };
     return fonts_get_system_font(font_keys[s_config->time_font]);

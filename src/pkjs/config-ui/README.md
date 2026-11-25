@@ -7,7 +7,7 @@ control types, COLOR-capability filtering, defaults, conditional visibility) and
 registries instead of imperative hooks. The library has no app-specific knowledge: each app that
 uses it supplies its schema, custom blocks and hooks.
 
-WarnWeather's own settings page, which uses it, is described in `src/pkjs/page/README.md`.
+urvejr's own settings page, which uses it, is described in `src/pkjs/page/README.md`.
 
 ## Contents
 
@@ -79,7 +79,7 @@ Pebble.addEventListener('showConfiguration', function () {
   Pebble.openURL(
     settings.generateUrl({
       values:    JSON.parse(localStorage.getItem('clay-settings') || '{}'),
-      watchInfo: Pebble.getActiveWatchInfo ? Pebble.getActiveWatchInfo() : null,
+      env:       { phoneBattery: phoneBattery.isSupported() },
       userData:  userData,
       returnTo:  'pebblejs://close#'
     })
@@ -102,9 +102,8 @@ PConf.blocks.register('forecastPreview', function (state, env, userData) {
   return '<svg …>' + /* render from state */ + '</svg>';
 });
 
-PConf.blocks.register('devStats', function (state, env, userData) {
-  if (!state.devStatsEnabled) { return ''; }
-  return '<table …>' + /* render events from userData.devStats */ + '</table>';
+PConf.blocks.register('lastFetch', function (state, env, userData) {
+  return '<b>Last fetch:</b> ' + /* render from userData.lastFetchSuccess */ '';
 });
 ```
 
@@ -112,7 +111,6 @@ PConf.blocks.register('devStats', function (state, env, userData) {
 // src/pkjs/page/settings/onbuild.js  (runs in the phone WebView)
 PConf.hooks.onLoad(function (ctx) {
   ctx.set('fetch', false);
-  ctx.set('devStatsClear', false);
 });
 
 PConf.hooks.onSubmit(function (ctx) {
@@ -167,10 +165,9 @@ It returns an instance object:
 | Field | Default | Description |
 |-------|---------|-------------|
 | `values` | read from storage | Flat settings blob to inject into the page (colors as ints). |
-| `watchInfo` | `Pebble.getActiveWatchInfo()` | Raw watch info; the library computes `env` from it. |
 | `userData` | `instance.meta.userData` | Passed to block renderers and hooks. |
 | `returnTo` | `'pebblejs://close#'` | URL the page navigates to on save. |
-| `env` | computed from `watchInfo` | Extra env facts, merged over the computed env. For facts the library cannot derive from `watchInfo` (phone-runtime capabilities), and for test overrides. |
+| `env` | `{}` | The page's env facts: what the app knows about the phone (phone-runtime capabilities), and test overrides. |
 
 The library converts colours (`int ↔ hex`) at the boundary: the app always works in int-valued
 blobs, the page always in hex strings.
@@ -182,11 +179,6 @@ without creating a config instance.
 
 ```js
 var configUi = require('../config-ui');
-
-// Platform facts
-configUi.isColorPlatform(platform)          // boolean — false for aplite/diorite/flint
-configUi.isThemePolarityPlatform(platform)  // boolean — false for aplite (no light/B&W-Inv theme)
-configUi.computeEnv(watchInfo)              // { color, platform, … } — null-safe
 
 // Color conversion (ES5-safe; no padStart)
 configUi.intToHex(n)                 // 0xFFFFFF → '#FFFFFF'
@@ -321,7 +313,7 @@ sets `ring` and filled otherwise, for a row that previews several colours where 
 would not fit. Both preview lanes are `aria-hidden`, so `ariaNote` is what announces the state:
 on a value row it is appended to the Edit button's `aria-label` in parentheses, and on a nav row
 it follows the summary as visually hidden text. The Edit button always has the same look; a
-badge's `label` only renames it. A missing API key is not shown with a badge: WarnWeather's
+badge's `label` only renames it. A missing API key is not shown with a badge: urvejr's
 provider pickers each have a key row, "<Name> API key", whose summary reads "No key", and a
 `textFrom` note under the picker and its `attentionFrom` tab dot say why.
 
@@ -361,7 +353,7 @@ code. The checklist has no `messageKey`, stores nothing, and the engine writes n
 tap calls the writer `writeWith` names, a function registered on `PConf.checkWriters` as
 `fn(S, key, code, on)`, which ticks `code` into the list at `S[key]` (`on`) or out of it, the
 opposite of what the tick showed. The writer is the lists' own contract, so it decides their
-order and anything else a tick moves (WarnWeather's `onDemandTick` stores through on-demand.js,
+order and anything else a tick moves (urvejr's `onDemandTick` stores through on-demand.js,
 which keeps an item on one side of a bar); no `onChange` runs. Every key a grid shows still
 needs an item of its own (a `hidden` one is enough) for its default and its save. The options
 are `[label, value, meta]` like a select's (`optionsFrom` is materialized as for a select, but
@@ -407,7 +399,7 @@ right under an intro (`shell.html`, the `.static.info` standoff rules).
 
 `textFrom: { resolver, args }` derives the note from the live settings through a named
 [hint resolver](#hint-resolver-registry-pconfhintresolvers). It is for a note whose words, or
-whether it shows at all, depend on more than a `showWhen` can test (WarnWeather's "Needs an API
+whether it shows at all, depend on more than a `showWhen` can test (urvejr's "Needs an API
 key" note, where a key of only spaces counts as empty). The resolver gets `textFrom.args` as
 they are (no messageKey or value, since a staticText has none). `null`/`undefined` falls back to
 `text`, and `''` means "no note now": the item renders nothing, blocks included, and the row
@@ -455,7 +447,6 @@ Item fields:
 | `hintFrom` | `{ resolver, args }` | A derived hint from a named [hint resolver](#hint-resolver-registry-pconfhintresolvers), for a hint that depends on keys other than the row's own value; overrides `hintByValue`/`hint` unless the resolver answers `null`/`undefined`. Value rows and badged `sheet` rows (`editBadgeFrom`, see above); not `button`/chevron `sheet` rows or `inline` cells. On value rows it is also re-resolved in place after a keyboard nudge on a range thumb. |
 | `icon` | string | Id of a glyph in the [icon registry](#icon-registry-pconficons), printed before the label text on a value row and on a `button`/`sheet` row alike. An unregistered id prints nothing. |
 | `attributes.placeholder` | string | Placeholder text for `text` items |
-| `capabilities` | `["COLOR"]` | Clay-compatible sugar: hides the item on b&w platforms |
 | `showWhen` | Predicate | Conditional-visibility predicate (see grammar below) |
 | `text` | string | HTML body for `staticText` items |
 | `textFrom` | `{ resolver, args }` | `staticText` only: the body derived by a named hint resolver; `''` renders nothing (see above) |
@@ -493,7 +484,7 @@ one tap away. All of this state is UI-only (per page open, never saved).
 
 A value row's hint (`hint`, `hintByValue`, `hintFrom`), a card's `intro` and a dialog's `intro`
 are the page's info text. By default all of it shows in place. The schema's top-level
-`infoIconsKey` names a page-only toggle (WarnWeather: `hideInfoText`, *Hide info text* in
+`infoIconsKey` names a page-only toggle (urvejr: `hideInfoText`, *Hide info text* in
 Setup › Misc). While that toggle is on, each piece renders only while its info is open: the
 label carries a small '?' button (`.info-q`, `data-info="<id>"`, `aria-expanded`), and a tap
 shows the hint under the label or hides it again. A row with no label, a `readout`, a nav row
@@ -574,55 +565,17 @@ Operators on `key` and `env`: `eq`, `ne`, `in`, `nin`, and bare truthy (no opera
 `when` leaf asks a [when resolver](#when-resolver-registry-pconfwhenresolvers) by name; an
 unregistered name reads false.
 
-`capabilities: ["COLOR"]` is Clay-compatible sugar, translated internally to
-`{ env: "color", eq: true }` and ANDed with any existing `showWhen`.
-
 ### Environment facts (env)
 
-The library fills these from `Pebble.getActiveWatchInfo()` when `generateUrl` runs:
-
-```js
-env = {
-  color:         true,       // false for aplite, diorite, flint (known 1-bit platforms)
-  platform:      "basalt",   // raw platform string
-  health:        true,       // false for aplite (no PBL_HEALTH sensors)
-  radar:         true,       // false for aplite (no WW_RAIN_RADAR)
-  themePolarity: true,       // false for aplite (no WW_THEME_POLARITY — light/B&W-Inv theme)
-  hr:            false,      // true only for emery, diorite (heart-rate sensor)
-  thresholds:    true,       // false for aplite (no WW_THRESHOLD_HIGHLIGHT)
-  colorBacklight: false,     // true only for emery (RGB backlight LED)
-  lineStyles:    true,       // false for aplite (no WW_LINE_STYLE — third metric line + per-line marker styles)
-  onDemand:      true,       // false for aplite (no WW_ON_DEMAND — the Alerts at the status bars' edges)
-  fineBattery:   false,      // true only for emery (battery charge reported in 5 % steps)
-  forecastSpan:  false       // true only for emery (the 12 h / 24 h / long forecast time span)
-}
-// Fallback when watchInfo is unavailable:
-// { color: true, platform: '', health: true, radar: true,
-//   themePolarity: true, hr: false, thresholds: true, colorBacklight: false,
-//   lineStyles: true, onDemand: true, fineBattery: false, forecastSpan: false }
-```
-
-The host app may add facts by passing them as `generateUrl`'s `env`. The value is merged over
-the computed env, so the app supplies only the keys the library cannot know. This is how
-phone-runtime capabilities get in, because the library derives env from `watchInfo` alone and
-never reads app storage. WarnWeather passes `phoneBattery`: whether this PKJS host exposes the
-Battery Status API, which only Android's Chromium WebView does.
-
-The library owns these Pebble facts in `lib/platform.js`: the known 1-bit platforms (`aplite`,
-`diorite`, `flint`), the platform without health, radar, theme polarity, thresholds and on
-demand (`aplite`), the heart-rate platforms (`emery`, `diorite`), the colour-backlight platform
-(`emery`), the 5 % battery-step platform (`emery`) and the forecast-time-span platform
-(`emery`). Every fallback except `hr`, `colorBacklight`, `fineBattery` and `forecastSpan` is
-conservative (show the controls if the platform is unknown). Those four default to `false`, so
-an unrecognized watch is not offered a slot that stays empty, hardware it probably does not have
-(the RGB backlight LED), a battery warn level its firmware cannot resolve, or a long forecast its
-AppMessage inbox would drop. `colorBacklight` is a fact about the backlight, not the screen:
-basalt is `color: true` but `colorBacklight: false`, because only emery's board has the LED
-driver that `light_set_color_rgb888()` needs. Each of these values gates a shipped feature.
+The face is built for the Pebble Time 2 alone, so the library reads no watch facts: the env is
+what the host app passes as `generateUrl`'s `env`, the facts the library cannot know. urvejr
+passes `phoneBattery`: whether this PKJS host exposes the Battery Status API, which only
+Android's Chromium WebView does. A fact the app does not pass reads as undefined, so a bare
+`{ env: "x" }` gate fails closed.
 
 ### Hidden-item serialization rule
 
-An item hidden by `showWhen` or `capabilities` keeps its current value and is still serialized,
+An item hidden by `showWhen` keeps its current value and is still serialized,
 as with Clay's `inject.js` `.hide()`. The serializer walks the full schema regardless of
 visibility, so the output blob stays complete and the C side is not affected. The one key it
 leaves out on purpose is a `defaultFrom` item marked `sticky: false` that still holds its
@@ -740,7 +693,7 @@ to `undefined`, and the key stays unset.
 - With `sticky` omitted or `true`, hydrate puts the resolved default into the state, and
   `serialize` writes it back like any value. After the first save the key is stored, so the
   saving watch's default is frozen as a value, and another watch sharing the phone's store reads
-  it too. This suits a default that only has to be sensible on first open (WarnWeather's status
+  it too. This suits a default that only has to be sensible on first open (urvejr's status
   slots).
 - With `sticky: false`, `serialize` leaves the key out while its value equals the default
   resolved for the page's `env` (strict equality in the page's shape, so a colour default
@@ -748,7 +701,7 @@ to `undefined`, and the key stays unset.
   `getSettings` does) and does not seed it, so it keeps resolving per watch. A different value
   is a pick and is saved as usual. In turn, a pick that equals the saving watch's default is not
   remembered and follows each watch's default like an untouched key. Use it when "absent" is
-  itself the contract, e.g. an app packer that resolves an unset key per platform (WarnWeather's
+  itself the contract, e.g. an app packer that resolves an unset key per platform (urvejr's
   warn looks).
 
 ### Display-resolver registry (PConf.displayResolvers)
@@ -778,7 +731,7 @@ the shown value is what pins it. An unregistered resolver id falls back to the s
 
 An item with a `hintFrom: { resolver: id, args }` field shows a hint derived from the live
 settings, for a hint that depends on keys other than the row's own value (`hintByValue` covers
-the row's own value). WarnWeather's line-style pickers use it: each explains the scale of the
+the row's own value). urvejr's line-style pickers use it: each explains the scale of the
 metric its own line draws, which lives in a sibling key.
 
 ```js
@@ -793,7 +746,7 @@ PConf.hintResolvers.register('lineStyleHint', function (state, env, args) {
 
 `args.staticHint` is what the row would show without the resolver: its `hintByValue` entry for
 the shown value, else its `hint` (undefined when it has neither). A resolver that only adds to
-that copy builds on it instead of carrying a second copy of the table in its args. WarnWeather's
+that copy builds on it instead of carrying a second copy of the table in its args. urvejr's
 key-status summary appends "Key ••••1234 · ✓ works" under the provider's "why" text, and the AQI
 slot's Day max hint ends on its source's note.
 
@@ -808,7 +761,7 @@ One commit skips the render on purpose: an arrow-key nudge on a range thumb pain
 place so the thumb keeps focus (range-control.js). A derived hint is therefore re-resolved in
 place after it: `renderRow` marks every derived hint element with
 `data-hint-for="<messageKey>"`, and the engine rewrites only that element's markup, replacing no
-node. No WarnWeather hint uses this: the hints that quote a slider's value (the Alerts card's
+node. No urvejr hint uses this: the hints that quote a slider's value (the Alerts card's
 `alertLevelsHint`, the Battery row's `onDemandBatteryText`) sit on keyless rows outside the
 sheet and refresh on the render that closes it. The library keeps it for a hint that reads a
 slider in its own sheet (`test/hint-resolver.test.js` pins it). A hint that rendered empty (no
@@ -819,7 +772,7 @@ element) and the row's wrap layout wait for the next full render.
 A `radio` item with a `pictureFrom: { resolver: id, args }` field draws its options as picture
 cards instead of a list: a radiogroup of cards, each its picture over its name, the picked one
 ringed in the accent with its name on the accent fill, and the picked option's hint under them.
-WarnWeather's Layout preset uses it: each preset is a card of the Default view it gives.
+urvejr's Layout preset uses it: each preset is a card of the Default view it gives.
 
 ```js
 // Returns ONE option's picture markup; '' draws the card without one.
@@ -831,7 +784,7 @@ PConf.pictureResolvers.register('layoutPresetPicture', function (state, env, arg
 ```
 
 A `select` with `pictureFrom` keeps its trigger and its sheet; the sheet draws each option's
-picture at the start of its row, with its name and `desc` beside it (WarnWeather's graph
+picture at the start of its row, with its name and `desc` beside it (urvejr's graph
 pickers: each graph and template as it draws). An option whose picture is `''` keeps the plain
 row.
 
@@ -844,7 +797,7 @@ plain list. A tap goes through the radio's own `[data-k][data-v]` path, so `onCh
 ### Attention-resolver registry (PConf.attentionResolvers)
 
 An item with an `attentionFrom: { resolver: id, args }` field can say that it needs fixing
-before the user saves. WarnWeather's Weather provider row uses it while the picked provider's
+before the user saves. urvejr's Weather provider row uses it while the picked provider's
 API key is missing or the provider is known to have rejected it:
 
 ```js
@@ -887,7 +840,7 @@ a flex `gap`, which old Android WebViews do not lay out.
 A `{ when: id, args }` leaf in a `showWhen`, `disabledWhen` or `optionDisabledWhen` predicate
 asks a named resolver whether it holds. It is for a rule the app already answers in one of its
 own modules: the schema asks that module instead of rebuilding the rule as a tree of `key`
-leaves that tests then have to keep equal to it. WarnWeather's Forecast tab rows ask which
+leaves that tests then have to keep equal to it. urvejr's Forecast tab rows ask which
 picker's line draws their metric, and its Alerts gates ask whether an item shows on a status
 bar.
 
@@ -991,7 +944,7 @@ block's list, a dialog and an app's own full-screen view look the same. The mark
 there and nowhere else. The look is in `shell.html` (the `.ui-*` rules, and the `.chev` and
 `.dlg-*` rules the engine's own parts share). The engine draws its nav rows, folding cards,
 dropdowns, Edit buttons, dialog headers and their Delete with it. An app's page modules call it
-as `PConf.ui` in the page (`require('…/config-ui/lib/ui.js')` under Node). WarnWeather's
+as `PConf.ui` in the page (`require('…/config-ui/lib/ui.js')` under Node). urvejr's
 `test/repo/config-ui-parts.test.js` fails on a page file that writes one of these out by hand.
 
 | Builder | Draws |
@@ -1092,8 +1045,7 @@ library from Clay.
 The `createConfig` instance has Clay-compatible methods, so an app's host wiring needs no
 changes:
 
-- `generateUrl([opts])`: with no args, reads `values` from storage and `watchInfo` from
-  `Pebble.getActiveWatchInfo()`, like `clay.generateUrl()`.
+- `generateUrl([opts])`: with no args, reads `values` from storage, like `clay.generateUrl()`.
 - `getSettings(responseStr)`: parses the `webviewclosed` response, persists it to
   `options.storageKey` (default `'clay-settings'`) and returns the blob, like
   `clay.getSettings`. Clay's second "auto-send" argument is left out on purpose: the library
@@ -1123,7 +1075,7 @@ library's schema and return a `createConfig` instance. An existing Clay app coul
 adopted later by migrating the schema.
 
 It would be an edge adapter over the core and can be added without touching the engine when a
-second project needs it. It is not built because WarnWeather writes the new schema directly for
+second project needs it. It is not built because urvejr writes the new schema directly for
 its richer UI.
 
 The format mapping for an implementor:
@@ -1158,7 +1110,7 @@ and hook callbacks.
 `pebble-config-ui` npm package is a folder move and needs no rewrite:
 
 - It has its own `package.json`, `README.md` and `test/`. The tests have a few incidental
-  WarnWeather references (a fixture URL in `emulator-url.test.js`, a code comment in
+  urvejr references (a fixture URL in `emulator-url.test.js`, a code comment in
   `engine.test.js`) worth removing before extraction; they do not block it.
 - The library never `require`s `../settings` or any app module. It receives the schema and the
   built page as arguments.
@@ -1169,7 +1121,7 @@ and hook callbacks.
   and sets the npm org/scope.
 
 Left for the publish step: the npm org/scope, CI for the package, a versioning policy, and
-replacing WarnWeather's local `require('../config-ui')` with a `node_modules` dependency. None
+replacing urvejr's local `require('../config-ui')` with a `node_modules` dependency. None
 of these change the library's code.
 
 When a second project is ready:
@@ -1196,8 +1148,8 @@ All library files under `lib/` and `index.js` must be written in ES5:
   `lib/shell.html`'s inline script, which runs before every lib and app file.
   `String.prototype.includes` is not polyfilled anywhere.
 
-PKJS-parsed files (`index.js`, `lib/platform.js`, `lib/defaults.js`, and the shared `color.js` it requires) must be ES5
-because aplite runs the PKJS phone-side JS on a pre-ES6 JavaScriptCore. WebView-only files
+PKJS-parsed files (`index.js`, `lib/defaults.js`, and the shared `color.js` it requires) are kept ES5,
+as the PKJS phone-side JS was written for a pre-ES6 JavaScriptCore (AGENTS.md). WebView-only files
 (`lib/show-when.js`, `lib/engine.js`) must be ES5 to protect old Android WebViews. The SDK build
 does not catch stray ES6, so failures stay silent until runtime.
 

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Regenerate the three README/store banners (resources/banner-*.png).
+"""Regenerate the README/store banner (resources/banner-*.png).
 
 Rebuilds each banner's gradient background from clean reference pixels (so
 the old device mockup and tagline can be erased without a visible seam),
@@ -52,9 +52,7 @@ WATCH_POS = (335, 320 - WATCH_TARGET_H - 5)
 
 # (banner filename, capture platform, composite_svg.sh frame name)
 VARIANTS = [
-    ("banner-pebble-time-red.png", "basalt", "pebble-time-red"),
     ("banner-pebble-time2-red.png", "emery", "pebble-time2-red"),
-    ("banner-pebble2-duo-white.png", "flint", "pebble2-duo-white"),
 ]
 
 

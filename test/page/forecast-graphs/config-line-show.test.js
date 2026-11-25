@@ -9,7 +9,6 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const schema = require('../../../src/pkjs/page/settings/schema.js');
 const showWhen = require('../../../src/pkjs/config-ui/lib/show-when.js');
-const platform = require('../../../src/pkjs/config-ui/lib/platform.js');
 require('../../../src/pkjs/config-ui/lib/schema-walk.js');
 require('../../../src/pkjs/lib/color.js');
 const E = require('../../../src/pkjs/config-ui/lib/engine.js');
@@ -20,8 +19,11 @@ const FC = require('../../../src/pkjs/page/forecast-graphs/preview-forecast.js')
 const PICKERS = ['secondaryLine', 'thirdLine', 'fourthLine', 'fifthLine'];
 const METRICS = ['precip_prob', 'cloud', 'wind', 'gust', 'uv', 'pressure', 'feels', 'dew'];
 const SHOW_KEYS = { wind: 'windLineShow', gust: 'gustLineShow', uv: 'uvLineShow' };
-const BASALT = platform.computeEnv({ platform: 'basalt' });
-const APLITE = platform.computeEnv({ platform: 'aplite' });
+// Envs of a watch without some of these features. The face is built for the Pebble Time 2
+// alone.
+const BASALT = {};
+// The noon scenario the Alert samples are written against.
+const NOON = { sample: FC.noonSample() };
 const graphsTab = schema.tabs.find((t) => t.id === 'graphs');
 // Each forecast line's dialog (schema.js GRAPH_LINES), opened from the Lines card: its
 // picker first, then the rows the old Forecast tab stacked under that picker.
@@ -118,15 +120,12 @@ test('wind, gusts and UV on three lines: three rows, each under its own picker',
 
 test('every watch with Alert settings shows the row; aplite, without them, never does', () => {
   ['basalt', 'diorite', 'emery', 'flint'].forEach((p) => assert.equal(
-    visibleRows({ secondaryLine: 'wind', thirdLine: 'uv' }, platform.computeEnv({ platform: p })).length, 2, p));
+    visibleRows({ secondaryLine: 'wind', thirdLine: 'uv' }, {}).length, 2, p));
   PICKERS.forEach((picker) => ['wind', 'gust', 'uv'].forEach((metric) => {
     const S = { secondaryLine: 'precip_prob', thirdLine: 'off', fourthLine: 'off', fifthLine: 'off' };
     S[picker] = metric;
-    assert.deepEqual(visibleRows(S, APLITE), [], 'aplite ' + picker + '=' + metric);
   }));
   // Through the engine: no Show row in aplite's line dialogs, Alert stored or not.
-  assert.equal(count(body({ secondaryLine: 'wind', thirdLine: 'uv', windLineShow: 'alert' }, APLITE),
-    '>Visible values<'), 0);
   assert.equal(count(body({ secondaryLine: 'wind', thirdLine: 'uv' }, BASALT), '>Visible values<'), 2);
 });
 
@@ -221,8 +220,6 @@ test('only the UV line\'s Alert hint gets a scale: All, wind and gusts unchanged
   }));
   // A watch without Alert settings draws the line All, so there is no scale to name (aplite
   // shows no row at all).
-  assert.equal(FH.lineShowHint({ secondaryLine: 'uv', uvLineShow: 'alert' }, APLITE, { metric: 'uv', value: 'alert' }),
-    'Draws UV only in the hours when it reaches your warn level (UV 6).');
 });
 
 test('the UV line\'s Visible values row shows its Alert scale, through the real engine', () => {
@@ -293,40 +290,22 @@ test('on Alert, the style hint gives the line\'s band instead of the 0-based sca
   assert.equal(FH.lineStyleHint('uv', 'line'), 'Half height is UV 5.5, full height is UV 11 (extreme).');
 });
 
-test('aplite: the metric picker\'s height scale stays the 0-based one, Alert stored or not', () => {
-  assert.equal(FH.forecastMetricHint('uv', APLITE, { secondaryLine: 'uv', uvLineShow: 'alert' }),
-    'Half height is UV 5.5, full height is UV 11 (extreme).');
-  assert.equal(FH.forecastMetricHint('wind', APLITE, { secondaryLine: 'wind', windLineShow: 'alert' }),
-    'The height follows the Wind graph scale setting.');
-  // A watch without style pickers that has Alert settings (an env with lineStyles false
-  // only) gives the band there, a gust line on the hidden Third metric line sharing nothing.
-  const noStyles = { lineStyles: false };
-  assert.equal(FH.forecastMetricHint('uv', noStyles, { secondaryLine: 'uv', uvLineShow: 'alert' }),
-    'The graph bottom is UV 6 and full height is UV 11.');
-  assert.equal(FH.forecastMetricHint('wind', noStyles, { secondaryLine: 'wind', fourthLine: 'gust',
-    windLineShow: 'alert', gustLineShow: 'alert', threshGustWarn: '30', threshGustDanger: '45' }),
-  'The graph bottom is 40 kph and full height is 60 kph.');
-});
-
-test('the preview draws an Alert line where its sample reaches warn, and aplite\'s whole', () => {
+test('the preview draws an Alert line where its sample reaches warn', () => {
   // The demo UV series is [8,6,4,2,1,0,0,0,0,0,1,3]. On Alert its upper half is redrawn from
   // the warn level up (preview-forecast.js alertSamples): slots 0-2 are readings, the rest is
   // a gap, and the line comes down to the warn row on slot 3 (chart_runs.h JOIN).
   const base = { barSource: 'off', secondaryLine: 'uv', windScale: 'mid', dayNightShading: false };
   const uvPaths = (svg) => [...svg.matchAll(/d="(M[^"]+)" fill="none" stroke="#FF00FF"/g)].map((m) => m[1]);
-  assert.equal(uvPaths(FC.forecastPreview(base, { color: true })).length, 2, 'premise: two runs on All');
-  const only = uvPaths(FC.forecastPreview(Object.assign({ uvLineShow: 'alert' }, base), { color: true }));
+  assert.equal(uvPaths(FC.forecastPreview(base, {}, undefined, NOON)).length, 2, 'premise: two runs on All');
+  const only = uvPaths(FC.forecastPreview(Object.assign({ uvLineShow: 'alert' }, base), {}, undefined, NOON));
   assert.equal(only.length, 1, 'one run: the morning above warn');
   assert.match(only[0], /^M20,/, 'starting on slot 0');
   assert.equal((only[0].match(/ C/g) || []).length, 3, 'four vertices: slots 0 to 2, then slot 3');
   assert.match(only[0], /,94$/, 'down to the warn row (the plot\'s baseline) on slot 3');
-  // aplite draws All whatever is stored (B&W: the line's stroke is the theme's ink).
-  const apliteSvg = (over) => FC.forecastPreview(Object.assign({}, base, over), APLITE);
-  assert.equal(apliteSvg({ uvLineShow: 'alert' }), apliteSvg({}), 'aplite: Alert previews as All');
   // The demo wind (26 kph at most) never reaches the seed warn (40 kph) by itself; on Alert its
   // two windy stretches still draw, at the seed warn level and at a lowered one.
   const windSvg = (over) => FC.forecastPreview(Object.assign({ barSource: 'off', secondaryLine: 'wind',
-    thirdLine: 'off', windScale: 'mid', dayNightShading: false, secondaryLineFill: false }, over), { color: true });
+    thirdLine: 'off', windScale: 'mid', dayNightShading: false, secondaryLineFill: false }, over), {}, undefined, NOON);
   // The wind line's yellow stroke runs (the dark colour theme's wind colour).
   const strokes = (svg) => (svg.match(/fill="none" stroke="#FFFF00"/g) || []).length;
   assert.equal(strokes(windSvg({})), 1, 'premise: one unbroken wind line on All');
@@ -374,11 +353,6 @@ test('the Wind graph scale hint with wind and gusts both drawn', () => {
   // High's 70 tops the wind danger level (60): the wind line tops out at the scale.
   assert.equal(FH.windScaleHint(S({ windScale: 'high', windLineShow: 'alert' }), env),
     'The scale goes up to 70 kph. With Alert, the wind line starts at your warn level, 40 kph.');
-  // Without the Third metric line, a gust line on the third picker is not drawn.
-  assert.equal(FH.windScaleHint({ secondaryLine: 'wind', thirdLine: 'off', fourthLine: 'gust', windScale: 'low',
-    gustLineShow: 'alert' }, { lineStyles: false }), null);
-  // aplite draws every line All.
-  assert.equal(FH.windScaleHint(S({ windLineShow: 'alert', gustLineShow: 'alert' }), APLITE), null);
 });
 
 test('the line dialog\'s Wind graph scale row shows the note, through the real engine', () => {
@@ -390,11 +364,9 @@ test('the line dialog\'s Wind graph scale row shows the note, through the real e
   assert.equal(count(high, 'The scale goes up to 70 kph. With Alert, the line runs from your warn level, 65 kph, '
     + 'to your danger level, 90 kph.'), 1, 'High');
   assert.equal(count(high, 'strong gusts don’t flatten'), 0, 'High: no comparison note');
-  // All: the row's own hint, on both watches; aplite keeps it with Alert stored too.
-  [BASALT, APLITE].forEach((env) => assert.equal(count(body({ secondaryLine: 'gust', windScale: 'low' }, env),
-    'The scale goes up to 30 kph, so light winds show more clearly.'), 1, env.platform + ' All'));
-  assert.equal(count(body({ secondaryLine: 'gust', windScale: 'low', gustLineShow: 'alert' }, APLITE),
-    'The scale goes up to 30 kph, so light winds show more clearly.'), 1, 'aplite draws All');
+  // All: the row's own hint.
+  assert.equal(count(body({ secondaryLine: 'gust', windScale: 'low' }, BASALT),
+    'The scale goes up to 30 kph, so light winds show more clearly.'), 1, 'All');
   // Knots, gusts on the Fourth metric picker: the band in knots.
   const kn = body({ secondaryLine: 'precip_prob', thirdLine: 'cloud', fourthLine: 'gust', windUnits: 'knots',
     windScale: 'mid', gustLineShow: 'alert' }, BASALT);

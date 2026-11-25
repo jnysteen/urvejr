@@ -213,16 +213,3 @@ test('the Alerts tab: a made bar no screen shows has an inert Shows on row; on a
   assert.equal(sheet.indexOf('<span class="lbl">Status bar 5</span>'), -1);
 });
 
-test('every other watch: no New status bar, no bar 4 to 6, nothing in the editor', () => {
-  ['basalt', 'diorite', 'flint'].forEach((p) => {
-    const page = statusTab({ statusBar4Made: true }, p);
-    const html = page.scroll.innerHTML;
-    assert.equal(html.indexOf('data-action="newBar"'), -1, p + ': no New status bar');
-    assert.equal(barLine(html, 'bar4'), '', p + ': no bar 4, made or not');
-    assert.equal(html.indexOf('That’s the most status bars'), -1, p + ': no note either');
-    page.tapAction('openScreen', 1);
-    assert.equal(editorAddChips(editorBody(page)).indexOf('New status bar'), -1, p + ': no New status bar chip');
-    page.tapEditor({ se: 'newbar' });
-    assert.notEqual(page.S.statusBar5Made, true, p + ': nor does a forged tap make a bar');
-  });
-});

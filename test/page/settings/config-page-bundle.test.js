@@ -520,7 +520,7 @@ test('the graph-colour resolver and its deps reach the generated settings page',
 // block id renders nothing and only warns, so the block would silently vanish from a
 // real phone's settings page while every Node test still passed through require().
 const PREVIEW_BLOCK_FILES = ['page/forecast-graphs/preview-forecast.js', 'page/weather/preview-radar.js',
-  'page/telemetry/preview-diagnostics.js', 'page/layout/preview-watch.js', 'page/health/preview-health.js'];
+  'page/weather/last-fetch.js', 'page/layout/preview-watch.js', 'page/health/preview-health.js'];
 
 test('the graph-colour modules and the preview kit are bundled in dependency order', () => {
   const appFiles = require('../../../scripts/build-config-page.js').APP_FILES;
@@ -582,7 +582,7 @@ test('the night-tint display rule reaches the generated page, after line-style',
 
 test('every preview block reaches the generated settings page', () => {
   const src = page();
-  ['forecastPreview', 'radarPreview', 'devStats', 'lastFetch', 'watchPreview', 'statusBarsPreview',
+  ['forecastPreview', 'radarPreview', 'lastFetch', 'watchPreview', 'statusBarsPreview',
     'healthPreview']
     .forEach((id) => {
       assert.ok(src.indexOf("PConf.blocks.register('" + id + "'") !== -1,
@@ -623,28 +623,6 @@ test('the Status bars preview and the Night hours reach the page, in dependency 
     "PConf.hintResolvers.register('nightHoursHint'", "PConf.hintResolvers.register('nightFeatureHint'",
     'PConf.hooks.onSubmit(onSubmit)'].forEach((needle) =>
     assert.ok(src.indexOf(needle) !== -1, 'the generated page lacks ' + needle));
-});
-
-// support.js is the quietest omission of the lot: nothing else in the page references it,
-// so leaving it out of APP_FILES just means the coffee mug never appears — no throw, no
-// warning, and every Node test still green through the require() branch.
-test('the support mug reaches the generated page, after news.js', () => {
-  const appFiles = require('../../../scripts/build-config-page.js').APP_FILES;
-  const idx = (suffix) => {
-    const at = appFiles.findIndex((f) => f.endsWith('/' + suffix));
-    assert.notEqual(at, -1, suffix + ' is not in APP_FILES at all');
-    return at;
-  };
-  assert.ok(idx('page/notices/news.js') < idx('page/settings/support.js'),
-    'news.js must precede support.js, which appends its button into the .news-hdr-left ' +
-    'header group news.js builds');
-  const src = page();
-  assert.ok(src.indexOf('buymeacoffee.com/toaster2') !== -1,
-    'the support popup\'s Buy Me a Coffee link is not in page.generated.js — support.js is ' +
-    'probably missing from APP_FILES in scripts/build-config-page.js');
-  assert.ok(src.indexOf('bmc-steam-rise') !== -1,
-    'the steam keyframes are not in page.generated.js — the mug would render without its ' +
-    'animation');
 });
 
 // APP_FILES is SHARED — build-config-page.js ships the page and
@@ -780,22 +758,6 @@ test('the budget modules reach the generated page in dependency order, ahead of 
 // window.KeyTest WHILE ITS IIFE RUNS (a throw at page boot if key-test.js comes later), and
 // without the file in APP_FILES the Test button's action is simply never registered — the
 // button does nothing on a real phone while every Node test passes.
-test('the Rainbow key Test reaches the generated page after key-test.js', () => {
-  const appFiles = require('../../../scripts/build-config-page.js').APP_FILES;
-  const idx = (suffix) => {
-    const at = appFiles.findIndex((f) => f.endsWith('/' + suffix));
-    assert.notEqual(at, -1, suffix + ' is not in APP_FILES at all');
-    return at;
-  };
-  assert.ok(idx('page/weather/keys/key-test.js') < idx('page/weather/keys/rainbow-key-test.js'),
-    'key-test.js must precede rainbow-key-test.js, which reads window.KeyTest at IIFE time');
-  const src = page();
-  assert.ok(src.indexOf("action: 'testRainbowKey'") !== -1,
-    'rainbow-key-test.js does not register testRainbowKey in the page');
-  assert.ok(src.indexOf('window.KeyTest = api') < src.indexOf("action: 'testRainbowKey'"),
-    'the page must define window.KeyTest before rainbow-key-test.js runs');
-});
-
 // The threshold contract is bound ONCE, at load: preview-radar.js, blocks.js and
 // onbuild.js each read window.StatusThresholds while their own IIFE body runs (no lazy
 // lookup, no no-contract fallback), and the contract itself reads window.ResolveInk

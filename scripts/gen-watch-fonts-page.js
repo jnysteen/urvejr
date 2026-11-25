@@ -144,7 +144,7 @@ function glyf(cs) {
  * @returns {!Buffer}
  */
 function nameTable(family, sub) {
-  const ids = [[1, family], [2, sub], [3, family + '-' + sub + ';WarnWeather'], [4, family + ' ' + sub],
+  const ids = [[1, family], [2, sub], [3, family + '-' + sub + ';urvejr'], [4, family + ' ' + sub],
     [5, 'Version 1.000'], [6, family + '-' + sub]];
   const strs = ids.map((n) => {
     const b = Buffer.alloc(n[1].length * 2);

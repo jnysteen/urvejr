@@ -34,8 +34,7 @@ static inline int status_text_y(int band_h, GFont font) {
 // status_text_y centres the glyph at band_h/2 and the layout pins the band bottom to the
 // forecast top, the glyph clears the forecast by (band_h - content_h)/2. Sizing the band FROM
 // the font — content_h + 2*clearance — makes that gap a constant STATUS_FORECAST_CLEARANCE px at
-// ANY tier/platform (Gothic 14 → a 20px band on aplite/basalt, Gothic 18 → a taller ~24px band
-// on emery), so the line lands identically across top-view modes and never crowds the graph.
+// ANY tier (Gothic 18 → a ~24px band, Gothic 24 → a taller one), so the line lands identically across top-view modes and never crowds the graph.
 // This replaces the old magic per-mode band pixels (WEATHER_STATUS_HEIGHT for the full band, the
 // FULL_STATUS_RISE nudge) that fit one font and were wrong for another. The band extends up into
 // the clock band's slack; see layout_compute_spec() in windows/layout.c.
@@ -59,21 +58,13 @@ static inline int status_forecast_band_h(GFont font) {
 // forecast-abutting band from ONE font — see status_forecast_band_h(). Lives here, next
 // to the band math, so neither status layer owns geometry the other depends on.
 // emery: one notch larger, same step as the layers' whole font ladder.
-#ifdef PBL_PLATFORM_EMERY
 #define STATUS_FULL_TIER_FONT_KEY FONT_KEY_GOTHIC_18
-#else
-#define STATUS_FULL_TIER_FONT_KEY FONT_KEY_GOTHIC_14
-#endif
 
 // The top status strip's font. It renders the calendar/date at FULL tier but,
 // unlike the weather/health rows, must NOT share STATUS_FULL_TIER_FONT_KEY:
 // that constant also sizes the forecast-abutting band. The top strip is a
 // fixed-height band, so it keeps its pre-tier-refactor size (one notch larger).
-#ifdef PBL_PLATFORM_EMERY
 #define STATUS_TOP_TIER_FONT_KEY FONT_KEY_GOTHIC_24
-#else
-#define STATUS_TOP_TIER_FONT_KEY FONT_KEY_GOTHIC_18
-#endif
 static inline GFont status_full_tier_font(void) {
     return fonts_get_system_font(STATUS_FULL_TIER_FONT_KEY);
 }

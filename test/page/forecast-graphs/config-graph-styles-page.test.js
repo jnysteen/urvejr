@@ -17,14 +17,13 @@ require('../../../src/pkjs/config-ui/lib/engine.js');
 require('../../../src/pkjs/page/settings/blocks.js');   // registers forecast-hints.js' pickers
 const GSP = require('../../../src/pkjs/page/forecast-graphs/graph-styles-page.js');
 const GS = require('../../../src/pkjs/forecast-graphs/domain/graph-styles.js');
-const platform = require('../../../src/pkjs/config-ui/lib/platform.js');
 const { bootGeneratedPage } = require('../../helpers/page-harness.js');
 const ui = require('../../../src/pkjs/config-ui/lib/ui.js');
 const { editorRows, editorRow, editorAddChips } = require('../../helpers/page-rows.js');
 
 const PC = global.PConf;
-const EMERY = platform.computeEnv({ platform: 'emery' });
-const BASALT = platform.computeEnv({ platform: 'basalt' });
+const EMERY = {};
+// An env whose watch draws one graph look (no graph styles, no span option).
 
 /**
  * Graph k's row on the Your graphs card (listRows).
@@ -119,7 +118,6 @@ test('onRender: a graph\'s dialog shows the picked style, anywhere else the firs
   assert.equal(T.forecastHours, '24');
   assert.equal(GSP.graphShown(T, EMERY), false);
   assert.equal(GSP.graphShown(S, EMERY), true);
-  assert.equal(GSP.graphShown(T, BASALT), true, 'a watch with one graph: its dialog always shows');
   // The dialog and its gate read the pick alike: one that names no graph by its number is the
   // first, which always exists.
   ['0', '-1', 'x', ''].forEach((pick) => {
@@ -127,11 +125,6 @@ test('onRender: a graph\'s dialog shows the picked style, anywhere else the firs
     assert.equal(GSP.pickIndex(P), 0, 'pick ' + JSON.stringify(pick));
     assert.equal(GSP.graphShown(P, EMERY), true, 'pick ' + JSON.stringify(pick) + ': the first graph shows');
   });
-  // A watch without styles: nothing moves.
-  const B = Object.assign({}, TWO, { graphStylePick: '2' });
-  GSP.onRender({ S: B, env: BASALT, tab: 'graphs', pane: 'forecast', dialog: 'graph' });
-  assert.equal(B.forecastHours, '24');
-  assert.equal(B[GSP.SWAP], undefined);
 });
 
 // Two graphs on two screens with five metrics between them: Graph 1 the rain chance, UV and
@@ -212,8 +205,6 @@ test('over the limit: Visible values count, a template\'s graph is never offered
     { secondaryLine: 'precip_prob', thirdLine: 'cloud', fourthLine: 'wind', fifthLine: 'pressure' }) });
   assert.equal(GSP.overBy(T, EMERY), 6);
   assert.deepEqual(GSP.offLines(T, EMERY).map((c) => c.k + ':' + c.key), ['0:thirdLine', '0:fourthLine']);
-  // A watch without graph styles never is.
-  assert.equal(GSP.overBy(W, BASALT), 0);
 });
 
 test('the cards\' line: a graph\'s length and the screens it shows on', () => {
@@ -227,7 +218,6 @@ test('the cards\' line: a graph\'s length and the screens it shows on', () => {
   assert.match(line(layout(['1'], { graphStyles: TWO.graphStyles }), 1), /^\d+ h · No screen$/);
   assert.equal(line(layout(['1', '3'], { graphStyles: TWO.graphStyles }), 0), '24 h · Default, Flick 1',
     'a screen on a style that does not exist draws the first');
-  assert.equal(row(TWO, BASALT, 0).where, '', 'one graph: no screens line');
 });
 
 test('the five-series limit: a pick that would make a sixth series says so on a shown style only, and stays a pick', () => {
@@ -259,12 +249,10 @@ test('the five-series limit: a pick that would make a sixth series says so on a 
   const style = PC.optionsResolvers.get('lineStyleOptions');
   assert.deepEqual(off(style(S, EMERY, { metricKey: 'secondaryLine' })), ['stripeTop', 'stripeBottom']);
   assert.deepEqual(off(style(S, EMERY, { metricKey: 'thirdLine' })), [], 'UV cannot be a stripe');
-  // The current pick is never greyed out, a style no screen shows is free, and so is every
-  // watch without styles.
+  // The current pick is never greyed out, and a style no screen shows is free.
   assert.deepEqual(off(metric(S, EMERY, { key: 'thirdLine', off: true, exclude: ['secondaryLine'] })), []);
   const dormant = Object.assign({}, S, { viewStyle1: '1' });
   assert.deepEqual(off(metric(dormant, EMERY, { key: 'fifthLine', off: true, exclude: lines })), []);
-  assert.deepEqual(off(metric(S, BASALT, { key: 'fifthLine', off: true, exclude: lines })), []);
   // While style 2 sits in the flat keys, its pickers count the first style's series: its empty
   // fifth line may take UV or gusts (style 1 draws them), nothing new. Its wind line may become
   // anything: wind's row is then free.
@@ -369,12 +357,6 @@ test('the page: Your graphs lists each graph with its picture, where it shows, i
   assert.ok(html.indexOf('<button type="button" class="ui-row ui-new" data-action="newGraph">') !== -1,
     'New graph while a slot is free');
   assert.ok(html.indexOf('<span class="ui-n">New graph</span><span class="ui-d">2 of 6 graphs</span>') !== -1, 'its count');
-  // A watch without graphs of its own: its one graph, untitled, named Forecast graph.
-  const b = bootGeneratedPage(TWO, 'basalt');
-  b.clickTab('graphs');
-  const bh = b.scroll.innerHTML;
-  assert.deepEqual(rows(bh), [['1', 'Forecast graph', '', 'Precipitation %', 'Room for 3 more metrics']]);
-  ['Your graphs', 'hdr-note', 'newGraph', 'gl-lead'].forEach((gone) => assert.equal(bh.indexOf(gone), -1, gone));
   // One graph: the lead says what New graph is for.
   const one = bootGeneratedPage(layout(['1', '1'], { provider: 'dwd' }), 'emery');
   one.clickTab('graphs');
@@ -391,14 +373,7 @@ test('the page: Your graphs lists each graph with its picture, where it shows, i
 });
 
 test('a row\'s room: the graph\'s free lines, and on a graph the screens show no more than their five metrics leave', () => {
-  assert.equal(GS.linesDrawn(EMERY), 4);
-  assert.equal(GS.linesDrawn(BASALT), 4);
-  assert.equal(GS.linesDrawn(null), 4, 'an unknown watch reads as one that draws them all');
-  const APLITE = platform.computeEnv({ platform: 'aplite' });
-  assert.equal(GS.linesDrawn(APLITE), 2, 'aplite draws two lines');
   const room = (S, env, k) => row(S, env, k).room;
-  assert.equal(room(layout(['1'], { secondaryLine: 'precip_prob', thirdLine: 'off', fourthLine: 'uv' }), APLITE, 0),
-    'Room for 1 more metric', 'a third line aplite does not draw leaves room in its two');
   // Graph 1 draws four metrics on the Default, Long the fifth on Flick 1.
   const four = layout(['1', '2'], { secondaryLine: 'precip_prob', thirdLine: 'uv', fourthLine: 'wind', fifthLine: 'gust',
     graphStyles: stylesItem({ secondaryLine: 'cloud', thirdLine: 'off', fourthLine: 'off', fifthLine: 'off' }) });
@@ -455,17 +430,6 @@ test('the page: a row opens its graph\'s dialog; its edits are that graph\'s, Do
   assert.equal(two.forecastHours, '12', 'Long\'s edit in graphStyles');
   assert.equal(two.thirdLine, 'cloud');
   assert.equal(blob.graphStylePick, undefined, 'the pick is the page\'s own');
-});
-
-test('the page: the one graph\'s dialog on a watch without graphs of its own', () => {
-  const b = bootGeneratedPage(TWO, 'basalt');
-  b.clickTab('graphs');
-  b.tapAction('openGraph', 1);
-  const dlg = b.modal.innerHTML;
-  assert.ok(dlg.indexOf('<span class="dlg-kick">Graphs</span>') !== -1, 'the tab over the title');
-  assert.ok(dlg.indexOf('id="esheet-ttl-graph">Forecast graph</span>') !== -1);
-  assert.deepEqual(cardTitles(dlg), ['Lines', 'Rain bars', 'Other']);
-  ['data-dlg-rename', 'deleteGraphStyle', 'graphOnScreen'].forEach((gone) => assert.equal(dlg.indexOf(gone), -1, gone));
 });
 
 test('the page: Revert puts every graph back, the pick too', () => {
@@ -657,7 +621,7 @@ test('the screen editor: with several graphs a chip per graph adds the forecast 
   const p = bootGeneratedPage(TWO, 'emery');
   p.tapAction('openScreen', 1);
   const body = () => p.editor().querySelector('[data-se-body]').innerHTML;
-  const fc = () => M.idxOf(M.screensOf(p.S, EMERY)[1], 'fc');
+  const fc = () => M.idxOf(M.screensOf(p.S)[1], 'fc');
   // The row: its graph's name, its size's dropdown and its Edit, which opens the graph's dialog
   // (the owner's ask, 2026-11-10).
   assert.deepEqual(editorRows(body()), ['Watch bar', 'Clock', 'Long · Fill']);
@@ -689,15 +653,9 @@ test('the screen editor: with several graphs a chip per graph adds the forecast 
   one.tapAction('openScreen', 1);
   const oneBody = () => one.editor().querySelector('[data-se-body]').innerHTML;
   assert.match(editorRows(oneBody()).pop(), /^Forecast graph · (?:Fill|\d rows)$/);
-  one.tapEditor({ se: 'rm', j: M.idxOf(M.screensOf(one.S, EMERY)[1], 'fc') });
+  one.tapEditor({ se: 'rm', j: M.idxOf(M.screensOf(one.S)[1], 'fc') });
   const oneChips = editorAddChips(oneBody());
   assert.ok(oneChips.indexOf('Forecast graph') !== -1 && oneChips.indexOf('Graph 1') === -1, oneChips.join(' | '));
-  // basalt: no graph chips, the row says Forecast graph.
-  const b = bootGeneratedPage(TWO, 'basalt');
-  b.tapAction('openScreen', 0);
-  const bBody = b.editor().querySelector('[data-se-body]').innerHTML;
-  assert.match(editorRows(bBody)[M.idxOf(M.screensOf(b.S, BASALT)[0], 'fc')], /^Forecast graph · (?:Fill|\d rows)$/);
-  assert.equal(bBody.indexOf('data-g='), -1);
 });
 
 test('the screen editor: a graph that would make the screens show a sixth metric is a greyed-out chip; a tap on it says why', () => {
@@ -718,7 +676,7 @@ test('the screen editor: a graph that would make the screens show a sixth metric
   // A tap on it says why and adds nothing.
   const toast = p.editor().querySelector('[data-se-toast]');
   p.tapEditor({ se: 'add', k: 'fc', g: 1 });
-  assert.equal(M.idxOf(M.screensOf(p.S, EMERY)[1], 'fc'), -1);
+  assert.equal(M.idxOf(M.screensOf(p.S)[1], 'fc'), -1);
   assert.equal(toast.textContent, 'Long also needs Cloud cover % and Air pressure (hPa): that makes 6 metrics on your'
     + ' screens. The watch can show 5.');
   assert.equal(toast.className, 'toast show');
@@ -752,7 +710,7 @@ test('the screen editor: with its forecast graph on, Switch graph offers the oth
   const p = bootGeneratedPage(S, 'emery');
   p.tapAction('openScreen', 1);
   const body = () => p.editor().querySelector('[data-se-body]').innerHTML;
-  const screen = () => M.screensOf(p.S, EMERY)[1];
+  const screen = () => M.screensOf(p.S)[1];
   const before = editorRows(body());
   assert.equal(before[M.idxOf(screen(), 'fc')], 'Long · 3 rows');
   // The graphs it does not draw, each with the swap icon; no Add chip for the forecast graph.
@@ -777,13 +735,10 @@ test('the screen editor: with its forecast graph on, Switch graph offers the oth
   p.tapEditor({ se: 'rm', j: M.idxOf(screen(), 'fc') });
   assert.deepEqual(switchChips(body()), []);
   assert.ok(editorAddChips(body()).indexOf('Short') !== -1);
-  // One graph, or a watch with one: nothing to switch to.
+  // One graph: nothing to switch to.
   const one = bootGeneratedPage(layout(['1', '1'], { provider: 'dwd' }), 'emery');
   one.tapAction('openScreen', 1);
   assert.equal(one.editor().querySelector('[data-se-body]').innerHTML.indexOf('data-se="switch"'), -1);
-  const b = bootGeneratedPage(TWO, 'basalt');
-  b.tapAction('openScreen', 1);
-  assert.equal(b.editor().querySelector('[data-se-body]').innerHTML.indexOf('data-se="switch"'), -1);
 });
 
 test('the screen editor: a graph that would make the screens show a sixth metric is a greyed-out Switch graph chip', () => {
@@ -809,7 +764,7 @@ test('the screen editor: a graph that would make the screens show a sixth metric
   // Graph 1 fits: its four series are the Default's.
   p.tapEditor({ se: 'switch', k: 'fc', g: 0 });
   assert.equal(p.S.viewStyle1, '1');
-  assert.match(editorRows(body())[M.idxOf(M.screensOf(p.S, EMERY)[1], 'fc')], /^Graph 1 · /);
+  assert.match(editorRows(body())[M.idxOf(M.screensOf(p.S)[1], 'fc')], /^Graph 1 · /);
 });
 
 test('the page: Show on in a graph\'s dialog puts the graph on a screen or takes it off', async () => {
@@ -929,10 +884,6 @@ test('the page: Your graphs\' header counts the metrics the screens use, "2/5 me
   hidden.clickTab('graphs');
   assert.deepEqual(headerNote(hidden.scroll.innerHTML), { text: '2/5 metrics active', label: '2 of 5 metrics active',
     open: false });
-  // A watch without graphs of its own has no card, so no count.
-  const b = bootGeneratedPage(TWO, 'basalt');
-  b.clickTab('graphs');
-  assert.equal(b.scroll.innerHTML.indexOf('hdr-note'), -1);
 });
 
 test('the metrics count: a line and a stripe of one metric count twice; all five active says how to make room', () => {
@@ -960,14 +911,13 @@ test('the metrics count: a line and a stripe of one metric count twice; all five
   const W = Object.assign({}, full);
   GSP.swapIn(W, 1);
   assert.equal(note(W, EMERY).text, '5/5 metrics active');
-  assert.equal(note(full, BASALT), null, 'a watch without graphs of its own');
 });
 
 test('a screen picture draws its forecast graph with the screen\'s style', () => {
   const PW = require('../../../src/pkjs/page/layout/preview-watch.js');
   const VC = require('../../../src/pkjs/layout/domain/view-cycle.js');
   const S = Object.assign({}, TWO, { graphStyles: stylesItem({ forecastHours: '12', barSource: 'off' }) });
-  const cycle = VC.resolveViewCycle(S, EMERY);
+  const cycle = VC.resolveViewCycle(S);
   const svg = (spec, st) => PW.screenSvg(spec, 0, st, EMERY, {}, 1, new Date(2026, 10, 8, 12, 0), 'x').svg;
   // Flick 1 draws style 2: the same picture as the Default screen's view drawn from style 2's settings.
   assert.equal(cycle[1].graphStyle, 1);
@@ -976,10 +926,6 @@ test('a screen picture draws its forecast graph with the screen\'s style', () =>
   delete plain.graphStyle;
   assert.equal(svg(cycle[1], S), svg(plain, two), 'the style\'s settings');
   assert.notEqual(svg(cycle[1], S), svg(plain, S), 'not the first style\'s');
-  // basalt draws one look on every screen.
-  const B = VC.resolveViewCycle(S, BASALT);
-  assert.equal(PW.screenSvg(B[1], 0, S, BASALT, {}, 0, new Date(2026, 10, 8, 12, 0), 'x').svg,
-    PW.screenSvg(Object.assign({}, B[1], { graphStyle: undefined }), 0, S, BASALT, {}, 0, new Date(2026, 10, 8, 12, 0), 'x').svg);
 });
 
 test('a shared row says every graph shares it, while more than one graph exists', () => {
@@ -990,7 +936,6 @@ test('a shared row says every graph shares it, while more than one graph exists'
   const tail = 'Every graph shares this.';
   assert.ok(p.modal.innerHTML.indexOf('Draw the graph axis labels in bigger type. ' + tail) !== -1, 'Larger graph fonts');
   assert.equal(GSP.sharedHint(layout(['1']), EMERY), '', 'one style: no tail');
-  assert.equal(GSP.sharedHint(TWO, BASALT), '', 'a watch without styles: none');
   const one = bootGeneratedPage(layout(['1'], { provider: 'dwd' }), 'emery');
   one.clickTab('graphs');
   one.tapAction('openGraph', 1);

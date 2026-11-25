@@ -14,22 +14,18 @@
     var M = (typeof require !== 'undefined') ? require('../../../layout/domain/screens.js') : window.Screens;
     var PRESETS = (typeof require !== 'undefined') ? require('../../layout/screen-presets.js') : window.ScreenPresets;
 
-    // A stored layout the Layout picker doesn't offer -> the nearest one it does (aplite, whose
-    // Layout is still a preset): Compact for the dense two-row calendar, No calendar for Weather
-    // only (no calendar either, a big forecast). Neither has a screenshot of its own.
-    var NEAREST_LAYOUT = { compactDense: 'compactCal', weatherOnly: 'noCal' };
 
     // The flick screens setup offers, in the order they go in: the second forecast screen (Pebble
     // Time 2: a second graph over the other length than the Default's, the owner's asks, 2026-11-09
     // and 2026-11-15; its graph is wizard.js'), the Health screen, then the Rain radar screen
-    // (today's Flick 1 and Flick 2): Add a screen's screens (screen-presets.js listOf). `env` names
-    // the watch's fact each needs, `graph` the graph it shows. Each is named after its template as
+    // (today's Flick 1 and Flick 2): Add a screen's screens (screen-presets.js listOf). `graph` is
+    // the graph it shows. Each is named after its template as
     // it goes in, the second forecast after its length (forecastName); `name` is what a screen of
     // it that has no name of its own is called.
     var TEMPLATES = [
-        { id: 'forecast2', name: 'Long forecast', env: 'graphStyles', graph: 'fc' },
-        { id: 'health', name: 'Health', env: 'health', graph: 'health' },
-        { id: 'radar', name: 'Rain radar', env: 'radar', graph: 'radar' }
+        { id: 'forecast2', name: 'Long forecast', graph: 'fc' },
+        { id: 'health', name: 'Health', graph: 'health' },
+        { id: 'radar', name: 'Rain radar', graph: 'radar' }
     ];
     // The long span's stored option (forecast-span-hours.js CHOICES), and the day's.
     var LONG_SPAN = '48';
@@ -52,15 +48,6 @@
      */
     function forecastName(span) {
         return String(span) === LONG_SPAN ? 'Long forecast' : '24 h forecast';
-    }
-
-    /**
-     * The templates this watch can show.
-     * @param {?Object} env Platform env.
-     * @returns {Array<Object>}
-     */
-    function offered(env) {
-        return TEMPLATES.filter(function (t) { return Boolean(env && env[t.env]); });
     }
 
     /**
@@ -164,12 +151,10 @@
     }
 
     var api = {
-        NEAREST_LAYOUT: NEAREST_LAYOUT,
-        TEMPLATES: TEMPLATES,
         LONG_SPAN: LONG_SPAN,
         otherSpan: otherSpan,
         forecastName: forecastName,
-        offered: offered,
+        TEMPLATES: TEMPLATES,
         byId: byId,
         listOf: listOf,
         templateOf: templateOf,

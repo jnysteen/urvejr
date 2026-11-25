@@ -4,8 +4,7 @@
 // its Visible values rows) and two pieces the tab's own items read (the metric pickers'
 // derived hint, and the two stripe styles the Area fill row tests). What the rows print
 // and offer is the page's (forecast-hints.js); which picker a row sits under is the
-// when-leaf lineRow (when-resolvers.js). It reads the shared gates (schema-gates.js),
-// never schema.js, so the dependency points one way. Plain CommonJS with an unguarded
+// when-leaf lineRow (when-resolvers.js). It never reads schema.js, so the dependency points one way. Plain CommonJS with an unguarded
 // require(), like schema.js itself: the schema is built in PKJS and reaches the page as
 // data.
 var PRESSURE_SCALE_CURVE_HPA = require('../../weather/domain/forecast-series.js').PRESSURE_SCALE_CURVE_HPA;
@@ -18,15 +17,11 @@ var LINE_ALERT = require('../../alerts/domain/line-alert.js');
 // Draw from [Bottom | Top]: the keys, their rows' metrics and the values, from the module
 // the wire packs the flags through.
 var DRAW_FROM = require('../../forecast-graphs/domain/draw-from.js');
-var gates = require('../settings/schema-gates.js');
-var ON_DEMAND_WHEN = gates.ON_DEMAND_WHEN;
-var LINE_STYLES_WHEN = gates.LINE_STYLES_WHEN;
 // The metric and line-style pickers' hints are DERIVED (hintFrom), not static: a
 // line's scale depends on its metric AND its style (height for a curve or marks,
 // colour strength for a stripe), so the copy and its composition live with the
 // resolvers in forecast-hints.js ('forecastMetricHint', 'lineStyleHint'). The metric
-// pickers keep only notes true of the metric whatever its style — plus the height wording
-// on a watch without style pickers (aplite), so the scale is still explained there.
+// pickers keep only notes true of the metric whatever its style.
 // Every picker carries the full metric set, feels and dew included: each line has its
 // own curve-inset byte (CLAY_CURVE_INSET_UINT8), so any of them can share the
 // temperature axis with the temperature curve.
@@ -43,10 +38,8 @@ var STRIPE_STYLES = ['stripeTop', 'stripeBottom'];
  */
 function lineStyleCopy(lineKey, offable) {
     var messageKey = lineKey + 'Style';
-    var when = [LINE_STYLES_WHEN];
-    if (offable) { when.push({key: lineKey, ne: 'off'}); }
     // A dropdown, not a segmented row: six styles no longer fit one row on a phone.
-    return {
+    var row = {
         type: 'select',
         messageKey: messageKey,
         label: 'Line style',
@@ -63,17 +56,16 @@ function lineStyleCopy(lineKey, offable) {
         optionsFrom: {resolver: 'lineStyleOptions', args: {metricKey: lineKey}},
         // A stored stripe on such a metric lies dormant: the row shows the style the
         // watch draws (line-style.js lineStyleValue resolves it the same way for the
-        // bake, the preview and telemetry) but the pick stays stored, so trying another
+        // bake and the preview) but the pick stays stored, so trying another
         // metric and coming back to an intensity one brings the stripe back.
-        dormantValues: STRIPE_STYLES,
-        showWhen: {all: when}
+        dormantValues: STRIPE_STYLES
     };
+    if (offable) { row.showWhen = {key: lineKey, ne: 'off'}; }
+    return row;
 }
 // Both metric pickers resolve through forecast-hints.js' 'forecastMetric' options resolver:
 // the third line gets Off plus the metrics the secondary line is NOT using (the
-// engine's display-snap resets thirdLine if it ever collides — see engine.js), and
-// feels-like is dropped on aplite (no temp-axis inset compiled there, and the temp
-// slot's Feels/Both control is threshold-gated off aplite too).
+// engine's display-snap resets thirdLine if it ever collides — see engine.js).
 // windScale ceilings pre-rendered per wind unit, chosen by showWhen on windUnits
 // (§2b). Same descriptive tails as the original single hint; only the ceiling +
 // unit change. Ceilings: kph 30/50/70 · mph 19/31/43 · kn 16/27/38.
@@ -146,9 +138,7 @@ function windScaleCopy(pickerKey, unit, hints) {
 /**
  * One metric's Visible values [All | Alert] row (internally the Show row: line-alert.js)
  * under one picker: shown while that picker's line draws the metric (lineRowWhen, so a
- * stored repeat on a later picker shows it once), on a watch with an Alerts tab
- * (ON_DEMAND_WHEN: aplite has none, and its lines always draw All, line-alert.js
- * alertBands). The wind speed, wind gust and UV index lines have one
+ * stored repeat on a later picker shows it once). The wind speed, wind gust and UV index lines have one
  * each (line-alert.js METRIC_IDS, the graph metrics with Alert levels), stored per
  * metric, so the row follows its metric from picker to picker. Each value has its own
  * hint (forecast-hints.js 'lineShowHint'); Alert's names the warn level it gaps below and, on
@@ -166,14 +156,13 @@ function lineShowCopy(pickerKey, metric) {
         joinPrevious: true,
         hintFrom: {resolver: 'lineShowHint', args: {metric: metric}},
         options: [['All', LINE_ALERT.SHOW_ALL], ['Alert', LINE_ALERT.SHOW_ALERT]],
-        showWhen: {all: [ON_DEMAND_WHEN, lineRowWhen(pickerKey, {metrics: [metric]})]}
+        showWhen: lineRowWhen(pickerKey, {metrics: [metric]})
     };
 }
 /**
  * One Draw from [Bottom | Top] row (draw-from.js ROWS entry) under one picker: shown under
  * the FIRST line that hangs from the key (draw-from.js rowLine, the wire's own reading):
- * one that draws one of the row's metrics (never a stored repeat) as a line or marks, on
- * a watch with line styles (aplite never hangs a line). When the first wind/gust line is
+ * one that draws one of the row's metrics (never a stored repeat) as a line or marks. When the first wind/gust line is
  * a stripe the row moves to the next one that is a line (a stripe keeps its own
  * Top/Bottom). Stored per metric (wind and gusts share one key), so the row follows its
  * metric from picker to picker; a stored Top on a stripe or an undrawn line lies dormant

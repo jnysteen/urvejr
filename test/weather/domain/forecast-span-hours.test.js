@@ -17,7 +17,6 @@ const spanHours = require('../../../src/pkjs/weather/domain/forecast-span-hours.
 const forecastAxis = require('../../../src/pkjs/forecast-graphs/domain/forecast-axis.js');
 const hourlyWindow = require('../../../src/pkjs/weather/domain/hourly-window.js');
 const schema = require('../../../src/pkjs/page/settings/schema.js');
-const platform = require('../../../src/pkjs/config-ui/lib/platform.js');
 const { cDefine } = require('../../helpers/c-source.js');
 
 const ROOT = path.join(__dirname, '..', '..', '..');
@@ -27,7 +26,7 @@ const DUMP = read('test/c/forecast_span_dump.c');
 const SPAN_H = read('src/c/appendix/forecast_span.h');
 
 // emery's settings-page env (config-ui platform.js computeEnv): health and custom layouts.
-const EMERY = platform.computeEnv({ platform: 'emery' });
+const EMERY = {};
 // A custom layout of one view, the health graph in the top band over the forecast body: the
 // two share the screen, each graph past its own labels' strip (bottom_view.h), and the forecast
 // starts at the screen's edge with the numbers On graph or Off (forecast_layer.c graph_left).
@@ -205,21 +204,17 @@ test('longHours and spanOptions: the label for each provider and layout', () => 
 });
 
 test('shownHours: the hours each span draws, as the watch fits its grid to the plot', () => {
-  const emery = platform.computeEnv({ platform: 'emery' });
-  const basalt = platform.computeEnv({ platform: 'basalt' });
+  const emery = {};
   // emery's 24 h grid keeps its 8 px pitch: 22 hours beside the left axis (its 176 px plot),
   // 25 of the 26 sent without one; 12 h fits 12 whole columns; the long span is longHours'.
   const defaults = { largeGraphFont: true, healthMode: 'all' };   // a 176 px plot beside the strip
   assert.equal(spanHours.plotWidth(defaults), 176);
-  assert.equal(spanHours.shownHours(defaults, emery), 22);
-  assert.equal(spanHours.shownHours({}, emery), 23, 'a 180 px plot: 22.5 hours');
-  assert.equal(spanHours.shownHours(Object.assign({ forecastAxisNumbers: 'graph' }, defaults), emery), 25);
-  assert.equal(spanHours.shownHours({ forecastAxisNumbers: 'off' }, emery), 25);
-  assert.equal(spanHours.shownHours({ forecastHours: '12' }, emery), 12);
-  assert.equal(spanHours.shownHours({ forecastHours: '48' }, emery), spanHours.longHours({ forecastHours: '48' }, emery));
-  // The 144 px watches: 24 h at 7 px over the plot right of the label strip, whatever is stored.
-  assert.equal(spanHours.shownHours({}, basalt), 18);
-  assert.equal(spanHours.shownHours({ forecastHours: '12' }, basalt), 18);
+  assert.equal(spanHours.shownHours(defaults), 22);
+  assert.equal(spanHours.shownHours({}), 23, 'a 180 px plot: 22.5 hours');
+  assert.equal(spanHours.shownHours(Object.assign({ forecastAxisNumbers: 'graph' }, defaults)), 25);
+  assert.equal(spanHours.shownHours({ forecastAxisNumbers: 'off' }), 25);
+  assert.equal(spanHours.shownHours({ forecastHours: '12' }), 12);
+  assert.equal(spanHours.shownHours({ forecastHours: '48' }), spanHours.longHours({ forecastHours: '48' }, emery));
   // The grids, lockstep with the watch's headers and the hours the phone sends.
   const span = read('src/c/appendix/forecast_span.h');
   assert.equal(1 + 2 * cDefine(span, 'FORECAST_SPAN_DAY_PAD') + cDefine(span, 'FORECAST_SPAN_DAY_BAR_W'), 8);
@@ -227,6 +222,5 @@ test('shownHours: the hours each span draws, as the watch fits its grid to the p
   assert.equal(cDefine(span, 'FORECAST_SPAN_DAY_SENT'), 26);
   assert.equal(require('../../../src/pkjs/weather/domain/forecast-span.js').DAY_WIDE_HOURS, 26);
   const grid = read('src/c/appendix/forecast_grid.h');
-  const small = grid.slice(grid.indexOf('DISPLAY_WIDTH_144'));
-  assert.equal(1 + 2 * cDefine(small, 'FORECAST_GRID_PAD') + cDefine(small, 'FORECAST_GRID_BAR_W'), 7);
+  assert.equal(1 + 2 * cDefine(grid, 'FORECAST_GRID_PAD') + cDefine(grid, 'FORECAST_GRID_BAR_W'), 8);
 });

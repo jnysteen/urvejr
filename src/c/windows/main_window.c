@@ -27,13 +27,12 @@
 
 static Window *s_main_window;
 
-// Cycle cursor. A wrist-flick accepted by view_flick_accept (layout.h) advances to the
+// Cycle cursor. A screen tap accepted by view_tap_up (layout.h) advances to the
 // next enabled + available view and wraps back. Survives a relaunch (e.g. Pebble's Quiet Time forces a full app
 // process relaunch on real hardware) within config_get()->view_reset_min minutes, or
 // MAX_STALE_TIME_SEC when auto-return is disabled — see persist_get_view_cursor()
 // in main_window_load(). Beyond that window it boots to the DEFAULT view (index 0).
 static uint8_t s_view_index;
-#if defined(WW_VIEW_CYCLE)
 // The cycle definition (32-bit view words — see config_view_words) the cursor was last
 // validated against, so main_window_apply_top_view can tell a real settings change (cycle
 // redefined → return to default) from a same-cycle re-apply (radar/health availability →
@@ -43,45 +42,29 @@ static uint32_t s_applied_view_word[3];
 // Epoch of the last view-switching flick (or relaunch-restore to a non-default view),
 // seeding the auto-return-to-default timer. 0 = on the default view / no timer running.
 static time_t s_flick_epoch;
-#if !defined(PBL_TOUCH)
-// Wrist-flick gate state (rules: layout.h view_flick_accept). RAM only, zeroed at launch:
-// a relaunch starts with no flick pending.
-static ViewFlickGate s_flick_gate;
-#endif
-// Whether tap_handler (touch_handler on a touch watch) is subscribed: only while the
-// cycle can move (tap_follow_cycle).
+// Screen-tap gate state (rules: layout.h view_tap_down/move/up). RAM only, reset at each
+// subscribe: a touch that began before it is no tap.
+static ViewTapGate s_tap_gate;
+// Whether touch_handler is subscribed: only while the cycle can move (tap_follow_cycle).
 static bool s_tap_subscribed;
-#endif
 
 // Radar data present? — the ONE availability predicate the ViewSpec resolves
 // against. Non-static (declared in main_window.h) so app_message.c's
 // availability-flip bracket calls this very definition and can never drift from
-// it. Constant-false on aplite (radar is compiled out).
+// it.
 bool main_window_radar_has_data(void) {
-#if defined(WW_RAIN_RADAR)
     // A stored window, or the radar notice alone (radar_limit.h radar_has_view):
     // a source that refused us before any window arrived, or cannot see the place,
     // keeps its radar view, which says why it is empty. The notice flipping with no
     // window re-applies the top view through app_message.c's bracket.
     return radar_has_view(persist_get_rain_radar_start() > 0, persist_has_radar_notice());
-#else
-    // aplite: radar is compiled out, so it never has data — the view cycle
-    // resolves every radar slot away (view_spec_resolve/view_slot_available).
-    return false;
-#endif
 }
 
-// Can this platform + config render health right now? Hard false on no-health platforms
-// (aplite compiles the health service out entirely).
+// Can this config render health right now?
 static bool health_renderable(void) {
-#if defined(PBL_HEALTH)
     return config_get()->health_mode != HEALTH_OFF && health_available();
-#else
-    return false;
-#endif
 }
 
-#if defined(PBL_HEALTH)
 // Does a configured view carry the health graph? health_graph_renderable's config half.
 static bool graph_in_cycle(void) {
     for (int i = 0; i < 3; i++) {
@@ -89,9 +72,7 @@ static bool graph_in_cycle(void) {
         // a custom layout can seat the health graph in the TOP band too, and a graph
         // there must repaint and report its left-axis width like a body graph.
         ViewSpec s = view_spec_unpack(config_get()->view_spec2[i]);
-#if defined(WW_VIEW_CYCLE)
         view_spec_apply_ext(&s, config_get()->view_ext[i]);
-#endif
         if (layout_visibility(&s).health_graph) { return true; }
     }
     return false;
@@ -108,9 +89,7 @@ static bool graph_in_cycle(void) {
 static bool health_graph_renderable(void) {
     return health_renderable() && graph_in_cycle();
 }
-#endif
 
-#if defined(WW_VIEW_CYCLE)
 // The configured cycle as full 32-bit view words: the 16-bit packed spec in the low half,
 // the custom-layout ext word in the high half (layout.h "view WORD"). One place builds
 // them, so every cursor helper sees the ext word the renderer sees.
@@ -140,19 +119,9 @@ static ViewSpec unpack_slot_spec(uint8_t slot) {
     view_spec_apply_ext(&spec, config_get()->view_ext[slot]);
     return view_spec_resolve(spec, main_window_radar_has_data(), health_renderable());
 }
-#else
-// Decode a configured 16-bit slot value to a ViewSpec, then apply runtime availability
-// downgrades (radar data present? health renderable?). The SDK queries happen HERE;
-// layout.c stays pure.
-static ViewSpec unpack_slot_spec(uint16_t value) {
-    ViewSpec spec = view_spec_unpack(value);
-    return view_spec_resolve(spec, main_window_radar_has_data(), health_renderable());
-}
-#endif
 
 // The ViewSpec for the view currently on screen.
 static ViewSpec current_view_spec(void) {
-#if defined(WW_VIEW_CYCLE)
     // Belt for the phone-side guard: the DEFAULT view always keeps its clock, whatever
     // the wire says. The compiler never emits clock_off on slot 0 and the editor offers
     // no ✕ there, but a watch that shows no time is a product-breaking failure worth a
@@ -164,13 +133,8 @@ static ViewSpec current_view_spec(void) {
         spec.clock_off = 0;
     }
     return spec;
-#else
-    // aplite keeps the bare tail call — the local-copy shape above costs it image bytes.
-    return unpack_slot_spec(config_get()->view_spec2[s_view_index]);
-#endif
 }
 
-#if defined(WW_VIEW_CYCLE)
 // Next flick target after `from`. Resolves availability from the SDK here (radar data
 // present? health renderable?) and defers the pure wrap logic to layout.c.
 static uint8_t next_view_index(uint8_t from) {
@@ -178,7 +142,6 @@ static uint8_t next_view_index(uint8_t from) {
     config_view_words(words);
     return view_cursor_next(from, words, main_window_radar_has_data(), health_renderable());
 }
-#endif
 
 // Reframe every band and set layer visibility + status tiers for the active view.
 // Geometry can change on a flick (a view may be a different tier), so this recomputes
@@ -193,7 +156,6 @@ static void render_active_view(void) {
     // invalidation path (render_active_view runs before main_window_refresh re-measures text).
     LayoutMetrics metrics = LAYOUT_METRICS_NOW();
     MainLayout L;
-#if defined(WW_QUICK_VIEW)
     // Peek is derived LIVE from the unobstructed bounds every render (never a cached flag),
     // so it stays correct across settings/timeline/relaunch — any path that lands here
     // re-checks reality. While a Timeline Quick View overlay covers the lower screen, render
@@ -210,7 +172,6 @@ static void render_active_view(void) {
         layout_peek_spec(&spec);
         L = layout_compute_peek(unobstructed, &spec, metrics);
     } else
-#endif
     {
         L = layout_compute_spec(bounds, &spec, metrics);
     }
@@ -220,7 +181,6 @@ static void render_active_view(void) {
     // quick-view peek too.
     calendar_layer_set_rows(spec.calendar_rows);
     top_status_layer_set_full_date(layout_full_date(&spec));
-#if defined(PBL_HEALTH) && defined(WW_VIEW_CYCLE)
     // "Full mode" = the health graph sits in a short fixed band (a tighter HR/sleep
     // gap): under a 3-row top area, as a top-band graph that does not fill, or as a
     // sized body. The first term asks the top area's SHAPE (layout_top_three_rows),
@@ -230,55 +190,29 @@ static void render_active_view(void) {
         || (spec.top == TOP_BAND_GRAPH && spec.top_kind == TOP_GRAPH_HEALTH
             && spec.top_size != BAND_SIZE_FILL)
         || (spec.body == BODY_HEALTH_GRAPH && spec.body_size != BAND_SIZE_DEFAULT));
-#elif defined(PBL_HEALTH)
-    health_graph_layer_set_full_mode(spec.calendar_rows == 3);
-#endif
     layer_set_frame(time_layer_get_root(), L.time);
     layer_set_frame(calendar_layer_get_root(), L.top);
-#if defined(WW_RAIN_RADAR)
     layer_set_frame(rain_radar_layer_get_root(), L.radar);
-#endif
     // Tier, full-date, full-mode, band frame and visibility for every band row, in
     // one call — the bars own the fan-out now (see layers/status_bar.h).
     status_bar_apply_view(&spec, &L);
-#if defined(WW_VIEW_CYCLE)
     // Each graph layer frames to ITS seat: the top band when a custom layout put it
-    // there, else the body. (aplite keeps the plain body frames below — the helper
-    // call measured +16 B of image there.)
-#if defined(PBL_PLATFORM_EMERY)
+    // there, else the body.
     // emery: the forecast layer sits in a clip of its own (forecast_layer.c), framed with it,
     // and draws the view's graph style (the view word's ext bits 9-10; graph_style.h).
     forecast_layer_set_frame(layout_forecast_frame(&spec, &L));
     forecast_layer_set_style(view_ext_graph_style(config_get()->view_ext[s_view_index]));
-#else
-    layer_set_frame(forecast_layer_get_root(), layout_forecast_frame(&spec, &L));
-#endif
-#if defined(PBL_HEALTH)
     layer_set_frame(health_graph_layer_get_root(), layout_health_frame(&spec, &L));
-#endif
-#else
-    layer_set_frame(forecast_layer_get_root(), L.bottom);
-#if defined(PBL_HEALTH)
-    layer_set_frame(health_graph_layer_get_root(), L.bottom);
-#endif
-#endif
     layer_set_frame(loading_layer_get_root(), L.loading);
 
     LayerVisibility v = layout_visibility(&spec);
     layer_set_hidden(calendar_layer_get_root(), !v.calendar);
-#if defined(WW_RAIN_RADAR)
     layer_set_hidden(rain_radar_layer_get_root(), !v.radar);
-#endif
     layer_set_hidden(forecast_layer_get_root(), !v.forecast);
-#if defined(PBL_HEALTH)
     layer_set_hidden(health_graph_layer_get_root(), !v.health_graph);
-#endif
-#if defined(WW_VIEW_CYCLE)
     // Custom per-view omissions (any view may drop its top bar, flick views also the
     // clock; slot 0's clock is belted above, peek forces both back on). Hidden, never destroyed — ticks/refreshes on a hidden layer only
-    // set text and frames. Deliberately not routed through LayerVisibility: a field
-    // there would oblige the aplite twin's layout_visibility to populate a flag aplite
-    // can never raise.
+    // set text and frames.
     //
     // The strip must be REFRAMED here too, not just toggled: it is created once at
     // window load from the BOOT view's L.top_status, which is 0-height for a stripless
@@ -289,10 +223,8 @@ static void render_active_view(void) {
     layer_set_frame(top_status_layer_get_root(), L.top_status);
     layer_set_hidden(time_layer_get_root(), spec.clock_off != 0);
     layer_set_hidden(top_status_layer_get_root(), spec.strip_off != 0);
-#endif
 }
 
-#if defined(WW_QUICK_VIEW)
 // A Timeline Quick View overlay appeared or retracted: re-render for the new obstruction
 // state, then refresh so the clock/status/forecast text re-measures for its (peek vs
 // normal) frame — the same render+refresh pairing a flick uses. quick_view on_change cb.
@@ -300,9 +232,7 @@ static void quick_view_on_change(void) {
     render_active_view();
     main_window_refresh();
 }
-#endif
 
-#if defined(PBL_HEALTH)
 // See main_window.h. Every row refresh ends here: the load, main_window_refresh() (a
 // settings apply, a flick, a Quick View peek, the auto-return), a status send and the
 // minute tick, whose sync is the minute's first and so reads everything shown. The
@@ -340,9 +270,7 @@ void main_window_sync_health(void) {
 void main_window_refresh_health_graph(void) {
     if (health_graph_renderable()) { health_graph_layer_refresh(); }
 }
-#endif
 
-#if defined(PBL_HEALTH) && defined(WW_VIEW_CYCLE)
 // A view transition (flick, auto-return, a config/availability re-apply) can bring the
 // health graph on screen while the minute tick's 15-minute re-read skipped it (that read
 // runs only while the graph shows), so re-read the in-progress hour before the render:
@@ -355,39 +283,21 @@ static void health_warm_for_incoming_view(void) {
         health_graph_layer_refresh();
     }
 }
-#endif
 
 // Put the current view on screen after the cursor or the configured views changed (a
 // flick, the auto-return, a settings or availability re-apply): the graph's transition
 // heal above, then the reframe and a refresh of everything shown.
 static void show_view(void) {
-#if defined(PBL_HEALTH) && defined(WW_VIEW_CYCLE)
     health_warm_for_incoming_view();
-#endif
     render_active_view();
     main_window_refresh();
 }
 
-#if defined(WW_VIEW_CYCLE)
-// Advance to the next view after an accepted flick or tap. `now_s` is time_ms's seconds
-// (time(NULL)'s UTC epoch).
-static void advance_view(time_t now_s) {
-    uint8_t next = next_view_index(s_view_index);
-    if (next == s_view_index) { return; }   // nothing else enabled/available
-    s_view_index = next;
-    s_flick_epoch = now_s;                   // restart the auto-return timer
-    show_view();
-}
-
-#if defined(PBL_TOUCH)
-// emery: the Pebble Time 2 has a touchscreen, so a tap on the screen switches views in
-// place of the wrist flick (which fired on ordinary arm movement and missed real flicks).
-// view_tap_down/move/up (layout.h) decide what counts as a tap. Taps on an idle face
-// (event->non_navigational) count too: a watchface has no "wake first" step, and the
-// auto-return timer takes a brushed screen back to the default view. Double flick does
-// not apply: one tap switches.
-static ViewTapGate s_tap_gate;
-
+// A tap on the screen advances to the next enabled + available view and restarts the
+// auto-return timer. view_tap_down/move/up (layout.h) decide what counts as a tap; a touch
+// that is none changes nothing (no view, no auto-return restart, no health warm). Touches on
+// an idle face (event->non_navigational) count too: a watchface has no "wake first" step,
+// and the auto-return takes a brushed screen back to the default view.
 static void touch_handler(const TouchEvent *event, void *context) {
     (void) context;
     time_t now_s;
@@ -396,69 +306,47 @@ static void touch_handler(const TouchEvent *event, void *context) {
     switch (event->type) {
         case TouchEvent_Touchdown:
             view_tap_down(&s_tap_gate, event->x, event->y, now_ms);
-            break;
+            return;
         case TouchEvent_PositionUpdate:
             view_tap_move(&s_tap_gate, event->x, event->y);
-            break;
+            return;
         case TouchEvent_Liftoff:
-            if (view_tap_up(&s_tap_gate, event->x, event->y, now_ms)) { advance_view(now_s); }
             break;
     }
-}
-#else
-static void tap_handler(AccelAxisType axis, int32_t direction) {
-    // view_flick_accept (layout.h) debounces one flick's per-axis echoes and, with Double
-    // flick on, passes only a pair's second flick. A rejected flick changes nothing here:
-    // no view, no auto-return restart, no health warm.
-    (void) axis;
-    (void) direction;
-    time_t now_s;
-    uint16_t now_ms_part = time_ms(&now_s, NULL);
-    if (!view_flick_accept(&s_flick_gate, (uint32_t) now_s * 1000u + now_ms_part,
-                           config_get()->view_double_flick)) {
-        return;
-    }
-    advance_view(now_s);
-}
-#endif
+    if (!view_tap_up(&s_tap_gate, event->x, event->y, now_ms)) { return; }
 
-// Take flick (or, on a touch watch, touch) events only while one can move the cursor
-// (layout.h view_cycle_flickable), so a face with one view is not woken by every wrist
-// flick and does not keep the touch sensor powered. The cycle changes only with a settings
-// apply, and each one calls this, as the load does; the unload passes NULL.
+    uint8_t next = next_view_index(s_view_index);
+    if (next == s_view_index) { return; }   // nothing else enabled/available
+    s_view_index = next;
+    s_flick_epoch = now_s;                   // restart the auto-return timer (time_ms's
+                                             // seconds are time(NULL)'s UTC epoch)
+    show_view();
+}
+
+// Take touch events only while a tap can move the cursor (layout.h view_cycle_flickable):
+// the touch sensor draws power while subscribed, so a face with one view keeps it off. The
+// cycle changes only with a settings apply, and each one calls this, as the load does; the
+// unload passes NULL.
 static void tap_follow_cycle(const uint32_t *words) {
     const bool want = words && view_cycle_flickable(words);
     if (want == s_tap_subscribed) { return; }
     s_tap_subscribed = want;
-#if defined(PBL_TOUCH)
-    // emery: touch replaces the accelerometer tap (see touch_handler).
     if (want) {
         s_tap_gate = (ViewTapGate){0};
         touch_service_subscribe(touch_handler, NULL);
     } else {
         touch_service_unsubscribe();
     }
-#else
-    if (want) {
-        accel_tap_service_subscribe(tap_handler);
-    } else {
-        accel_tap_service_unsubscribe();
-    }
-#endif
 }
-#endif
 
 static void main_window_load(Window *window) {
     Layer *window_layer = window_get_root_layer(window);
     GRect bounds = layer_get_bounds(window_layer);
     main_window_apply_theme();
-#if defined(PBL_HEALTH)
     // Before any health read: the hourly reads borrow the paint scratch for their
     // minute records (paint_scratch.h), instead of 720 B of their own.
     health_set_minute_scratch(g_paint_scratch.health_minutes);
-#endif
 
-#if defined(WW_VIEW_CYCLE)
     // Restore the view cursor across a relaunch, gated on the same window the
     // user's own auto-return setting already allows a non-default view to live
     // (or MAX_STALE_TIME_SEC when auto-return is off). Must run before
@@ -480,15 +368,12 @@ static void main_window_load(Window *window) {
         // else: corrupt flash, or the slot no longer resolves to anything (e.g. a
         // future config migration redefined/disabled it) — stay on the default view.
     }
-#endif
 
     ViewSpec spec = current_view_spec();
     MainLayout L = layout_compute_spec(bounds, &spec, LAYOUT_METRICS_NOW());
 
     forecast_layer_create(window_layer, L.bottom);
-#if defined(PBL_HEALTH)
     health_graph_layer_create(window_layer, L.bottom);
-#endif
     // Every band status row, each already seeded with the boot view's tier and date
     // density and framed to the band its source occupies. POSITION IS LOAD-BEARING:
     // the bands overlap (on the 144px watches at compact tier the calendar spans
@@ -496,15 +381,11 @@ static void main_window_load(Window *window) {
     // so the bars must be added AFTER the body graphs and BEFORE the calendar, clock,
     // radar and strip. See layers/status_bar.h. A bar no configured view shows is never
     // read.
-#if defined(WW_VIEW_CYCLE)
     status_bar_set_in_use(config_bar_sources());
-#endif
     status_bar_create_all(window_layer, &spec, &L);
     time_layer_create(window_layer, L.time);
     calendar_layer_create(window_layer, L.top);
-#if defined(WW_RAIN_RADAR)
     rain_radar_layer_create(window_layer, L.radar);
-#endif
     // Boot tier push: the strip resolves its slots inside create(), and the date
     // slot needs the BOOT view's density — not the Clay hint. Also fixes the stale
     // date after a relaunch-restore onto a none-tier view.
@@ -513,14 +394,11 @@ static void main_window_load(Window *window) {
     loading_layer_create(window_layer, L.loading);
     loading_layer_refresh();
     app_message_send_startup_state(loading_layer_data_is_fresh());
-#if defined(WW_VIEW_CYCLE)
     // Seed the applied-cycle snapshot with the boot config so the first same-cycle
     // re-apply (e.g. an incoming radar update) doesn't read it as a settings change
     // and reset a cursor the user has since flicked (or we just restored above).
     config_view_words(s_applied_view_word);
-#endif
     render_active_view();
-#if defined(PBL_HEALTH)
     // Repaint the health graph when the cache shows its loading frame, a rollover's
     // paint-first or a finished deferred build (see main_window_refresh_health_graph
     // above). The rows' live-health readings come from the health summary instead
@@ -533,61 +411,40 @@ static void main_window_load(Window *window) {
     // The readings the boot view's rows show, which their create-time refreshes have
     // resolved: the first paint shows them, not the summary's unread "0"/"--".
     main_window_sync_health();
-#endif
-#if defined(WW_VIEW_CYCLE)
     tap_follow_cycle(s_applied_view_word);   // the boot cycle, seeded above
-#endif
-#if defined(WW_QUICK_VIEW)
     // Switch to the peek view (and back) whenever a Timeline Quick View overlay appears or
     // retracts. See quick_view_on_change / render_active_view.
     quick_view_subscribe(quick_view_on_change);
-#endif
-#if defined(WW_COLOR_BACKLIGHT)
     // Take over the backlight LED: subscribe to app focus and tint immediately if the
     // clock is already inside the user's night window. A wrist-raise at 03:00 is what
     // launches the face, and the light is on for exactly that raise — waiting for the
     // first minute boundary would show white for the one look that mattered. Only emery
     // has a colour backlight, so this is compiled out everywhere else (night_light.h).
     night_light_init();
-#endif
     MEMORY_LOG_HEAP("after_window_load");
 }
 
 static void main_window_unload(Window *window) {
-#if defined(WW_VIEW_CYCLE)
     tap_follow_cycle(NULL);
-#endif
-#if defined(WW_QUICK_VIEW)
     quick_view_unsubscribe();
-#endif
-#if defined(WW_COLOR_BACKLIGHT)
     // Unsubscribe from focus and hand the LED back before anything else is torn down.
     // Safe this late in the lifecycle: it reads no config (already unloaded by now —
     // see the note below) and touches no layer, only the subscription and the LED.
     night_light_deinit();
-#endif
     // Snapshot session state for a possible relaunch (see main_window_load's
     // restore logic above). config is already unloaded by this point
     // (config_get() returns NULL) — watchface.c's deinit() calls config_unload()
     // before main_window_destroy() — so nothing below may call it.
-#if defined(WW_VIEW_CYCLE)
     persist_set_view_cursor(s_view_index);
     persist_set_watchface_unload_epoch(time(NULL));
-#endif
-#if defined(PBL_HEALTH)
     health_cache_persist_save();   // only while kept: no config here to ask
-#endif
     MEMORY_LOG_HEAP("before_window_unload");
     time_layer_destroy();
     status_bar_destroy_all();
     forecast_layer_destroy();
-#if defined(PBL_HEALTH)
     health_graph_layer_destroy();
-#endif
     calendar_layer_destroy();
-#if defined(WW_RAIN_RADAR)
     rain_radar_layer_destroy();
-#endif
     top_status_layer_destroy();
     loading_layer_destroy();
     MEMORY_LOG_HEAP("after_window_unload");
@@ -595,7 +452,6 @@ static void main_window_unload(Window *window) {
 
 static void minute_handler(struct tm *tick_time, TimeUnits units_changed) {
     time_layer_tick();
-#if defined(WW_COLOR_BACKLIGHT)
     // Cross the night window's edges on the minute the clock crosses them. Silent on
     // the ~1438 ticks a day the answer does not move (night_light_refresh tracks what
     // it last applied and issues no SDK call otherwise), so the steady-state cost is a
@@ -603,21 +459,17 @@ static void minute_handler(struct tm *tick_time, TimeUnits units_changed) {
     // units_changed: the boundaries are whole hours, but a settings save that MOVED
     // them can land between ticks, and this cadence is what heals that.
     night_light_refresh();
-#endif
     /* tm_hour==0 missed day changes from emulator time jumps (same clock, new date). */
     if (units_changed & DAY_UNIT) {
         calendar_layer_refresh();
         top_status_layer_refresh();
     }
     top_status_layer_tick();
-#if defined(WW_ON_DEMAND)
     // The strip's tick re-derives its own On demand items; a band bar with items
     // needs the same per-minute pass, or its rain countdown and Quiet time would
     // stand still.
     status_bar_tick_on_demand();
-#endif
     loading_layer_refresh();
-#if defined(PBL_HEALTH)
     // Keep the cache warm while a view can show the health graph, its one reader
     // (rollover-warm then; the 15-min current-hour re-read only while the graph is on
     // screen), and repaint the graph from it. The render path stays HealthService-free.
@@ -631,8 +483,6 @@ static void minute_handler(struct tm *tick_time, TimeUnits units_changed) {
     // The rows' readings: the minute's first sync reads every one the visible rows show
     // (only VISIBLE rows: the hidden Health bar's default line is all health slots).
     main_window_sync_health();
-#endif
-#if defined(WW_VIEW_CYCLE)
     // Auto-return to the default view once view_reset_min minutes of real time have
     // elapsed since the flick — elapsed seconds, not minute-tick edges, so a flick late
     // in a wall-clock minute still gets its full window before snapping back.
@@ -642,7 +492,6 @@ static void minute_handler(struct tm *tick_time, TimeUnits units_changed) {
         s_view_index = 0;
         show_view();
     }
-#endif
 #if !defined(WW_FIXTURE_NOW_YEAR) && defined(WW_RAIN_RADAR)
     // Live builds only: advance the radar window when a fetch boundary passes.
     // Fixtures are frozen snapshots anchored to the fixture clock — their window
@@ -650,7 +499,6 @@ static void minute_handler(struct tm *tick_time, TimeUnits units_changed) {
     // builds (watch_services_now() freezes it for display but mktime/TZ/DST make
     // it unsafe to compare against the JS-derived radar start), so the advance
     // logic would roll the whole window to empty and re-anchor to real time.
-    // (aplite has no radar — WW_RAIN_RADAR undefined — so this drops out.)
     if (rain_radar_layer_tick(time(NULL))) {
         // Window advanced — re-evaluate the top view, mirroring the arrival path.
         main_window_apply_top_view();
@@ -677,19 +525,16 @@ void main_window_create() {
 }
 
 void main_window_apply_top_view() {
-#if defined(PBL_HEALTH)
     // A settings change that brings the graph into the cycle (health on, or a graph
     // view added) warms the cache immediately, and one that takes it away stops it; the
     // rows' readings follow the refresh below (main_window_sync_health).
     health_cache_keep(health_graph_renderable());
-#endif
     // Re-apply the current view after radar availability or config changed. A radar/health
     // view whose data or capability vanished degrades in place via view_spec_resolve. But a
     // settings change that redefines the cycle makes the cursor's old slot mean a different
     // view — return to the default then, so the cursor never strands on a stale slot (the
     // "default view never shows after changing settings" bug). A same-cycle re-apply (radar
     // availability flip) leaves the cursor where the user put it.
-#if defined(WW_VIEW_CYCLE)
     uint32_t words[3];
     config_view_words(words);
     s_view_index = view_cursor_after_config(s_view_index, s_applied_view_word, words);
@@ -699,7 +544,6 @@ void main_window_apply_top_view() {
     // before the live-health check below looks at its slots; one that left is read no
     // more, not even by the reframe.
     status_bar_set_in_use(config_bar_sources());
-#endif
     // After the cursor re-resolution above: the heal reads the view it lands on.
     show_view();
 }
@@ -709,7 +553,6 @@ void main_window_apply_theme(void) {
 }
 
 void main_window_refresh() {
-#if defined(WW_COLOR_BACKLIGHT)
     // Not a window surface, but this is the face's one "the user may have just changed
     // something" checkpoint — app_message.c's config block reaches it through
     // main_window_apply_top_view() — and a tint picked while sitting inside one's own
@@ -721,7 +564,6 @@ void main_window_refresh() {
     // never reaches here; app_message.c's night_light_dirty block calls
     // night_light_refresh() directly for that case, so neither path waits for a tick.
     night_light_refresh();
-#endif
     time_layer_refresh();
     // Every band row, on the same weather-data / settings / flick checkpoint. A
     // compact-top-view toggle changes the band's font and slot geometry, so each row
@@ -734,14 +576,11 @@ void main_window_refresh() {
     // and keeping it out of this set is what made each new repaint path forget it
     // (a config-only theme flip left it on the old polarity, most recently). Cheap
     // and idempotent — a recolor plus one or two persist reads — so the flick/peek
-    // paths can afford it; on aplite (no flick — WW_VIEW_CYCLE is compiled out)
-    // this runs on the settings/fetch checkpoints only.
+    // paths can afford it.
     loading_layer_refresh();
-#if defined(PBL_HEALTH)
     // The rows above can newly show a health reading (a settings change, a flick, the
     // strip a Quick View peek brings back): read it now, not at the next tick.
     main_window_sync_health();
-#endif
 }
 
 void main_window_destroy() {

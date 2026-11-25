@@ -2,10 +2,8 @@
 // backlight LED glows at night, and the window it glows it in, packed for the wire.
 //
 // Settings-derived, never weather-derived, so the tuple rides the Clay settings
-// message (CLAY_NIGHT_LIGHT_UINT8, packed by clay-payload.js). Emery is the only
-// watch with the RGB LED behind it — light_set_color_rgb888() is a documented no-op
-// on every other board — which is why the tuple is sent unconditionally rather than
-// gated on a watchInfo that can be missing; see clay-payload.js for that call.
+// message (CLAY_NIGHT_LIGHT_UINT8, packed by clay-payload.js) to the Pebble Time 2's RGB
+// backlight LED.
 //
 // The window follows the conventions the rest of the app already runs on
 // (battery-saver.js): the END HOUR IS EXCLUSIVE, the window WRAPS past midnight, and
@@ -49,8 +47,7 @@ var NIGHT_LIGHT_BYTES = 5;
 /**
  * Is the Dim backlight switch on? ABSENT reads as ON — the toggle ships on
  * (schema.js's backlightDim defaultValue), so a blob that predates it, or one a
- * fixture built by hand, must not read as off. Same rule as telemetry-settings.js's
- * boolDefaultOn, which reports the same toggle.
+ * fixture built by hand, must not read as off.
  *
  * @param {Object} settings Clay settings blob (reads backlightDim).
  * @returns {boolean} True when the feature is enabled.

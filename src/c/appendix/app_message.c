@@ -18,19 +18,11 @@
 #include "memory_log.h"
 #include "status_line.h"
 #include "graph_style.h"
-// Unguarded on purpose: declarations only (nothing is emitted), and waf's dependency
-// scanner cannot see an include inside a -D guard (night_light.c). Only the
-// handler below is WW_ON_DEMAND-guarded.
 #include "alert_set.h"
-#if defined(WW_THRESHOLD_HIGHLIGHT)
 #include "status_threshold.h"
-#endif
-#if defined(WW_COLOR_BACKLIGHT)
 // Only for night_light_refresh() at the dirty checkpoint below — the wire side
-// (NIGHT_LIGHT_BYTES, night_light_wire_ok) comes from persist.h and is compiled
-// on every platform. Guarded like status_threshold.h above.
+// (NIGHT_LIGHT_BYTES, night_light_wire_ok) comes from persist.h.
 #include "night_light.h"
-#endif
 // Last: the MESSAGE_KEY_* ids as constants (wscript generates it into build/include),
 // shadowing the SDK's uint32_t globals so --gc-sections drops them.
 #include "message_key_ids.auto.h"
@@ -62,8 +54,7 @@ typedef enum {
     BAD_OD_EXTRA,        // bytes
 } BadTuple;
 
-// One log call and one format string for every skip below. noinline: aplite has only
-// three callers and would inline it back into each (48 B more there).
+// One log call and one format string for every skip below.
 static __attribute__((noinline)) void warn_bad(BadTuple what, unsigned a, unsigned b,
                                                unsigned c) {
     APP_LOG(APP_LOG_LEVEL_WARNING, "Bad tuple %u: %u %u %u", (unsigned) what, a, b, c);
@@ -114,15 +105,11 @@ static bool handle_forecast(DictionaryIterator *iterator, bool *forecast_dirty) 
     static const SeriesWire WIRE[] = {
         { SERIES_SECOND, MESSAGE_KEY_SECONDARY_LINE_TREND_UINT8 },
         { SERIES_THIRD,  MESSAGE_KEY_THIRD_LINE_TREND_UINT8     },
-#if defined(WW_LINE_STYLE)
         { SERIES_FOURTH, MESSAGE_KEY_FOURTH_LINE_TREND_UINT8    },
         { SERIES_FIFTH,  MESSAGE_KEY_FIFTH_LINE_TREND_UINT8     },
-#endif
-#if defined(PBL_PLATFORM_EMERY)
         // emery: the graph styles' spare trend, sent only while the shown styles draw five
         // series; a message without it deletes it (existence-keyed).
         { SERIES_SPARE,  MESSAGE_KEY_SPARE_LINE_TREND_UINT8     },
-#endif
         { SERIES_BARS,   MESSAGE_KEY_BAR_TREND_UINT8            },
     };
     // Render-ready series (trend bytes only) — table-driven.
@@ -166,13 +153,11 @@ static uint32_t status_line_key(int line_id) {
         case 0: return MESSAGE_KEY_STATUS_LINE_1_UINT8;
         case 1: return MESSAGE_KEY_STATUS_LINE_2_UINT8;
         case 2: return MESSAGE_KEY_STATUS_LINE_3_UINT8;
-#if defined(PBL_PLATFORM_EMERY)
         // emery: bars 4 to 6 (status_line.h STATUS_LINE_BAR4..6). The phone sends a bar's
         // line only while the bar is made, so a watch without them reads no tuple.
         case STATUS_LINE_BAR4: return MESSAGE_KEY_STATUS_LINE_5_UINT8;
         case STATUS_LINE_BAR5: return MESSAGE_KEY_STATUS_LINE_6_UINT8;
         case STATUS_LINE_BAR6: return MESSAGE_KEY_STATUS_LINE_7_UINT8;
-#endif
         default: return MESSAGE_KEY_STATUS_LINE_4_UINT8;
     }
 }
@@ -197,7 +182,6 @@ static bool handle_status_lines(DictionaryIterator *iterator, bool *status_dirty
     return any;
 }
 
-#if defined(WW_THRESHOLD_HIGHLIGHT)
 // Packed weather-kind threshold levels — rides the weather message next to the
 // packed lines (the phone computes them; the watch has no raw AQI/wind ints).
 static bool handle_status_levels(DictionaryIterator *iterator, bool *status_dirty) {
@@ -230,9 +214,7 @@ static bool handle_thresholds(DictionaryIterator *iterator, bool *status_dirty) 
                                                     tuple->length);
     return true;
 }
-#endif  // WW_THRESHOLD_HIGHLIGHT
 
-#if defined(WW_ON_DEMAND)
 // The weather alerts' metric entries — On demand's alert items. They ride the
 // weather message's status category next to the levels (the phone judges the
 // alerts; the watch has no raw values).
@@ -250,7 +232,6 @@ static bool handle_alert_entries(DictionaryIterator *iterator, bool *status_dirt
     return true;
 }
 
-#if defined(PBL_PLATFORM_EMERY)
 // emery: bars 4 to 6's On demand cells (status_threshold.h THRESH_OD_EXTRA_BYTES), on the
 // Clay message beside the thresholds blob, whose cell bytes have no room for them. Any
 // length but the cells' is dropped, and the last good cells stay.
@@ -264,10 +245,7 @@ static bool handle_od_extra(DictionaryIterator *iterator, bool *status_dirty) {
     *status_dirty |= persist_set_od_extra_cells(tuple->value->data, tuple->length);
     return true;
 }
-#endif
-#endif  // WW_ON_DEMAND
 
-#if defined(WW_FETCH_NOTICE)
 static bool handle_notice(DictionaryIterator *iterator, bool *notice_dirty) {
     Tuple *notice_tuple = dict_find(iterator, MESSAGE_KEY_NOTICE_TEXT);
     if (!notice_tuple) {
@@ -279,7 +257,6 @@ static bool handle_notice(DictionaryIterator *iterator, bool *notice_dirty) {
     *notice_dirty |= persist_set_notice_text(text);
     return true;
 }
-#endif
 
 static bool handle_sun_events(DictionaryIterator *iterator, bool *forecast_dirty, bool *status_dirty) {
     Tuple *sun_events_tuple = dict_find(iterator, MESSAGE_KEY_SUN_EVENTS);
@@ -304,7 +281,6 @@ static bool handle_sun_events(DictionaryIterator *iterator, bool *forecast_dirty
     return true;
 }
 
-#if defined(WW_RAIN_RADAR)
 static bool handle_rain_radar(DictionaryIterator *iterator, bool *radar_dirty) {
     Tuple *rain_radar_exact_tuple = dict_find(iterator, MESSAGE_KEY_RAIN_RADAR_TREND_UINT8);
     Tuple *rain_radar_area_tuple  = dict_find(iterator, MESSAGE_KEY_RAIN_RADAR_TREND_AREA_UINT8);
@@ -394,35 +370,23 @@ static bool handle_norain_text(DictionaryIterator *iterator, bool *radar_dirty) 
     *radar_dirty |= persist_set_norain_text(text);
     return true;
 }
-#endif  // WW_RAIN_RADAR
 
 static bool handle_palette(DictionaryIterator *iterator, bool *forecast_dirty,
                            bool *radar_dirty) {
     Tuple *bar_tuple   = dict_find(iterator, MESSAGE_KEY_BAR_PALETTE_UINT8);
-#if defined(WW_RAIN_RADAR)
     Tuple *radar_tuple = dict_find(iterator, MESSAGE_KEY_RADAR_PALETTE_UINT8);
     if (!bar_tuple && !radar_tuple) {
         return false;
     }
-#else
-    // aplite: no radar layer, so the radar palette is never applied.
-    (void) radar_dirty;
-    if (!bar_tuple) {
-        return false;
-    }
-#endif
     if (bar_tuple) {
         *forecast_dirty |= palette_set_bar(bar_tuple->value->data, (int) bar_tuple->length);
     }
-#if defined(WW_RAIN_RADAR)
     if (radar_tuple) {
         *radar_dirty |= palette_set_radar(radar_tuple->value->data, (int) radar_tuple->length);
     }
-#endif
     return true;
 }
 
-#if defined(WW_CURVE_INSET)
 // Per-series forecast curve insets — settings-derived, so the tuple rides the
 // Clay message (see clay-payload.js). The phone sends five render-ready px
 // values, one per series in SeriesId order ([FIRST, SECOND, THIRD, FOURTH,
@@ -430,8 +394,6 @@ static bool handle_palette(DictionaryIterator *iterator, bool *forecast_dirty,
 // dew point — shares; every other metric 0); the watch stays metric-agnostic
 // and just persists them for load_dataset. The phone JS and this handler ship
 // in one .pbw, so any other length is malformed — no short-tuple fallback.
-// aplite keeps its frozen constant insets, so the handler compiles out there
-// (mirrors the threshold handlers above).
 static bool handle_curve_insets(DictionaryIterator *iterator, bool *forecast_dirty) {
     Tuple *tuple = dict_find(iterator, MESSAGE_KEY_CLAY_CURVE_INSET_UINT8);
     if (!tuple) { return false; }
@@ -450,12 +412,10 @@ static bool handle_curve_insets(DictionaryIterator *iterator, bool *forecast_dir
     *forecast_dirty |= persist_set_curve_insets(insets);
     return true;
 }
-#endif  // WW_CURVE_INSET
 
 // Forecast line styling — settings-derived, so the tuple rides the Clay message
 // (see clay-payload.js) instead of costing 44 B on every weather send, packed
-// as one array. NOT compiled out on aplite: every
-// platform renders the forecast graph, so every platform needs the colours.
+// as one array.
 //
 // Head (always present): [0] main-metric line, [1] area fill,
 // [2] second-metric line, [3] line flags (bit 0 = fill on).
@@ -464,8 +424,7 @@ static bool handle_curve_insets(DictionaryIterator *iterator, bool *forecast_dir
 // through.
 // Second tail (optional): [8] the third-metric line colour, then bytes
 // [9..11] ARE the LINE_STYLES persist blob (per-line marker styles), byte for
-// byte — layout in persist.h. The block is WW_LINE_STYLE-guarded on the
-// consuming side, so aplite stores neither and simply ignores the trailing bytes.
+// byte — layout in persist.h.
 //
 // CONTRACT for growing this tuple: LINE_STYLE_BYTES is a MINIMUM length, not an
 // exact one, and everything past it is an optional tail guarded by its own
@@ -476,26 +435,20 @@ static bool handle_curve_insets(DictionaryIterator *iterator, bool *forecast_dir
 // it (2.3.0 did), which is safe only because the phone and watch ship in one .pbw.
 #define LINE_STYLE_BYTES 4
 #define LINE_STYLE_FLAG_SECONDARY_FILL 0x01
-// Where the NIGHT_COLORS blob starts. Unguarded: the wire layout is the same on
-// every platform — only the CONSUMPTION of the tail is colour-only, since B&W
-// builds have no persist accessors for it (persist.h) and never paint it.
+// Where the NIGHT_COLORS blob starts.
 #define LINE_STYLE_NIGHT_OFFSET 4
 // Second appended tail block, ONE unit: [8] the third-metric line colour,
 // then bytes [9..11] ARE the LINE_STYLES persist blob (per-line marker
 // styles), byte for byte — layout in persist.h. The phone only ever appends
 // these four bytes together (forecast-graphs/domain/graph-wire.js), so one length check guards the
-// block. Offsets unguarded like the night offset above; the CONSUMING arm is
-// WW_LINE_STYLE-guarded, so aplite ignores the trailing bytes it may still
-// receive.
+// block.
 #define LINE_STYLE_EXT_OFFSET 8
 #define LINE_STYLE_EXT_BYTES 4
-#if defined(PBL_COLOR)
 _Static_assert(LINE_STYLE_EXT_OFFSET == LINE_STYLE_NIGHT_OFFSET + NIGHT_COLOR_BYTES,
                "the style block starts where the night colours end");
-#endif
 // Third appended tail block: [12] the fourth-metric line colour, [13] its
 // style byte (kind | field, as a LINE_STYLES byte). Own length check, per the
-// growth contract; WW_LINE_STYLE-guarded like the block above.
+// growth contract.
 #define LINE_STYLE_FIFTH_OFFSET 12
 #define LINE_STYLE_FIFTH_BYTES 2
 
@@ -516,14 +469,11 @@ static bool handle_line_style(DictionaryIterator *iterator, bool *forecast_dirty
     changed |= persist_set_fill_color((GColor){ .argb = b[1] });
     changed |= persist_series_set_color(SERIES_THIRD, (GColor){ .argb = b[2] });
     changed |= persist_set_line_fill((b[3] & LINE_STYLE_FLAG_SECONDARY_FILL) != 0);
-#if defined(PBL_COLOR)
     // Optional tail: store it straight through, so forecast_layer.c reads the
     // wire's own bytes back in a single persist hit.
     if (tuple->length >= LINE_STYLE_NIGHT_OFFSET + NIGHT_COLOR_BYTES) {
         changed |= persist_set_night_colors(&b[LINE_STYLE_NIGHT_OFFSET]);
     }
-#endif
-#if defined(WW_LINE_STYLE)
     // Second optional tail block, own length check per the growth contract.
     if (tuple->length >= LINE_STYLE_EXT_OFFSET + LINE_STYLE_EXT_BYTES) {
         changed |= persist_set_fourth_line_color(
@@ -535,12 +485,10 @@ static bool handle_line_style(DictionaryIterator *iterator, bool *forecast_dirty
             (GColor){ .argb = b[LINE_STYLE_FIFTH_OFFSET] });
         changed |= persist_set_fifth_line_style(b[LINE_STYLE_FIFTH_OFFSET + 1]);
     }
-#endif
     *forecast_dirty |= changed;
     return true;
 }
 
-#if defined(PBL_PLATFORM_EMERY)
 // emery: the graph styles' records (graph_style.h) — settings-derived, so they ride the
 // Clay message (clay-payload.js). One optional tuple per style: a record is stored as sent,
 // an empty tuple deletes it (no screen shows that style, or every screen shows the first).
@@ -564,9 +512,7 @@ static bool handle_graph_styles(DictionaryIterator *iterator, bool *forecast_dir
     }
     return handled;
 }
-#endif
 
-#if defined(NIGHT_LIGHT_SUPPORTED)
 // "Dim backlight" (the Nighttime card) — the tint the RGB backlight LED burns at
 // night and the window it burns it in. Settings-derived, so the tuple rides the Clay
 // message alongside the line styling above.
@@ -585,23 +531,6 @@ static bool handle_graph_styles(DictionaryIterator *iterator, bool *forecast_dir
 // deal the NIGHT_COLORS tail above gets. The window wraps past midnight and
 // start == end means NEVER, which is exactly what the phone sends (all five bytes
 // zeroed) when the toggle is off: there is no enabled flag to look for.
-//
-// GUARDED WHOLE, like handle_curve_insets / handle_thresholds above, by
-// NIGHT_LIGHT_SUPPORTED (persist.h — "this WATCH has the LED": the SDK's
-// PBL_RGB_BACKLIGHT capability, emery alone today). That is the gate for STORAGE,
-// and it is the right one here because it is exactly what declares the persist
-// accessors this handler calls. The sibling gate WW_COLOR_BACKLIGHT (wscript, also
-// emery alone) means "this BUILD carries the LED-driving module", which is why the
-// re-apply at the end of inbox_received_callback carries it and this handler does
-// not — the same way PBL_HEALTH and WW_VIEW_CYCLE coexist. Everywhere else the
-// handler, its dict_find and the whole persist surface drop out of the image and
-// --gc-sections reaps the rest. The phone sends the key to EVERY watch on purpose
-// (clay-payload.js: gating it on watchInfo would starve a real emery watch over a
-// platform-detection hiccup), so the skipping is the watch's job. What is NOT
-// guarded is the LAYOUT knowledge itself — persist.h's NIGHT_LIGHT_BYTES and
-// night_light_wire_ok() are compiled on every platform, for the reason the
-// LINE_STYLE_NIGHT_OFFSET comment above gives: the wire is identical everywhere,
-// only the consumption is hardware-bound.
 //
 // GROWTH CONTRACT, the same one CLAY_LINE_STYLE_UINT8 spells out: NIGHT_LIGHT_BYTES
 // is a MINIMUM length, not an exact one. A longer tuple from a newer phone applies
@@ -623,7 +552,6 @@ static bool handle_night_light(DictionaryIterator *iterator, bool *night_light_d
     *night_light_dirty |= persist_set_night_light(tuple->value->data);
     return true;
 }
-#endif  // NIGHT_LIGHT_SUPPORTED
 
 // Parse (bytes→Config, config_wire.c) is separate from apply (Config→persist +
 // cache reload + dirty bit, here). config_parse_wire returning false means the
@@ -676,19 +604,14 @@ static void inbox_received_callback(DictionaryIterator *iterator, void *context)
     bool radar_dirty = false;     // radar chart + top-view availability
     bool config_dirty = false;    // whole window (config feeds every layer)
     bool calendar_dirty = false;  // calendar holiday highlights only
-#if defined(NIGHT_LIGHT_SUPPORTED)
     bool night_light_dirty = false;  // backlight tint/window (RGB-backlight watches only)
-#endif
-#if defined(WW_RAIN_RADAR)
     // main_window_radar_has_data() is the ONE radar-availability fact the ViewSpec
     // resolves against — the snooze latch/release does NOT feed it. Snapshot it
     // around the handlers so the top view is re-applied only when availability
     // actually flipped (see the radar block below).
     const bool radar_avail_before = main_window_radar_has_data();
-#endif
     bool forecast_present = handle_forecast(iterator, &forecast_dirty);
     handled |= forecast_present;
-#if defined(WW_FETCH_NOTICE)
     handled |= handle_notice(iterator, &notice_dirty);
     // A forecast only ever arrives from a successful fetch, so any forecast
     // payload clears a lingering error/info overlay (self-heal if a phone→watch
@@ -696,64 +619,37 @@ static void inbox_received_callback(DictionaryIterator *iterator, void *context)
     if (forecast_present) {
         notice_dirty |= persist_set_notice_text("");
     }
-#endif
     handled |= handle_status(iterator, &status_dirty, &radar_dirty);
     handled |= handle_status_lines(iterator, &status_dirty);
-#if defined(WW_THRESHOLD_HIGHLIGHT)
-    // aplite renders its status rows from the lean status_row_aplite.c twin, which has
-    // no threshold highlighting, so it ignores both threshold tuples and the whole
-    // contract module + persist surface drops out (--gc-sections). Mirrors the radar
-    // handler below.
     handled |= handle_status_levels(iterator, &status_dirty);
     handled |= handle_thresholds(iterator, &status_dirty);
-#endif
-#if defined(WW_ON_DEMAND)
-    // aplite has no On demand (the lean status-row twin draws none) and the phone
-    // never sends it the tuple.
     handled |= handle_alert_entries(iterator, &status_dirty);
-#if defined(PBL_PLATFORM_EMERY)
     // emery: bars 4 to 6's On demand cells.
     handled |= handle_od_extra(iterator, &status_dirty);
-#endif
-#endif
     handled |= handle_sun_events(iterator, &forecast_dirty, &status_dirty);
-#if defined(WW_RAIN_RADAR)
-    // aplite has no radar layer (--gc-sections reaps rain_radar_layer.c), so it
-    // ignores inbound radar payloads; the whole radar persist surface drops too.
     handled |= handle_rain_radar(iterator, &radar_dirty);
     handled |= handle_radar_sky(iterator, &radar_dirty);
     // The no-rain text repaints via the same radar_dirty checkpoint below
     // (rain_radar_layer_refresh), so an open radar view redraws on save.
     handled |= handle_norain_text(iterator, &radar_dirty);
-#endif
     handled |= handle_palette(iterator, &forecast_dirty, &radar_dirty);
-#if defined(WW_CURVE_INSET)
-    // aplite keeps its frozen constant curve insets (load_dataset's #else arm),
-    // so it ignores the inset tuple and the persist surface drops out.
     handled |= handle_curve_insets(iterator, &forecast_dirty);
-#endif
     // Unconditional like handle_palette: the fixture path bundles the styling
     // onto the weather message (fixture-weather.js), so this must not sit
     // behind a "settings message only" branch or fixtures render stale colors.
     handled |= handle_line_style(iterator, &forecast_dirty);
-#if defined(PBL_PLATFORM_EMERY)
     // emery: each screen's graph style (graph_style.h).
     handled |= handle_graph_styles(iterator, &forecast_dirty);
-#endif
-#if defined(NIGHT_LIGHT_SUPPORTED)
     // Called for every inbound message like handle_line_style above, not behind a
     // "settings message only" branch: the fixture path bundles claySettings onto the
     // weather message (fixture-weather.js).
     handled |= handle_night_light(iterator, &night_light_dirty);
-#endif
     handled |= handle_clay_config(iterator, &config_dirty);
     handled |= handle_holidays(iterator, &calendar_dirty);
-#if defined(WW_RAIN_RADAR)
     // Availability is settled once the handlers above have run; the snooze latch
     // below can't move it (it does not feed the predicate).
     const bool radar_avail_changed =
         radar_avail_before != main_window_radar_has_data();
-#endif
 
     // Release the radar-snooze latch whenever we're awake. Runs after every
     // handler so it can't race the IS_SLEEPING tuple in the same payload.
@@ -776,14 +672,10 @@ static void inbox_received_callback(DictionaryIterator *iterator, void *context)
     // a row refreshed ahead of the rescan would keep showing the old rain alert until
     // the next minute tick. The radar payload (or the snooze latch/release) is the
     // countdown's only data-change source, hence the radar_dirty gate.
-    // The countdown's only reader is the On demand Rain item: aplite does not build
-    // it (WW_ON_DEMAND, 24 KB budget), so it skips the rescan and rain_countdown.c is
-    // --gc-sections'd out of that image.
-#if defined(WW_ON_DEMAND)
+    // The countdown's only reader is the On demand Rain item.
     if (radar_dirty) {
         rain_countdown_refresh(watch_services_now());
     }
-#endif
     // The loading/notice overlay rides main_window_refresh() (which the config
     // block below reaches via main_window_apply_top_view), so a weather- or
     // notice-only message is the one case that has to refresh it here — those
@@ -802,11 +694,9 @@ static void inbox_received_callback(DictionaryIterator *iterator, void *context)
         // below would do. So it SUBSUMES them — clear the flags it just covered rather
         // than paying for a second layout compute and a second whole-window refresh.
         main_window_apply_top_view();
-#if defined(PBL_HEALTH)
         // A changed HR scale (or other graph-affecting setting) must re-derive from the
         // cache, not repaint the already-blanked/rescaled statics from before the save.
         main_window_refresh_health_graph();
-#endif
         forecast_dirty = false;
         status_dirty = false;
         calendar_dirty = false;
@@ -820,15 +710,11 @@ static void inbox_received_callback(DictionaryIterator *iterator, void *context)
         // next minute tick; the strip carries slots of its own.
         status_bar_refresh_all();
         top_status_layer_refresh();
-#if defined(PBL_HEALTH)
         // A new line can show a health reading no row showed before: read it now.
         main_window_sync_health();
-#endif
     }
     if (radar_dirty) {
-#if defined(WW_RAIN_RADAR)
         rain_radar_layer_refresh();
-#endif
         // Any bar with the Rain item derives it from the countdown rescanned above —
         // the strip (right by default) and any band bar the user gave it. They
         // refresh for the rescan here —
@@ -841,11 +727,8 @@ static void inbox_received_callback(DictionaryIterator *iterator, void *context)
         // picture.
         if (!config_dirty && !status_dirty) {
             top_status_layer_refresh();
-#if defined(WW_ON_DEMAND)
             status_bar_tick_on_demand();
-#endif
         }
-#if defined(WW_RAIN_RADAR)
         // Radar availability may have switched — re-evaluate the top view so a cleared
         // radar falls back to the calendar. Only on the actual flip: sleep/snooze do not
         // feed the ViewSpec, so the latch/release alone would cost a full layout compute
@@ -858,12 +741,10 @@ static void inbox_received_callback(DictionaryIterator *iterator, void *context)
         if (radar_avail_changed && !config_dirty) {
             main_window_apply_top_view();
         }
-#endif
     }
     if (calendar_dirty) {
         calendar_layer_refresh();
     }
-#if defined(NIGHT_LIGHT_SUPPORTED)
     if (night_light_dirty) {
         // The tint or the window actually moved, so the LED wants re-evaluating
         // now rather than at the next minute tick — a save made from inside the
@@ -876,18 +757,8 @@ static void inbox_received_callback(DictionaryIterator *iterator, void *context)
         // keeps a settings save that left the tuple alone from re-tinting anything,
         // and night_light_refresh() is itself a no-op unless the answer moved, so
         // the double path (here + config_dirty's main_window_refresh) costs nothing.
-#if defined(WW_COLOR_BACKLIGHT)
         night_light_refresh();
-#else
-        // Storage without an apply: this build persisted the tuple (the watch
-        // claims an RGB backlight) but carries no night_light.c to drive it, which
-        // wscript's emery-only WW_COLOR_BACKLIGHT never produces today. Say so
-        // rather than silently doing nothing — see night_light.c's #error, which
-        // catches the opposite, link-breaking half of the same drift.
-        APP_LOG(APP_LOG_LEVEL_DEBUG, "Night-light settings changed (not applied on this build)");
-#endif
     }
-#endif
     if (!handled) {
         APP_LOG(APP_LOG_LEVEL_WARNING, "Bad payload");
     }
@@ -923,30 +794,10 @@ void app_message_init() {
     // channel is half-duplex). The heaviest bundle is DWD + wind: the third line (any metric,
     // gust too) rides alongside the secondary line, plus rain radar + status + sun. The palette
     // and the line styling ride the Clay message instead (clay-payload.js; handle_palette /
-    // handle_line_style above). test/repo/inbox-size.test.js is the authoritative computation.
-    // 528 (was 512): the selectable top-strip middle slot lets City pack up to 19 text bytes
-    // where the fixed Date packed none (+19 B worst case, 517 B). 536 (was 528): the threshold
-    // levels byte rides as its own tuple, 1 value byte + the 7-byte header (525 B; headroom 11).
-#if defined(PBL_PLATFORM_APLITE)
-    // aplite: the buffer comes out of its tiny heap, so 536 B is a hard ceiling;
-    // its bundle never carries the fourth/fifth metric lines (WW_LINE_STYLE).
-    const int inbox_size = 536;
-#elif defined(PBL_PLATFORM_EMERY)
-    // emery: 1024 (was 640, 2.2.0): the long forecast span's six 68-byte trends make the
-    // heaviest bundle 867 B, 875 B with a cleared notice (test/repo/inbox-size.test.js); 128 KB of
-    // app RAM has the room. Every other watch is never sent more than 24 hours. 1280 (was
-    // 1024, 3.0.0): bars 4 to 6's lines ride the status category, up to 51 B each, so the
-    // heaviest bundle is 1095 B, 1103 B with a cleared notice.
+    // handle_line_style above). test/repo/inbox-size.test.js is the authoritative computation:
+    // the long forecast span's six 68-byte trends and bars 4 to 6's lines (up to 51 B each) make
+    // the heaviest bundle 1097 B, 1105 B with a cleared notice. 128 KB of app RAM has the room.
     const int inbox_size = 1280;
-#else
-    // Every other platform carries the extra metric lines (test/repo/inbox-size.test.js sizes each
-    // platform's heaviest bundle against its own value here). Their heap is not spare either:
-    // on basalt, diorite and flint it shares 64 KB with the app image (check-64k-size.sh), so
-    // every inbox byte counts there too. 640 (was 600): the weather alerts' ALERT_ENTRIES_UINT8
-    // tuple rides the status category, 7 B of tuple header + up to 20 entry bytes. aplite
-    // stays at 536: it has no On demand and never receives the tuple.
-    const int inbox_size = 640;
-#endif
     const int outbox_size = dict_calc_buffer_size(2, sizeof(uint8_t), sizeof(uint8_t));
     APP_LOG(APP_LOG_LEVEL_INFO, "AppMessage buffer sizes: inbox=%d outbox=%d", inbox_size, outbox_size);
     app_message_open(inbox_size, outbox_size);

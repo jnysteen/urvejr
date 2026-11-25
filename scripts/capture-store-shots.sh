@@ -20,7 +20,7 @@ version="${1:-v1.0.0}"
 start_round="${2:-1}"
 here="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
-platforms=(aplite basalt diorite emery flint)
+platforms=(emery)
 
 # Parallel arrays: fixture -> output label. Order is the shot order (1-based round).
 fixtures=(store-calendar berlin            windy        store-wind-radar  precip-uv)

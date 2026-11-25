@@ -182,13 +182,13 @@ var PConf = (typeof global !== 'undefined' && global.PConf && global.PConf.block
 
     /**
      * Whether the radar draws its sky rows (Radar tab -> Clouds, sun & lightning): on, as a
-     * graph, and never on aplite.
+     * graph.
      * @param {Object} state Settings.
      * @param {?Object} env Platform env.
      * @returns {boolean}
      */
     function skyOn(state, env) {
-        return Boolean(state.radarSky) && (state.radarMode || 'graph') === 'graph' && !(env && env.platform === 'aplite');
+        return Boolean(state.radarSky) && (state.radarMode || 'graph') === 'graph';
     }
 
     /**
@@ -204,9 +204,9 @@ var PConf = (typeof global !== 'undefined' && global.PConf && global.PConf.block
      */
     function radarLegend(state, env, userData) {
         if ((state.radarMode || 'graph') === 'off') { return []; }
-        var isColor = drawsColor(env, state.theme), ink = previewInk(state.theme);
+        var isColor = drawsColor(state.theme), ink = previewInk(state.theme);
         var P = (userData && userData.palette) || FALLBACK_PALETTE;
-        var tiers = !(state.radarColor === 'white' || !isColor), top = drawFrom.barsFromTop(state, 'radar', env);
+        var tiers = !(state.radarColor === 'white' || !isColor), top = drawFrom.barsFromTop(state, 'radar');
         var out = [{ metric: 'radar', kind: 'bars', color: barFg(state, isColor, ink), outline: !isColor, top: top,
             tiers: tiers ? P.rainTiers.map(function (t) { return t.color; }) : null }];
         if (state.radarProvider === 'dwd') {
@@ -233,7 +233,7 @@ var PConf = (typeof global !== 'undefined' && global.PConf && global.PConf.block
     function radarPreview(state, env, userData, opts) {
         // Effective color: a color display renders as color only when the theme isn't
         // Black & White — a bw/bw-light theme reuses the exact preview a B&W watch gets.
-        var isColor = drawsColor(env, state.theme);
+        var isColor = drawsColor(state.theme);
         var ink = previewInk(state.theme);
         var radarMode = state.radarMode || 'graph';
         if (radarMode === 'off') {
@@ -242,23 +242,22 @@ var PConf = (typeof global !== 'undefined' && global.PConf && global.PConf.block
         }
         var local = [0, 0, 0, 0.2, 0.6, 1.5, 3, 7, 14, 10, 5, 2, 0.8, 0.3, 0.1, 0, 0.3, 1, 3, 8, 12, 6, 2, 0.5];
         var add = [0.4, 0.5, 0.7, 1, 1.5, 2, 3, 4, 3, 2, 1.5, 1, 0.8, 0.5, 0.4, 0.3, 0.5, 1.5, 3, 4, 3, 2, 1, 0.5];
-        var isAplite = Boolean(env && env.platform === 'aplite');
         // The sky rows (Radar tab -> Clouds, sun & lightning) take a band under the
         // axis ticks, and the bars keep the rest — rain_radar_layer.c's sky band. The
         // sample is a received radar window with a received sky over it, so the
         // watch's gates (a sky blob, a radar start, the two overlapping —
         // radar_sky_in_window) hold by construction. Like the bars, the preview draws
         // a roomy plot (40 px and up: 4 px stripes). A shorter one gets 3 px stripes
-        // and leaves the bars less room, which the preview does not model: the 144 px
-        // watches' radar top band, and on either size a body under a tall stack of
-        // calendar and status rows (a 3-row calendar with both status rows is one).
+        // and leaves the bars less room, which the preview does not model: a body under a
+        // tall stack of calendar and status rows (a 3-row calendar with both status rows
+        // is one).
         var sky = skyOn(state, env);
         var n = local.length, PX0 = 11, PX1 = 196;
         var step = (PX1 - PX0) / n, bw = step - 1.6;
-        // The watch's pixel grid, for the sky rows: its 24 slots of RADAR_DEF's pitch
-        // (6 px, 8 on emery's 200 px bucket) span PX0..PX1, watch x 0 (the stripe
+        // The watch's pixel grid, for the sky rows: its 24 slots of RADAR_DEF's 8 px pitch
+        // span PX0..PX1, watch x 0 (the stripe
         // lines' anchor) at PX0 — so one watch pixel is `unit` preview units.
-        var WATCH_PITCH = (env && env.platform === 'emery') ? 8 : 6, SKY_H = 4;
+        var WATCH_PITCH = 8, SKY_H = 4;
         var unit = step / WATCH_PITCH, topY = AXIS_Y;
         var skyBand = sky ? (2 * SKY_H + 2) * unit : 0;
         // The plot keeps its height with the sky rows on: they and their legend row grow
@@ -273,10 +272,9 @@ var PConf = (typeof global !== 'undefined' && global.PConf && global.PConf.block
         }
         e += txt(PX0, topY - 3, 7, '#7C828D', 'start', 600, 'now') + txt(PX0 + 12 * step, topY - 3, 7, '#7C828D', 'middle', 600, '+1h') + txt(PX1, topY - 3, 7, '#7C828D', 'end', 600, '+2h');
         // Bars from: Top hangs every bar, the exact spot's and the nearby area's, from the
-        // plot's top (PT: under the time axis and the sky rows); never previewing aplite,
-        // whose env has no line styles (draw-from.js capable). The faint floor line is the
+        // plot's top (PT: under the time axis and the sky rows). The faint floor line is the
         // preview's own and goes with standing bars.
-        var barsTop = drawFrom.barsFromTop(state, 'radar', env);
+        var barsTop = drawFrom.barsFromTop(state, 'radar');
         var anchor = barsTop ? PT : PB;
         if (!barsTop) {
             e += '<line x1="' + PX0 + '" y1="' + PB + '" x2="' + PX1 + '" y2="' + PB + '" stroke="' + ink.rgba('0.18') + '" stroke-width="0.7"></line>';
@@ -369,11 +367,10 @@ var PConf = (typeof global !== 'undefined' && global.PConf && global.PConf.block
         // "15'", or the icon + "Rain in 15'"), at the edge of the strip's On demand side
         // that has Rain ticked (on-demand.js sideOf: left-aligned for the left side,
         // right-aligned for the right). Hidden while neither of the strip's sides
-        // ticks Rain (the strip draws no rain entry then), and never shown on
-        // aplite (which lacks the feature). The icon and the text draw in the theme's
+        // ticks Rain (the strip draws no rain entry then). The icon and the text draw in the theme's
         // foreground, like every icon of the bars (the watch gives the rain alert no
         // colour of its own).
-        var side = isAplite ? null : onDemand.sideOf(state, 'top', 'rain', env);
+        var side = onDemand.sideOf(state, 'top', 'rain');
         var rain = thresholds.rainAlert(state);
         if (side === null) {
             return svgFrame(e, frameH);

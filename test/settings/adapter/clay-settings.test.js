@@ -84,10 +84,10 @@ test('a fresh install starts on the Default screen alone, the rain alert on, and
     ['countdown', 'off', 'off', 'graph']);
   assert.equal(read.forecastHours, '48', 'the new install\'s long span (emery\'s; dormant elsewhere)');
   const env = { platform: 'basalt', radar: true, health: true, onDemand: true };
-  assert.equal(VC.resolveViewCycle(read, env).length, 1, 'the Default screen alone');
-  assert.deepEqual(M.screensOf(read, env), [[{ k: 'strip' }, { k: 'cal', rows: '2' }, { k: 'clock' }, { k: 'fcbar' },
+  assert.equal(VC.resolveViewCycle(read).length, 1, 'the Default screen alone');
+  assert.deepEqual(M.screensOf(read), [[{ k: 'strip' }, { k: 'cal', rows: '2' }, { k: 'clock' }, { k: 'fcbar' },
     { k: 'fc', size: 'fill' }]], 'today\'s compact calendar Default');
-  assert.deepEqual(M.deriveModes(read, env), { radarMode: 'countdown', healthMode: 'off' },
+  assert.deepEqual(M.deriveModes(read), { radarMode: 'countdown', healthMode: 'off' },
     'the modes the screens work out are the shipped ones: Rain ticked on the Watch bar fetches the radar');
 });
 
@@ -104,7 +104,7 @@ test('an existing install that lacks the 2.6 keys keeps its three screens and it
     ['graph', 'all', 'uv', 'axis']);
   assert.equal(read.forecastHours, '24', 'the 24 hours it drew, not a new install\'s long span');
   const env = { platform: 'basalt', radar: true, health: true, onDemand: true };
-  assert.equal(VC.resolveViewCycle(read, env).length, 3, 'the Default, Health and Rain radar screens');
+  assert.equal(VC.resolveViewCycle(read).length, 3, 'the Default, Health and Rain radar screens');
 });
 
 test('an existing install that stores the changed keys keeps them either way', () => {
@@ -459,7 +459,7 @@ test('a non-object parking slot is discarded, not laundered into junk keys', () 
     'only real credentials are parked — no laundered index keys');
 });
 
-test('reset keeps the Rainbow (own key) radar key, and a post-reset save fills it back', () => {
+test('reset keeps the Rainbow radar key, and a post-reset save fills it back', () => {
   // The radar key is a credential like the forecast keys: someone signed up for it.
   const store = installFakeStorage();
   delete require.cache[require.resolve('../../../src/pkjs/settings/adapter/clay-settings')];
@@ -524,31 +524,25 @@ test('the boot restore discards a non-object parking slot too, not laundered int
 });
 
 test('boot-only dev-config keys never persist into the settings blob', () => {
-  // The denylist had drifted before: four boot-only keys (the update-check trio
-  // and devPhoneBattery) leaked into the persisted blob, where they stayed even
-  // after being deleted from dev-config.js. Pin every known boot-only key.
+  // The denylist had drifted before: boot-only keys leaked into the persisted
+  // blob, where they stayed even after being deleted from dev-config.js. Pin
+  // every known boot-only key.
   const store = installFakeStorage();
   delete require.cache[require.resolve('../../../src/pkjs/settings/adapter/clay-settings')];
   const claySettings = require('../../../src/pkjs/settings/adapter/clay-settings');
   claySettings.seedDefaults(COLORS);
   claySettings.applyDevConfig({
     clearPkjsStorageOnBoot: true,
-    forceShowReleaseNotificationOnBoot: '1.0.0',
-    maxNotifiedVersion: '1.0.0',
     resetV134WeekendHolidayColorMigration: true,
     resetV140HolidayRegionKeyMigration: true,
-    resetUpdateNotifiedVersion: true,
-    forceUpdateCheckOnBoot: true,
-    overrideLatestStoreVersions: ['9.9.9'],
     devPhoneBattery: { level: 62 },
     provider: 'dwd',            // a REAL Clay key still applies
   });
   const blob = claySettings.read();
   assert.equal(blob.provider, 'dwd');
-  ['clearPkjsStorageOnBoot', 'forceShowReleaseNotificationOnBoot', 'maxNotifiedVersion',
+  ['clearPkjsStorageOnBoot',
     'resetV134WeekendHolidayColorMigration', 'resetV140HolidayRegionKeyMigration',
-    'resetUpdateNotifiedVersion', 'forceUpdateCheckOnBoot',
-    'overrideLatestStoreVersions', 'devPhoneBattery'].forEach((k) => {
+    'devPhoneBattery'].forEach((k) => {
     assert.ok(!(k in blob), k + ' must stay boot-only, never persisted');
   });
 });

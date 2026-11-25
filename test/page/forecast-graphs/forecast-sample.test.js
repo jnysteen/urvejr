@@ -12,12 +12,11 @@ require('../../../src/pkjs/lib/color.js');
 const E = require('../../../src/pkjs/config-ui/lib/engine.js');
 require('../../../src/pkjs/page/settings/blocks.js');
 const schema = require('../../../src/pkjs/page/settings/schema.js');
-const platform = require('../../../src/pkjs/config-ui/lib/platform.js');
 const FC = require('../../../src/pkjs/page/forecast-graphs/preview-forecast.js');
 const FS = require('../../../src/pkjs/page/forecast-graphs/forecast-sample.js');
 const spanHours = require('../../../src/pkjs/weather/domain/forecast-span-hours.js');
 
-const EMERY = platform.computeEnv({ platform: 'emery' });
+const EMERY = {};
 // 24 hours under emery's left axis, as an upgraded install keeps them (a new install's graph
 // draws the high and low on the graph instead, which drops slot 0's label, over the long span).
 const S0 = Object.assign(E.hydrate(schema, {}, EMERY), { forecastAxisNumbers: 'axis', forecastHours: '24' });
@@ -72,13 +71,13 @@ test('a Fahrenheit sample converts the three temperature-axis series, nothing el
   assert.equal(f.temps[0], 75);
 });
 
-test('without a sample a span watch draws the hours its graph shows, any other watch the noon scenario', () => {
+test('without a sample the watch draws the hours its graph shows', () => {
   // Owner, 2026-11-09: the graph cards showed 66 h, the pinned preview did not follow. Emery's
   // pinned preview draws its span's hours of the cards' sample (wizard-forecast.js previewSvg).
   const drawn = {};
   ['12', '24', '48'].forEach((h) => ['c', 'f'].forEach((units) => {
     const S = Object.assign({}, S0, { forecastHours: h, temperatureUnits: units });
-    const hours = spanHours.shownHours(S, EMERY);
+    const hours = spanHours.shownHours(S);
     const svg = FC.forecastPreview(S, EMERY, {});
     assert.equal(svg, FC.forecastPreview(S, EMERY, {}, { sample: FS.sample(hours + 1, units) }), h + ' ' + units);
     if (units === 'c') { drawn[h] = { hours, labels: hourLabels(svg), nights: nightBands(svg) }; }
@@ -90,13 +89,8 @@ test('without a sample a span watch draws the hours its graph shows, any other w
     'Weather Underground\'s 49-hour feed: 44 whole hours at a whole 4 px');
   // The owner's 66 h: a full feed with no left axis, its three nights.
   const full = Object.assign({}, S0, { forecastHours: '48', provider: 'openmeteo', forecastAxisNumbers: 'graph' });
-  assert.equal(spanHours.shownHours(full, EMERY), 66);
+  assert.equal(spanHours.shownHours(full), 66);
   assert.equal(nightBands(FC.forecastPreview(full, EMERY, {})), 3);
-  // Every other watch has one span: the 12-point noon scenario, as before.
-  const BASALT = platform.computeEnv({ platform: 'basalt' });
-  const basalt = FC.forecastPreview(Object.assign(E.hydrate(schema, {}, BASALT), { forecastHours: '48' }), BASALT, {});
-  assert.deepEqual(hourLabels(basalt), [12, 15, 18, 21]);
-  assert.equal(nightBands(basalt), 1);
 });
 
 test('with a sample the preview draws its hours from its first hour, a night band per night', () => {

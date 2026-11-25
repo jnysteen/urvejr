@@ -40,13 +40,6 @@ var WeatherProvider = function() {
     this.shortName = '';
     this.id = 'interface';
     this.location = null; // Address query used for overriding the GPS
-    this.countryCode = null;
-    this.usedGpsCache = false;
-    this.gpsErrorCode = null;
-    this.locationMode = null;
-    // A failure the provider worked around inside a fetch that still succeeded
-    // (failure()); the fetch cycle reports it to telemetry once and clears it.
-    this.recoveredFailure = null;
     this.rainTrend = zeroFilledArray(this.numEntries);
     this.windTrend = zeroFilledArray(this.numEntries);
     this.gustTrend = zeroFilledArray(this.numEntries);
@@ -56,7 +49,7 @@ var WeatherProvider = function() {
     // The per-fetch knobs (fetchUv/fetchAqi/fetchPollen/fetchFeels/feelsFormula/
     // dayPeakCodes/windUnits/aqiScale/aqiSource/aqicnToken) as ONE value, every
     // default in fetch-options.js. The fetch cycle (fetch-cycle.js) replaces it
-    // with fetchOptions.build(settings, ...) before each fetch; a provider that
+    // with fetchOptions.build(settings) before each fetch; a provider that
     // is never handed one runs on the defaults.
     this.options = fetchOptions.defaults();
     // The status slots' day max (the Day max / Both modes, day-peaks.js): each
@@ -224,11 +217,11 @@ WeatherProvider.prototype.withSunEvents = function(lat, lon, callback, onFailure
  * Never fails: the city is only the City slot's display string, so a slow,
  * down or refusing ArcGIS must not cost the forecast. A failed lookup carries
  * on with the last name resolved near these coordinates, else 'Unknown' (what
- * a response without an address already gives), and a null country code.
+ * a response without an address already gives).
  *
  * @param {number} lat Latitude.
  * @param {number} lon Longitude.
- * @param {Function} callback Receives (cityName, countryCode).
+ * @param {Function} callback Receives the city name.
  * @returns {void}
  */
 WeatherProvider.prototype.withCityName = function(lat, lon, callback) {
@@ -243,7 +236,7 @@ WeatherProvider.prototype.withCityName = function(lat, lon, callback) {
     function fallBack(reason) {
         var name = locationLib.readLastCityNear(lat, lon) || 'Unknown';
         console.log('[!] Reverse geocode failed (' + reason + '), using city: ' + name);
-        callback(name, null);
+        callback(name);
     }
 
     request(
@@ -253,7 +246,6 @@ WeatherProvider.prototype.withCityName = function(lat, lon, callback) {
             var body;
             var address;
             var name;
-            var countryCode;
             try {
                 body = JSON.parse(response);
             }
@@ -270,9 +262,8 @@ WeatherProvider.prototype.withCityName = function(lat, lon, callback) {
             else {
                 name = 'Unknown';
             }
-            countryCode = address.CountryCode || null;
-            console.log('Running callback with city: ' + name + ', countryCode=' + countryCode);
-            callback(name, countryCode);
+            console.log('Running callback with city: ' + name);
+            callback(name);
         },
         function(error) {
             fallBack(error.code);
@@ -280,7 +271,7 @@ WeatherProvider.prototype.withCityName = function(lat, lon, callback) {
     );
 };
 
-// https://github.com/Toasbi/WarnWeather/issues/59#issue-1317582743
+// https://github.com/jnysteen/urvejr/issues/59#issue-1317582743
 
 /**
  * Resolve coordinates from the location override: pass through manual lat/lon,
@@ -305,7 +296,6 @@ WeatherProvider.prototype.withGeocodeCoordinates = function(callback, onFailure)
     if (locationOverride.type === 'manual_coordinates') {
         latitude = locationOverride.latitude;
         longitude = locationOverride.longitude;
-        this.locationMode = 'manual_coordinates';
         console.log('regex matched, override is lat/long');
         callback(latitude, longitude);
         return;
@@ -324,7 +314,6 @@ WeatherProvider.prototype.withGeocodeCoordinates = function(callback, onFailure)
     cachedGeocode = readGeocodeCache(locationOverride.query);
     if (cachedGeocode !== null) {
         console.log('Using cached geocode for: ' + locationOverride.query);
-        this.locationMode = 'manual_address';
         callback(cachedGeocode.lat, cachedGeocode.lon);
         return;
     }
@@ -345,7 +334,6 @@ WeatherProvider.prototype.withGeocodeCoordinates = function(callback, onFailure)
         return;
     }
 
-    this.locationMode = 'manual_address';
     console.log('Looking up coordinates for address override');
     request(
         url,
@@ -408,7 +396,7 @@ WeatherProvider.prototype.withGeocodeCoordinates = function(callback, onFailure)
 
 /**
  * Resolve coordinates from device GPS, falling back to a fresh-enough cached
- * fix on error. Sets usedGpsCache/gpsErrorCode for telemetry.
+ * fix on error.
  *
  * @param {Function} callback Receives (latitude, longitude).
  * @param {Function} onFailure Called with a failure object when no fix is available.
@@ -425,18 +413,13 @@ WeatherProvider.prototype.withGpsCoordinates = function(callback, onFailure) {
         timeout: 10000
     };
 
-    provider.usedGpsCache = false;
-    provider.gpsErrorCode = null;
-
     // App-enforced cache: reuse a stored fix while it is within the configured
     // window instead of trusting native maximumAge, which the phone OS may ignore
-    // (especially under enableHighAccuracy). Reuse here is intentional, not an
-    // error fallback, so gpsErrorCode stays null.
+    // (especially under enableHighAccuracy).
     if (provider.gpsMaxAgeMs > 0) {
         cachedFix = readGpsCache();
         if (cachedFix && Date.now() - cachedFix.time <= provider.gpsMaxAgeMs) {
             console.log('Reusing cached GPS fix: lat= ' + cachedFix.lat + ' lon= ' + cachedFix.lon);
-            provider.usedGpsCache = true;
             callback(cachedFix.lat, cachedFix.lon);
             return;
         }
@@ -447,18 +430,12 @@ WeatherProvider.prototype.withGpsCoordinates = function(callback, onFailure) {
         var lon = pos.coords.longitude;
         console.log('FOUND LOCATION: lat= ' + lat + ' lon= ' + lon);
         locationLib.writeGpsCache(lat, lon);
-        provider.usedGpsCache = false;
-        provider.gpsErrorCode = null;
         callback(lat, lon);
     }
 
     function error(err) {
         var fallback;
-        var errCode;
         console.log('location error (' + err.code + '): ' + err.message);
-
-        errCode = Number(err && err.code);
-        provider.gpsErrorCode = errCode;
 
         // Last resort: serve the stored fix even when live GPS fails, as long as
         // it is within the hard 24h cap (distinct from the configurable reuse
@@ -469,7 +446,6 @@ WeatherProvider.prototype.withGpsCoordinates = function(callback, onFailure) {
             (GPS_CACHE_MAX_AGE_MS <= 0 || Date.now() - fallback.time <= GPS_CACHE_MAX_AGE_MS)
         ) {
             console.log('Using cached GPS coordinates: lat= ' + fallback.lat + ' lon= ' + fallback.lon);
-            provider.usedGpsCache = true;
             callback(fallback.lat, fallback.lon);
             return;
         }
@@ -482,7 +458,7 @@ WeatherProvider.prototype.withGpsCoordinates = function(callback, onFailure) {
 
 /**
  * Resolve coordinates for the active location: GPS when no override is set,
- * otherwise geocoded coordinates. Records locationMode for telemetry.
+ * otherwise geocoded coordinates.
  *
  * @param {Function} callback Receives (latitude, longitude).
  * @param {Function} onFailure Called with a failure object on error.
@@ -491,14 +467,8 @@ WeatherProvider.prototype.withGpsCoordinates = function(callback, onFailure) {
 WeatherProvider.prototype.withCoordinates = function(callback, onFailure) {
     var locationOverride;
 
-    this.usedGpsCache = false;
-    this.gpsErrorCode = null;
-    this.locationMode = null;
-    this.countryCode = null;
-
     locationOverride = parseLocationOverride(this.location);
     if (locationOverride.type === 'gps') {
-        this.locationMode = 'gps';
         console.log('Using GPS');
         this.withGpsCoordinates(callback, onFailure);
         return;
@@ -552,9 +522,7 @@ WeatherProvider.prototype.composeWeatherPayload = function(extraPayload, payload
 /**
  * Run the weather-fetch chain for already-resolved coordinates: reverse-geocode
  * the city (never fatal — see withCityName), compute sun events, fetch provider
- * data, then send the composed payload via the deduping outbox. Callers MUST
- * resolve coordinates via withCoordinates() first — it owns the
- * usedGpsCache/gpsErrorCode/locationMode resets this method relies on.
+ * data, then send the composed payload via the deduping outbox.
  *
  * @param {number} lat Latitude.
  * @param {number} lon Longitude.
@@ -568,10 +536,7 @@ WeatherProvider.prototype.composeWeatherPayload = function(extraPayload, payload
  * @returns {void}
  */
 WeatherProvider.prototype.fetchWithCoordinates = function(lat, lon, onSuccess, onFailure, force, extraPayload, payloadTransform, isCurrent) {
-    // Note: withCoordinates() already reset usedGpsCache/gpsErrorCode/locationMode/countryCode
-    // for this cycle; this method relies on those resets having already happened.
-    this.withCityName(lat, lon, (function(cityName, countryCode) {
-        this.countryCode = countryCode;
+    this.withCityName(lat, lon, (function(cityName) {
         this.withSunEvents(lat, lon, (function(sunEvents) {
             this.withProviderData(lat, lon, force, (function() {
                 // if `this` (the provider) contains valid weather details,

@@ -1,9 +1,9 @@
 {
   "schema": {
-    "appName": "WarnWeather",
+    "appName": "urvejr",
     "themeKey": "configTheme",
     "infoIconsKey": "hideInfoText",
-    "versionLabel": "v<version> <a href=\"https://github.com/Toasbi/WarnWeather\">GitHub source</a>",
+    "versionLabel": "v<version> <a href=\"https://github.com/jnysteen/urvejr\">GitHub source</a>",
     "tabs": [
       {
         "id": "weather",
@@ -102,53 +102,21 @@
             "id": "screens",
             "title": "Screens",
             "block": "screensCard",
-            "showWhen": {
-              "env": "platform",
-              "ne": "aplite"
-            },
             "items": []
           },
           {
-            "id": "layout",
-            "title": "Layout",
-            "showWhen": {
-              "env": "platform",
-              "eq": "aplite"
-            },
+            "sheetOnly": true,
+            "sheetId": "layoutKeys",
             "items": [
               {
-                "type": "radio",
+                "type": "hidden",
                 "messageKey": "layoutPreset",
-                "label": "Layout",
-                "defaultValue": "compactCal",
-                "hintByValue": {
-                  "fullCal": "Shows a calendar with 3 rows.",
-                  "compactCal": "Shows a calendar with 2 rows.",
-                  "noCal": "No calendar, so the forecast graph is bigger."
-                },
-                "optionsFrom": {
-                  "resolver": "apliteLayouts"
-                },
-                "dormantValues": [
-                  "compactDense",
-                  "weatherOnly",
-                  "custom"
-                ]
+                "defaultValue": "compactCal"
               },
               {
-                "type": "toggle",
+                "type": "hidden",
                 "messageKey": "swapClockStatus",
-                "label": "Swap clock and status row",
-                "defaultValue": true,
-                "hint": "Move the status row below the clock, next to the forecast.",
-                "more": true,
-                "showWhen": {
-                  "key": "layoutPreset",
-                  "nin": [
-                    "fullCal",
-                    "noCal"
-                  ]
-                }
+                "defaultValue": true
               }
             ]
           },
@@ -156,29 +124,9 @@
             "id": "screenSwitching",
             "title": "Screen switching",
             "showWhen": {
-              "all": [
-                {
-                  "env": "platform",
-                  "ne": "aplite"
-                },
-                {
-                  "when": "manyScreens"
-                }
-              ]
+              "when": "manyScreens"
             },
             "items": [
-              {
-                "type": "toggle",
-                "messageKey": "doubleFlick",
-                "label": "Double flick to switch",
-                "defaultValue": false,
-                "hint": "Switch only on a second flick within a few seconds of the first.",
-                "showWhen": {
-                  "not": {
-                    "env": "touch"
-                  }
-                }
-              },
               {
                 "type": "segmented",
                 "messageKey": "viewResetMin",
@@ -461,43 +409,6 @@
                     "bw-light"
                   ]
                 ],
-                "showWhen": {
-                  "env": "color"
-                },
-                "onChange": "themeConvert",
-                "convertsDefaults": true
-              },
-              {
-                "type": "select",
-                "messageKey": "theme",
-                "label": "Theme",
-                "defaultValue": "dark",
-                "hintByValue": {
-                  "dark": "White text and lines on a black background (the default).",
-                  "light": "Black text and lines on a white background."
-                },
-                "options": [
-                  [
-                    "Dark",
-                    "dark"
-                  ],
-                  [
-                    "Light",
-                    "light"
-                  ]
-                ],
-                "showWhen": {
-                  "all": [
-                    {
-                      "not": {
-                        "env": "color"
-                      }
-                    },
-                    {
-                      "env": "themePolarity"
-                    }
-                  ]
-                },
                 "onChange": "themeConvert",
                 "convertsDefaults": true
               },
@@ -629,21 +540,11 @@
                     {
                       "any": [
                         {
-                          "all": [
-                            {
-                              "env": "colorBacklight"
-                            },
-                            {
-                              "key": "backlightDim",
-                              "eq": true
-                            }
-                          ]
+                          "key": "backlightDim",
+                          "eq": true
                         },
                         {
                           "all": [
-                            {
-                              "env": "themePolarity"
-                            },
                             {
                               "key": "themeAuto",
                               "eq": true
@@ -786,21 +687,11 @@
                     {
                       "any": [
                         {
-                          "all": [
-                            {
-                              "env": "colorBacklight"
-                            },
-                            {
-                              "key": "backlightDim",
-                              "eq": true
-                            }
-                          ]
+                          "key": "backlightDim",
+                          "eq": true
                         },
                         {
                           "all": [
-                            {
-                              "env": "themePolarity"
-                            },
                             {
                               "key": "themeAuto",
                               "eq": true
@@ -832,10 +723,7 @@
                     "shared": "Dim the backlight when it comes on during Night hours, so it is easier on your eyes."
                   }
                 },
-                "onChange": "nightFeatureOn",
-                "showWhen": {
-                  "env": "colorBacklight"
-                }
+                "onChange": "nightFeatureOn"
               },
               {
                 "type": "select",
@@ -947,15 +835,8 @@
                 "showWhen": {
                   "all": [
                     {
-                      "all": [
-                        {
-                          "env": "colorBacklight"
-                        },
-                        {
-                          "key": "backlightDim",
-                          "eq": true
-                        }
-                      ]
+                      "key": "backlightDim",
+                      "eq": true
                     },
                     {
                       "key": "nightHoursSeparate",
@@ -1071,15 +952,8 @@
                 "showWhen": {
                   "all": [
                     {
-                      "all": [
-                        {
-                          "env": "colorBacklight"
-                        },
-                        {
-                          "key": "backlightDim",
-                          "eq": true
-                        }
-                      ]
+                      "key": "backlightDim",
+                      "eq": true
                     },
                     {
                       "key": "nightHoursSeparate",
@@ -1094,9 +968,6 @@
                 "label": "Night theme",
                 "defaultValue": false,
                 "hint": "Switch between two themes automatically, at sunrise and sunset or at fixed hours. The phone makes the switch, so it can happen a little late while the watch is disconnected.",
-                "showWhen": {
-                  "env": "themePolarity"
-                },
                 "onChange": [
                   "themeAutoPreset",
                   "nightFeatureOn"
@@ -1128,49 +999,8 @@
                 "indent": true,
                 "joinPrevious": true,
                 "showWhen": {
-                  "all": [
-                    {
-                      "env": "color"
-                    },
-                    {
-                      "key": "themeAuto",
-                      "eq": true
-                    }
-                  ]
-                }
-              },
-              {
-                "type": "select",
-                "messageKey": "themeNight",
-                "label": "Theme at night",
-                "defaultValue": "dark",
-                "options": [
-                  [
-                    "Dark",
-                    "dark"
-                  ],
-                  [
-                    "Light",
-                    "light"
-                  ]
-                ],
-                "indent": true,
-                "joinPrevious": true,
-                "showWhen": {
-                  "all": [
-                    {
-                      "not": {
-                        "env": "color"
-                      }
-                    },
-                    {
-                      "env": "themePolarity"
-                    },
-                    {
-                      "key": "themeAuto",
-                      "eq": true
-                    }
-                  ]
+                  "key": "themeAuto",
+                  "eq": true
                 }
               },
               {
@@ -1193,9 +1023,6 @@
                 "onChange": "nightFeatureOn",
                 "showWhen": {
                   "all": [
-                    {
-                      "env": "themePolarity"
-                    },
                     {
                       "key": "themeAuto",
                       "eq": true
@@ -1229,9 +1056,6 @@
                 "onChange": "nightFeatureOn",
                 "showWhen": {
                   "all": [
-                    {
-                      "env": "themePolarity"
-                    },
                     {
                       "key": "themeAuto",
                       "eq": true
@@ -1353,9 +1177,6 @@
                 "showWhen": {
                   "all": [
                     {
-                      "env": "themePolarity"
-                    },
-                    {
                       "key": "themeAuto",
                       "eq": true
                     },
@@ -1476,9 +1297,6 @@
                 "inline": "themeAutoStartHourHours",
                 "showWhen": {
                   "all": [
-                    {
-                      "env": "themePolarity"
-                    },
                     {
                       "key": "themeAuto",
                       "eq": true
@@ -1758,50 +1576,26 @@
                 "onChange": "nightHoursMode",
                 "more": true,
                 "showWhen": {
-                  "all": [
+                  "any": [
                     {
-                      "any": [
+                      "key": "backlightDim",
+                      "eq": true
+                    },
+                    {
+                      "all": [
                         {
-                          "env": "themePolarity"
+                          "key": "themeAuto",
+                          "eq": true
                         },
                         {
-                          "env": "colorBacklight"
+                          "key": "themeAutoMode",
+                          "eq": "manual"
                         }
                       ]
                     },
                     {
-                      "any": [
-                        {
-                          "all": [
-                            {
-                              "env": "colorBacklight"
-                            },
-                            {
-                              "key": "backlightDim",
-                              "eq": true
-                            }
-                          ]
-                        },
-                        {
-                          "all": [
-                            {
-                              "env": "themePolarity"
-                            },
-                            {
-                              "key": "themeAuto",
-                              "eq": true
-                            },
-                            {
-                              "key": "themeAutoMode",
-                              "eq": "manual"
-                            }
-                          ]
-                        },
-                        {
-                          "key": "sleepNightEnabled",
-                          "eq": true
-                        }
-                      ]
+                      "key": "sleepNightEnabled",
+                      "eq": true
                     }
                   ]
                 }
@@ -1819,15 +1613,8 @@
                 },
                 "more": true,
                 "showWhen": {
-                  "all": [
-                    {
-                      "env": "colorBacklight"
-                    },
-                    {
-                      "key": "backlightDim",
-                      "eq": true
-                    }
-                  ]
+                  "key": "backlightDim",
+                  "eq": true
                 }
               }
             ]
@@ -1837,15 +1624,8 @@
             "sheetId": "backlightColor",
             "title": "Dim backlight color",
             "showWhen": {
-              "all": [
-                {
-                  "env": "colorBacklight"
-                },
-                {
-                  "key": "backlightDim",
-                  "eq": true
-                }
-              ]
+              "key": "backlightDim",
+              "eq": true
             },
             "intro": "Pick the color the backlight glows during the hours you set for Dim backlight. Lower values dim it further. Your watch’s own brightness setting still applies on top.",
             "items": [
@@ -1919,9 +1699,6 @@
                 "messageKey": "colorTime",
                 "label": "Clock color",
                 "defaultValue": 16777215,
-                "capabilities": [
-                  "COLOR"
-                ],
                 "more": true,
                 "showWhen": {
                   "key": "theme",
@@ -3422,9 +3199,6 @@
                 "messageKey": "colorToday",
                 "label": "Today highlight",
                 "defaultValue": 0,
-                "capabilities": [
-                  "COLOR"
-                ],
                 "hint": "Black (the default) uses the date color. Any other color replaces it.",
                 "more": true,
                 "showWhen": {
@@ -3440,9 +3214,6 @@
                 "messageKey": "colorSunday",
                 "label": "Sunday color",
                 "defaultValue": 16711765,
-                "capabilities": [
-                  "COLOR"
-                ],
                 "more": true,
                 "showWhen": {
                   "key": "theme",
@@ -3457,9 +3228,6 @@
                 "messageKey": "colorSaturday",
                 "label": "Saturday color",
                 "defaultValue": 16711765,
-                "capabilities": [
-                  "COLOR"
-                ],
                 "more": true,
                 "showWhen": {
                   "key": "theme",
@@ -3474,9 +3242,6 @@
                 "messageKey": "colorUSFederal",
                 "label": "Holiday color",
                 "defaultValue": 22015,
-                "capabilities": [
-                  "COLOR"
-                ],
                 "excludeColors": [
                   "#FFFFFF"
                 ],
@@ -3499,9 +3264,6 @@
                 "messageKey": "colorUSFederal",
                 "label": "Holiday color",
                 "defaultValue": 22015,
-                "capabilities": [
-                  "COLOR"
-                ],
                 "excludeColors": [
                   "#000000"
                 ],
@@ -3563,10 +3325,7 @@
                     "All",
                     "all"
                   ]
-                ],
-                "showWhen": {
-                  "env": "thresholds"
-                }
+                ]
               },
               {
                 "type": "button",
@@ -3748,82 +3507,6 @@
                     "bar": "top",
                     "where": "None"
                   }
-                },
-                "showWhen": {
-                  "env": "onDemand"
-                }
-              },
-              {
-                "type": "subheader",
-                "text": "Icons and vibration",
-                "showWhen": {
-                  "not": {
-                    "env": "onDemand"
-                  }
-                }
-              },
-              {
-                "type": "toggle",
-                "messageKey": "batteryLowOnly",
-                "label": "Show battery below 10%",
-                "defaultValue": true,
-                "hint": "Replaces the top-right slot when your battery drops below 10%.",
-                "showWhen": {
-                  "not": {
-                    "env": "onDemand"
-                  }
-                }
-              },
-              {
-                "type": "toggle",
-                "messageKey": "showQt",
-                "label": "Show quiet time icon",
-                "defaultValue": true,
-                "showWhen": {
-                  "not": {
-                    "env": "onDemand"
-                  }
-                }
-              },
-              {
-                "type": "toggle",
-                "messageKey": "vibe",
-                "label": "Vibrate on bluetooth disconnect",
-                "defaultValue": true,
-                "showWhen": {
-                  "not": {
-                    "env": "onDemand"
-                  }
-                }
-              },
-              {
-                "type": "select",
-                "messageKey": "btIcons",
-                "label": "Show icon for bluetooth",
-                "defaultValue": "disconnected",
-                "joinPrevious": "loose",
-                "options": [
-                  [
-                    "Disconnected",
-                    "disconnected"
-                  ],
-                  [
-                    "Connected",
-                    "connected"
-                  ],
-                  [
-                    "Both",
-                    "both"
-                  ],
-                  [
-                    "None",
-                    "none"
-                  ]
-                ],
-                "showWhen": {
-                  "not": {
-                    "env": "onDemand"
-                  }
                 }
               }
             ]
@@ -3999,9 +3682,6 @@
                     "bar": "forecast",
                     "where": "None"
                   }
-                },
-                "showWhen": {
-                  "env": "onDemand"
                 }
               }
             ],
@@ -4061,9 +3741,6 @@
                     "slotKey": "statusHealthLeft",
                     "position": "left"
                   }
-                },
-                "showWhen": {
-                  "env": "health"
                 }
               },
               {
@@ -4075,15 +3752,8 @@
                 },
                 "joinPrevious": true,
                 "showWhen": {
-                  "all": [
-                    {
-                      "env": "health"
-                    },
-                    {
-                      "key": "statusHealthLeft",
-                      "eq": "countdown"
-                    }
-                  ]
+                  "key": "statusHealthLeft",
+                  "eq": "countdown"
                 }
               },
               {
@@ -4119,9 +3789,6 @@
                     "position": "mid"
                   }
                 },
-                "showWhen": {
-                  "env": "health"
-                },
                 "joinPrevious": true
               },
               {
@@ -4133,15 +3800,8 @@
                 },
                 "joinPrevious": true,
                 "showWhen": {
-                  "all": [
-                    {
-                      "env": "health"
-                    },
-                    {
-                      "key": "statusHealthMid",
-                      "eq": "countdown"
-                    }
-                  ]
+                  "key": "statusHealthMid",
+                  "eq": "countdown"
                 }
               },
               {
@@ -4177,9 +3837,6 @@
                     "position": "right"
                   }
                 },
-                "showWhen": {
-                  "env": "health"
-                },
                 "joinPrevious": true
               },
               {
@@ -4191,15 +3848,8 @@
                 },
                 "joinPrevious": true,
                 "showWhen": {
-                  "all": [
-                    {
-                      "env": "health"
-                    },
-                    {
-                      "key": "statusHealthRight",
-                      "eq": "countdown"
-                    }
-                  ]
+                  "key": "statusHealthRight",
+                  "eq": "countdown"
                 }
               },
               {
@@ -4213,16 +3863,6 @@
                     "bar": "health",
                     "where": "None"
                   }
-                },
-                "showWhen": {
-                  "all": [
-                    {
-                      "env": "onDemand"
-                    },
-                    {
-                      "env": "health"
-                    }
-                  ]
                 }
               }
             ],
@@ -4231,9 +3871,6 @@
               "label": "Status bar name",
               "placeholder": "Health bar",
               "maxlength": 24
-            },
-            "showWhen": {
-              "env": "health"
             }
           },
           {
@@ -4285,9 +3922,6 @@
                     "slotKey": "statusRadarLeft",
                     "position": "left"
                   }
-                },
-                "showWhen": {
-                  "env": "radar"
                 }
               },
               {
@@ -4299,15 +3933,8 @@
                 },
                 "joinPrevious": true,
                 "showWhen": {
-                  "all": [
-                    {
-                      "env": "radar"
-                    },
-                    {
-                      "key": "statusRadarLeft",
-                      "eq": "countdown"
-                    }
-                  ]
+                  "key": "statusRadarLeft",
+                  "eq": "countdown"
                 }
               },
               {
@@ -4343,9 +3970,6 @@
                     "position": "mid"
                   }
                 },
-                "showWhen": {
-                  "env": "radar"
-                },
                 "joinPrevious": true
               },
               {
@@ -4357,15 +3981,8 @@
                 },
                 "joinPrevious": true,
                 "showWhen": {
-                  "all": [
-                    {
-                      "env": "radar"
-                    },
-                    {
-                      "key": "statusRadarMid",
-                      "eq": "countdown"
-                    }
-                  ]
+                  "key": "statusRadarMid",
+                  "eq": "countdown"
                 }
               },
               {
@@ -4401,9 +4018,6 @@
                     "position": "right"
                   }
                 },
-                "showWhen": {
-                  "env": "radar"
-                },
                 "joinPrevious": true
               },
               {
@@ -4415,15 +4029,8 @@
                 },
                 "joinPrevious": true,
                 "showWhen": {
-                  "all": [
-                    {
-                      "env": "radar"
-                    },
-                    {
-                      "key": "statusRadarRight",
-                      "eq": "countdown"
-                    }
-                  ]
+                  "key": "statusRadarRight",
+                  "eq": "countdown"
                 }
               },
               {
@@ -4437,16 +4044,6 @@
                     "bar": "radar",
                     "where": "None"
                   }
-                },
-                "showWhen": {
-                  "all": [
-                    {
-                      "env": "onDemand"
-                    },
-                    {
-                      "env": "radar"
-                    }
-                  ]
                 }
               }
             ],
@@ -4455,9 +4052,6 @@
               "label": "Status bar name",
               "placeholder": "Radar bar",
               "maxlength": 24
-            },
-            "showWhen": {
-              "env": "radar"
             }
           },
           {
@@ -4511,15 +4105,8 @@
                   }
                 },
                 "showWhen": {
-                  "all": [
-                    {
-                      "env": "extraBars"
-                    },
-                    {
-                      "key": "statusBar4Made",
-                      "eq": true
-                    }
-                  ]
+                  "key": "statusBar4Made",
+                  "eq": true
                 }
               },
               {
@@ -4533,15 +4120,8 @@
                 "showWhen": {
                   "all": [
                     {
-                      "all": [
-                        {
-                          "env": "extraBars"
-                        },
-                        {
-                          "key": "statusBar4Made",
-                          "eq": true
-                        }
-                      ]
+                      "key": "statusBar4Made",
+                      "eq": true
                     },
                     {
                       "key": "statusBar4Left",
@@ -4584,15 +4164,8 @@
                   }
                 },
                 "showWhen": {
-                  "all": [
-                    {
-                      "env": "extraBars"
-                    },
-                    {
-                      "key": "statusBar4Made",
-                      "eq": true
-                    }
-                  ]
+                  "key": "statusBar4Made",
+                  "eq": true
                 },
                 "joinPrevious": true
               },
@@ -4607,15 +4180,8 @@
                 "showWhen": {
                   "all": [
                     {
-                      "all": [
-                        {
-                          "env": "extraBars"
-                        },
-                        {
-                          "key": "statusBar4Made",
-                          "eq": true
-                        }
-                      ]
+                      "key": "statusBar4Made",
+                      "eq": true
                     },
                     {
                       "key": "statusBar4Mid",
@@ -4658,15 +4224,8 @@
                   }
                 },
                 "showWhen": {
-                  "all": [
-                    {
-                      "env": "extraBars"
-                    },
-                    {
-                      "key": "statusBar4Made",
-                      "eq": true
-                    }
-                  ]
+                  "key": "statusBar4Made",
+                  "eq": true
                 },
                 "joinPrevious": true
               },
@@ -4681,15 +4240,8 @@
                 "showWhen": {
                   "all": [
                     {
-                      "all": [
-                        {
-                          "env": "extraBars"
-                        },
-                        {
-                          "key": "statusBar4Made",
-                          "eq": true
-                        }
-                      ]
+                      "key": "statusBar4Made",
+                      "eq": true
                     },
                     {
                       "key": "statusBar4Right",
@@ -4711,22 +4263,8 @@
                   }
                 },
                 "showWhen": {
-                  "all": [
-                    {
-                      "env": "onDemand"
-                    },
-                    {
-                      "all": [
-                        {
-                          "env": "extraBars"
-                        },
-                        {
-                          "key": "statusBar4Made",
-                          "eq": true
-                        }
-                      ]
-                    }
-                  ]
+                  "key": "statusBar4Made",
+                  "eq": true
                 }
               },
               {
@@ -4744,15 +4282,8 @@
               "maxlength": 24
             },
             "showWhen": {
-              "all": [
-                {
-                  "env": "extraBars"
-                },
-                {
-                  "key": "statusBar4Made",
-                  "eq": true
-                }
-              ]
+              "key": "statusBar4Made",
+              "eq": true
             }
           },
           {
@@ -4806,15 +4337,8 @@
                   }
                 },
                 "showWhen": {
-                  "all": [
-                    {
-                      "env": "extraBars"
-                    },
-                    {
-                      "key": "statusBar5Made",
-                      "eq": true
-                    }
-                  ]
+                  "key": "statusBar5Made",
+                  "eq": true
                 }
               },
               {
@@ -4828,15 +4352,8 @@
                 "showWhen": {
                   "all": [
                     {
-                      "all": [
-                        {
-                          "env": "extraBars"
-                        },
-                        {
-                          "key": "statusBar5Made",
-                          "eq": true
-                        }
-                      ]
+                      "key": "statusBar5Made",
+                      "eq": true
                     },
                     {
                       "key": "statusBar5Left",
@@ -4879,15 +4396,8 @@
                   }
                 },
                 "showWhen": {
-                  "all": [
-                    {
-                      "env": "extraBars"
-                    },
-                    {
-                      "key": "statusBar5Made",
-                      "eq": true
-                    }
-                  ]
+                  "key": "statusBar5Made",
+                  "eq": true
                 },
                 "joinPrevious": true
               },
@@ -4902,15 +4412,8 @@
                 "showWhen": {
                   "all": [
                     {
-                      "all": [
-                        {
-                          "env": "extraBars"
-                        },
-                        {
-                          "key": "statusBar5Made",
-                          "eq": true
-                        }
-                      ]
+                      "key": "statusBar5Made",
+                      "eq": true
                     },
                     {
                       "key": "statusBar5Mid",
@@ -4953,15 +4456,8 @@
                   }
                 },
                 "showWhen": {
-                  "all": [
-                    {
-                      "env": "extraBars"
-                    },
-                    {
-                      "key": "statusBar5Made",
-                      "eq": true
-                    }
-                  ]
+                  "key": "statusBar5Made",
+                  "eq": true
                 },
                 "joinPrevious": true
               },
@@ -4976,15 +4472,8 @@
                 "showWhen": {
                   "all": [
                     {
-                      "all": [
-                        {
-                          "env": "extraBars"
-                        },
-                        {
-                          "key": "statusBar5Made",
-                          "eq": true
-                        }
-                      ]
+                      "key": "statusBar5Made",
+                      "eq": true
                     },
                     {
                       "key": "statusBar5Right",
@@ -5006,22 +4495,8 @@
                   }
                 },
                 "showWhen": {
-                  "all": [
-                    {
-                      "env": "onDemand"
-                    },
-                    {
-                      "all": [
-                        {
-                          "env": "extraBars"
-                        },
-                        {
-                          "key": "statusBar5Made",
-                          "eq": true
-                        }
-                      ]
-                    }
-                  ]
+                  "key": "statusBar5Made",
+                  "eq": true
                 }
               },
               {
@@ -5039,15 +4514,8 @@
               "maxlength": 24
             },
             "showWhen": {
-              "all": [
-                {
-                  "env": "extraBars"
-                },
-                {
-                  "key": "statusBar5Made",
-                  "eq": true
-                }
-              ]
+              "key": "statusBar5Made",
+              "eq": true
             }
           },
           {
@@ -5101,15 +4569,8 @@
                   }
                 },
                 "showWhen": {
-                  "all": [
-                    {
-                      "env": "extraBars"
-                    },
-                    {
-                      "key": "statusBar6Made",
-                      "eq": true
-                    }
-                  ]
+                  "key": "statusBar6Made",
+                  "eq": true
                 }
               },
               {
@@ -5123,15 +4584,8 @@
                 "showWhen": {
                   "all": [
                     {
-                      "all": [
-                        {
-                          "env": "extraBars"
-                        },
-                        {
-                          "key": "statusBar6Made",
-                          "eq": true
-                        }
-                      ]
+                      "key": "statusBar6Made",
+                      "eq": true
                     },
                     {
                       "key": "statusBar6Left",
@@ -5174,15 +4628,8 @@
                   }
                 },
                 "showWhen": {
-                  "all": [
-                    {
-                      "env": "extraBars"
-                    },
-                    {
-                      "key": "statusBar6Made",
-                      "eq": true
-                    }
-                  ]
+                  "key": "statusBar6Made",
+                  "eq": true
                 },
                 "joinPrevious": true
               },
@@ -5197,15 +4644,8 @@
                 "showWhen": {
                   "all": [
                     {
-                      "all": [
-                        {
-                          "env": "extraBars"
-                        },
-                        {
-                          "key": "statusBar6Made",
-                          "eq": true
-                        }
-                      ]
+                      "key": "statusBar6Made",
+                      "eq": true
                     },
                     {
                       "key": "statusBar6Mid",
@@ -5248,15 +4688,8 @@
                   }
                 },
                 "showWhen": {
-                  "all": [
-                    {
-                      "env": "extraBars"
-                    },
-                    {
-                      "key": "statusBar6Made",
-                      "eq": true
-                    }
-                  ]
+                  "key": "statusBar6Made",
+                  "eq": true
                 },
                 "joinPrevious": true
               },
@@ -5271,15 +4704,8 @@
                 "showWhen": {
                   "all": [
                     {
-                      "all": [
-                        {
-                          "env": "extraBars"
-                        },
-                        {
-                          "key": "statusBar6Made",
-                          "eq": true
-                        }
-                      ]
+                      "key": "statusBar6Made",
+                      "eq": true
                     },
                     {
                       "key": "statusBar6Right",
@@ -5301,22 +4727,8 @@
                   }
                 },
                 "showWhen": {
-                  "all": [
-                    {
-                      "env": "onDemand"
-                    },
-                    {
-                      "all": [
-                        {
-                          "env": "extraBars"
-                        },
-                        {
-                          "key": "statusBar6Made",
-                          "eq": true
-                        }
-                      ]
-                    }
-                  ]
+                  "key": "statusBar6Made",
+                  "eq": true
                 }
               },
               {
@@ -5334,15 +4746,8 @@
               "maxlength": 24
             },
             "showWhen": {
-              "all": [
-                {
-                  "env": "extraBars"
-                },
-                {
-                  "key": "statusBar6Made",
-                  "eq": true
-                }
-              ]
+              "key": "statusBar6Made",
+              "eq": true
             }
           },
           {
@@ -5406,9 +4811,6 @@
           {
             "sheetOnly": true,
             "sheetId": "threshAqi",
-            "showWhen": {
-              "env": "thresholds"
-            },
             "title": "Air quality (AQI) slot",
             "items": [
               {
@@ -5674,9 +5076,6 @@
                     ],
                     "levelsOnly": true
                   }
-                },
-                "showWhen": {
-                  "env": "onDemand"
                 }
               }
             ],
@@ -5685,9 +5084,6 @@
           {
             "sheetOnly": true,
             "sheetId": "threshPollen",
-            "showWhen": {
-              "env": "thresholds"
-            },
             "title": "Pollen slot",
             "items": [
               {
@@ -5775,9 +5171,6 @@
                     ],
                     "levelsOnly": true
                   }
-                },
-                "showWhen": {
-                  "env": "onDemand"
                 }
               }
             ],
@@ -5786,9 +5179,6 @@
           {
             "sheetOnly": true,
             "sheetId": "threshWind",
-            "showWhen": {
-              "env": "thresholds"
-            },
             "title": "Wind speed slot",
             "items": [
               {
@@ -6055,9 +5445,6 @@
                     ],
                     "levelsOnly": true
                   }
-                },
-                "showWhen": {
-                  "env": "onDemand"
                 }
               }
             ],
@@ -6066,9 +5453,6 @@
           {
             "sheetOnly": true,
             "sheetId": "threshGust",
-            "showWhen": {
-              "env": "thresholds"
-            },
             "title": "Wind gusts slot",
             "items": [
               {
@@ -6335,9 +5719,6 @@
                     ],
                     "levelsOnly": true
                   }
-                },
-                "showWhen": {
-                  "env": "onDemand"
                 }
               }
             ],
@@ -6346,9 +5727,6 @@
           {
             "sheetOnly": true,
             "sheetId": "threshUv",
-            "showWhen": {
-              "env": "thresholds"
-            },
             "title": "UV index slot",
             "items": [
               {
@@ -6601,9 +5979,6 @@
                     ],
                     "levelsOnly": true
                   }
-                },
-                "showWhen": {
-                  "env": "onDemand"
                 }
               }
             ],
@@ -6612,9 +5987,6 @@
           {
             "sheetOnly": true,
             "sheetId": "threshSteps",
-            "showWhen": {
-              "env": "thresholds"
-            },
             "title": "Steps slot",
             "items": [
               {
@@ -6656,15 +6028,8 @@
                   }
                 },
                 "showWhen": {
-                  "all": [
-                    {
-                      "env": "health"
-                    },
-                    {
-                      "key": "healthMode",
-                      "ne": "off"
-                    }
-                  ]
+                  "key": "healthMode",
+                  "ne": "off"
                 }
               },
               {
@@ -6678,15 +6043,8 @@
                   "label": "Reset to defaults"
                 },
                 "showWhen": {
-                  "all": [
-                    {
-                      "env": "health"
-                    },
-                    {
-                      "key": "healthMode",
-                      "ne": "off"
-                    }
-                  ]
+                  "key": "healthMode",
+                  "ne": "off"
                 }
               },
               {
@@ -6695,15 +6053,8 @@
                 "label": "Goals",
                 "defaultValue": false,
                 "showWhen": {
-                  "all": [
-                    {
-                      "env": "health"
-                    },
-                    {
-                      "key": "healthMode",
-                      "ne": "off"
-                    }
-                  ]
+                  "key": "healthMode",
+                  "ne": "off"
                 }
               },
               {
@@ -6725,15 +6076,8 @@
                   }
                 },
                 "showWhen": {
-                  "all": [
-                    {
-                      "env": "health"
-                    },
-                    {
-                      "key": "healthMode",
-                      "ne": "off"
-                    }
-                  ]
+                  "key": "healthMode",
+                  "ne": "off"
                 }
               },
               {
@@ -6799,15 +6143,8 @@
                 },
                 "joinPrevious": true,
                 "showWhen": {
-                  "all": [
-                    {
-                      "env": "health"
-                    },
-                    {
-                      "key": "healthMode",
-                      "ne": "off"
-                    }
-                  ]
+                  "key": "healthMode",
+                  "ne": "off"
                 },
                 "disabledWhen": {
                   "not": {
@@ -6829,23 +6166,13 @@
                 },
                 "joinPrevious": true,
                 "more": true,
-                "capabilities": [
-                  "COLOR"
-                ],
                 "showWhen": {
                   "all": [
                     {
                       "all": [
                         {
-                          "all": [
-                            {
-                              "env": "health"
-                            },
-                            {
-                              "key": "healthMode",
-                              "ne": "off"
-                            }
-                          ]
+                          "key": "healthMode",
+                          "ne": "off"
                         },
                         {
                           "key": "theme",
@@ -6884,21 +6211,11 @@
                 },
                 "joinPrevious": true,
                 "more": true,
-                "capabilities": [
-                  "COLOR"
-                ],
                 "showWhen": {
                   "all": [
                     {
-                      "all": [
-                        {
-                          "env": "health"
-                        },
-                        {
-                          "key": "healthMode",
-                          "ne": "off"
-                        }
-                      ]
+                      "key": "healthMode",
+                      "ne": "off"
                     },
                     {
                       "key": "theme",
@@ -6921,9 +6238,6 @@
           {
             "sheetOnly": true,
             "sheetId": "threshSleep",
-            "showWhen": {
-              "env": "thresholds"
-            },
             "title": "Sleep slot",
             "items": [
               {
@@ -6965,15 +6279,8 @@
                   }
                 },
                 "showWhen": {
-                  "all": [
-                    {
-                      "env": "health"
-                    },
-                    {
-                      "key": "healthMode",
-                      "ne": "off"
-                    }
-                  ]
+                  "key": "healthMode",
+                  "ne": "off"
                 }
               },
               {
@@ -6987,15 +6294,8 @@
                   "label": "Reset to defaults"
                 },
                 "showWhen": {
-                  "all": [
-                    {
-                      "env": "health"
-                    },
-                    {
-                      "key": "healthMode",
-                      "ne": "off"
-                    }
-                  ]
+                  "key": "healthMode",
+                  "ne": "off"
                 }
               },
               {
@@ -7004,15 +6304,8 @@
                 "label": "Goals",
                 "defaultValue": false,
                 "showWhen": {
-                  "all": [
-                    {
-                      "env": "health"
-                    },
-                    {
-                      "key": "healthMode",
-                      "ne": "off"
-                    }
-                  ]
+                  "key": "healthMode",
+                  "ne": "off"
                 }
               },
               {
@@ -7034,15 +6327,8 @@
                   }
                 },
                 "showWhen": {
-                  "all": [
-                    {
-                      "env": "health"
-                    },
-                    {
-                      "key": "healthMode",
-                      "ne": "off"
-                    }
-                  ]
+                  "key": "healthMode",
+                  "ne": "off"
                 }
               },
               {
@@ -7108,15 +6394,8 @@
                 },
                 "joinPrevious": true,
                 "showWhen": {
-                  "all": [
-                    {
-                      "env": "health"
-                    },
-                    {
-                      "key": "healthMode",
-                      "ne": "off"
-                    }
-                  ]
+                  "key": "healthMode",
+                  "ne": "off"
                 },
                 "disabledWhen": {
                   "not": {
@@ -7138,23 +6417,13 @@
                 },
                 "joinPrevious": true,
                 "more": true,
-                "capabilities": [
-                  "COLOR"
-                ],
                 "showWhen": {
                   "all": [
                     {
                       "all": [
                         {
-                          "all": [
-                            {
-                              "env": "health"
-                            },
-                            {
-                              "key": "healthMode",
-                              "ne": "off"
-                            }
-                          ]
+                          "key": "healthMode",
+                          "ne": "off"
                         },
                         {
                           "key": "theme",
@@ -7193,21 +6462,11 @@
                 },
                 "joinPrevious": true,
                 "more": true,
-                "capabilities": [
-                  "COLOR"
-                ],
                 "showWhen": {
                   "all": [
                     {
-                      "all": [
-                        {
-                          "env": "health"
-                        },
-                        {
-                          "key": "healthMode",
-                          "ne": "off"
-                        }
-                      ]
+                      "key": "healthMode",
+                      "ne": "off"
                     },
                     {
                       "key": "theme",
@@ -7230,9 +6489,6 @@
           {
             "sheetOnly": true,
             "sheetId": "threshDistance",
-            "showWhen": {
-              "env": "thresholds"
-            },
             "title": "Walked distance slot",
             "items": [
               {
@@ -7274,15 +6530,8 @@
                   }
                 },
                 "showWhen": {
-                  "all": [
-                    {
-                      "env": "health"
-                    },
-                    {
-                      "key": "healthMode",
-                      "ne": "off"
-                    }
-                  ]
+                  "key": "healthMode",
+                  "ne": "off"
                 }
               },
               {
@@ -7296,15 +6545,8 @@
                   "label": "Reset to defaults"
                 },
                 "showWhen": {
-                  "all": [
-                    {
-                      "env": "health"
-                    },
-                    {
-                      "key": "healthMode",
-                      "ne": "off"
-                    }
-                  ]
+                  "key": "healthMode",
+                  "ne": "off"
                 }
               },
               {
@@ -7313,15 +6555,8 @@
                 "label": "Goals",
                 "defaultValue": false,
                 "showWhen": {
-                  "all": [
-                    {
-                      "env": "health"
-                    },
-                    {
-                      "key": "healthMode",
-                      "ne": "off"
-                    }
-                  ]
+                  "key": "healthMode",
+                  "ne": "off"
                 }
               },
               {
@@ -7343,15 +6578,8 @@
                   }
                 },
                 "showWhen": {
-                  "all": [
-                    {
-                      "env": "health"
-                    },
-                    {
-                      "key": "healthMode",
-                      "ne": "off"
-                    }
-                  ]
+                  "key": "healthMode",
+                  "ne": "off"
                 }
               },
               {
@@ -7417,15 +6645,8 @@
                 },
                 "joinPrevious": true,
                 "showWhen": {
-                  "all": [
-                    {
-                      "env": "health"
-                    },
-                    {
-                      "key": "healthMode",
-                      "ne": "off"
-                    }
-                  ]
+                  "key": "healthMode",
+                  "ne": "off"
                 },
                 "disabledWhen": {
                   "not": {
@@ -7447,23 +6668,13 @@
                 },
                 "joinPrevious": true,
                 "more": true,
-                "capabilities": [
-                  "COLOR"
-                ],
                 "showWhen": {
                   "all": [
                     {
                       "all": [
                         {
-                          "all": [
-                            {
-                              "env": "health"
-                            },
-                            {
-                              "key": "healthMode",
-                              "ne": "off"
-                            }
-                          ]
+                          "key": "healthMode",
+                          "ne": "off"
                         },
                         {
                           "key": "theme",
@@ -7502,21 +6713,11 @@
                 },
                 "joinPrevious": true,
                 "more": true,
-                "capabilities": [
-                  "COLOR"
-                ],
                 "showWhen": {
                   "all": [
                     {
-                      "all": [
-                        {
-                          "env": "health"
-                        },
-                        {
-                          "key": "healthMode",
-                          "ne": "off"
-                        }
-                      ]
+                      "key": "healthMode",
+                      "ne": "off"
                     },
                     {
                       "key": "theme",
@@ -7539,9 +6740,6 @@
           {
             "sheetOnly": true,
             "sheetId": "threshTemp",
-            "showWhen": {
-              "env": "thresholds"
-            },
             "title": "Temperature slot",
             "items": [
               {
@@ -7708,9 +6906,6 @@
           {
             "sheetOnly": true,
             "sheetId": "threshPressure",
-            "showWhen": {
-              "env": "thresholds"
-            },
             "title": "Air pressure (hPa) slot",
             "items": [
               {
@@ -7752,9 +6947,6 @@
           {
             "sheetOnly": true,
             "sheetId": "threshSun",
-            "showWhen": {
-              "env": "thresholds"
-            },
             "title": "Sunrise/sunset slot",
             "items": [
               {
@@ -7789,9 +6981,6 @@
           {
             "sheetOnly": true,
             "sheetId": "threshDate",
-            "showWhen": {
-              "env": "thresholds"
-            },
             "title": "Date slot",
             "items": [
               {
@@ -7873,9 +7062,6 @@
           {
             "sheetOnly": true,
             "sheetId": "threshWeek",
-            "showWhen": {
-              "env": "thresholds"
-            },
             "title": "Calendar week slot",
             "items": [
               {
@@ -7910,9 +7096,6 @@
           {
             "sheetOnly": true,
             "sheetId": "threshCity",
-            "showWhen": {
-              "env": "thresholds"
-            },
             "title": "City slot",
             "items": [
               {
@@ -7956,9 +7139,6 @@
           {
             "sheetOnly": true,
             "sheetId": "threshCountdown",
-            "showWhen": {
-              "env": "thresholds"
-            },
             "title": "Date countdown slot",
             "items": [
               {
@@ -8000,9 +7180,6 @@
           {
             "sheetOnly": true,
             "sheetId": "threshHr",
-            "showWhen": {
-              "env": "thresholds"
-            },
             "title": "Heart rate slot",
             "items": [
               {
@@ -8031,18 +7208,8 @@
                   ]
                 },
                 "showWhen": {
-                  "all": [
-                    {
-                      "env": "health"
-                    },
-                    {
-                      "key": "healthMode",
-                      "ne": "off"
-                    },
-                    {
-                      "env": "hr"
-                    }
-                  ]
+                  "key": "healthMode",
+                  "ne": "off"
                 }
               }
             ],
@@ -8051,9 +7218,6 @@
           {
             "sheetOnly": true,
             "sheetId": "threshBatteryPct",
-            "showWhen": {
-              "env": "thresholds"
-            },
             "title": "Battery percentage slot",
             "items": [
               {
@@ -8088,9 +7252,6 @@
           {
             "sheetOnly": true,
             "sheetId": "threshDew",
-            "showWhen": {
-              "env": "thresholds"
-            },
             "title": "Dew point slot",
             "items": [
               {
@@ -8132,9 +7293,6 @@
           {
             "sheetOnly": true,
             "sheetId": "threshPhoneBattery",
-            "showWhen": {
-              "env": "thresholds"
-            },
             "title": "Phone battery slot",
             "items": [
               {
@@ -8169,9 +7327,6 @@
           {
             "sheetOnly": true,
             "sheetId": "threshCondition",
-            "showWhen": {
-              "env": "thresholds"
-            },
             "title": "Weather condition slot",
             "items": [
               {
@@ -8273,16 +7428,10 @@
         "id": "alerts",
         "label": "Alerts",
         "icon": "tab-alerts",
-        "showWhen": {
-          "env": "onDemand"
-        },
         "sections": [
           {
             "id": "onDemand",
             "title": "About alerts",
-            "showWhen": {
-              "env": "onDemand"
-            },
             "intro": "An alert shows at the edge of a status bar only when it reaches its warn level or is active right now. The rest of the time it stays hidden. For example, the battery is low, Bluetooth is disconnected, rain is coming, or the UV or wind forecast reaches its warn level. Open an alert to choose which status bars show it, on the left or the right.<p class=\"intro-more\">The warn level works on the graph too. Set the Visible values of a wind, gust or UV line to Alert (<button type=\"button\" class=\"txt-link\" data-goto-tab=\"graphs\" data-goto-pane=\"forecast\">Graphs › Forecast › a graph</button>), and the line shows only in the hours that reach the warn level.</p>",
             "items": [
               {
@@ -8303,9 +7452,6 @@
           },
           {
             "id": "onDemandItems",
-            "showWhen": {
-              "env": "onDemand"
-            },
             "items": [
               {
                 "type": "subheader",
@@ -8623,9 +7769,6 @@
           {
             "sheetOnly": true,
             "sheetId": "odLists",
-            "showWhen": {
-              "env": "onDemand"
-            },
             "items": [
               {
                 "type": "hidden",
@@ -8702,9 +7845,6 @@
           {
             "sheetOnly": true,
             "sheetId": "odBattery",
-            "showWhen": {
-              "env": "onDemand"
-            },
             "title": "Battery",
             "intro": "Shows the battery icon at the edge of a status bar while the watch battery is at or below the warn level. If a bar already shows the battery in a status slot (Watch battery or Watch battery percentage), the icon stays off that bar until that slot is hidden to make room.",
             "items": [
@@ -8756,27 +7896,7 @@
                 "step": 5,
                 "unit": "%",
                 "defaultValue": "10",
-                "hint": "Shows the battery icon when the battery is at or below this level.",
-                "showWhen": {
-                  "env": "fineBattery"
-                }
-              },
-              {
-                "type": "range",
-                "single": true,
-                "messageKey": "batteryLowLevel",
-                "label": "Warn level",
-                "min": 10,
-                "max": 30,
-                "step": 10,
-                "unit": "%",
-                "defaultValue": "10",
-                "hint": "Shows the battery icon when the battery is at or below this level.",
-                "showWhen": {
-                  "not": {
-                    "env": "fineBattery"
-                  }
-                }
+                "hint": "Shows the battery icon when the battery is at or below this level."
               },
               {
                 "type": "segmented",
@@ -8802,9 +7922,6 @@
           {
             "sheetOnly": true,
             "sheetId": "odBluetooth",
-            "showWhen": {
-              "env": "onDemand"
-            },
             "title": "Bluetooth",
             "intro": "Shows the Bluetooth icon at the edge of a status bar.",
             "items": [
@@ -8872,9 +7989,6 @@
                 "hintByValue": {
                   "both": "Shows the icon while connected and a crossed-out icon while disconnected.",
                   "none": "The icon never shows. Vibrate on disconnect still works."
-                },
-                "showWhen": {
-                  "env": "onDemand"
                 }
               },
               {
@@ -8883,19 +7997,13 @@
                 "label": "Vibrate on disconnect",
                 "defaultValue": true,
                 "hint": "Stays quiet during Quiet Time.",
-                "joinPrevious": "loose",
-                "showWhen": {
-                  "env": "onDemand"
-                }
+                "joinPrevious": "loose"
               }
             ]
           },
           {
             "sheetOnly": true,
             "sheetId": "odQuiet",
-            "showWhen": {
-              "env": "onDemand"
-            },
             "title": "Quiet time",
             "intro": "Shows the quiet time icon at the edge of a status bar while Quiet Time is on.",
             "items": [
@@ -8938,9 +8046,6 @@
           {
             "sheetOnly": true,
             "sheetId": "odSleep",
-            "showWhen": {
-              "env": "onDemand"
-            },
             "title": "Battery saver",
             "intro": "Shows the sleep icon at the edge of a status bar during the Battery saver hours (Watchface › Theme & night).",
             "items": [
@@ -8983,9 +8088,6 @@
           {
             "sheetOnly": true,
             "sheetId": "alertRain",
-            "showWhen": {
-              "env": "onDemand"
-            },
             "title": "Rain alert",
             "intro": "Shows the rain icon at the edge of a status bar while it rains at your location or when rain is due within the time window. The icon is hidden during the Battery saver hours.",
             "items": [
@@ -9117,9 +8219,6 @@
           {
             "sheetOnly": true,
             "sheetId": "alertGust",
-            "showWhen": {
-              "env": "onDemand"
-            },
             "title": "Wind gusts alert",
             "intro": "Shows the gust icon at the edge of a status bar when the gust speed reaches your warn level at any time in the rest of today, so an afternoon peak already shows in the morning.",
             "introNotes": [
@@ -9370,9 +8469,6 @@
                 },
                 "joinPrevious": true,
                 "more": true,
-                "capabilities": [
-                  "COLOR"
-                ],
                 "showWhen": {
                   "all": [
                     {
@@ -9405,9 +8501,6 @@
                 },
                 "joinPrevious": true,
                 "more": true,
-                "capabilities": [
-                  "COLOR"
-                ],
                 "showWhen": {
                   "key": "theme",
                   "nin": [
@@ -9421,9 +8514,6 @@
           {
             "sheetOnly": true,
             "sheetId": "alertUv",
-            "showWhen": {
-              "env": "onDemand"
-            },
             "title": "UV index alert",
             "intro": "Shows the UV icon at the edge of a status bar when the UV index reaches your warn level at any time in the rest of today, so an afternoon peak already shows in the morning.",
             "introNotes": [
@@ -9648,9 +8738,6 @@
                 },
                 "joinPrevious": true,
                 "more": true,
-                "capabilities": [
-                  "COLOR"
-                ],
                 "showWhen": {
                   "all": [
                     {
@@ -9683,9 +8770,6 @@
                 },
                 "joinPrevious": true,
                 "more": true,
-                "capabilities": [
-                  "COLOR"
-                ],
                 "showWhen": {
                   "key": "theme",
                   "nin": [
@@ -9699,9 +8783,6 @@
           {
             "sheetOnly": true,
             "sheetId": "alertAqi",
-            "showWhen": {
-              "env": "onDemand"
-            },
             "title": "Air quality (AQI) alert",
             "intro": "Shows the air quality icon at the edge of a status bar when the air quality index reaches your warn level at any time in the rest of today, so an afternoon peak already shows in the morning. To look ahead to later today and tomorrow, pick Open-Meteo for Air quality (Setup › Data sources). WAQI, which Auto mostly reads, has no forecast, so with it the alert uses the current reading.",
             "introNotes": [
@@ -9955,9 +9036,6 @@
                 },
                 "joinPrevious": true,
                 "more": true,
-                "capabilities": [
-                  "COLOR"
-                ],
                 "showWhen": {
                   "all": [
                     {
@@ -9990,9 +9068,6 @@
                 },
                 "joinPrevious": true,
                 "more": true,
-                "capabilities": [
-                  "COLOR"
-                ],
                 "showWhen": {
                   "key": "theme",
                   "nin": [
@@ -10006,9 +9081,6 @@
           {
             "sheetOnly": true,
             "sheetId": "alertPollen",
-            "showWhen": {
-              "env": "onDemand"
-            },
             "title": "Pollen alert",
             "intro": "Shows the pollen icon at the edge of a status bar when the pollen index reaches your warn level at any time in the rest of today, so an afternoon peak already shows in the morning.",
             "introNotes": [
@@ -10233,9 +9305,6 @@
                 },
                 "joinPrevious": true,
                 "more": true,
-                "capabilities": [
-                  "COLOR"
-                ],
                 "showWhen": {
                   "all": [
                     {
@@ -10268,9 +9337,6 @@
                 },
                 "joinPrevious": true,
                 "more": true,
-                "capabilities": [
-                  "COLOR"
-                ],
                 "showWhen": {
                   "key": "theme",
                   "nin": [
@@ -10284,9 +9350,6 @@
           {
             "sheetOnly": true,
             "sheetId": "alertWind",
-            "showWhen": {
-              "env": "onDemand"
-            },
             "title": "Wind speed alert",
             "intro": "Shows the wind icon at the edge of a status bar when the wind speed reaches your warn level at any time in the rest of today, so an afternoon peak already shows in the morning.",
             "introNotes": [
@@ -10537,9 +9600,6 @@
                 },
                 "joinPrevious": true,
                 "more": true,
-                "capabilities": [
-                  "COLOR"
-                ],
                 "showWhen": {
                   "all": [
                     {
@@ -10572,9 +9632,6 @@
                 },
                 "joinPrevious": true,
                 "more": true,
-                "capabilities": [
-                  "COLOR"
-                ],
                 "showWhen": {
                   "key": "theme",
                   "nin": [
@@ -10599,25 +9656,12 @@
           {
             "id": "radar",
             "label": "Rain radar",
-            "pinBlock": "radarPreview",
-            "showWhen": {
-              "env": "radar"
-            }
+            "pinBlock": "radarPreview"
           },
           {
             "id": "health",
             "label": "Health",
-            "pinBlock": "healthPreview",
-            "showWhen": {
-              "all": [
-                {
-                  "env": "health"
-                },
-                {
-                  "env": "hr"
-                }
-              ]
-            }
+            "pinBlock": "healthPreview"
           }
         ],
         "sections": [
@@ -10658,10 +9702,7 @@
               "placeholderBy": {
                 "resolver": "graphDefaultName"
               },
-              "maxlength": 24,
-              "showWhen": {
-                "env": "graphStyles"
-              }
+              "maxlength": 24
             },
             "pinBlock": "forecastPreview",
             "block": "graphShowOn",
@@ -10669,7 +9710,7 @@
               {
                 "type": "subheader",
                 "text": "Lines",
-                "intro": "The forecast graph shows up to 24 hours ahead. On Pebble Time 2 you can pick 12, 24 or up to 66 hours under Forecast length. Temperature is always drawn, and the metrics and rain bars you pick below are added to it."
+                "intro": "The forecast graph shows up to 24 hours ahead. You can pick 12, 24 or up to 66 hours under Forecast length. Temperature is always drawn, and the metrics and rain bars you pick below are added to it."
               },
               {
                 "type": "sheet",
@@ -10723,9 +9764,6 @@
                   "args": {
                     "lineKey": "fourthLine"
                   }
-                },
-                "showWhen": {
-                  "env": "lineStyles"
                 }
               },
               {
@@ -10744,9 +9782,6 @@
                   "args": {
                     "lineKey": "fifthLine"
                   }
-                },
-                "showWhen": {
-                  "env": "lineStyles"
                 }
               },
               {
@@ -10788,9 +9823,6 @@
                   "multicolor": "Colors each part of a bar by how heavy the rain is:<span style=\"display:inline-flex;gap:7px;margin-top:6px;align-items:flex-end;\"><span style=\"text-align:center;font-size:10px;\"><span style=\"display:block;width:17px;height:8px;border-radius:2px;background:#AAAAAA;margin-bottom:3px;\"></span>0.1</span><span style=\"text-align:center;font-size:10px;\"><span style=\"display:block;width:17px;height:8px;border-radius:2px;background:#55FFFF;margin-bottom:3px;\"></span>0.5</span><span style=\"text-align:center;font-size:10px;\"><span style=\"display:block;width:17px;height:8px;border-radius:2px;background:#00FF00;margin-bottom:3px;\"></span>2</span><span style=\"text-align:center;font-size:10px;\"><span style=\"display:block;width:17px;height:8px;border-radius:2px;background:#FFFF00;margin-bottom:3px;\"></span>10</span><span style=\"text-align:center;font-size:10px;\"><span style=\"display:block;width:17px;height:8px;border-radius:2px;background:#FF5555;margin-bottom:3px;\"></span>40</span></span>",
                   "white": "Shows every bar in a single color."
                 },
-                "capabilities": [
-                  "COLOR"
-                ],
                 "options": [
                   [
                     "Multicolor",
@@ -10838,15 +9870,8 @@
                 ],
                 "more": true,
                 "showWhen": {
-                  "all": [
-                    {
-                      "key": "barSource",
-                      "eq": "rain"
-                    },
-                    {
-                      "env": "lineStyles"
-                    }
-                  ]
+                  "key": "barSource",
+                  "eq": "rain"
                 }
               },
               {
@@ -10878,9 +9903,6 @@
                 },
                 "optionsFrom": {
                   "resolver": "forecastSpanOptions"
-                },
-                "showWhen": {
-                  "env": "forecastSpan"
                 }
               },
               {
@@ -10909,10 +9931,6 @@
                 "hintByValue": {
                   "graph": "Removes the left axis and draws the high and low values on the graph.",
                   "off": "Removes the left axis and the high and low values."
-                },
-                "showWhen": {
-                  "env": "platform",
-                  "eq": "emery"
                 }
               },
               {
@@ -10924,10 +9942,6 @@
                 "more": true,
                 "showWhen": {
                   "all": [
-                    {
-                      "env": "platform",
-                      "eq": "emery"
-                    },
                     {
                       "key": "forecastAxisNumbers",
                       "ne": "off"
@@ -10948,10 +9962,6 @@
                 "defaultValue": true,
                 "hint": "Draw the graph axis labels in bigger type.",
                 "more": true,
-                "showWhen": {
-                  "env": "platform",
-                  "eq": "emery"
-                },
                 "hintTailFrom": {
                   "resolver": "graphStyleShared"
                 }
@@ -10966,9 +9976,6 @@
                 "label": "Graph colors",
                 "hint": "Pick the colors of each metric and of the night shading.",
                 "navNote": "9",
-                "capabilities": [
-                  "COLOR"
-                ],
                 "showWhen": {
                   "key": "theme",
                   "nin": [
@@ -10999,9 +10006,6 @@
             "sheetOnly": true,
             "sheetId": "graphColors",
             "title": "Graph colors",
-            "capabilities": [
-              "COLOR"
-            ],
             "showWhen": {
               "key": "theme",
               "nin": [
@@ -11161,9 +10165,6 @@
             "sheetOnly": true,
             "sheetId": "gcPrecip",
             "title": "Precipitation % colors",
-            "capabilities": [
-              "COLOR"
-            ],
             "showWhen": {
               "key": "theme",
               "nin": [
@@ -11183,9 +10184,6 @@
                 "label": "Line",
                 "hint": null,
                 "defaultValue": 5614335,
-                "capabilities": [
-                  "COLOR"
-                ],
                 "showWhen": {
                   "all": [
                     {
@@ -11201,9 +10199,6 @@
                 "label": "Line",
                 "hint": null,
                 "defaultValue": 170,
-                "capabilities": [
-                  "COLOR"
-                ],
                 "showWhen": {
                   "all": [
                     {
@@ -11219,9 +10214,6 @@
                 "label": "Area fill",
                 "hint": "Only drawn while this is the Main metric and “Area fill” is on.",
                 "defaultValue": 21930,
-                "capabilities": [
-                  "COLOR"
-                ],
                 "showWhen": {
                   "all": [
                     {
@@ -11237,9 +10229,6 @@
                 "label": "Area fill",
                 "hint": "Only drawn while this is the Main metric and “Area fill” is on.",
                 "defaultValue": 5636095,
-                "capabilities": [
-                  "COLOR"
-                ],
                 "showWhen": {
                   "all": [
                     {
@@ -11255,9 +10244,6 @@
                 "label": "Night fill tint",
                 "hint": "Colors the filled area during the night hours. Until you pick a color here, it uses the fill color.",
                 "defaultValue": 170,
-                "capabilities": [
-                  "COLOR"
-                ],
                 "showWhen": {
                   "all": [
                     {
@@ -11280,9 +10266,6 @@
                 "label": "Night fill tint",
                 "hint": "Colors the filled area during the night hours. Until you pick a color here, it uses the fill color.",
                 "defaultValue": 65535,
-                "capabilities": [
-                  "COLOR"
-                ],
                 "showWhen": {
                   "all": [
                     {
@@ -11306,9 +10289,6 @@
             "sheetOnly": true,
             "sheetId": "gcCloud",
             "title": "Cloud cover % colors",
-            "capabilities": [
-              "COLOR"
-            ],
             "showWhen": {
               "key": "theme",
               "nin": [
@@ -11328,9 +10308,6 @@
                 "label": "Line",
                 "hint": null,
                 "defaultValue": 11184895,
-                "capabilities": [
-                  "COLOR"
-                ],
                 "showWhen": {
                   "all": [
                     {
@@ -11346,9 +10323,6 @@
                 "label": "Line",
                 "hint": null,
                 "defaultValue": 5592490,
-                "capabilities": [
-                  "COLOR"
-                ],
                 "showWhen": {
                   "all": [
                     {
@@ -11364,9 +10338,6 @@
                 "label": "Area fill",
                 "hint": "Only drawn while this is the Main metric and “Area fill” is on.",
                 "defaultValue": 5592490,
-                "capabilities": [
-                  "COLOR"
-                ],
                 "showWhen": {
                   "all": [
                     {
@@ -11382,9 +10353,6 @@
                 "label": "Area fill",
                 "hint": "Only drawn while this is the Main metric and “Area fill” is on.",
                 "defaultValue": 11184895,
-                "capabilities": [
-                  "COLOR"
-                ],
                 "showWhen": {
                   "all": [
                     {
@@ -11400,9 +10368,6 @@
                 "label": "Night fill tint",
                 "hint": "Colors the filled area during the night hours. Until you pick a color here, it uses the fill color.",
                 "defaultValue": 85,
-                "capabilities": [
-                  "COLOR"
-                ],
                 "showWhen": {
                   "all": [
                     {
@@ -11425,9 +10390,6 @@
                 "label": "Night fill tint",
                 "hint": "Colors the filled area during the night hours. Until you pick a color here, it uses the fill color.",
                 "defaultValue": 11184895,
-                "capabilities": [
-                  "COLOR"
-                ],
                 "showWhen": {
                   "all": [
                     {
@@ -11451,9 +10413,6 @@
             "sheetOnly": true,
             "sheetId": "gcWind",
             "title": "Wind speed colors",
-            "capabilities": [
-              "COLOR"
-            ],
             "showWhen": {
               "key": "theme",
               "nin": [
@@ -11473,9 +10432,6 @@
                 "label": "Line",
                 "hint": null,
                 "defaultValue": 16776960,
-                "capabilities": [
-                  "COLOR"
-                ],
                 "showWhen": {
                   "all": [
                     {
@@ -11491,9 +10447,6 @@
                 "label": "Line",
                 "hint": null,
                 "defaultValue": 16755200,
-                "capabilities": [
-                  "COLOR"
-                ],
                 "showWhen": {
                   "all": [
                     {
@@ -11509,9 +10462,6 @@
                 "label": "Area fill",
                 "hint": "Only drawn while this is the Main metric and “Area fill” is on.",
                 "defaultValue": 5592320,
-                "capabilities": [
-                  "COLOR"
-                ],
                 "showWhen": {
                   "all": [
                     {
@@ -11527,9 +10477,6 @@
                 "label": "Area fill",
                 "hint": "Only drawn while this is the Main metric and “Area fill” is on.",
                 "defaultValue": 16776960,
-                "capabilities": [
-                  "COLOR"
-                ],
                 "showWhen": {
                   "all": [
                     {
@@ -11545,9 +10492,6 @@
                 "label": "Night fill tint",
                 "hint": "Colors the filled area during the night hours. Until you pick a color here, it uses the fill color.",
                 "defaultValue": 5592320,
-                "capabilities": [
-                  "COLOR"
-                ],
                 "showWhen": {
                   "all": [
                     {
@@ -11570,9 +10514,6 @@
                 "label": "Night fill tint",
                 "hint": "Colors the filled area during the night hours. Until you pick a color here, it uses the fill color.",
                 "defaultValue": 16755285,
-                "capabilities": [
-                  "COLOR"
-                ],
                 "showWhen": {
                   "all": [
                     {
@@ -11596,9 +10537,6 @@
             "sheetOnly": true,
             "sheetId": "gcGust",
             "title": "Wind gusts colors",
-            "capabilities": [
-              "COLOR"
-            ],
             "showWhen": {
               "key": "theme",
               "nin": [
@@ -11618,9 +10556,6 @@
                 "label": "Line",
                 "hint": null,
                 "defaultValue": 16777215,
-                "capabilities": [
-                  "COLOR"
-                ],
                 "showWhen": {
                   "all": [
                     {
@@ -11636,9 +10571,6 @@
                 "label": "Line",
                 "hint": null,
                 "defaultValue": 0,
-                "capabilities": [
-                  "COLOR"
-                ],
                 "showWhen": {
                   "all": [
                     {
@@ -11654,9 +10586,6 @@
                 "label": "Area fill",
                 "hint": "Only drawn while this is the Main metric and “Area fill” is on.",
                 "defaultValue": 5592405,
-                "capabilities": [
-                  "COLOR"
-                ],
                 "showWhen": {
                   "all": [
                     {
@@ -11672,9 +10601,6 @@
                 "label": "Area fill",
                 "hint": "Only drawn while this is the Main metric and “Area fill” is on.",
                 "defaultValue": 11184810,
-                "capabilities": [
-                  "COLOR"
-                ],
                 "showWhen": {
                   "all": [
                     {
@@ -11690,9 +10616,6 @@
                 "label": "Night fill tint",
                 "hint": "Colors the filled area during the night hours. Until you pick a color here, it uses the fill color.",
                 "defaultValue": 5592405,
-                "capabilities": [
-                  "COLOR"
-                ],
                 "showWhen": {
                   "all": [
                     {
@@ -11715,9 +10638,6 @@
                 "label": "Night fill tint",
                 "hint": "Colors the filled area during the night hours. Until you pick a color here, it uses the fill color.",
                 "defaultValue": 11184810,
-                "capabilities": [
-                  "COLOR"
-                ],
                 "showWhen": {
                   "all": [
                     {
@@ -11741,9 +10661,6 @@
             "sheetOnly": true,
             "sheetId": "gcUv",
             "title": "UV Index colors",
-            "capabilities": [
-              "COLOR"
-            ],
             "showWhen": {
               "key": "theme",
               "nin": [
@@ -11763,9 +10680,6 @@
                 "label": "Line",
                 "hint": null,
                 "defaultValue": 16711935,
-                "capabilities": [
-                  "COLOR"
-                ],
                 "showWhen": {
                   "all": [
                     {
@@ -11781,9 +10695,6 @@
                 "label": "Line",
                 "hint": null,
                 "defaultValue": 11141290,
-                "capabilities": [
-                  "COLOR"
-                ],
                 "showWhen": {
                   "all": [
                     {
@@ -11799,9 +10710,6 @@
                 "label": "Area fill",
                 "hint": "Only drawn while this is the Main metric and “Area fill” is on.",
                 "defaultValue": 11141290,
-                "capabilities": [
-                  "COLOR"
-                ],
                 "showWhen": {
                   "all": [
                     {
@@ -11817,9 +10725,6 @@
                 "label": "Area fill",
                 "hint": "Only drawn while this is the Main metric and “Area fill” is on.",
                 "defaultValue": 16733695,
-                "capabilities": [
-                  "COLOR"
-                ],
                 "showWhen": {
                   "all": [
                     {
@@ -11835,9 +10740,6 @@
                 "label": "Night fill tint",
                 "hint": "Colors the filled area during the night hours. Until you pick a color here, it uses the fill color.",
                 "defaultValue": 5570645,
-                "capabilities": [
-                  "COLOR"
-                ],
                 "showWhen": {
                   "all": [
                     {
@@ -11860,9 +10762,6 @@
                 "label": "Night fill tint",
                 "hint": "Colors the filled area during the night hours. Until you pick a color here, it uses the fill color.",
                 "defaultValue": 16733695,
-                "capabilities": [
-                  "COLOR"
-                ],
                 "showWhen": {
                   "all": [
                     {
@@ -11886,9 +10785,6 @@
             "sheetOnly": true,
             "sheetId": "gcPressure",
             "title": "Air pressure (hPa) colors",
-            "capabilities": [
-              "COLOR"
-            ],
             "showWhen": {
               "key": "theme",
               "nin": [
@@ -11908,9 +10804,6 @@
                 "label": "Line",
                 "hint": null,
                 "defaultValue": 16733440,
-                "capabilities": [
-                  "COLOR"
-                ],
                 "showWhen": {
                   "all": [
                     {
@@ -11926,9 +10819,6 @@
                 "label": "Line",
                 "hint": null,
                 "defaultValue": 16733440,
-                "capabilities": [
-                  "COLOR"
-                ],
                 "showWhen": {
                   "all": [
                     {
@@ -11944,9 +10834,6 @@
                 "label": "Area fill",
                 "hint": "Only drawn while this is the Main metric and “Area fill” is on.",
                 "defaultValue": 11162880,
-                "capabilities": [
-                  "COLOR"
-                ],
                 "showWhen": {
                   "all": [
                     {
@@ -11962,9 +10849,6 @@
                 "label": "Area fill",
                 "hint": "Only drawn while this is the Main metric and “Area fill” is on.",
                 "defaultValue": 16755285,
-                "capabilities": [
-                  "COLOR"
-                ],
                 "showWhen": {
                   "all": [
                     {
@@ -11980,9 +10864,6 @@
                 "label": "Night fill tint",
                 "hint": "Colors the filled area during the night hours. Until you pick a color here, it uses the fill color.",
                 "defaultValue": 11162880,
-                "capabilities": [
-                  "COLOR"
-                ],
                 "showWhen": {
                   "all": [
                     {
@@ -12005,9 +10886,6 @@
                 "label": "Night fill tint",
                 "hint": "Colors the filled area during the night hours. Until you pick a color here, it uses the fill color.",
                 "defaultValue": 16755285,
-                "capabilities": [
-                  "COLOR"
-                ],
                 "showWhen": {
                   "all": [
                     {
@@ -12031,9 +10909,6 @@
             "sheetOnly": true,
             "sheetId": "gcFeels",
             "title": "Feels-like temperature colors",
-            "capabilities": [
-              "COLOR"
-            ],
             "showWhen": {
               "key": "theme",
               "nin": [
@@ -12053,9 +10928,6 @@
                 "label": "Line",
                 "hint": null,
                 "defaultValue": 11184810,
-                "capabilities": [
-                  "COLOR"
-                ],
                 "showWhen": {
                   "all": [
                     {
@@ -12071,9 +10943,6 @@
                 "label": "Line",
                 "hint": null,
                 "defaultValue": 0,
-                "capabilities": [
-                  "COLOR"
-                ],
                 "showWhen": {
                   "all": [
                     {
@@ -12090,9 +10959,6 @@
             "sheetOnly": true,
             "sheetId": "gcDew",
             "title": "Dew point colors",
-            "capabilities": [
-              "COLOR"
-            ],
             "showWhen": {
               "key": "theme",
               "nin": [
@@ -12112,9 +10978,6 @@
                 "label": "Line",
                 "hint": null,
                 "defaultValue": 5614250,
-                "capabilities": [
-                  "COLOR"
-                ],
                 "showWhen": {
                   "all": [
                     {
@@ -12130,9 +10993,6 @@
                 "label": "Line",
                 "hint": null,
                 "defaultValue": 21845,
-                "capabilities": [
-                  "COLOR"
-                ],
                 "showWhen": {
                   "all": [
                     {
@@ -12149,9 +11009,6 @@
             "sheetOnly": true,
             "sheetId": "gcNight",
             "title": "Night shading colors",
-            "capabilities": [
-              "COLOR"
-            ],
             "showWhen": {
               "key": "theme",
               "nin": [
@@ -12171,9 +11028,6 @@
                 "label": "Night hatch",
                 "hint": "Only drawn while “Day / night shading” is on.",
                 "defaultValue": 5592405,
-                "capabilities": [
-                  "COLOR"
-                ],
                 "showWhen": {
                   "all": [
                     {
@@ -12189,9 +11043,6 @@
                 "label": "Night hatch",
                 "hint": "Only drawn while “Day / night shading” is on.",
                 "defaultValue": 5592405,
-                "capabilities": [
-                  "COLOR"
-                ],
                 "showWhen": {
                   "all": [
                     {
@@ -12207,9 +11058,6 @@
                 "label": "Day line",
                 "hint": "The line at midnight. Only drawn while “Day / night shading” is on.",
                 "defaultValue": 5592405,
-                "capabilities": [
-                  "COLOR"
-                ],
                 "showWhen": {
                   "all": [
                     {
@@ -12225,9 +11073,6 @@
                 "label": "Day line",
                 "hint": "The line at midnight. Only drawn while “Day / night shading” is on.",
                 "defaultValue": 5592405,
-                "capabilities": [
-                  "COLOR"
-                ],
                 "showWhen": {
                   "all": [
                     {
@@ -12287,13 +11132,6 @@
                   "stripeTop",
                   "stripeBottom"
                 ],
-                "showWhen": {
-                  "all": [
-                    {
-                      "env": "lineStyles"
-                    }
-                  ]
-                },
                 "onChange": [
                   "graphLimitPicked"
                 ]
@@ -12430,11 +11268,6 @@
                     },
                     {
                       "any": [
-                        {
-                          "not": {
-                            "env": "lineStyles"
-                          }
-                        },
                         {
                           "key": "secondaryLineStyle",
                           "nin": [
@@ -12663,20 +11496,13 @@
                   ]
                 ],
                 "showWhen": {
-                  "all": [
-                    {
-                      "env": "onDemand"
-                    },
-                    {
-                      "when": "lineRow",
-                      "args": {
-                        "picker": "secondaryLine",
-                        "metrics": [
-                          "wind"
-                        ]
-                      }
-                    }
-                  ]
+                  "when": "lineRow",
+                  "args": {
+                    "picker": "secondaryLine",
+                    "metrics": [
+                      "wind"
+                    ]
+                  }
                 },
                 "onChange": [
                   "graphLimitPicked"
@@ -12704,20 +11530,13 @@
                   ]
                 ],
                 "showWhen": {
-                  "all": [
-                    {
-                      "env": "onDemand"
-                    },
-                    {
-                      "when": "lineRow",
-                      "args": {
-                        "picker": "secondaryLine",
-                        "metrics": [
-                          "gust"
-                        ]
-                      }
-                    }
-                  ]
+                  "when": "lineRow",
+                  "args": {
+                    "picker": "secondaryLine",
+                    "metrics": [
+                      "gust"
+                    ]
+                  }
                 },
                 "onChange": [
                   "graphLimitPicked"
@@ -12745,20 +11564,13 @@
                   ]
                 ],
                 "showWhen": {
-                  "all": [
-                    {
-                      "env": "onDemand"
-                    },
-                    {
-                      "when": "lineRow",
-                      "args": {
-                        "picker": "secondaryLine",
-                        "metrics": [
-                          "uv"
-                        ]
-                      }
-                    }
-                  ]
+                  "when": "lineRow",
+                  "args": {
+                    "picker": "secondaryLine",
+                    "metrics": [
+                      "uv"
+                    ]
+                  }
                 },
                 "onChange": [
                   "graphLimitPicked"
@@ -12862,9 +11674,6 @@
                     "all": true
                   }
                 },
-                "capabilities": [
-                  "COLOR"
-                ],
                 "showWhen": {
                   "all": [
                     {
@@ -12934,15 +11743,8 @@
                   "stripeBottom"
                 ],
                 "showWhen": {
-                  "all": [
-                    {
-                      "env": "lineStyles"
-                    },
-                    {
-                      "key": "thirdLine",
-                      "ne": "off"
-                    }
-                  ]
+                  "key": "thirdLine",
+                  "ne": "off"
                 },
                 "onChange": [
                   "graphLimitPicked"
@@ -13270,20 +12072,13 @@
                   ]
                 ],
                 "showWhen": {
-                  "all": [
-                    {
-                      "env": "onDemand"
-                    },
-                    {
-                      "when": "lineRow",
-                      "args": {
-                        "picker": "thirdLine",
-                        "metrics": [
-                          "wind"
-                        ]
-                      }
-                    }
-                  ]
+                  "when": "lineRow",
+                  "args": {
+                    "picker": "thirdLine",
+                    "metrics": [
+                      "wind"
+                    ]
+                  }
                 },
                 "onChange": [
                   "graphLimitPicked"
@@ -13311,20 +12106,13 @@
                   ]
                 ],
                 "showWhen": {
-                  "all": [
-                    {
-                      "env": "onDemand"
-                    },
-                    {
-                      "when": "lineRow",
-                      "args": {
-                        "picker": "thirdLine",
-                        "metrics": [
-                          "gust"
-                        ]
-                      }
-                    }
-                  ]
+                  "when": "lineRow",
+                  "args": {
+                    "picker": "thirdLine",
+                    "metrics": [
+                      "gust"
+                    ]
+                  }
                 },
                 "onChange": [
                   "graphLimitPicked"
@@ -13352,20 +12140,13 @@
                   ]
                 ],
                 "showWhen": {
-                  "all": [
-                    {
-                      "env": "onDemand"
-                    },
-                    {
-                      "when": "lineRow",
-                      "args": {
-                        "picker": "thirdLine",
-                        "metrics": [
-                          "uv"
-                        ]
-                      }
-                    }
-                  ]
+                  "when": "lineRow",
+                  "args": {
+                    "picker": "thirdLine",
+                    "metrics": [
+                      "uv"
+                    ]
+                  }
                 },
                 "onChange": [
                   "graphLimitPicked"
@@ -13469,9 +12250,6 @@
                     "all": true
                   }
                 },
-                "capabilities": [
-                  "COLOR"
-                ],
                 "showWhen": {
                   "all": [
                     {
@@ -13515,9 +12293,6 @@
                     ]
                   }
                 },
-                "showWhen": {
-                  "env": "lineStyles"
-                },
                 "blockBefore": "graphLimit",
                 "onChange": [
                   "graphLimitPicked"
@@ -13545,15 +12320,8 @@
                   "stripeBottom"
                 ],
                 "showWhen": {
-                  "all": [
-                    {
-                      "env": "lineStyles"
-                    },
-                    {
-                      "key": "fourthLine",
-                      "ne": "off"
-                    }
-                  ]
+                  "key": "fourthLine",
+                  "ne": "off"
                 },
                 "onChange": [
                   "graphLimitPicked"
@@ -13881,20 +12649,13 @@
                   ]
                 ],
                 "showWhen": {
-                  "all": [
-                    {
-                      "env": "onDemand"
-                    },
-                    {
-                      "when": "lineRow",
-                      "args": {
-                        "picker": "fourthLine",
-                        "metrics": [
-                          "wind"
-                        ]
-                      }
-                    }
-                  ]
+                  "when": "lineRow",
+                  "args": {
+                    "picker": "fourthLine",
+                    "metrics": [
+                      "wind"
+                    ]
+                  }
                 },
                 "onChange": [
                   "graphLimitPicked"
@@ -13922,20 +12683,13 @@
                   ]
                 ],
                 "showWhen": {
-                  "all": [
-                    {
-                      "env": "onDemand"
-                    },
-                    {
-                      "when": "lineRow",
-                      "args": {
-                        "picker": "fourthLine",
-                        "metrics": [
-                          "gust"
-                        ]
-                      }
-                    }
-                  ]
+                  "when": "lineRow",
+                  "args": {
+                    "picker": "fourthLine",
+                    "metrics": [
+                      "gust"
+                    ]
+                  }
                 },
                 "onChange": [
                   "graphLimitPicked"
@@ -13963,20 +12717,13 @@
                   ]
                 ],
                 "showWhen": {
-                  "all": [
-                    {
-                      "env": "onDemand"
-                    },
-                    {
-                      "when": "lineRow",
-                      "args": {
-                        "picker": "fourthLine",
-                        "metrics": [
-                          "uv"
-                        ]
-                      }
-                    }
-                  ]
+                  "when": "lineRow",
+                  "args": {
+                    "picker": "fourthLine",
+                    "metrics": [
+                      "uv"
+                    ]
+                  }
                 },
                 "onChange": [
                   "graphLimitPicked"
@@ -14080,9 +12827,6 @@
                     "all": true
                   }
                 },
-                "capabilities": [
-                  "COLOR"
-                ],
                 "showWhen": {
                   "all": [
                     {
@@ -14099,10 +12843,7 @@
                   ]
                 }
               }
-            ],
-            "showWhen": {
-              "env": "lineStyles"
-            }
+            ]
           },
           {
             "sheetOnly": true,
@@ -14129,9 +12870,6 @@
                       "fourthLine"
                     ]
                   }
-                },
-                "showWhen": {
-                  "env": "lineStyles"
                 },
                 "blockBefore": "graphLimit",
                 "onChange": [
@@ -14160,15 +12898,8 @@
                   "stripeBottom"
                 ],
                 "showWhen": {
-                  "all": [
-                    {
-                      "env": "lineStyles"
-                    },
-                    {
-                      "key": "fifthLine",
-                      "ne": "off"
-                    }
-                  ]
+                  "key": "fifthLine",
+                  "ne": "off"
                 },
                 "onChange": [
                   "graphLimitPicked"
@@ -14496,20 +13227,13 @@
                   ]
                 ],
                 "showWhen": {
-                  "all": [
-                    {
-                      "env": "onDemand"
-                    },
-                    {
-                      "when": "lineRow",
-                      "args": {
-                        "picker": "fifthLine",
-                        "metrics": [
-                          "wind"
-                        ]
-                      }
-                    }
-                  ]
+                  "when": "lineRow",
+                  "args": {
+                    "picker": "fifthLine",
+                    "metrics": [
+                      "wind"
+                    ]
+                  }
                 },
                 "onChange": [
                   "graphLimitPicked"
@@ -14537,20 +13261,13 @@
                   ]
                 ],
                 "showWhen": {
-                  "all": [
-                    {
-                      "env": "onDemand"
-                    },
-                    {
-                      "when": "lineRow",
-                      "args": {
-                        "picker": "fifthLine",
-                        "metrics": [
-                          "gust"
-                        ]
-                      }
-                    }
-                  ]
+                  "when": "lineRow",
+                  "args": {
+                    "picker": "fifthLine",
+                    "metrics": [
+                      "gust"
+                    ]
+                  }
                 },
                 "onChange": [
                   "graphLimitPicked"
@@ -14578,20 +13295,13 @@
                   ]
                 ],
                 "showWhen": {
-                  "all": [
-                    {
-                      "env": "onDemand"
-                    },
-                    {
-                      "when": "lineRow",
-                      "args": {
-                        "picker": "fifthLine",
-                        "metrics": [
-                          "uv"
-                        ]
-                      }
-                    }
-                  ]
+                  "when": "lineRow",
+                  "args": {
+                    "picker": "fifthLine",
+                    "metrics": [
+                      "uv"
+                    ]
+                  }
                 },
                 "onChange": [
                   "graphLimitPicked"
@@ -14695,9 +13405,6 @@
                     "all": true
                   }
                 },
-                "capabilities": [
-                  "COLOR"
-                ],
                 "showWhen": {
                   "all": [
                     {
@@ -14714,17 +13421,11 @@
                   ]
                 }
               }
-            ],
-            "showWhen": {
-              "env": "lineStyles"
-            }
+            ]
           },
           {
             "pane": "radar",
             "id": "radar",
-            "showWhen": {
-              "env": "radar"
-            },
             "items": [
               {
                 "type": "staticText",
@@ -14760,7 +13461,7 @@
               {
                 "type": "hidden",
                 "messageKey": "radarProvider",
-                "defaultValue": "rainbow"
+                "defaultValue": "dwd"
               },
               {
                 "type": "segmented",
@@ -14777,9 +13478,6 @@
                     "note": "The bars don't scale linearly. Their height is split into 5 parts, for rain up to 0.1, 0.5, 2, 10 and 40 mm/h, so light drizzle stays visible and heavy rain still has room to grow."
                   }
                 },
-                "capabilities": [
-                  "COLOR"
-                ],
                 "options": [
                   [
                     "Multicolor",
@@ -14814,17 +13512,10 @@
                   "all": [
                     {
                       "not": {
-                        "all": [
-                          {
-                            "env": "color"
-                          },
-                          {
-                            "key": "theme",
-                            "nin": [
-                              "bw",
-                              "bw-light"
-                            ]
-                          }
+                        "key": "theme",
+                        "nin": [
+                          "bw",
+                          "bw-light"
                         ]
                       }
                     },
@@ -14880,15 +13571,8 @@
                 ],
                 "more": true,
                 "showWhen": {
-                  "all": [
-                    {
-                      "key": "radarMode",
-                      "eq": "graph"
-                    },
-                    {
-                      "env": "lineStyles"
-                    }
-                  ]
+                  "key": "radarMode",
+                  "eq": "graph"
                 }
               }
             ]
@@ -14896,9 +13580,6 @@
           {
             "pane": "health",
             "id": "healthGraph",
-            "showWhen": {
-              "env": "health"
-            },
             "items": [
               {
                 "type": "range",
@@ -14912,15 +13593,8 @@
                 "unit": "BPM",
                 "hint": "Sets the top and bottom of the heart-rate line in the health graph. A narrower range makes small changes visible. Hours outside the range are drawn as dots on the edge.",
                 "showWhen": {
-                  "all": [
-                    {
-                      "env": "hr"
-                    },
-                    {
-                      "key": "healthMode",
-                      "eq": "all"
-                    }
-                  ]
+                  "key": "healthMode",
+                  "eq": "all"
                 }
               },
               {
@@ -14928,15 +13602,8 @@
                 "style": "info",
                 "text": "The heart-rate line is part of the health graph. Add the Health graph to a screen on the <button type=\"button\" class=\"txt-link\" data-goto-tab=\"watchface\">Watchface tab</button>.",
                 "showWhen": {
-                  "all": [
-                    {
-                      "env": "hr"
-                    },
-                    {
-                      "key": "healthMode",
-                      "ne": "all"
-                    }
-                  ]
+                  "key": "healthMode",
+                  "ne": "all"
                 }
               }
             ]
@@ -15126,7 +13793,7 @@
                 "uiOnly": true,
                 "messageKey": "radarSource",
                 "label": "Rain radar",
-                "defaultValue": "rainbow",
+                "defaultValue": "dwd",
                 "initFrom": {
                   "resolver": "radarSourceValue"
                 },
@@ -15135,8 +13802,7 @@
                 "hintByValue": {
                   "dwd": "Precise weather radar that shows rain at your exact spot and nearby (about 2 km). Germany only.",
                   "metno": "Precise weather radar that shows rain at your exact spot. Nordics only.",
-                  "rainbow": "Refreshes at most every 30 minutes. Powered by <a target='_blank' href='https://rainbow.ai'>Rainbow.ai</a>.",
-                  "rainbowkey": "A worldwide nowcast from satellite and radar data. It uses your own Rainbow key, so it refreshes at every update. A key is free: Rainbow's free plan covers 5,000 calls a month. Powered by <a target='_blank' href='https://rainbow.ai'>Rainbow.ai</a>.",
+                  "rainbowkey": "A worldwide nowcast from satellite and radar data, on your own Rainbow key. A key is free: Rainbow's free plan covers 5,000 calls a month. Powered by <a target='_blank' href='https://rainbow.ai'>Rainbow.ai</a>.",
                   "tomorrowio": "A precise rain nowcast from machine-learning models, worldwide. It uses your tomorrow.io API key and counts against that key's call budget. Powered by <a target='_blank' href='https://www.tomorrow.io'>Tomorrow.io</a>."
                 },
                 "attentionFrom": {
@@ -15165,14 +13831,7 @@
                     }
                   ],
                   [
-                    "Rainbow (limited)",
-                    "rainbow",
-                    {
-                      "desc": "Worldwide satellite + radar nowcast · no key, every 30 min"
-                    }
-                  ],
-                  [
-                    "Rainbow (own key)",
+                    "Rainbow",
                     "rainbowkey",
                     {
                       "desc": "Worldwide satellite + radar nowcast · needs a free key"
@@ -15185,10 +13844,7 @@
                       "desc": "Precise ML rain nowcast, worldwide · uses your key"
                     }
                   ]
-                ],
-                "showWhen": {
-                  "env": "radar"
-                }
+                ]
               },
               {
                 "type": "staticText",
@@ -15201,15 +13857,8 @@
                   }
                 },
                 "showWhen": {
-                  "all": [
-                    {
-                      "env": "radar"
-                    },
-                    {
-                      "key": "radarEnabled",
-                      "ne": false
-                    }
-                  ]
+                  "key": "radarEnabled",
+                  "ne": false
                 }
               },
               {
@@ -15235,15 +13884,8 @@
                   }
                 },
                 "showWhen": {
-                  "all": [
-                    {
-                      "env": "radar"
-                    },
-                    {
-                      "key": "radarEnabled",
-                      "ne": false
-                    }
-                  ]
+                  "key": "radarEnabled",
+                  "ne": false
                 }
               },
               {
@@ -15391,9 +14033,7 @@
                 "messageKey": "rainbowApiKey",
                 "label": "API key",
                 "defaultValue": "",
-                "suffixAction": "testRainbowKey",
-                "suffixLabel": "Test",
-                "hint": "<b>How to get a key:</b><br>1. <a target='_blank' href='https://developer.rainbow.ai/signup/'>Sign up at developer.rainbow.ai</a>. Rainbow asks for a credit card, but the first 5,000 calls each month are free.<br>2. Open your <a target='_blank' href='https://developer.rainbow.ai/profile'>profile page</a><button type=\"button\" class=\"copybtn\" data-copy=\"https://developer.rainbow.ai/profile\" title=\"Copy the profile page link\" aria-label=\"Copy the profile page link\"><svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><rect x=\"9\" y=\"9\" width=\"11\" height=\"11\" rx=\"2\"/><path d=\"M5 15V5a2 2 0 0 1 2-2h10\"/></svg></button>, copy the API key and paste it here.<br>3. Tap Test.<br>Keep \"Fit update interval to rate limit\" on and the watch stays within the free 5,000 calls.",
+                "hint": "<b>How to get a key:</b><br>1. <a target='_blank' href='https://developer.rainbow.ai/signup/'>Sign up at developer.rainbow.ai</a>. Rainbow asks for a credit card, but the first 5,000 calls each month are free.<br>2. Open your <a target='_blank' href='https://developer.rainbow.ai/profile'>profile page</a><button type=\"button\" class=\"copybtn\" data-copy=\"https://developer.rainbow.ai/profile\" title=\"Copy the profile page link\" aria-label=\"Copy the profile page link\"><svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><rect x=\"9\" y=\"9\" width=\"11\" height=\"11\" rx=\"2\"/><path d=\"M5 15V5a2 2 0 0 1 2-2h10\"/></svg></button>, copy the API key and paste it here.<br>Keep \"Fit update interval to rate limit\" on and the watch stays within the free 5,000 calls.",
                 "showWhen": {
                   "all": [
                     {
@@ -15637,11 +14277,11 @@
               },
               {
                 "type": "staticText",
-                "text": "<div style=\"display:flex;justify-content:space-between;align-items:center;gap:18px;\"><span style=\"font-size:14.5px;font-weight:600;color:var(--lbl);\">Help</span><a href=\"https://github.com/Toasbi/WarnWeather/issues\">GitHub</a></div>"
+                "text": "<div style=\"display:flex;justify-content:space-between;align-items:center;gap:18px;\"><span style=\"font-size:14.5px;font-weight:600;color:var(--lbl);\">Help</span><a href=\"https://github.com/jnysteen/urvejr/issues\">GitHub</a></div>"
               },
               {
                 "type": "staticText",
-                "text": "<div style=\"display:flex;justify-content:space-between;align-items:center;gap:18px;\"><span style=\"font-size:14.5px;font-weight:600;color:var(--lbl);\">Support me <3</span><a href=\"https://buymeacoffee.com/toaster2\"><img alt=\"Buy me a coffee\" style=\"height:40px;width:auto;display:block;\" src=\"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAiEAAACZCAMAAADOzxqEAAAAllBMVEX6SjX/////////9fX/6+v/4eH/19f/zc3/w8P/////ubn29vb/r6/t7e3j4+P/paXb29vS0tL/m5vJycnAwMD/kZG2trb/h4etra2kpKT/fX2bm5uTk5P6SjX6SjX6SjX6SjX6SjXrRjLdQS/OPSy/OSmvNCWhMCKVO0SGNkF3MD1oKzlZJjVKITE6HC0rFiocESYNDCKDR513AAAAAnRSTlP/AOW3MEoAABCOSURBVHja7J17s5o4GIfTcLMss3SYukzZYcqKQQNGyPf/ctsg+ArhIj2dHnvyPv9ZKdJfHnJ5g5Z8GmP7UUIQA8ni0LM0H8jwpeWnmJTR7HdLhtgRJoSku1lDggzjQZQj7qQhDs4+kJ7Q0g3xsANBgMQeG7LDUJBHMqc3BAVBZhUBQzwMBBmTWmCIg3MQRCcBQ3AVg0wR9IYEmAUyiXMzxMYxBpkmvhmCpXZkDlcZYmEOyByxMsTHHJBZ7B+G4HY/Mk/4idiYArJUEyE4yCBL2ARXMsgSHsF6KrIEllORRXCMQVaIMQIEDUHQEAQNQf50Qw6MFfyRE2NHzBcNISQv+EU0cgZx4UWOMZtrSFHVcp26Oh0wagMNOfBGPktToSPGGXJs5BaaAtM2y5C8kRthGLdRhlTykauoOD8z4MQ5F2JgUY1xG2WIkB0NZwcyCztXV9mBq18zDZGCn+YcYcX5qKa0suWMeZtkCJdDGiFExXtKIUQtW8r7kFRh3iYZcrjKJ8kJOUqFwLxNMoQcLhvWMLIF8zaspsqqRj5Bfp+1YP3dFEOAohRyhVIdV2JFxDhDgGPBKyGkjpq6FsebSVLBMXATDQFyBhxHb+FiBg1ZplGGNLh9Z4whR845yzcX2C44VzXDEFbDA0IndlwffU5lI2/UOBcxwJCTHHMVomyfPBzt3XEhhHYsDjUf3ZC8kW+ixNg/uCGV/HmwcGaCIVJK7ETQkHmYVDQndi6vcgOi5GchFVfM/UMbcpaKotPlxC+ilks0QvBzvzKucQfv4xtStc1OhjDGuEL0VOpVwVg+0gv3Zz6+IfVbHvVgzz5sluxc/C/37qRhMGqpKIiyVzVEKso3GVKtR2JRSq02g1iREZNJVBo+ecChlDrZaxrCfoEhgqwRUEUc7Wx6w4mIubhUQYCIKsLXNOQoFfWB/BSXJw3xqYaTEFOxqUK7gaJXHmVkXar1ySZydq7lk6OMS3UsYxWhLVo88YsacpFALSq1GUMWObITL8VVAqcthgBWSowkoQr3jzGEzRQ9RMkVZ8ZYAV+JaKYOJqs4dIodMZJYM4S2fNx9mYKsQjscP4rjOOyFSYmJhFThvbwhQCnfxOnpkddPIaSWkJhIQBXBeNixXtcQ+BrEdpoqJ+tkXSbADnpa49hBGtqw82qGAAd2LkUtN3LJt4y8oT5bM7gcsid3opc3BMjbdcqSKrWawvYPIR7IFkMGF2e8IfF42Nm9tiE6TFHwjoIpSE+x7Yu7e92Q37qYyeKpYLLQpdTyfklmqaoW28H8+wSg04Zofzlpz+mnE5f8PobkZ56TJzk8bwhEkGrORPd9qzB7CNvdpVrTrpOkfbCWWipE0Ik7rY0pGRJZ9Ia/oFbkua4bps/WjB3togL3B+oC7GipYKYbkvlQWdQv+b1+x6w5/vrdHDBE72lTmLo5g00+u/PIgoBWSOxu7yugHW52S9rtk460NWfHnmjA57cEGUnieY8c2mMPzhW7E+WfdLmkqp/TysDDnv07GHJtp56bDOHbZu/aHziPE7X94K09bGDYw+R26m7UsbrbcEfvOBkkrbXBngIWmWJ4Lg8UmzoOAKEzjwLQS8TaZ9oThni6WhEF7HcwZNPjYudtP0LkDqelqXoNg4w/6GSt7hW0ol6djWfrlD59wB0lbWfQehZ9YL/W8LpiI9mAQOsFgHS2pApq6TZQ6965AvHvN0SsGPL929cvin/+vf9iEfspQ/Z98vbU6i/u2gyayNOT82dqctaeDoja44FgpvWD+aFx5TjoAqzuo8JpQeC6g+WiOwgMJBOX/F6G5GSS/779/fnOly2/DgEZeiSJo8DV71y4v6BdMuhOQr3z9eZ2frpgLbdzsE/atsBJKOFRJw1m404osNTX9BImo8HCpTo2/At97ZMmzhl2msUwffGy4F0MWe4Wvn/967MCDBGbyiGE6sDcNB40ngevYlBn1LLR8hMou4wk1i3P/vh02JOHnUAwf5lRjlp+HKqmB2/J/+2db1vcKBfGSSEkk9IrNdtIS81TtI+61m6r3//L7eVOwg2ckBlXNzMq9yv/jOTk8MvhcCA4+0E1Aa3DRLjemqBqdy/NfElV0DYbv06gYPJBCbliRF9PNlBACHsMIVRCzyxkCeRminqupT1FpyYS3wMoGaBVhj9XychQDg5bMB1ocPMNhAIMEx2T2/uxuOLuortxbRpHiEADByLkenZ6cvbpwybWKWP7rfrjhhPqyDLF4A3mklbVRLKntDc5RLQBfIpehTtWumRyMfgBqkmv1NbuLoPBshvvQo8XUumSqqRtutuCyc60bnVCMIF9f3L69exBX08/YnQhhOxdMEPvUWn3POtwUEfk6WhDzeI12jgPGAghnesBi8sF6nFxtKUXV1m0Ty8f2QQhcrJcLJdUEbP6iRUBkx0r5gAVs/uxILLZpc/s+xMIkQ/iSN3CTL7Gd4ZOAisKDYI9mgwTk5p2Q+N6oEvUQ6qgLQ6riNy4Z0coABi3EyH9aIAkc1uSmOB6jr86KBMpmLwqIYgLmLUkdPbYgpma4FDaRtXGDo+eF9ylF05mKNDpnoKnFUIIulxFFV3LwRBLZsQD8huiAeY322EJoNfoY0IIiUJt3KZ0pPXuQxYmH4qQX4x9fH5C3H3SsmqYqA6kblDOlLDsEiE2xjIcDPCMcpITQD3aAqtqzs3aM1+5BSURlTE4CNmj6K4nJxhnKHtHTF6fkF/j/ORks0Pn7Aaby/ZRMxcX7daLNoixLclgKxJCFqM9Pq+RDZMF1RGdQaYS3wZtgUyNchY3YVKp5kKQ8D7QboOYQroCIRGL2tSoL1uYDOzXJQQz2NPNDj2hpEojiw6eiQp9QWeFFQopaUK6uBZufbqMB4+ogkHLdCYV+PnUEkKKSKaZuEDtz5uGEoTMllQHMrkpsVaQNHlVQm7Hbt+DkNtnJKT0/GMRJEAIyXelWxiT8JCNRyCFD4MXtAQ1riPr+S0cBikwAswyITTpERNzXYKQZL1fL5q8HiEIDF82RE8smCG3miHE90+HviCb9awAIdgzEPNTBs0jDqgkIRKRHZE+oK2Jxi+Bv0rkWJ0PmA56uy9BDym6406hjppceyab1Qm5Zme7CEHKsqfgE1pZDoblCp2GIjZZa5NeVDARISomxLiWcZk+9Dasseg0Wh5V/i+bZAzBX2i6kC/owlsbT5SMDwjvwFxssoDJKxCCktlOQv4Ypz2/n0AIuskflgcfgWiptIueeoNe8AnRASHIj4MEr6IbfjRcj8bCmN/5qJokIYC5Q0wgauM9JBLEQBhG66TJqxPyg5TMnqmkqtncc8YxW0RfKPQpqqCQBCBlesWmChzPSe74TsqmQ0Cbwy3clqEZ/lrMJqURzA2JCpDGtsKtqnhXGpdSGdeCM7knJq9GCAqluwhB+XU/6YVNdrUGB5Z7rtX+xMXGG4M6Ph8yytTmT4cb2COLKyUplMJQXKtGQ+g7QQAJfmjFLCGdiPZ7mDq4S6ikJiuYvBIhiAwfNov6+tiCWU/fwNQTDAMIQZ1c+j5tmVZ8wmX7aweMiisYdezUPiYE7Jk4WUREwceHEp0K3DlCFdKl5GZSBEdsYbG2b3i4I8i0uFbU+U3S5PUIwWn+O4uqZ+zq35RUrWelRPcbF2MNnGjd8BxIjJUoAZJIyEhUGUCIYw/eNTyOA3KK6nHqYMXcKhsOENJBmmkCQLhsVG/f7auZqNQTk9cjBCWz3YRgK8ljCOHNP8ZZ3YggK986eLznRZUDC7+3ycIkKW5jjlnh4vB2/Dy2iR1PQxmFEMzQu2HArbUcMxEtg+yUtEvuW9bAAcakTF6fkAt2+pwlVfQJlUKUrpqdgEjLdPr4kTAMo3QZzWUGzxhDppuJfaKl2NrYNdz1HSRon/dMuXxTRLlofFcGcWqiqo8Kg9BATF6REGw+3UnIz8f9Q2a4IPYj5afm+LqXAU6Rs4SZWfyPf1Ajjs2fk2U7EfFGP1/aeunYk47GOiS4NOKF42YXuYcr6+rDtWVsUJw0DZPXJQSh4fNmSR8wHD2WEOIK4uDS4tsWRGzfmDNlGFGguZdQOu5TZKLATvKMLml0bdkQ2rj41gRvt4QitAT22jCxit3T+U8NlyVapSb3bG1CrlEye9aSakNHW9HauYDOh6goomvx4Kh2wNiLbvDVzoRdbRKYlnT22VGr/c20igCSQERM4DMrI2yAMlTHhHCLD4U5b8LkVQm53JeQ/U9zdzUnaYdGjk6sWkOjNI5H1BV9eTkCpLbzM+pqwTNBHxsy4FENnVLKAALEAiJdbZupg3a6crpgayM7yna8m8FtUQ4qhA0dt6jJhyLklp1vlvQJhZN9ZfE0k6EThUXe2B2n1MJfVIqjRg3NgMgVrokhbKf6chv7WEKzxwgPWqlWD5TUekpUGizt1hgoQSQsjky2BzkdYq+i6qkj6dlke6UUHEwVZn7yX/qmllLW3fYymNSIfU8TH7Q27MnqXS2Oj0BsrYgXs3ucTWxZwuS1CcHo8X5xHzNKqiuqIuv1T9bwwGVnDnOImfvK4KydIVrNafHcEJMPRMjvfUpmZy6jXUl0wZO9YKnoNcsWhLByhbvT7D8vqp6hYLaSsL7ala+FEAdEY7aRA8/B8RKCStinzYK+gZC1x5iWiddCiMtGpfbm9kdPyM0+RVWcErCatCtb43l72YQY9yUIwdt0x07I1X6ErH54IJ9qm+rlE8IIIajI6yMm5Aols6WC2d2ahKBi3uIVtNdEiH1JhFzuQwjKJuueYSwQol8VISzOQ4ajJQT7EL9t0jphF2sTgqOIJNz7UqURJ2RMSHfsmSqiwx4l1R8r+xRv18vXQYhLqkT4Ejg/fkJ+70XIzcpxuSLH3L1MIe1Q/iFFpYNHrkvI85fMvuCkzJUko/Od9Cv4J3fCrSQOrkJisVPy2Am5ACEHL6mCC+wSesHCqRjTa9vutqZTd8wRE4I3tv9YIuTHQQixONfsZYuez8vJgZorEvL8RVUEmnUJ6VmNZ+xFS8RbypRPSHfUhLgU4/PxlFSxaRMLu68niKh4H2bJjpoQN5H9li6HjLtU79hq6sgB1i9cNXaKkZM+h2MnZOdZZmfrl1QtDx+614NIjX2YeMPjuAm5uB+Xbc/fJzepXmEP4vphuWavQrqW70Slg/89JbhsLTt2Qtjd1P3nc1Hk/We3ieR6VYcKF0GyDkzIT/wL3f+dnp589PTp9Mu5e6nm7oKtqr6WUjZD7uDDEuL6P6ip/z8Yhm62v7/Nrn5rhGAz81a/f1zSPPbP27v7MYRkV785QnC6O/SXr3tPl9nTb5MQjDPLus6OfsOEsMu7+2Xd5QjyRglBNnq3xMdNzkHeLCHQ1e2veT5+Xmc+MiGjvl9eXt/4+vPye3ZwJiQrE5KVCcnKyoRkZUKyMiFZB1DPTHZC1oIU67ITshZUsSY7IWtBgonshKy0TMGKvFUvK622YEUeZrLSEgUreHZDVkq6KFhR5NlMVkryH0KEzZ7ISoWQB0KK/N5R1rzKkZAi11Wz5qSKiZAyjzNZVKZwhBRVdkdWrIF7hBR1dkhWKFsWIyEZkaw0ICCkqHIukgUZUYCQUWWe0WRNankBQiCVw0jWgwZZQKzwJHIBPosNdVHEhEA8n9vzxtWDDxASSjRdzkjepKxuK054+Btj6rKoegpQJgAAAABJRU5ErkJggg==\"></a></div>"
+                "text": "<div style=\"font-size:13px;line-height:1.5;\"><span style=\"font-size:14.5px;font-weight:600;color:var(--lbl);\">Credits</span><br>urvejr is built on <a href=\"https://github.com/Toasbi/WarnWeather\">WarnWeather</a> by Toasbi, which was inspired by ForecasWatch2. If you enjoy urvejr, please support the original authors, for example with a coffee for Toasbi at <a href=\"https://buymeacoffee.com/toaster2\">buymeacoffee.com/toaster2</a>.</div>"
               }
             ]
           },
@@ -15651,15 +14291,8 @@
             "collapsible": true,
             "items": [
               {
-                "type": "toggle",
-                "messageKey": "telemetryEnabled",
-                "label": "Share anonymous telemetry",
-                "defaultValue": true,
-                "hint": "Sends anonymous data about weather updates and how the watchface is used, to improve reliability."
-              },
-              {
                 "type": "staticText",
-                "text": "<b>Privacy</b><br>While Share anonymous telemetry is on, WarnWeather sends: whether each weather update worked and how long it took, the weather provider, a rough country, the app and watch versions, and which settings are used. It never sends your location, the places you type, your API keys or any health data: steps, sleep and heart rate stay on the watch. Your account and watch are stored only as one-way hashes."
+                "text": "<b>Privacy</b><br>urvejr collects no usage data. Your location goes only to the weather, radar and place services you use, to fetch the weather there. Steps, sleep and heart rate stay on the watch."
               },
               {
                 "type": "staticText",
@@ -15702,34 +14335,10 @@
               },
               {
                 "type": "toggle",
-                "messageKey": "devStatsEnabled",
-                "label": "Enable connection stats",
-                "defaultValue": false,
-                "hint": "Records connection events sent to the watch, on this phone only. Events older than 7 days are deleted."
-              },
-              {
-                "type": "toggle",
                 "messageKey": "reset",
                 "label": "Reset watchface",
                 "defaultValue": false,
                 "hint": "When you save, this erases all settings and cached data and re-runs first-time setup. Your API keys are kept. This cannot be undone."
-              }
-            ]
-          },
-          {
-            "title": "Connection stats",
-            "collapsible": true,
-            "block": "devStats",
-            "items": [
-              {
-                "type": "toggle",
-                "messageKey": "devStatsClear",
-                "label": "Clear connection stats",
-                "defaultValue": false,
-                "showWhen": {
-                  "key": "devStatsEnabled",
-                  "eq": true
-                }
               }
             ]
           }
@@ -15738,1092 +14347,6 @@
     ]
   },
   "levelRows": {
-    "aplite": {
-      "threshStepsWarn": {
-        "min": 0,
-        "max": 20000,
-        "step": 250,
-        "minSpan": 250,
-        "dir": "above",
-        "unit": "",
-        "seedWarn": 8000,
-        "seedDanger": 10000,
-        "maxEditable": true,
-        "warnColor": "#FFFFFF",
-        "dangerColor": "#FFFFFF",
-        "warnGlow": "rgba(255,255,255,0.35)",
-        "dangerGlow": "rgba(255,255,255,0.35)",
-        "dangerText": "#20232A",
-        "warnLabel": "Close",
-        "dangerLabel": "Goal"
-      },
-      "threshStepsWarnLook": {
-        "dark": {
-          "none": null,
-          "outline": "Draws a thin frame in the text color.",
-          "fill": "Draws a solid box in the text color, with the value in the background color. On black-and-white screens, this looks the same as a reached goal."
-        },
-        "bw": {
-          "none": null,
-          "outline": "Draws a thin frame in the text color.",
-          "fill": "Draws a solid box in the text color, with the value in the background color. On black-and-white screens, this looks the same as a reached goal."
-        },
-        "darkNightBw": {
-          "none": null,
-          "outline": "Draws a thin frame in the text color.",
-          "fill": "Draws a solid box in the text color, with the value in the background color. On black-and-white screens, this looks the same as a reached goal."
-        },
-        "sameColor": {
-          "none": null,
-          "outline": "Draws a thin frame in the text color.",
-          "fill": "Draws a solid box in the text color, with the value in the background color. On black-and-white screens, this looks the same as a reached goal."
-        },
-        "sameColorNightBw": {
-          "none": null,
-          "outline": "Draws a thin frame in the text color.",
-          "fill": "Draws a solid box in the text color, with the value in the background color. On black-and-white screens, this looks the same as a reached goal."
-        }
-      },
-      "threshSleepWarn": {
-        "min": 0,
-        "max": 12,
-        "step": 0.5,
-        "minSpan": 0.5,
-        "dir": "above",
-        "unit": "h",
-        "seedWarn": 6.5,
-        "seedDanger": 7.5,
-        "maxEditable": false,
-        "warnColor": "#FFFFFF",
-        "dangerColor": "#FFFFFF",
-        "warnGlow": "rgba(255,255,255,0.35)",
-        "dangerGlow": "rgba(255,255,255,0.35)",
-        "dangerText": "#20232A",
-        "warnLabel": "Close",
-        "dangerLabel": "Goal"
-      },
-      "threshSleepWarnLook": {
-        "dark": {
-          "none": null,
-          "outline": "Draws a thin frame in the text color.",
-          "fill": "Draws a solid box in the text color, with the value in the background color. On black-and-white screens, this looks the same as a reached goal."
-        },
-        "bw": {
-          "none": null,
-          "outline": "Draws a thin frame in the text color.",
-          "fill": "Draws a solid box in the text color, with the value in the background color. On black-and-white screens, this looks the same as a reached goal."
-        },
-        "darkNightBw": {
-          "none": null,
-          "outline": "Draws a thin frame in the text color.",
-          "fill": "Draws a solid box in the text color, with the value in the background color. On black-and-white screens, this looks the same as a reached goal."
-        },
-        "sameColor": {
-          "none": null,
-          "outline": "Draws a thin frame in the text color.",
-          "fill": "Draws a solid box in the text color, with the value in the background color. On black-and-white screens, this looks the same as a reached goal."
-        },
-        "sameColorNightBw": {
-          "none": null,
-          "outline": "Draws a thin frame in the text color.",
-          "fill": "Draws a solid box in the text color, with the value in the background color. On black-and-white screens, this looks the same as a reached goal."
-        }
-      },
-      "threshDistanceWarn": {
-        "min": 0,
-        "max": 20,
-        "step": 0.5,
-        "minSpan": 0.5,
-        "dir": "above",
-        "unit": "km",
-        "seedWarn": 4,
-        "seedDanger": 5,
-        "maxEditable": true,
-        "warnColor": "#FFFFFF",
-        "dangerColor": "#FFFFFF",
-        "warnGlow": "rgba(255,255,255,0.35)",
-        "dangerGlow": "rgba(255,255,255,0.35)",
-        "dangerText": "#20232A",
-        "warnLabel": "Close",
-        "dangerLabel": "Goal"
-      },
-      "threshDistanceWarnLook": {
-        "dark": {
-          "none": null,
-          "outline": "Draws a thin frame in the text color.",
-          "fill": "Draws a solid box in the text color, with the value in the background color. On black-and-white screens, this looks the same as a reached goal."
-        },
-        "bw": {
-          "none": null,
-          "outline": "Draws a thin frame in the text color.",
-          "fill": "Draws a solid box in the text color, with the value in the background color. On black-and-white screens, this looks the same as a reached goal."
-        },
-        "darkNightBw": {
-          "none": null,
-          "outline": "Draws a thin frame in the text color.",
-          "fill": "Draws a solid box in the text color, with the value in the background color. On black-and-white screens, this looks the same as a reached goal."
-        },
-        "sameColor": {
-          "none": null,
-          "outline": "Draws a thin frame in the text color.",
-          "fill": "Draws a solid box in the text color, with the value in the background color. On black-and-white screens, this looks the same as a reached goal."
-        },
-        "sameColorNightBw": {
-          "none": null,
-          "outline": "Draws a thin frame in the text color.",
-          "fill": "Draws a solid box in the text color, with the value in the background color. On black-and-white screens, this looks the same as a reached goal."
-        }
-      },
-      "threshGustWarn": {
-        "min": 0,
-        "max": 160,
-        "step": 5,
-        "minSpan": 5,
-        "dir": "above",
-        "unit": "kph",
-        "seedWarn": 65,
-        "seedDanger": 90,
-        "maxEditable": true,
-        "warnColor": "#FFFFFF",
-        "dangerColor": "#FFFFFF",
-        "warnGlow": "rgba(255,255,255,0.35)",
-        "dangerGlow": "rgba(255,255,255,0.35)",
-        "dangerText": "#20232A",
-        "warnLabel": "Warn",
-        "dangerLabel": "Danger"
-      },
-      "threshGustWarnLook": {
-        "dark": {
-          "none": null,
-          "outline": "Draws a thin frame in the text color.",
-          "fill": "Draws a solid box in the text color, with the value in the background color. On black-and-white screens, this looks the same as danger."
-        },
-        "bw": {
-          "none": null,
-          "outline": "Draws a thin frame in the text color.",
-          "fill": "Draws a solid box in the text color, with the value in the background color. On black-and-white screens, this looks the same as danger."
-        },
-        "darkNightBw": {
-          "none": null,
-          "outline": "Draws a thin frame in the text color.",
-          "fill": "Draws a solid box in the text color, with the value in the background color. On black-and-white screens, this looks the same as danger."
-        },
-        "sameColor": {
-          "none": null,
-          "outline": "Draws a thin frame in the text color.",
-          "fill": "Draws a solid box in the text color, with the value in the background color. On black-and-white screens, this looks the same as danger."
-        },
-        "sameColorNightBw": {
-          "none": null,
-          "outline": "Draws a thin frame in the text color.",
-          "fill": "Draws a solid box in the text color, with the value in the background color. On black-and-white screens, this looks the same as danger."
-        }
-      },
-      "threshUvWarn": {
-        "min": 0,
-        "max": 12,
-        "step": 1,
-        "minSpan": 1,
-        "dir": "above",
-        "unit": "",
-        "seedWarn": 6,
-        "seedDanger": 8,
-        "maxEditable": false,
-        "warnColor": "#FFFFFF",
-        "dangerColor": "#FFFFFF",
-        "warnGlow": "rgba(255,255,255,0.35)",
-        "dangerGlow": "rgba(255,255,255,0.35)",
-        "dangerText": "#20232A",
-        "warnLabel": "Warn",
-        "dangerLabel": "Danger"
-      },
-      "threshUvWarnLook": {
-        "dark": {
-          "none": null,
-          "outline": "Draws a thin frame in the text color.",
-          "fill": "Draws a solid box in the text color, with the value in the background color. On black-and-white screens, this looks the same as danger."
-        },
-        "bw": {
-          "none": null,
-          "outline": "Draws a thin frame in the text color.",
-          "fill": "Draws a solid box in the text color, with the value in the background color. On black-and-white screens, this looks the same as danger."
-        },
-        "darkNightBw": {
-          "none": null,
-          "outline": "Draws a thin frame in the text color.",
-          "fill": "Draws a solid box in the text color, with the value in the background color. On black-and-white screens, this looks the same as danger."
-        },
-        "sameColor": {
-          "none": null,
-          "outline": "Draws a thin frame in the text color.",
-          "fill": "Draws a solid box in the text color, with the value in the background color. On black-and-white screens, this looks the same as danger."
-        },
-        "sameColorNightBw": {
-          "none": null,
-          "outline": "Draws a thin frame in the text color.",
-          "fill": "Draws a solid box in the text color, with the value in the background color. On black-and-white screens, this looks the same as danger."
-        }
-      },
-      "threshAqiWarn": {
-        "min": 0,
-        "max": 300,
-        "step": 10,
-        "minSpan": 10,
-        "dir": "above",
-        "unit": "",
-        "seedWarn": 100,
-        "seedDanger": 150,
-        "maxEditable": true,
-        "warnColor": "#FFFFFF",
-        "dangerColor": "#FFFFFF",
-        "warnGlow": "rgba(255,255,255,0.35)",
-        "dangerGlow": "rgba(255,255,255,0.35)",
-        "dangerText": "#20232A",
-        "warnLabel": "Warn",
-        "dangerLabel": "Danger"
-      },
-      "threshAqiWarnLook": {
-        "dark": {
-          "none": null,
-          "outline": "Draws a thin frame in the text color.",
-          "fill": "Draws a solid box in the text color, with the value in the background color. On black-and-white screens, this looks the same as danger."
-        },
-        "bw": {
-          "none": null,
-          "outline": "Draws a thin frame in the text color.",
-          "fill": "Draws a solid box in the text color, with the value in the background color. On black-and-white screens, this looks the same as danger."
-        },
-        "darkNightBw": {
-          "none": null,
-          "outline": "Draws a thin frame in the text color.",
-          "fill": "Draws a solid box in the text color, with the value in the background color. On black-and-white screens, this looks the same as danger."
-        },
-        "sameColor": {
-          "none": null,
-          "outline": "Draws a thin frame in the text color.",
-          "fill": "Draws a solid box in the text color, with the value in the background color. On black-and-white screens, this looks the same as danger."
-        },
-        "sameColorNightBw": {
-          "none": null,
-          "outline": "Draws a thin frame in the text color.",
-          "fill": "Draws a solid box in the text color, with the value in the background color. On black-and-white screens, this looks the same as danger."
-        }
-      },
-      "threshPollenWarn": {
-        "min": 0,
-        "max": 3,
-        "step": 0.5,
-        "minSpan": 0.5,
-        "dir": "above",
-        "unit": "",
-        "seedWarn": 2,
-        "seedDanger": 3,
-        "maxEditable": false,
-        "warnColor": "#FFFFFF",
-        "dangerColor": "#FFFFFF",
-        "warnGlow": "rgba(255,255,255,0.35)",
-        "dangerGlow": "rgba(255,255,255,0.35)",
-        "dangerText": "#20232A",
-        "warnLabel": "Warn",
-        "dangerLabel": "Danger"
-      },
-      "threshPollenWarnLook": {
-        "dark": {
-          "none": null,
-          "outline": "Draws a thin frame in the text color.",
-          "fill": "Draws a solid box in the text color, with the value in the background color. On black-and-white screens, this looks the same as danger."
-        },
-        "bw": {
-          "none": null,
-          "outline": "Draws a thin frame in the text color.",
-          "fill": "Draws a solid box in the text color, with the value in the background color. On black-and-white screens, this looks the same as danger."
-        },
-        "darkNightBw": {
-          "none": null,
-          "outline": "Draws a thin frame in the text color.",
-          "fill": "Draws a solid box in the text color, with the value in the background color. On black-and-white screens, this looks the same as danger."
-        },
-        "sameColor": {
-          "none": null,
-          "outline": "Draws a thin frame in the text color.",
-          "fill": "Draws a solid box in the text color, with the value in the background color. On black-and-white screens, this looks the same as danger."
-        },
-        "sameColorNightBw": {
-          "none": null,
-          "outline": "Draws a thin frame in the text color.",
-          "fill": "Draws a solid box in the text color, with the value in the background color. On black-and-white screens, this looks the same as danger."
-        }
-      },
-      "threshWindWarn": {
-        "min": 0,
-        "max": 120,
-        "step": 5,
-        "minSpan": 5,
-        "dir": "above",
-        "unit": "kph",
-        "seedWarn": 40,
-        "seedDanger": 60,
-        "maxEditable": true,
-        "warnColor": "#FFFFFF",
-        "dangerColor": "#FFFFFF",
-        "warnGlow": "rgba(255,255,255,0.35)",
-        "dangerGlow": "rgba(255,255,255,0.35)",
-        "dangerText": "#20232A",
-        "warnLabel": "Warn",
-        "dangerLabel": "Danger"
-      },
-      "threshWindWarnLook": {
-        "dark": {
-          "none": null,
-          "outline": "Draws a thin frame in the text color.",
-          "fill": "Draws a solid box in the text color, with the value in the background color. On black-and-white screens, this looks the same as danger."
-        },
-        "bw": {
-          "none": null,
-          "outline": "Draws a thin frame in the text color.",
-          "fill": "Draws a solid box in the text color, with the value in the background color. On black-and-white screens, this looks the same as danger."
-        },
-        "darkNightBw": {
-          "none": null,
-          "outline": "Draws a thin frame in the text color.",
-          "fill": "Draws a solid box in the text color, with the value in the background color. On black-and-white screens, this looks the same as danger."
-        },
-        "sameColor": {
-          "none": null,
-          "outline": "Draws a thin frame in the text color.",
-          "fill": "Draws a solid box in the text color, with the value in the background color. On black-and-white screens, this looks the same as danger."
-        },
-        "sameColorNightBw": {
-          "none": null,
-          "outline": "Draws a thin frame in the text color.",
-          "fill": "Draws a solid box in the text color, with the value in the background color. On black-and-white screens, this looks the same as danger."
-        }
-      }
-    },
-    "basalt": {
-      "threshStepsWarn": {
-        "min": 0,
-        "max": 20000,
-        "step": 250,
-        "minSpan": 250,
-        "dir": "above",
-        "unit": "",
-        "seedWarn": 8000,
-        "seedDanger": 10000,
-        "maxEditable": true,
-        "warnColor": "#55FF00",
-        "dangerColor": "#55FF00",
-        "warnGlow": "rgba(85,255,0,0.35)",
-        "dangerGlow": "rgba(85,255,0,0.35)",
-        "dangerText": "#20232A",
-        "warnLabel": "Close",
-        "dangerLabel": "Goal"
-      },
-      "threshStepsWarnLook": {
-        "dark": {
-          "none": null,
-          "outline": null,
-          "fill": "Draws a solid box in the close color, with the value in a contrasting color. Close and goal use the same color, so this looks like a reached goal. Pick a different close color."
-        },
-        "bw": {
-          "none": null,
-          "outline": "Draws a thin frame in the text color.",
-          "fill": "Draws a solid box in the text color, with the value in the background color. On black-and-white screens, this looks the same as a reached goal."
-        },
-        "darkNightBw": {
-          "none": null,
-          "outline": null,
-          "fill": "Draws a solid box in the close color, with the value in a contrasting color. At night (black-and-white theme) this looks the same as a reached goal. Close and goal use the same color, so this looks like a reached goal. Pick a different close color."
-        },
-        "sameColor": {
-          "none": null,
-          "outline": null,
-          "fill": "Draws a solid box in the close color, with the value in a contrasting color. Close and goal use the same color, so this looks like a reached goal. Pick a different close color."
-        },
-        "sameColorNightBw": {
-          "none": null,
-          "outline": null,
-          "fill": "Draws a solid box in the close color, with the value in a contrasting color. At night (black-and-white theme) this looks the same as a reached goal. Close and goal use the same color, so this looks like a reached goal. Pick a different close color."
-        }
-      },
-      "threshSleepWarn": {
-        "min": 0,
-        "max": 12,
-        "step": 0.5,
-        "minSpan": 0.5,
-        "dir": "above",
-        "unit": "h",
-        "seedWarn": 6.5,
-        "seedDanger": 7.5,
-        "maxEditable": false,
-        "warnColor": "#55FF00",
-        "dangerColor": "#55FF00",
-        "warnGlow": "rgba(85,255,0,0.35)",
-        "dangerGlow": "rgba(85,255,0,0.35)",
-        "dangerText": "#20232A",
-        "warnLabel": "Close",
-        "dangerLabel": "Goal"
-      },
-      "threshSleepWarnLook": {
-        "dark": {
-          "none": null,
-          "outline": null,
-          "fill": "Draws a solid box in the close color, with the value in a contrasting color. Close and goal use the same color, so this looks like a reached goal. Pick a different close color."
-        },
-        "bw": {
-          "none": null,
-          "outline": "Draws a thin frame in the text color.",
-          "fill": "Draws a solid box in the text color, with the value in the background color. On black-and-white screens, this looks the same as a reached goal."
-        },
-        "darkNightBw": {
-          "none": null,
-          "outline": null,
-          "fill": "Draws a solid box in the close color, with the value in a contrasting color. At night (black-and-white theme) this looks the same as a reached goal. Close and goal use the same color, so this looks like a reached goal. Pick a different close color."
-        },
-        "sameColor": {
-          "none": null,
-          "outline": null,
-          "fill": "Draws a solid box in the close color, with the value in a contrasting color. Close and goal use the same color, so this looks like a reached goal. Pick a different close color."
-        },
-        "sameColorNightBw": {
-          "none": null,
-          "outline": null,
-          "fill": "Draws a solid box in the close color, with the value in a contrasting color. At night (black-and-white theme) this looks the same as a reached goal. Close and goal use the same color, so this looks like a reached goal. Pick a different close color."
-        }
-      },
-      "threshDistanceWarn": {
-        "min": 0,
-        "max": 20,
-        "step": 0.5,
-        "minSpan": 0.5,
-        "dir": "above",
-        "unit": "km",
-        "seedWarn": 4,
-        "seedDanger": 5,
-        "maxEditable": true,
-        "warnColor": "#55FF00",
-        "dangerColor": "#55FF00",
-        "warnGlow": "rgba(85,255,0,0.35)",
-        "dangerGlow": "rgba(85,255,0,0.35)",
-        "dangerText": "#20232A",
-        "warnLabel": "Close",
-        "dangerLabel": "Goal"
-      },
-      "threshDistanceWarnLook": {
-        "dark": {
-          "none": null,
-          "outline": null,
-          "fill": "Draws a solid box in the close color, with the value in a contrasting color. Close and goal use the same color, so this looks like a reached goal. Pick a different close color."
-        },
-        "bw": {
-          "none": null,
-          "outline": "Draws a thin frame in the text color.",
-          "fill": "Draws a solid box in the text color, with the value in the background color. On black-and-white screens, this looks the same as a reached goal."
-        },
-        "darkNightBw": {
-          "none": null,
-          "outline": null,
-          "fill": "Draws a solid box in the close color, with the value in a contrasting color. At night (black-and-white theme) this looks the same as a reached goal. Close and goal use the same color, so this looks like a reached goal. Pick a different close color."
-        },
-        "sameColor": {
-          "none": null,
-          "outline": null,
-          "fill": "Draws a solid box in the close color, with the value in a contrasting color. Close and goal use the same color, so this looks like a reached goal. Pick a different close color."
-        },
-        "sameColorNightBw": {
-          "none": null,
-          "outline": null,
-          "fill": "Draws a solid box in the close color, with the value in a contrasting color. At night (black-and-white theme) this looks the same as a reached goal. Close and goal use the same color, so this looks like a reached goal. Pick a different close color."
-        }
-      },
-      "threshGustWarn": {
-        "min": 0,
-        "max": 160,
-        "step": 5,
-        "minSpan": 5,
-        "dir": "above",
-        "unit": "kph",
-        "seedWarn": 65,
-        "seedDanger": 90,
-        "maxEditable": true,
-        "warnColor": "#FFFFFF",
-        "dangerColor": "#FF0000",
-        "warnGlow": "rgba(255,255,255,0.35)",
-        "dangerGlow": "rgba(255,0,0,0.35)",
-        "dangerText": "#FFFFFF",
-        "warnLabel": "Warn",
-        "dangerLabel": "Danger"
-      },
-      "threshGustWarnLook": {
-        "dark": {
-          "none": null,
-          "outline": null,
-          "fill": null
-        },
-        "bw": {
-          "none": null,
-          "outline": "Draws a thin frame in the text color.",
-          "fill": "Draws a solid box in the text color, with the value in the background color. On black-and-white screens, this looks the same as danger."
-        },
-        "darkNightBw": {
-          "none": null,
-          "outline": null,
-          "fill": "Draws a solid box in the warn color, with the value in a contrasting color. At night (black-and-white theme) this looks the same as danger."
-        },
-        "sameColor": {
-          "none": null,
-          "outline": null,
-          "fill": "Draws a solid box in the warn color, with the value in a contrasting color. Warn and danger use the same color, so this looks like danger. Pick a different warn color."
-        },
-        "sameColorNightBw": {
-          "none": null,
-          "outline": null,
-          "fill": "Draws a solid box in the warn color, with the value in a contrasting color. At night (black-and-white theme) this looks the same as danger. Warn and danger use the same color, so this looks like danger. Pick a different warn color."
-        }
-      },
-      "threshUvWarn": {
-        "min": 0,
-        "max": 12,
-        "step": 1,
-        "minSpan": 1,
-        "dir": "above",
-        "unit": "",
-        "seedWarn": 6,
-        "seedDanger": 8,
-        "maxEditable": false,
-        "warnColor": "#FFFFFF",
-        "dangerColor": "#FF0000",
-        "warnGlow": "rgba(255,255,255,0.35)",
-        "dangerGlow": "rgba(255,0,0,0.35)",
-        "dangerText": "#FFFFFF",
-        "warnLabel": "Warn",
-        "dangerLabel": "Danger"
-      },
-      "threshUvWarnLook": {
-        "dark": {
-          "none": null,
-          "outline": null,
-          "fill": null
-        },
-        "bw": {
-          "none": null,
-          "outline": "Draws a thin frame in the text color.",
-          "fill": "Draws a solid box in the text color, with the value in the background color. On black-and-white screens, this looks the same as danger."
-        },
-        "darkNightBw": {
-          "none": null,
-          "outline": null,
-          "fill": "Draws a solid box in the warn color, with the value in a contrasting color. At night (black-and-white theme) this looks the same as danger."
-        },
-        "sameColor": {
-          "none": null,
-          "outline": null,
-          "fill": "Draws a solid box in the warn color, with the value in a contrasting color. Warn and danger use the same color, so this looks like danger. Pick a different warn color."
-        },
-        "sameColorNightBw": {
-          "none": null,
-          "outline": null,
-          "fill": "Draws a solid box in the warn color, with the value in a contrasting color. At night (black-and-white theme) this looks the same as danger. Warn and danger use the same color, so this looks like danger. Pick a different warn color."
-        }
-      },
-      "threshAqiWarn": {
-        "min": 0,
-        "max": 300,
-        "step": 10,
-        "minSpan": 10,
-        "dir": "above",
-        "unit": "",
-        "seedWarn": 100,
-        "seedDanger": 150,
-        "maxEditable": true,
-        "warnColor": "#FFFFFF",
-        "dangerColor": "#FF0000",
-        "warnGlow": "rgba(255,255,255,0.35)",
-        "dangerGlow": "rgba(255,0,0,0.35)",
-        "dangerText": "#FFFFFF",
-        "warnLabel": "Warn",
-        "dangerLabel": "Danger"
-      },
-      "threshAqiWarnLook": {
-        "dark": {
-          "none": null,
-          "outline": null,
-          "fill": null
-        },
-        "bw": {
-          "none": null,
-          "outline": "Draws a thin frame in the text color.",
-          "fill": "Draws a solid box in the text color, with the value in the background color. On black-and-white screens, this looks the same as danger."
-        },
-        "darkNightBw": {
-          "none": null,
-          "outline": null,
-          "fill": "Draws a solid box in the warn color, with the value in a contrasting color. At night (black-and-white theme) this looks the same as danger."
-        },
-        "sameColor": {
-          "none": null,
-          "outline": null,
-          "fill": "Draws a solid box in the warn color, with the value in a contrasting color. Warn and danger use the same color, so this looks like danger. Pick a different warn color."
-        },
-        "sameColorNightBw": {
-          "none": null,
-          "outline": null,
-          "fill": "Draws a solid box in the warn color, with the value in a contrasting color. At night (black-and-white theme) this looks the same as danger. Warn and danger use the same color, so this looks like danger. Pick a different warn color."
-        }
-      },
-      "threshPollenWarn": {
-        "min": 0,
-        "max": 3,
-        "step": 0.5,
-        "minSpan": 0.5,
-        "dir": "above",
-        "unit": "",
-        "seedWarn": 2,
-        "seedDanger": 3,
-        "maxEditable": false,
-        "warnColor": "#FFFFFF",
-        "dangerColor": "#FF0000",
-        "warnGlow": "rgba(255,255,255,0.35)",
-        "dangerGlow": "rgba(255,0,0,0.35)",
-        "dangerText": "#FFFFFF",
-        "warnLabel": "Warn",
-        "dangerLabel": "Danger"
-      },
-      "threshPollenWarnLook": {
-        "dark": {
-          "none": null,
-          "outline": null,
-          "fill": null
-        },
-        "bw": {
-          "none": null,
-          "outline": "Draws a thin frame in the text color.",
-          "fill": "Draws a solid box in the text color, with the value in the background color. On black-and-white screens, this looks the same as danger."
-        },
-        "darkNightBw": {
-          "none": null,
-          "outline": null,
-          "fill": "Draws a solid box in the warn color, with the value in a contrasting color. At night (black-and-white theme) this looks the same as danger."
-        },
-        "sameColor": {
-          "none": null,
-          "outline": null,
-          "fill": "Draws a solid box in the warn color, with the value in a contrasting color. Warn and danger use the same color, so this looks like danger. Pick a different warn color."
-        },
-        "sameColorNightBw": {
-          "none": null,
-          "outline": null,
-          "fill": "Draws a solid box in the warn color, with the value in a contrasting color. At night (black-and-white theme) this looks the same as danger. Warn and danger use the same color, so this looks like danger. Pick a different warn color."
-        }
-      },
-      "threshWindWarn": {
-        "min": 0,
-        "max": 120,
-        "step": 5,
-        "minSpan": 5,
-        "dir": "above",
-        "unit": "kph",
-        "seedWarn": 40,
-        "seedDanger": 60,
-        "maxEditable": true,
-        "warnColor": "#FFFFFF",
-        "dangerColor": "#FF0000",
-        "warnGlow": "rgba(255,255,255,0.35)",
-        "dangerGlow": "rgba(255,0,0,0.35)",
-        "dangerText": "#FFFFFF",
-        "warnLabel": "Warn",
-        "dangerLabel": "Danger"
-      },
-      "threshWindWarnLook": {
-        "dark": {
-          "none": null,
-          "outline": null,
-          "fill": null
-        },
-        "bw": {
-          "none": null,
-          "outline": "Draws a thin frame in the text color.",
-          "fill": "Draws a solid box in the text color, with the value in the background color. On black-and-white screens, this looks the same as danger."
-        },
-        "darkNightBw": {
-          "none": null,
-          "outline": null,
-          "fill": "Draws a solid box in the warn color, with the value in a contrasting color. At night (black-and-white theme) this looks the same as danger."
-        },
-        "sameColor": {
-          "none": null,
-          "outline": null,
-          "fill": "Draws a solid box in the warn color, with the value in a contrasting color. Warn and danger use the same color, so this looks like danger. Pick a different warn color."
-        },
-        "sameColorNightBw": {
-          "none": null,
-          "outline": null,
-          "fill": "Draws a solid box in the warn color, with the value in a contrasting color. At night (black-and-white theme) this looks the same as danger. Warn and danger use the same color, so this looks like danger. Pick a different warn color."
-        }
-      }
-    },
-    "diorite": {
-      "threshStepsWarn": {
-        "min": 0,
-        "max": 20000,
-        "step": 250,
-        "minSpan": 250,
-        "dir": "above",
-        "unit": "",
-        "seedWarn": 8000,
-        "seedDanger": 10000,
-        "maxEditable": true,
-        "warnColor": "#FFFFFF",
-        "dangerColor": "#FFFFFF",
-        "warnGlow": "rgba(255,255,255,0.35)",
-        "dangerGlow": "rgba(255,255,255,0.35)",
-        "dangerText": "#20232A",
-        "warnLabel": "Close",
-        "dangerLabel": "Goal"
-      },
-      "threshStepsWarnLook": {
-        "dark": {
-          "none": null,
-          "outline": "Draws a thin frame in the text color.",
-          "fill": "Draws a solid box in the text color, with the value in the background color. On black-and-white screens, this looks the same as a reached goal."
-        },
-        "bw": {
-          "none": null,
-          "outline": "Draws a thin frame in the text color.",
-          "fill": "Draws a solid box in the text color, with the value in the background color. On black-and-white screens, this looks the same as a reached goal."
-        },
-        "darkNightBw": {
-          "none": null,
-          "outline": "Draws a thin frame in the text color.",
-          "fill": "Draws a solid box in the text color, with the value in the background color. On black-and-white screens, this looks the same as a reached goal."
-        },
-        "sameColor": {
-          "none": null,
-          "outline": "Draws a thin frame in the text color.",
-          "fill": "Draws a solid box in the text color, with the value in the background color. On black-and-white screens, this looks the same as a reached goal."
-        },
-        "sameColorNightBw": {
-          "none": null,
-          "outline": "Draws a thin frame in the text color.",
-          "fill": "Draws a solid box in the text color, with the value in the background color. On black-and-white screens, this looks the same as a reached goal."
-        }
-      },
-      "threshSleepWarn": {
-        "min": 0,
-        "max": 12,
-        "step": 0.5,
-        "minSpan": 0.5,
-        "dir": "above",
-        "unit": "h",
-        "seedWarn": 6.5,
-        "seedDanger": 7.5,
-        "maxEditable": false,
-        "warnColor": "#FFFFFF",
-        "dangerColor": "#FFFFFF",
-        "warnGlow": "rgba(255,255,255,0.35)",
-        "dangerGlow": "rgba(255,255,255,0.35)",
-        "dangerText": "#20232A",
-        "warnLabel": "Close",
-        "dangerLabel": "Goal"
-      },
-      "threshSleepWarnLook": {
-        "dark": {
-          "none": null,
-          "outline": "Draws a thin frame in the text color.",
-          "fill": "Draws a solid box in the text color, with the value in the background color. On black-and-white screens, this looks the same as a reached goal."
-        },
-        "bw": {
-          "none": null,
-          "outline": "Draws a thin frame in the text color.",
-          "fill": "Draws a solid box in the text color, with the value in the background color. On black-and-white screens, this looks the same as a reached goal."
-        },
-        "darkNightBw": {
-          "none": null,
-          "outline": "Draws a thin frame in the text color.",
-          "fill": "Draws a solid box in the text color, with the value in the background color. On black-and-white screens, this looks the same as a reached goal."
-        },
-        "sameColor": {
-          "none": null,
-          "outline": "Draws a thin frame in the text color.",
-          "fill": "Draws a solid box in the text color, with the value in the background color. On black-and-white screens, this looks the same as a reached goal."
-        },
-        "sameColorNightBw": {
-          "none": null,
-          "outline": "Draws a thin frame in the text color.",
-          "fill": "Draws a solid box in the text color, with the value in the background color. On black-and-white screens, this looks the same as a reached goal."
-        }
-      },
-      "threshDistanceWarn": {
-        "min": 0,
-        "max": 20,
-        "step": 0.5,
-        "minSpan": 0.5,
-        "dir": "above",
-        "unit": "km",
-        "seedWarn": 4,
-        "seedDanger": 5,
-        "maxEditable": true,
-        "warnColor": "#FFFFFF",
-        "dangerColor": "#FFFFFF",
-        "warnGlow": "rgba(255,255,255,0.35)",
-        "dangerGlow": "rgba(255,255,255,0.35)",
-        "dangerText": "#20232A",
-        "warnLabel": "Close",
-        "dangerLabel": "Goal"
-      },
-      "threshDistanceWarnLook": {
-        "dark": {
-          "none": null,
-          "outline": "Draws a thin frame in the text color.",
-          "fill": "Draws a solid box in the text color, with the value in the background color. On black-and-white screens, this looks the same as a reached goal."
-        },
-        "bw": {
-          "none": null,
-          "outline": "Draws a thin frame in the text color.",
-          "fill": "Draws a solid box in the text color, with the value in the background color. On black-and-white screens, this looks the same as a reached goal."
-        },
-        "darkNightBw": {
-          "none": null,
-          "outline": "Draws a thin frame in the text color.",
-          "fill": "Draws a solid box in the text color, with the value in the background color. On black-and-white screens, this looks the same as a reached goal."
-        },
-        "sameColor": {
-          "none": null,
-          "outline": "Draws a thin frame in the text color.",
-          "fill": "Draws a solid box in the text color, with the value in the background color. On black-and-white screens, this looks the same as a reached goal."
-        },
-        "sameColorNightBw": {
-          "none": null,
-          "outline": "Draws a thin frame in the text color.",
-          "fill": "Draws a solid box in the text color, with the value in the background color. On black-and-white screens, this looks the same as a reached goal."
-        }
-      },
-      "threshGustWarn": {
-        "min": 0,
-        "max": 160,
-        "step": 5,
-        "minSpan": 5,
-        "dir": "above",
-        "unit": "kph",
-        "seedWarn": 65,
-        "seedDanger": 90,
-        "maxEditable": true,
-        "warnColor": "#FFFFFF",
-        "dangerColor": "#FFFFFF",
-        "warnGlow": "rgba(255,255,255,0.35)",
-        "dangerGlow": "rgba(255,255,255,0.35)",
-        "dangerText": "#20232A",
-        "warnLabel": "Warn",
-        "dangerLabel": "Danger"
-      },
-      "threshGustWarnLook": {
-        "dark": {
-          "none": null,
-          "outline": "Draws a thin frame in the text color.",
-          "fill": "Draws a solid box in the text color, with the value in the background color. On black-and-white screens, this looks the same as danger."
-        },
-        "bw": {
-          "none": null,
-          "outline": "Draws a thin frame in the text color.",
-          "fill": "Draws a solid box in the text color, with the value in the background color. On black-and-white screens, this looks the same as danger."
-        },
-        "darkNightBw": {
-          "none": null,
-          "outline": "Draws a thin frame in the text color.",
-          "fill": "Draws a solid box in the text color, with the value in the background color. On black-and-white screens, this looks the same as danger."
-        },
-        "sameColor": {
-          "none": null,
-          "outline": "Draws a thin frame in the text color.",
-          "fill": "Draws a solid box in the text color, with the value in the background color. On black-and-white screens, this looks the same as danger."
-        },
-        "sameColorNightBw": {
-          "none": null,
-          "outline": "Draws a thin frame in the text color.",
-          "fill": "Draws a solid box in the text color, with the value in the background color. On black-and-white screens, this looks the same as danger."
-        }
-      },
-      "threshUvWarn": {
-        "min": 0,
-        "max": 12,
-        "step": 1,
-        "minSpan": 1,
-        "dir": "above",
-        "unit": "",
-        "seedWarn": 6,
-        "seedDanger": 8,
-        "maxEditable": false,
-        "warnColor": "#FFFFFF",
-        "dangerColor": "#FFFFFF",
-        "warnGlow": "rgba(255,255,255,0.35)",
-        "dangerGlow": "rgba(255,255,255,0.35)",
-        "dangerText": "#20232A",
-        "warnLabel": "Warn",
-        "dangerLabel": "Danger"
-      },
-      "threshUvWarnLook": {
-        "dark": {
-          "none": null,
-          "outline": "Draws a thin frame in the text color.",
-          "fill": "Draws a solid box in the text color, with the value in the background color. On black-and-white screens, this looks the same as danger."
-        },
-        "bw": {
-          "none": null,
-          "outline": "Draws a thin frame in the text color.",
-          "fill": "Draws a solid box in the text color, with the value in the background color. On black-and-white screens, this looks the same as danger."
-        },
-        "darkNightBw": {
-          "none": null,
-          "outline": "Draws a thin frame in the text color.",
-          "fill": "Draws a solid box in the text color, with the value in the background color. On black-and-white screens, this looks the same as danger."
-        },
-        "sameColor": {
-          "none": null,
-          "outline": "Draws a thin frame in the text color.",
-          "fill": "Draws a solid box in the text color, with the value in the background color. On black-and-white screens, this looks the same as danger."
-        },
-        "sameColorNightBw": {
-          "none": null,
-          "outline": "Draws a thin frame in the text color.",
-          "fill": "Draws a solid box in the text color, with the value in the background color. On black-and-white screens, this looks the same as danger."
-        }
-      },
-      "threshAqiWarn": {
-        "min": 0,
-        "max": 300,
-        "step": 10,
-        "minSpan": 10,
-        "dir": "above",
-        "unit": "",
-        "seedWarn": 100,
-        "seedDanger": 150,
-        "maxEditable": true,
-        "warnColor": "#FFFFFF",
-        "dangerColor": "#FFFFFF",
-        "warnGlow": "rgba(255,255,255,0.35)",
-        "dangerGlow": "rgba(255,255,255,0.35)",
-        "dangerText": "#20232A",
-        "warnLabel": "Warn",
-        "dangerLabel": "Danger"
-      },
-      "threshAqiWarnLook": {
-        "dark": {
-          "none": null,
-          "outline": "Draws a thin frame in the text color.",
-          "fill": "Draws a solid box in the text color, with the value in the background color. On black-and-white screens, this looks the same as danger."
-        },
-        "bw": {
-          "none": null,
-          "outline": "Draws a thin frame in the text color.",
-          "fill": "Draws a solid box in the text color, with the value in the background color. On black-and-white screens, this looks the same as danger."
-        },
-        "darkNightBw": {
-          "none": null,
-          "outline": "Draws a thin frame in the text color.",
-          "fill": "Draws a solid box in the text color, with the value in the background color. On black-and-white screens, this looks the same as danger."
-        },
-        "sameColor": {
-          "none": null,
-          "outline": "Draws a thin frame in the text color.",
-          "fill": "Draws a solid box in the text color, with the value in the background color. On black-and-white screens, this looks the same as danger."
-        },
-        "sameColorNightBw": {
-          "none": null,
-          "outline": "Draws a thin frame in the text color.",
-          "fill": "Draws a solid box in the text color, with the value in the background color. On black-and-white screens, this looks the same as danger."
-        }
-      },
-      "threshPollenWarn": {
-        "min": 0,
-        "max": 3,
-        "step": 0.5,
-        "minSpan": 0.5,
-        "dir": "above",
-        "unit": "",
-        "seedWarn": 2,
-        "seedDanger": 3,
-        "maxEditable": false,
-        "warnColor": "#FFFFFF",
-        "dangerColor": "#FFFFFF",
-        "warnGlow": "rgba(255,255,255,0.35)",
-        "dangerGlow": "rgba(255,255,255,0.35)",
-        "dangerText": "#20232A",
-        "warnLabel": "Warn",
-        "dangerLabel": "Danger"
-      },
-      "threshPollenWarnLook": {
-        "dark": {
-          "none": null,
-          "outline": "Draws a thin frame in the text color.",
-          "fill": "Draws a solid box in the text color, with the value in the background color. On black-and-white screens, this looks the same as danger."
-        },
-        "bw": {
-          "none": null,
-          "outline": "Draws a thin frame in the text color.",
-          "fill": "Draws a solid box in the text color, with the value in the background color. On black-and-white screens, this looks the same as danger."
-        },
-        "darkNightBw": {
-          "none": null,
-          "outline": "Draws a thin frame in the text color.",
-          "fill": "Draws a solid box in the text color, with the value in the background color. On black-and-white screens, this looks the same as danger."
-        },
-        "sameColor": {
-          "none": null,
-          "outline": "Draws a thin frame in the text color.",
-          "fill": "Draws a solid box in the text color, with the value in the background color. On black-and-white screens, this looks the same as danger."
-        },
-        "sameColorNightBw": {
-          "none": null,
-          "outline": "Draws a thin frame in the text color.",
-          "fill": "Draws a solid box in the text color, with the value in the background color. On black-and-white screens, this looks the same as danger."
-        }
-      },
-      "threshWindWarn": {
-        "min": 0,
-        "max": 120,
-        "step": 5,
-        "minSpan": 5,
-        "dir": "above",
-        "unit": "kph",
-        "seedWarn": 40,
-        "seedDanger": 60,
-        "maxEditable": true,
-        "warnColor": "#FFFFFF",
-        "dangerColor": "#FFFFFF",
-        "warnGlow": "rgba(255,255,255,0.35)",
-        "dangerGlow": "rgba(255,255,255,0.35)",
-        "dangerText": "#20232A",
-        "warnLabel": "Warn",
-        "dangerLabel": "Danger"
-      },
-      "threshWindWarnLook": {
-        "dark": {
-          "none": null,
-          "outline": "Draws a thin frame in the text color.",
-          "fill": "Draws a solid box in the text color, with the value in the background color. On black-and-white screens, this looks the same as danger."
-        },
-        "bw": {
-          "none": null,
-          "outline": "Draws a thin frame in the text color.",
-          "fill": "Draws a solid box in the text color, with the value in the background color. On black-and-white screens, this looks the same as danger."
-        },
-        "darkNightBw": {
-          "none": null,
-          "outline": "Draws a thin frame in the text color.",
-          "fill": "Draws a solid box in the text color, with the value in the background color. On black-and-white screens, this looks the same as danger."
-        },
-        "sameColor": {
-          "none": null,
-          "outline": "Draws a thin frame in the text color.",
-          "fill": "Draws a solid box in the text color, with the value in the background color. On black-and-white screens, this looks the same as danger."
-        },
-        "sameColorNightBw": {
-          "none": null,
-          "outline": "Draws a thin frame in the text color.",
-          "fill": "Draws a solid box in the text color, with the value in the background color. On black-and-white screens, this looks the same as danger."
-        }
-      }
-    },
     "emery": {
       "threshStepsWarn": {
         "min": 0,
@@ -17183,368 +14706,6 @@
           "none": null,
           "outline": null,
           "fill": "Draws a solid box in the warn color, with the value in a contrasting color. At night (black-and-white theme) this looks the same as danger. Warn and danger use the same color, so this looks like danger. Pick a different warn color."
-        }
-      }
-    },
-    "flint": {
-      "threshStepsWarn": {
-        "min": 0,
-        "max": 20000,
-        "step": 250,
-        "minSpan": 250,
-        "dir": "above",
-        "unit": "",
-        "seedWarn": 8000,
-        "seedDanger": 10000,
-        "maxEditable": true,
-        "warnColor": "#FFFFFF",
-        "dangerColor": "#FFFFFF",
-        "warnGlow": "rgba(255,255,255,0.35)",
-        "dangerGlow": "rgba(255,255,255,0.35)",
-        "dangerText": "#20232A",
-        "warnLabel": "Close",
-        "dangerLabel": "Goal"
-      },
-      "threshStepsWarnLook": {
-        "dark": {
-          "none": null,
-          "outline": "Draws a thin frame in the text color.",
-          "fill": "Draws a solid box in the text color, with the value in the background color. On black-and-white screens, this looks the same as a reached goal."
-        },
-        "bw": {
-          "none": null,
-          "outline": "Draws a thin frame in the text color.",
-          "fill": "Draws a solid box in the text color, with the value in the background color. On black-and-white screens, this looks the same as a reached goal."
-        },
-        "darkNightBw": {
-          "none": null,
-          "outline": "Draws a thin frame in the text color.",
-          "fill": "Draws a solid box in the text color, with the value in the background color. On black-and-white screens, this looks the same as a reached goal."
-        },
-        "sameColor": {
-          "none": null,
-          "outline": "Draws a thin frame in the text color.",
-          "fill": "Draws a solid box in the text color, with the value in the background color. On black-and-white screens, this looks the same as a reached goal."
-        },
-        "sameColorNightBw": {
-          "none": null,
-          "outline": "Draws a thin frame in the text color.",
-          "fill": "Draws a solid box in the text color, with the value in the background color. On black-and-white screens, this looks the same as a reached goal."
-        }
-      },
-      "threshSleepWarn": {
-        "min": 0,
-        "max": 12,
-        "step": 0.5,
-        "minSpan": 0.5,
-        "dir": "above",
-        "unit": "h",
-        "seedWarn": 6.5,
-        "seedDanger": 7.5,
-        "maxEditable": false,
-        "warnColor": "#FFFFFF",
-        "dangerColor": "#FFFFFF",
-        "warnGlow": "rgba(255,255,255,0.35)",
-        "dangerGlow": "rgba(255,255,255,0.35)",
-        "dangerText": "#20232A",
-        "warnLabel": "Close",
-        "dangerLabel": "Goal"
-      },
-      "threshSleepWarnLook": {
-        "dark": {
-          "none": null,
-          "outline": "Draws a thin frame in the text color.",
-          "fill": "Draws a solid box in the text color, with the value in the background color. On black-and-white screens, this looks the same as a reached goal."
-        },
-        "bw": {
-          "none": null,
-          "outline": "Draws a thin frame in the text color.",
-          "fill": "Draws a solid box in the text color, with the value in the background color. On black-and-white screens, this looks the same as a reached goal."
-        },
-        "darkNightBw": {
-          "none": null,
-          "outline": "Draws a thin frame in the text color.",
-          "fill": "Draws a solid box in the text color, with the value in the background color. On black-and-white screens, this looks the same as a reached goal."
-        },
-        "sameColor": {
-          "none": null,
-          "outline": "Draws a thin frame in the text color.",
-          "fill": "Draws a solid box in the text color, with the value in the background color. On black-and-white screens, this looks the same as a reached goal."
-        },
-        "sameColorNightBw": {
-          "none": null,
-          "outline": "Draws a thin frame in the text color.",
-          "fill": "Draws a solid box in the text color, with the value in the background color. On black-and-white screens, this looks the same as a reached goal."
-        }
-      },
-      "threshDistanceWarn": {
-        "min": 0,
-        "max": 20,
-        "step": 0.5,
-        "minSpan": 0.5,
-        "dir": "above",
-        "unit": "km",
-        "seedWarn": 4,
-        "seedDanger": 5,
-        "maxEditable": true,
-        "warnColor": "#FFFFFF",
-        "dangerColor": "#FFFFFF",
-        "warnGlow": "rgba(255,255,255,0.35)",
-        "dangerGlow": "rgba(255,255,255,0.35)",
-        "dangerText": "#20232A",
-        "warnLabel": "Close",
-        "dangerLabel": "Goal"
-      },
-      "threshDistanceWarnLook": {
-        "dark": {
-          "none": null,
-          "outline": "Draws a thin frame in the text color.",
-          "fill": "Draws a solid box in the text color, with the value in the background color. On black-and-white screens, this looks the same as a reached goal."
-        },
-        "bw": {
-          "none": null,
-          "outline": "Draws a thin frame in the text color.",
-          "fill": "Draws a solid box in the text color, with the value in the background color. On black-and-white screens, this looks the same as a reached goal."
-        },
-        "darkNightBw": {
-          "none": null,
-          "outline": "Draws a thin frame in the text color.",
-          "fill": "Draws a solid box in the text color, with the value in the background color. On black-and-white screens, this looks the same as a reached goal."
-        },
-        "sameColor": {
-          "none": null,
-          "outline": "Draws a thin frame in the text color.",
-          "fill": "Draws a solid box in the text color, with the value in the background color. On black-and-white screens, this looks the same as a reached goal."
-        },
-        "sameColorNightBw": {
-          "none": null,
-          "outline": "Draws a thin frame in the text color.",
-          "fill": "Draws a solid box in the text color, with the value in the background color. On black-and-white screens, this looks the same as a reached goal."
-        }
-      },
-      "threshGustWarn": {
-        "min": 0,
-        "max": 160,
-        "step": 5,
-        "minSpan": 5,
-        "dir": "above",
-        "unit": "kph",
-        "seedWarn": 65,
-        "seedDanger": 90,
-        "maxEditable": true,
-        "warnColor": "#FFFFFF",
-        "dangerColor": "#FFFFFF",
-        "warnGlow": "rgba(255,255,255,0.35)",
-        "dangerGlow": "rgba(255,255,255,0.35)",
-        "dangerText": "#20232A",
-        "warnLabel": "Warn",
-        "dangerLabel": "Danger"
-      },
-      "threshGustWarnLook": {
-        "dark": {
-          "none": null,
-          "outline": "Draws a thin frame in the text color.",
-          "fill": "Draws a solid box in the text color, with the value in the background color. On black-and-white screens, this looks the same as danger."
-        },
-        "bw": {
-          "none": null,
-          "outline": "Draws a thin frame in the text color.",
-          "fill": "Draws a solid box in the text color, with the value in the background color. On black-and-white screens, this looks the same as danger."
-        },
-        "darkNightBw": {
-          "none": null,
-          "outline": "Draws a thin frame in the text color.",
-          "fill": "Draws a solid box in the text color, with the value in the background color. On black-and-white screens, this looks the same as danger."
-        },
-        "sameColor": {
-          "none": null,
-          "outline": "Draws a thin frame in the text color.",
-          "fill": "Draws a solid box in the text color, with the value in the background color. On black-and-white screens, this looks the same as danger."
-        },
-        "sameColorNightBw": {
-          "none": null,
-          "outline": "Draws a thin frame in the text color.",
-          "fill": "Draws a solid box in the text color, with the value in the background color. On black-and-white screens, this looks the same as danger."
-        }
-      },
-      "threshUvWarn": {
-        "min": 0,
-        "max": 12,
-        "step": 1,
-        "minSpan": 1,
-        "dir": "above",
-        "unit": "",
-        "seedWarn": 6,
-        "seedDanger": 8,
-        "maxEditable": false,
-        "warnColor": "#FFFFFF",
-        "dangerColor": "#FFFFFF",
-        "warnGlow": "rgba(255,255,255,0.35)",
-        "dangerGlow": "rgba(255,255,255,0.35)",
-        "dangerText": "#20232A",
-        "warnLabel": "Warn",
-        "dangerLabel": "Danger"
-      },
-      "threshUvWarnLook": {
-        "dark": {
-          "none": null,
-          "outline": "Draws a thin frame in the text color.",
-          "fill": "Draws a solid box in the text color, with the value in the background color. On black-and-white screens, this looks the same as danger."
-        },
-        "bw": {
-          "none": null,
-          "outline": "Draws a thin frame in the text color.",
-          "fill": "Draws a solid box in the text color, with the value in the background color. On black-and-white screens, this looks the same as danger."
-        },
-        "darkNightBw": {
-          "none": null,
-          "outline": "Draws a thin frame in the text color.",
-          "fill": "Draws a solid box in the text color, with the value in the background color. On black-and-white screens, this looks the same as danger."
-        },
-        "sameColor": {
-          "none": null,
-          "outline": "Draws a thin frame in the text color.",
-          "fill": "Draws a solid box in the text color, with the value in the background color. On black-and-white screens, this looks the same as danger."
-        },
-        "sameColorNightBw": {
-          "none": null,
-          "outline": "Draws a thin frame in the text color.",
-          "fill": "Draws a solid box in the text color, with the value in the background color. On black-and-white screens, this looks the same as danger."
-        }
-      },
-      "threshAqiWarn": {
-        "min": 0,
-        "max": 300,
-        "step": 10,
-        "minSpan": 10,
-        "dir": "above",
-        "unit": "",
-        "seedWarn": 100,
-        "seedDanger": 150,
-        "maxEditable": true,
-        "warnColor": "#FFFFFF",
-        "dangerColor": "#FFFFFF",
-        "warnGlow": "rgba(255,255,255,0.35)",
-        "dangerGlow": "rgba(255,255,255,0.35)",
-        "dangerText": "#20232A",
-        "warnLabel": "Warn",
-        "dangerLabel": "Danger"
-      },
-      "threshAqiWarnLook": {
-        "dark": {
-          "none": null,
-          "outline": "Draws a thin frame in the text color.",
-          "fill": "Draws a solid box in the text color, with the value in the background color. On black-and-white screens, this looks the same as danger."
-        },
-        "bw": {
-          "none": null,
-          "outline": "Draws a thin frame in the text color.",
-          "fill": "Draws a solid box in the text color, with the value in the background color. On black-and-white screens, this looks the same as danger."
-        },
-        "darkNightBw": {
-          "none": null,
-          "outline": "Draws a thin frame in the text color.",
-          "fill": "Draws a solid box in the text color, with the value in the background color. On black-and-white screens, this looks the same as danger."
-        },
-        "sameColor": {
-          "none": null,
-          "outline": "Draws a thin frame in the text color.",
-          "fill": "Draws a solid box in the text color, with the value in the background color. On black-and-white screens, this looks the same as danger."
-        },
-        "sameColorNightBw": {
-          "none": null,
-          "outline": "Draws a thin frame in the text color.",
-          "fill": "Draws a solid box in the text color, with the value in the background color. On black-and-white screens, this looks the same as danger."
-        }
-      },
-      "threshPollenWarn": {
-        "min": 0,
-        "max": 3,
-        "step": 0.5,
-        "minSpan": 0.5,
-        "dir": "above",
-        "unit": "",
-        "seedWarn": 2,
-        "seedDanger": 3,
-        "maxEditable": false,
-        "warnColor": "#FFFFFF",
-        "dangerColor": "#FFFFFF",
-        "warnGlow": "rgba(255,255,255,0.35)",
-        "dangerGlow": "rgba(255,255,255,0.35)",
-        "dangerText": "#20232A",
-        "warnLabel": "Warn",
-        "dangerLabel": "Danger"
-      },
-      "threshPollenWarnLook": {
-        "dark": {
-          "none": null,
-          "outline": "Draws a thin frame in the text color.",
-          "fill": "Draws a solid box in the text color, with the value in the background color. On black-and-white screens, this looks the same as danger."
-        },
-        "bw": {
-          "none": null,
-          "outline": "Draws a thin frame in the text color.",
-          "fill": "Draws a solid box in the text color, with the value in the background color. On black-and-white screens, this looks the same as danger."
-        },
-        "darkNightBw": {
-          "none": null,
-          "outline": "Draws a thin frame in the text color.",
-          "fill": "Draws a solid box in the text color, with the value in the background color. On black-and-white screens, this looks the same as danger."
-        },
-        "sameColor": {
-          "none": null,
-          "outline": "Draws a thin frame in the text color.",
-          "fill": "Draws a solid box in the text color, with the value in the background color. On black-and-white screens, this looks the same as danger."
-        },
-        "sameColorNightBw": {
-          "none": null,
-          "outline": "Draws a thin frame in the text color.",
-          "fill": "Draws a solid box in the text color, with the value in the background color. On black-and-white screens, this looks the same as danger."
-        }
-      },
-      "threshWindWarn": {
-        "min": 0,
-        "max": 120,
-        "step": 5,
-        "minSpan": 5,
-        "dir": "above",
-        "unit": "kph",
-        "seedWarn": 40,
-        "seedDanger": 60,
-        "maxEditable": true,
-        "warnColor": "#FFFFFF",
-        "dangerColor": "#FFFFFF",
-        "warnGlow": "rgba(255,255,255,0.35)",
-        "dangerGlow": "rgba(255,255,255,0.35)",
-        "dangerText": "#20232A",
-        "warnLabel": "Warn",
-        "dangerLabel": "Danger"
-      },
-      "threshWindWarnLook": {
-        "dark": {
-          "none": null,
-          "outline": "Draws a thin frame in the text color.",
-          "fill": "Draws a solid box in the text color, with the value in the background color. On black-and-white screens, this looks the same as danger."
-        },
-        "bw": {
-          "none": null,
-          "outline": "Draws a thin frame in the text color.",
-          "fill": "Draws a solid box in the text color, with the value in the background color. On black-and-white screens, this looks the same as danger."
-        },
-        "darkNightBw": {
-          "none": null,
-          "outline": "Draws a thin frame in the text color.",
-          "fill": "Draws a solid box in the text color, with the value in the background color. On black-and-white screens, this looks the same as danger."
-        },
-        "sameColor": {
-          "none": null,
-          "outline": "Draws a thin frame in the text color.",
-          "fill": "Draws a solid box in the text color, with the value in the background color. On black-and-white screens, this looks the same as danger."
-        },
-        "sameColorNightBw": {
-          "none": null,
-          "outline": "Draws a thin frame in the text color.",
-          "fill": "Draws a solid box in the text color, with the value in the background color. On black-and-white screens, this looks the same as danger."
         }
       }
     }

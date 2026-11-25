@@ -2,7 +2,7 @@
 'use strict';
 // scripts/print-defaults.js — `mise defaults`. One readable overview of every settings
 // default that is NOT simply "the same everywhere": the ones that depend on the watch,
-// on a capability, or on what the user picked in the first-run wizard.
+// or on what the user picked in the first-run wizard.
 //
 // Everything printed here is RENDERED FROM THE CODE THAT DECIDES IT — nothing is
 // retyped, so the page cannot drift from behaviour:
@@ -12,8 +12,6 @@
 //                                                              config-ui/lib/defaults.js
 //   · per-watch defaults src/pkjs/page/settings/schema.js           defaultFrom, resolved through
 //                                                              engine.resolveDefaultFrom()
-//   · capabilities       config-ui/lib/platform.js             computeEnv() — the only place
-//                                                              that knows what a watch can do
 //   · platform list      package.template.json                 pebble.targetPlatforms
 //
 // To CHANGE a default: a rule row goes in defaults-policy.js, a flat default in schema.js.
@@ -34,7 +32,6 @@ require('../src/pkjs/page/status-bars/reset-status-defaults.js');
 const eng = require('../src/pkjs/config-ui/lib/engine.js');
 const { eachItem } = require('../src/pkjs/config-ui/lib/schema-walk.js');
 const { deriveDefaults } = require('../src/pkjs/config-ui/lib/defaults.js');
-const platformLib = require('../src/pkjs/config-ui/lib/platform.js');
 const policy = require('../src/pkjs/page/settings/defaults-policy.js');
 
 /**
@@ -72,9 +69,10 @@ const WIDTH = 92;
 
 /**
  * @param {string} platform Pebble platform name.
- * @returns {Object} The config-UI env facts for that watch (computeEnv is the SoT).
+ * @returns {Object} The config-UI env for that watch: no watch facts, the face runs on the
+ *   Pebble Time 2 alone.
  */
-function envFor(platform) { return platformLib.computeEnv({ platform: platform }); }
+function envFor(platform) { return {}; }
 
 /**
  * Every schema item whose default is resolved per watch (`defaultFrom`) instead of stored
@@ -268,22 +266,6 @@ function renderRules() {
 // --- section 2: the resolved comparison ------------------------------------------------
 
 /**
- * @returns {string[]} The capability matrix, straight out of computeEnv().
- */
-function renderCapabilities() {
-  const flags = Object.keys(envFor(PLATFORMS[0])).filter((k) => k !== 'platform');
-  const envs = PLATFORMS.map((p) => envFor(p));
-  // One row per fact, one column per watch: every computeEnv fact adds a ROW, so the
-  // table's width stays fixed by the platform list (a fact per column ran past the
-  // report's 100-column ceiling once onDemand joined lineStyles).
-  const rows = [['fact'].concat(PLATFORMS)];
-  flags.forEach((f) => {
-    rows.push([f].concat(envs.map((env) => (env[f] ? 'yes' : '-'))));
-  });
-  return table(rows, '    ');
-}
-
-/**
  * The keys worth a column comparison: those that are not identical in every
  * platform x scenario state (the axis keys never qualify — they are inputs).
  * @param {Object} states platform -> scenario id -> state.
@@ -337,9 +319,6 @@ function renderComparison() {
     + 'where you change one (e.g. swapClockStatus). healthMode is the axis of the wizard '
     + 'columns, not a result, so it is not a row. A key marked * is not seeded into the '
     + 'settings blob at all — see section 3.', WIDTH, '  '));
-  out.push('');
-  out.push('  capabilities per watch (config-ui/lib/platform.js computeEnv):');
-  out.push(...renderCapabilities());
 
   groupPlatforms(states, diff.keys).forEach((group) => {
     out.push('');
@@ -414,11 +393,11 @@ function renderUnseeded() {
 function render() {
   const out = [];
   out.push('='.repeat(WIDTH));
-  out.push(' WarnWeather settings defaults — where each one comes from');
+  out.push(' urvejr settings defaults — where each one comes from');
   out.push('='.repeat(WIDTH));
   out.push(...wrap('Rendered from the code that decides them, so this page cannot drift: the rules '
     + 'come from defaults-policy.js, the flat defaults from schema.js via deriveDefaults(), the '
-    + 'per-watch ones from engine.resolveDefaultFrom(), and the capabilities from computeEnv(). '
+    + 'per-watch ones from engine.resolveDefaultFrom(). '
     + 'Change a default there, not here, then re-run `mise defaults`.', WIDTH, ' '));
   out.push(...renderRules());
   out.push(...renderComparison());

@@ -51,7 +51,7 @@ function decodeAlerts(bytes) {
  * @returns {number[]} the entry bytes, [] when nothing is alerting
  */
 function packedAlerts(payload, settings, env) {
-  return wire.packAlerts(wire.bakedAlerts(payload, settings, env));
+  return wire.packAlerts(wire.bakedAlerts(payload, settings));
 }
 
 module.exports = { decodeAlerts, packedAlerts };

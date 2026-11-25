@@ -11,9 +11,8 @@ require('../../../src/pkjs/page/settings/blocks.js');                 // registe
 const SCHEMA = require('../../../src/pkjs/page/settings/schema.js');
 
 const ENV_EMERY = { color: true, platform: 'emery', health: true, radar: true, themePolarity: true, hr: true };
-const ENV_BASALT = { color: true, platform: 'basalt', health: true, radar: true, themePolarity: true, hr: false };
 
-test('real schema hydrates the HR-aware status-slot default set', () => {
+test('real schema hydrates the status-slot default set', () => {
   const emery = E.hydrate(SCHEMA, {}, ENV_EMERY);
   assert.equal(emery.statusForecastLeft, 'temp');
   assert.equal(emery.statusForecastMid, 'city');
@@ -27,17 +26,6 @@ test('real schema hydrates the HR-aware status-slot default set', () => {
   assert.equal(emery.statusHealthLeft, 'steps');
   assert.equal(emery.statusHealthMid, 'sleep');
   assert.equal(emery.statusHealthRight, 'hr', 'emery is HR-capable');
-
-  const basalt = E.hydrate(SCHEMA, {}, ENV_BASALT);
-  assert.equal(basalt.statusHealthMid, 'empty', 'non-HR platform -> empty middle');
-  assert.equal(basalt.statusHealthRight, 'sleep', 'non-HR platform -> sleep');
-  // The top strip's own flavor, and the one place it is resolved through the REAL
-  // schema: emery carries three readings, the narrower displays air quality and the date
-  // with the battery in its corner.
-  assert.equal(basalt.statusForecastRight, 'sun');
-  assert.equal(basalt.statusTopLeft, 'aqi');
-  assert.equal(basalt.statusTopMid, 'date');
-  assert.equal(basalt.statusTopRight, 'battery');
 });
 
 // The On demand keys are seeded from the schema (seedDefaults, via deriveDefaults), so
@@ -71,12 +59,12 @@ test('deriveDefaults omits the 12 defaultFrom status-slot keys from the seed', (
   // A known static-default key IS present, proving the omission above is specific
   // to defaultFrom items rather than a broken/empty schema.
   assert.equal(seeded.weekStartDay, 'mon');
-  assert.equal(seeded.batteryLowOnly, true);
+  assert.equal(seeded.vibe, true);
 });
 
 test('all countdown dates hydrate to today and saved values win', () => {
   const today = E.formatDateValue(new Date());
-  const hydrated = E.hydrate(SCHEMA, {}, ENV_BASALT);
+  const hydrated = E.hydrate(SCHEMA, {}, ENV_EMERY);
   const keys = [
     'statusForecastLeftCountdown', 'statusForecastMidCountdown',
     'statusForecastRightCountdown', 'statusRadarLeftCountdown',
@@ -91,5 +79,5 @@ test('all countdown dates hydrate to today and saved values win', () => {
     key + ' is resolved at hydration, not baked into the static seed'));
   assert.equal(E.hydrate(SCHEMA,
     { statusForecastLeftCountdown: '2030-04-05' },
-    ENV_BASALT).statusForecastLeftCountdown, '2030-04-05');
+    ENV_EMERY).statusForecastLeftCountdown, '2030-04-05');
 });

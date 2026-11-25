@@ -16,7 +16,6 @@ const { decodeLine } = require('../../helpers/status-line-bytes.js');
 const SEP = catalog.ALT_SEP;
 const LINE = catalog.lineById('forecast');
 const BASALT = { platform: 'basalt', color: true };
-const APLITE = { platform: 'aplite', color: false };
 
 /**
  * SUN_EVENTS bytes for a sun event pair ahead of now: a sunset first (day now) or a sunrise
@@ -129,9 +128,8 @@ test('beside an empty or a short middle an edge slot gets the whole name with it
   // Full: the whole name with nothing to swap in; Short: the short form alone.
   assert.equal(edges('empty', { conditionSlotName: 'full' })[0].text, 'Partly cloudy');
   assert.equal(edges('empty', { conditionSlotName: 'short' })[0].text, 'PCLDY');
-  // The Icon look has no name to widen, and aplite's lean row reads one form in an edge's 8 bytes.
+  // The Icon look has no name to widen.
   assert.equal(edges('empty', { conditionSlotLook: 'icon' })[0].text, '');
-  assert.equal(edges('empty', {}, APLITE)[0].text, 'PCLDY');
 });
 
 test('a short form no shorter than the name rides with nothing', () => {
@@ -165,10 +163,6 @@ test('Name: Auto swaps in the short form, Full never sends one, Short sends it a
   assert.equal(bake('partly', { conditionSlotName: 'junk' })[1].text, auto[1].text, 'junk reads as Auto');
   // The name follows the Look: the Icon look prints no name at all.
   bake('partly', { conditionSlotName: 'full', conditionSlotLook: 'icon' }).forEach((slot) => assert.equal(slot.text, ''));
-  // aplite reads no short form either way: the name where it fits, else the short form, and
-  // the short form alone under Short.
-  assert.equal(bake('clear', { conditionSlotName: 'short' }, APLITE)[1].text, 'SUN');
-  assert.equal(bake('clear', { conditionSlotName: 'full' }, APLITE)[1].text, 'Sunny');
 });
 
 test('no condition known: -- with the text-only id, in every look', () => {
@@ -178,14 +172,6 @@ test('no condition known: -- with the text-only id, in every look', () => {
       assert.equal(s.icon, catalog.ICONS.COND_TEXT, look + ' ' + cond);
     });
   }));
-});
-
-test('aplite: text only, with no short form riding along (its lean row reads none)', () => {
-  const [left, mid] = bake('partly', { conditionSlotLook: 'icon' }, APLITE);
-  assert.deepEqual(mid, { kind: catalog.KINDS.TEXT, icon: catalog.ICONS.COND_TEXT, text: 'PCLDY' });
-  assert.equal(left.text, 'PCLDY');
-  assert.equal(bake('clear', {}, APLITE)[1].text, 'Sunny');
-  assert.equal(bake('drizzle', {}, APLITE)[1].text, 'Drizzle');
 });
 
 test('every condition arrives whole in every slot, by day and by night', () => {
@@ -206,7 +192,7 @@ test('the bake reads CURRENT_CONDITION and SUN_EVENTS through SOURCE_KEYS', () =
 // The city slot draws the current weather's glyph before its name once switched on
 // (citySlotIcon, off by default): the glyph's id with the city's bit, so the watch keeps it the
 // city's slot.
-test('City: the current weather glyph with the city bit once switched on, never on aplite', () => {
+test('City: the current weather glyph with the city bit once switched on', () => {
   const bakeCity = (cond, over, env, night) => decodeLine(lines.packLine(LINE,
     { CITY: 'Berlin', CURRENT_CONDITION: cond, SUN_EVENTS: sun(Boolean(night)) },
     Object.assign({ statusForecastLeft: 'city' }, over || {}), env || BASALT, null, bakeEnv(new Date())))[0];
@@ -219,7 +205,6 @@ test('City: the current weather glyph with the city bit once switched on, never 
   assert.equal(bakeCity('partly', ON, BASALT, true).icon, catalog.CITY_GLYPH | catalog.ICONS.COND_MOON_CLOUD,
     'the night glyph at night');
   assert.equal(bakeCity(null, ON).icon, catalog.ICONS.NONE, 'no condition known: no glyph');
-  assert.equal(bakeCity('partly', ON, APLITE).icon, catalog.ICONS.NONE, 'aplite draws none');
   assert.ok(catalog.CITY_GLYPH > catalog.ICONS.COND_WIND, 'the bit sits above every id');
 });
 
@@ -232,7 +217,7 @@ test('the bake is deterministic for a given now: the time it is handed picks day
   const settings = { statusForecastLeft: 'empty', statusForecastMid: 'condition', statusForecastRight: 'empty' };
   const mid = (now) => {
     const payload = { CURRENT_CONDITION: 'clear', SUN_EVENTS };
-    lines.buildStatusLines(payload, settings, { platform: 'basalt' }, now);
+    lines.buildStatusLines(payload, settings, now);
     return decodeLine(payload[LINE.wireKey])[1];
   };
   const day = mid(new Date(2026, 5, 15, 12, 0, 0));

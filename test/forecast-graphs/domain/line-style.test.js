@@ -6,7 +6,6 @@ const test = require('node:test');
 const assert = require('node:assert');
 const lineStyle = require('../../../src/pkjs/forecast-graphs/domain/line-style.js');
 const graphWire = require('../../../src/pkjs/forecast-graphs/domain/graph-wire.js');
-const platform = require('../../../src/pkjs/config-ui/lib/platform.js');
 const COLORS = require('../../../src/pkjs/theme/domain/pebble-colors.js');
 const { resolveInk } = require('../../../src/pkjs/theme/domain/resolve-ink.js');
 const rainTier = require('../../../src/pkjs/forecast-graphs/domain/rain-tier.js');
@@ -14,7 +13,7 @@ const rainTier = require('../../../src/pkjs/forecast-graphs/domain/rain-tier.js'
 const emery = { platform: 'emery' };
 // The graph colours one watch resolves to: resolveGraphColors over that watch's
 // config-ui env, the call forecast-graphs/domain/graph-wire.js packs the wire from.
-const resolve = (settings, watchInfo) => lineStyle.resolveGraphColors(settings, platform.computeEnv(watchInfo));
+const resolve = (settings, watchInfo) => lineStyle.resolveGraphColors(settings, {});
 
 test('the settings page names the same eight graph metrics the colour keys are scoped by', () => {
   const metrics = require('../../../src/pkjs/page/forecast-graphs/forecast-metrics.js');
@@ -26,14 +25,6 @@ test('the settings page names the same eight graph metrics the colour keys are s
   });
 });
 
-test('aplite folds a light theme back to dark polarity (no black-on-black)', () => {
-  const light = resolve(
-    { secondaryLine: 'wind', thirdLine: 'off', theme: 'light' }, { platform: 'aplite' });
-  const dark = resolve(
-    { secondaryLine: 'wind', thirdLine: 'off', theme: 'dark' }, { platform: 'aplite' });
-  assert.equal(light.secondary, dark.secondary);
-});
-
 test('a third colour is always resolved, even when the third line is off', () => {
   const off = resolve(
     { secondaryLine: 'wind', thirdLine: 'off', theme: 'dark' }, emery);
@@ -42,39 +33,23 @@ test('a third colour is always resolved, even when the third line is off', () =>
 
 // --- renderContextFor: the one answer to "what is this watch rendering?" ------
 //
-// The wire packer and the telemetry snapshot each derived this themselves once, and
-// diverged: telemetry copied the theme fold but not the colour-platform check, so a
-// diorite install reported picks the wire had already resolved away to white. Both now
-// open with this call over the watch's computeEnv, so the divergence cannot come back.
-const renderContext = (settings, watchInfo) => lineStyle.renderContextFor(settings, platform.computeEnv(watchInfo));
+// Two consumers each derived this themselves once, and diverged: one copied the theme
+// fold but not the colour-platform check, so on a diorite install it read picks the wire
+// had already resolved away to white. Every consumer now opens with this call over the
+// watch's computeEnv, so the divergence cannot come back.
+const renderContext = (settings, watchInfo) => lineStyle.renderContextFor(settings, {});
 
 test('renderContextFor folds the theme, tests the display, and names the polarity', () => {
-  assert.deepEqual(renderContext({ theme: 'dark' }, { platform: 'basalt' }),
+  assert.deepEqual(renderContext({ theme: 'dark' }, { platform: 'emery' }),
     { theme: 'dark', isColor: true, suffix: 'Dark' });
-  assert.deepEqual(renderContext({ theme: 'light' }, { platform: 'basalt' }),
+  assert.deepEqual(renderContext({ theme: 'light' }, { platform: 'emery' }),
     { theme: 'light', isColor: true, suffix: 'Light' });
-  // B&W hardware: colour-capable theme, no colour display.
-  assert.deepEqual(renderContext({ theme: 'dark' }, { platform: 'diorite' }),
-    { theme: 'dark', isColor: false, suffix: 'Dark' });
-  // aplite also has the light polarity compiled out, so a light install folds to dark.
-  assert.deepEqual(renderContext({ theme: 'light' }, { platform: 'aplite' }),
-    { theme: 'dark', isColor: false, suffix: 'Dark' });
   // A bw theme on colour hardware renders the B&W model.
-  assert.deepEqual(renderContext({ theme: 'bw-light' }, { platform: 'basalt' }),
+  assert.deepEqual(renderContext({ theme: 'bw-light' }, { platform: 'emery' }),
     { theme: 'bw-light', isColor: false, suffix: 'Light' });
   // No watchInfo, no theme: an unknown watch reads colour, on the dark default.
   assert.deepEqual(renderContext({}, null),
     { theme: 'dark', isColor: true, suffix: 'Dark' });
-});
-
-test('a B&W display resolves every line pick away, whatever the theme says', () => {
-  const settings = { secondaryLine: 'wind', thirdLine: 'off', theme: 'dark',
-                     gcWindLineDark: '#FF0000' };
-  assert.equal(resolve(settings, { platform: 'basalt' }).secondary, 0xFF0000);
-  ['diorite', 'aplite'].forEach((platform) => {
-    assert.equal(resolve(settings, { platform }).secondary, COLORS.GColorWhite,
-      `${platform} has no colour display, so the pick cannot reach the wire`);
-  });
 });
 
 // --- The night colours (wire bytes 4..9) -------------------------------------
@@ -159,7 +134,7 @@ test('a night-fill tint moved off the built-in derives its hatch one Pebble step
 // That is the whole point. A page-side write makes a claimed tint and a hand-me-down one
 // the same bytes, and then nothing downstream can tell them apart: v1.15.0 guessed by
 // comparing the two, so a tint deliberately picked EQUAL to its fill read as untouched —
-// the light-polarity re-shade was silently skipped and telemetry reported 'default'.
+// the light-polarity re-shade was silently skipped.
 
 test('graphNightTint answers claimed, then carried, then the built-in', () => {
   const blob = (extra) => Object.assign({ secondaryLine: 'wind' }, extra);
@@ -193,7 +168,7 @@ test('the light-polarity built-in is black; on B&W the flip still does that work
   const light = { secondaryLine: 'gust', thirdLine: 'off', theme: 'light' };
   assert.equal(resolve(light, emery).secondary, COLORS.GColorBlack,
     "gust's light built-in IS black — no flip involved");
-  assert.equal(resolve(light, { platform: 'diorite' }).secondary,
+  assert.equal(resolve(Object.assign({}, light, { theme: 'bw-light' }), emery).secondary,
     resolveInk(COLORS.GColorWhite, 'light'),
     'B&W resolves white through the flip instead of reading a key');
   const picked = resolve(
@@ -219,7 +194,7 @@ test('gust/Line/Dark counts as untouched on either built-in, so white bars never
       assert.equal(lineStyle.graphColorIsDefault(settings, 'gust', 'Line', 'Dark'), true,
         `${seeded} on ${rainBarColor} bars`);
       const bytes = graphWire.buildLineStyleBytes(Object.assign(
-        { secondaryLine: 'gust', thirdLine: 'off', theme: 'dark' }, settings), emery);
+        { secondaryLine: 'gust', thirdLine: 'off', theme: 'dark' }, settings));
       assert.equal(bytes[0], rainTier.rgbToGColor8(
         rainBarColor === 'white' ? COLORS.GColorLightGray : COLORS.GColorWhite),
         `${seeded} on ${rainBarColor} bars resolves through rainBarColor`);
@@ -320,7 +295,7 @@ test('the style-byte encoding matches the C headers, decoded with their own cons
   assert.equal(byteFor('stripeBottom'), 0x03);
   assert.equal(byteFor('stripeTop'), 0x07);
   // The wire's style block is exactly the persist blob the watch stores.
-  const bytes = graphWire.buildLineStyleBytes({ secondaryLine: 'wind', thirdLine: 'gust', fifthLine: 'cloud', theme: 'dark' }, { platform: 'emery' });
+  const bytes = graphWire.buildLineStyleBytes({ secondaryLine: 'wind', thirdLine: 'gust', fifthLine: 'cloud', theme: 'dark' });
   assert.equal(bytes.length - 9 - 2, STYLE_BYTES, 'bytes [9..11] are LINE_STYLE_STYLE_BYTES');
   // The fourth metric's style byte ([13]) rides its own persist slot, same layout —
   // x marks by default, the kind persist.c's unset-slot default returns too.
@@ -331,33 +306,28 @@ test('the style-byte encoding matches the C headers, decoded with their own cons
   assert.equal(byteFor('x'), KIND.x, "and 'x' packs to exactly that byte");
 });
 
-test('a stripe-styled main line never fills, unless the watch ignores the styles', () => {
+test('a stripe-styled main line never fills', () => {
   const base = { secondaryLine: 'cloud', secondaryLineFill: true, thirdLine: 'off', theme: 'dark' };
   ['stripeTop', 'stripeBottom'].forEach((st) => {
     const s = Object.assign({ secondaryLineStyle: st }, base);
-    assert.equal(resolve(s, { platform: 'basalt' }).fillOn, false, st + ' on basalt');
-    assert.equal(graphWire.buildLineStyleBytes(s, { platform: 'basalt' })[3] & 0x01, 0,
+    assert.equal(resolve(s, { platform: 'emery' }).fillOn, false, st + ' on emery');
+    assert.equal(graphWire.buildLineStyleBytes(s)[3] & 0x01, 0,
       st + ': the wire fill flag is clear');
-    // aplite has no selectable styles (WW_LINE_STYLE): a stripe picked on a colour
-    // watch paired to the same phone must not switch its fill off.
-    assert.equal(resolve(s, { platform: 'aplite' }).fillOn, true, st + ' on aplite');
-    assert.equal(lineStyle.resolveGraphColors(s, { color: true, themePolarity: true, lineStyles: false }).fillOn,
-      true, st + ' with lineStyles: false');
   });
   // A stripe on another line leaves the main line's fill alone.
   assert.equal(resolve(Object.assign({ thirdLineStyle: 'stripeTop' }, base),
-    { platform: 'basalt' }).fillOn, true);
+    { platform: 'emery' }).fillOn, true);
   assert.equal(lineStyle.isStripeStyle({ fourthLine: 'uv', fourthLineStyle: 'stripeBottom' }, 'fourthLineStyle'), true);
   assert.equal(lineStyle.isStripeStyle({}, 'fourthLineStyle'), false, 'the default x is not a stripe');
   // Pressure cannot be a stripe: a stored one draws as a line, which fills.
   const pressure = Object.assign({}, base, { secondaryLine: 'pressure', secondaryLineStyle: 'stripeTop' });
-  assert.equal(resolve(pressure, { platform: 'basalt' }).fillOn, true, 'pressure fills');
+  assert.equal(resolve(pressure, { platform: 'emery' }).fillOn, true, 'pressure fills');
 });
 
 // Stripes read as intensity (how MUCH rain chance, cloud, UV, wind), so only those
 // metrics can be one: feels-like and dew point sit on the temperature band (no zero)
 // and pressure is band-scaled, its trend the story. ONE rule in line-style.js; the
-// settings page's options, the bake, the preview and telemetry all resolve through it.
+// settings page's options, the bake and the preview all resolve through it.
 const STYLE_KEYS = ['secondaryLineStyle', 'thirdLineStyle', 'fourthLineStyle', 'fifthLineStyle'];
 test('stripes are for intensity metrics only: precip, cloud, wind, gusts and UV', () => {
   assert.deepEqual(lineStyle.STRIPE_METRIC_IDS, ['precip_prob', 'cloud', 'wind', 'gust', 'uv']);
@@ -414,7 +384,7 @@ test('a stored stripe on a metric that cannot be one resolves to the line\'s non
   // no stripe at all, so the watch can never draw one.
   const bytes = graphWire.buildLineStyleBytes({ secondaryLine: 'pressure', thirdLine: 'feels', fourthLine: 'dew',
     fifthLine: 'off', secondaryLineStyle: 'stripeTop', thirdLineStyle: 'stripeBottom',
-    fourthLineStyle: 'stripeTop', fifthLineStyle: 'stripeBottom', theme: 'dark' }, emery);
+    fourthLineStyle: 'stripeTop', fifthLineStyle: 'stripeBottom', theme: 'dark' });
   [9, 10, 11, 13].forEach((i) => assert.notEqual(bytes[i] & 0x03, 3, 'byte ' + i + ' is no stripe'));
   // Drawn as lines then, all three float (bit 6: no zero to stand on, graph-wire.js FLOAT_BIT).
   assert.deepEqual([bytes[9], bytes[10], bytes[11]], [
@@ -426,10 +396,10 @@ test('a stored stripe on a metric that cannot be one resolves to the line\'s non
 
 test('cloud cover resolves its own line and fill colours, like every graph metric', () => {
   const s = { secondaryLine: 'cloud', thirdLine: 'off', theme: 'dark' };
-  const dark = resolve(s, { platform: 'basalt' });
+  const dark = resolve(s, { platform: 'emery' });
   assert.equal(dark.secondary, COLORS.GColorBabyBlueEyes);
   assert.equal(dark.fill, COLORS.GColorLiberty);
-  const light = resolve(Object.assign({}, s, { theme: 'light' }), { platform: 'basalt' });
+  const light = resolve(Object.assign({}, s, { theme: 'light' }), { platform: 'emery' });
   assert.equal(light.secondary, COLORS.GColorLiberty);
   assert.deepEqual(lineStyle.nightAreaColorsFor('cloud', null, 'dark'),
     { base: COLORS.GColorOxfordBlue, hatch: COLORS.GColorLiberty });
@@ -453,39 +423,32 @@ test('effectiveLineMetric: every forecast line may carry a temperature-axis metr
 
 // THE one walk for "which forecast line draws metric X": forecast-axis.js' feels-like /
 // dew point gate, forecast-series.js' bake gate and the settings page's hostLine ask it.
-test('firstDrawnLine: the first line drawing a metric that passes, lines 3-4 only with allLines', () => {
+test('firstDrawnLine: the first line drawing a metric that passes', () => {
   const temp = lineStyle.isTempAxisMetric;
   const is = (metric) => (m) => m === metric;
-  // [settings, allLines, test, the line it names]
+  // [settings, test, the line it names]
   const cases = [
-    [{}, true, () => true, null],
-    [{ secondaryLine: 'off', thirdLine: 'off', fourthLine: 'off', fifthLine: 'off' }, true, () => true, null],
-    [{ secondaryLine: 'wind', thirdLine: 'feels', fourthLine: 'dew' }, true, temp, 'thirdLine'],
-    [{ secondaryLine: 'wind', thirdLine: 'uv', fourthLine: 'dew' }, true, temp, 'fourthLine'],
-    [{ secondaryLine: 'wind', thirdLine: 'uv', fourthLine: 'dew' }, false, temp, null],
-    [{ secondaryLine: 'dew', thirdLine: 'dew' }, true, is('dew'), 'secondaryLine'],
-    [{ secondaryLine: 'off', fourthLine: 'uv', fifthLine: 'uv' }, true, is('uv'), 'fourthLine'],
-    [{ secondaryLine: 'off', fifthLine: 'gust' }, true, is('gust'), 'fifthLine'],
-    [{ secondaryLine: 'off', fifthLine: 'gust' }, false, is('gust'), null],
-    [{ secondaryLine: 'cloud', thirdLine: 'wind' }, true, (m) => ['wind', 'gust'].indexOf(m) >= 0, 'thirdLine']
+    [{}, () => true, null],
+    [{ secondaryLine: 'off', thirdLine: 'off', fourthLine: 'off', fifthLine: 'off' }, () => true, null],
+    [{ secondaryLine: 'wind', thirdLine: 'feels', fourthLine: 'dew' }, temp, 'thirdLine'],
+    [{ secondaryLine: 'wind', thirdLine: 'uv', fourthLine: 'dew' }, temp, 'fourthLine'],
+    [{ secondaryLine: 'dew', thirdLine: 'dew' }, is('dew'), 'secondaryLine'],
+    [{ secondaryLine: 'off', fourthLine: 'uv', fifthLine: 'uv' }, is('uv'), 'fourthLine'],
+    [{ secondaryLine: 'off', fifthLine: 'gust' }, is('gust'), 'fifthLine'],
+    [{ secondaryLine: 'cloud', thirdLine: 'wind' }, (m) => ['wind', 'gust'].indexOf(m) >= 0, 'thirdLine']
   ];
-  cases.forEach(([s, allLines, t, want]) => {
-    assert.equal(lineStyle.firstDrawnLine(s, allLines, t), want, JSON.stringify([s, allLines]));
+  cases.forEach(([s, t, want]) => {
+    assert.equal(lineStyle.firstDrawnLine(s, t), want, JSON.stringify(s));
   });
-  lineStyle.FORECAST_LINES.forEach((line, i) => {
+  lineStyle.FORECAST_LINES.forEach((line) => {
     const s = {};
     s[line.key] = 'cloud';
-    assert.equal(lineStyle.firstDrawnLine(s, true, is('cloud')), line.key, line.key);
-    assert.equal(lineStyle.firstDrawnLine(s, false, is('cloud')), i < 2 ? line.key : null, line.key + ' frozen');
+    assert.equal(lineStyle.firstDrawnLine(s, is('cloud')), line.key, line.key);
   });
   // The test sees only what a line draws: never off, an unset line or a repeat of an
-  // earlier pick, and nothing of lines 3-4 without allLines.
-  const seen = (allLines) => {
-    const asked = [];
-    lineStyle.firstDrawnLine({ secondaryLine: 'off', thirdLine: 'cloud', fourthLine: 'cloud', fifthLine: 'uv' },
-      allLines, (m) => { asked.push(m); return false; });
-    return asked;
-  };
-  assert.deepEqual(seen(true), ['cloud', 'uv']);
-  assert.deepEqual(seen(false), ['cloud']);
+  // earlier pick.
+  const asked = [];
+  lineStyle.firstDrawnLine({ secondaryLine: 'off', thirdLine: 'cloud', fourthLine: 'cloud', fifthLine: 'uv' },
+    (m) => { asked.push(m); return false; });
+  assert.deepEqual(asked, ['cloud', 'uv']);
 });

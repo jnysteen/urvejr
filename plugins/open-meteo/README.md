@@ -7,7 +7,7 @@ the user's units. It has everything the Pebble app needs to be the watch's weath
 (Settings > Weather), and the extended readings listed in [../README.md](../README.md#what-they-serve).
 
 The forecast comes from the ECMWF IFS 0.25° model (`models=ecmwf_ifs025`), whose rain amount tracks
-its rain chance. UV comes from NOAA GFS. The WarnWeather watchface makes the same choices for
+its rain chance. UV comes from NOAA GFS. The urvejr watchface makes the same choices for
 Open-Meteo.
 
 The plugin asks for Location, and Internet for `api.open-meteo.com`. It makes two requests per

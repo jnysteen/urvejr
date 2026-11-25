@@ -48,18 +48,14 @@
     }
 
     /**
-     * Whether the watch draws in colour: a colour display showing a colour theme. A B&W
-     * display and the two B&W themes both draw in the theme's ink alone — the settings
-     * page's previews, the highlight swatches and the graph colours all take the B&W
-     * arm then. Only an explicit `color: false` is a B&W display (computeEnv always
-     * reports a boolean); an absent env or flag counts as colour,
-     * the packer's rule for a blob packed without an env.
-     * @param {?{color: boolean}} env Platform env or capabilities.
+     * Whether the watch draws in colour: any theme but the two B&W ones, which draw in the
+     * theme's ink alone — the settings page's previews, the highlight swatches and the graph
+     * colours all take the B&W arm then.
      * @param {string} theme 'dark'|'light'|'bw'|'bw-light'.
      * @returns {boolean} True when the watch draws colour.
      */
-    function drawsColor(env, theme) {
-        return !(env && env.color === false) && !isBwTheme(theme);
+    function drawsColor(theme) {
+        return !isBwTheme(theme);
     }
 
     /**
@@ -110,32 +106,11 @@
         return value === BAR_COLOR_SOLID ? BAR_COLOR_SOLID : BAR_COLOR_MULTI;
     }
 
-    /**
-     * The theme a target watch will actually render, given whether its platform ships
-     * the light polarity. Platforms without WW_THEME_POLARITY (aplite) have the light
-     * polarity compiled out — theme.h pins theme_is_light() to false, so a stored
-     * light / bw-light byte renders as the classic white-on-black. Mirror that freeze
-     * on the phone before deriving wire colors, or a light-polarity flip (white→black)
-     * would ship line/dot colors the watch draws black-on-black. Folds the polarity to
-     * dark: light→dark, bw-light→bw; dark/bw pass through. supportsPolarity true (every
-     * platform except aplite) returns the theme unchanged.
-     * @param {string} theme 'dark'|'light'|'bw'|'bw-light'.
-     * @param {boolean} supportsPolarity Whether the target platform ships the light polarity.
-     * @returns {string} The theme the target platform actually renders.
-     */
-    function effectiveTheme(theme, supportsPolarity) {
-        if (supportsPolarity) { return theme; }
-        if (theme === 'light') { return 'dark'; }
-        if (theme === 'bw-light') { return 'bw'; }
-        return theme;
-    }
-
     var api = {
         resolveInk: resolveInk,
         isLightPolarity: isLightPolarity,
         isBwTheme: isBwTheme,
         drawsColor: drawsColor,
-        effectiveTheme: effectiveTheme,
         barColorDefault: barColorDefault,
         barColorMode: barColorMode,
         BAR_COLOR_KEYS: BAR_COLOR_KEYS

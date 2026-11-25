@@ -9,7 +9,6 @@
 // keeps the plain sample.
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const platform = require('../../../src/pkjs/config-ui/lib/platform.js');
 require('../../../src/pkjs/config-ui/lib/schema-walk.js');
 const color = require('../../../src/pkjs/lib/color.js');
 require('../../../src/pkjs/config-ui/lib/engine.js');
@@ -17,10 +16,10 @@ const FC = require('../../../src/pkjs/page/forecast-graphs/preview-forecast.js')
 const lineAlert = require('../../../src/pkjs/alerts/domain/line-alert.js');
 const lineStyle = require('../../../src/pkjs/forecast-graphs/domain/line-style.js');
 
-const BASALT = platform.computeEnv({ platform: 'basalt' });
-const EMERY = platform.computeEnv({ platform: 'emery' });
-const DIORITE = platform.computeEnv({ platform: 'diorite' });
-const APLITE = platform.computeEnv({ platform: 'aplite' });
+// Envs of a watch without some of these features. The face is built for the Pebble Time 2
+// alone.
+const BASALT = {};
+const EMERY = {};
 
 // The preview's plain samples (its forecastPreview locals): wind and gusts in km/h, UV as
 // the index. A change there breaks this pin on purpose.
@@ -129,13 +128,14 @@ function drawnHours(svg, state, lineKey, zeros) {
 }
 
 /**
- * The levels a B&W preview shades its Main metric's top stripe at, one per hour column (the
+ * The levels a B&W-theme preview shades its Main metric's top stripe at, one per hour column (the
  * dither pattern of a cell is its level, an hour without one is level 0).
  * @param {Object} state Settings.
  * @returns {number[]} Eleven levels.
  */
 function stripeLevels(state) {
-  const svg = FC.forecastPreview(Object.assign({}, state, { secondaryLineStyle: 'stripeTop' }), DIORITE);
+  const svg = FC.forecastPreview(Object.assign({}, state, { secondaryLineStyle: 'stripeTop', theme: 'bw' }), {},
+    undefined, { sample: FC.noonSample() });
   const out = Array(11).fill(0);
   [...svg.matchAll(/<rect x="([-0-9.e]+)" y="4" width="[-0-9.e]+" height="5" fill="url\(#sd(\d)\)"><\/rect>/g)]
     .forEach((m) => { out[Math.round((Number(m[1]) - 20) / PITCH)] = Number(m[2]); });
@@ -207,7 +207,7 @@ function assertSharedBand(S) {
   const room = (band.top - lineAlert.alertBand(S, 'wind', ['wind']).bottom) / (band.top - band.bottom);
   const shown = FC.alertSamples(S, bands, SAMPLES);
   shown.gust.forEach((g, i) => assert.ok(g >= shown.wind[i], label + ' hour ' + i));
-  const svg = FC.forecastPreview(S, BASALT);
+  const svg = FC.forecastPreview(S, BASALT, undefined, { sample: FC.noonSample() });
   const wind = drawnPoints(svg, S, 'secondaryLine');
   const gust = drawnPoints(svg, S, 'thirdLine');
   assert.deepEqual([...wind.keys()].sort((a, b) => a - b), DRAWN.wind, label);
@@ -266,7 +266,7 @@ test('wind and gusts on Alert at equal, close or crossed levels draw as two line
       const dots = (hex) => {
         const out = new Map();
         const re = new RegExp('<rect x="([-\\d.e]+)" y="([-\\d.e]+)" width="9" height="([34])" fill="' + hex + '">', 'g');
-        [...FC.forecastPreview(D, BASALT).matchAll(re)].forEach((m) => {
+        [...FC.forecastPreview(D, BASALT, undefined, { sample: FC.noonSample() }).matchAll(re)].forEach((m) => {
           out.set(Math.round((Number(m[1]) + 4.5 - 20) / PITCH - 0.5), Number(m[2]) + Number(m[3]) / 2);
         });
         return out;
@@ -301,25 +301,13 @@ test('All, and a watch without Alert settings, keep the plain samples, the very 
     // Alert stored on a metric that is not drawn.
     { secondaryLine: 'wind', gustLineShow: 'alert', uvLineShow: 'alert' },
     { secondaryLine: 'precip_prob', thirdLine: 'cloud', windLineShow: 'alert' },
-    // On the Fourth metric picker of a watch without it (a hand-built env: no platform
-    // has Alert settings without line styles).
-    { secondaryLine: 'precip_prob', thirdLine: 'off', fourthLine: 'gust', gustLineShow: 'alert' }
   ];
   plain.forEach((S) => {
     const shown = FC.alertSamples(S, lineAlert.alertBands(S, { lineStyles: false }), SAMPLES);
     Object.keys(SAMPLES).forEach((k) => assert.equal(shown[k], SAMPLES[k], JSON.stringify(S) + ' ' + k));
   });
-  // aplite draws every line All, whatever is stored: the same preview.
-  ['wind', 'gust', 'uv'].forEach((metric) => {
-    const S = lineState(metric, {});
-    const alert = Object.assign({ [lineAlert.settingKey(metric)]: 'alert' }, S);
-    assert.equal(FC.forecastPreview(alert, APLITE), FC.forecastPreview(S, APLITE), metric);
-    assert.deepEqual(FC.alertSamples(alert, lineAlert.alertBands(alert, APLITE), SAMPLES), SAMPLES);
-  });
   // Alert stored for a line that is not drawn leaves the preview as it was.
   const S = { secondaryLine: 'precip_prob', thirdLine: 'cloud', fourthLine: 'off' };
-  [BASALT, DIORITE, EMERY].forEach((env) => {
-    assert.equal(FC.forecastPreview(Object.assign({ windLineShow: 'alert', gustLineShow: 'alert',
-      uvLineShow: 'alert' }, S), env), FC.forecastPreview(S, env), env.platform);
-  });
+  assert.equal(FC.forecastPreview(Object.assign({ windLineShow: 'alert', gustLineShow: 'alert',
+    uvLineShow: 'alert' }, S), EMERY), FC.forecastPreview(S, EMERY));
 });

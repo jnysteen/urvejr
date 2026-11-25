@@ -6,7 +6,7 @@
 // way the bake prints the real reading.
 //
 // Pure: settings and already-picked numbers in, text out — the payload decoding
-// (which reading, '--' for none) stays in status-lines.js. ES5 only (aplite PKJS).
+// (which reading, '--' for none) stays in status-lines.js. ES5 only (AGENTS.md).
 (function () {
     var catalog = (typeof require !== 'undefined')
         ? require('./status-line-catalog.js') : window.StatusLineCatalog;
@@ -243,8 +243,7 @@
     }
 
     /**
-     * ISO-8601 week number (1..53) for a local date. Mirrors the watch-side iso_week()
-     * used on non-aplite so the phone-baked aplite week matches other platforms.
+     * ISO-8601 week number (1..53) for a local date. Mirrors the watch-side iso_week().
      * @param {Date} d local date
      * @returns {number}
      */
@@ -260,28 +259,22 @@
 
     /**
      * The weather condition slot's Look (its dialog's conditionSlotLook): 'both' (the glyph and
-     * the name, the default, and what anything unknown reads as), 'text' or 'icon'. aplite
-     * draws no condition glyph, so with its env this is 'text' there whatever is stored.
+     * the name, the default, and what anything unknown reads as), 'text' or 'icon'.
      * @param {Object} settings Settings.
-     * @param {Object} [env] Platform env; without it, the stored Look.
      * @returns {string} 'both', 'text' or 'icon'
      */
-    function conditionLook(settings, env) {
-        if (env && env.platform === 'aplite') { return 'text'; }
+    function conditionLook(settings) {
         var look = settings && settings.conditionSlotLook;
         return look === 'text' || look === 'icon' ? look : 'both';
     }
 
     /**
      * Whether the city slot draws the current weather's icon before its name (its dialog's
-     * citySlotIcon, off unless switched on, until the icons are redrawn). Never on aplite, whose
-     * lean row draws no weather icon.
+     * citySlotIcon, off unless switched on, until the icons are redrawn).
      * @param {Object} settings Settings.
-     * @param {Object} [env] Platform env.
      * @returns {boolean}
      */
-    function cityIcon(settings, env) {
-        if (env && env.platform === 'aplite') { return false; }
+    function cityIcon(settings) {
         return Boolean(settings && settings.citySlotIcon === true);
     }
 
@@ -304,20 +297,14 @@
      * name; else the full name where it fits (an edge slot's 'Cloudy'), else the short form
      * ('PCLDY'). A short form no shorter than the name ('RAIN' for 'Rain') rides with nothing.
      * Full: the full name where it fits, with no short form to swap in, else the short form (an
-     * edge slot's 8 bytes hold no 'Partly cloudy'). Short: the short form, every slot. aplite's
-     * lean row reads no short form: it gets the name where it fits an edge slot's 8 bytes, else
-     * the short form, in every slot, and the short form alone under Short.
+     * edge slot's 8 bytes hold no 'Partly cloudy'). Short: the short form, every slot.
      * @param {{full: string, short: string}} n The condition's names (weather/domain/condition.js).
      * @param {number} cap The slot's byte cap.
-     * @param {Object} [env] Platform env.
      * @param {string} [name] conditionName(); absent = 'auto'.
      * @returns {string}
      */
-    function conditionText(n, cap, env, name) {
+    function conditionText(n, cap, name) {
         if (name === 'short') { return n.short; }
-        if (env && env.platform === 'aplite') {
-            return utf8.byteLength(n.full) <= catalog.CAPS.EDGE_TEXT_MAX ? n.full : n.short;
-        }
         var both = n.full + catalog.ALT_SEP + n.short;
         if (name !== 'full' && n.short.length < n.full.length && utf8.byteLength(both) <= cap) { return both; }
         return utf8.byteLength(n.full) <= cap ? n.full : n.short;

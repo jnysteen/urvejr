@@ -10,7 +10,7 @@ test('library imports nothing app-specific (lift-out boundary)', () => {
   walk(dir).forEach((f) => {
     const src = fs.readFileSync(f, 'utf8');
     assert.equal(src.indexOf("require('../settings"), -1, f + ' must not import the app');
-    assert.equal(src.toLowerCase().indexOf('warnweather'), -1, f + ' must not reference WarnWeather');
+    assert.equal(src.toLowerCase().indexOf('urvejr'), -1, f + ' must not reference urvejr');
   });
 });
 

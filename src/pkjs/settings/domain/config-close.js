@@ -2,8 +2,7 @@
 //
 // index.js's webviewclosed handler feeds this the facts it captured (what
 // changed, what the user acknowledged, whether an auth backoff is active) and
-// performs the side effects the returned decision names. Extracted in the
-// house decide* style (release-notifications.js, update-check.js) so the
+// performs the side effects the returned decision names. Extracted so the
 // interacting special cases below are unit-testable — this exact handler is
 // where the 1.13.x reset/ack bugs lived, with no test able to reach it.
 
@@ -30,9 +29,8 @@
  *
  * @param {Object} input Captured caller-side, in order:
  *   {boolean} providerOrLocationChanged refreshProvider()'s verdict.
- *   {boolean} radarProviderChanged radarProvider (the radar source: "Rainbow
- *     (limited)" and "Rainbow (own key)" are two of its values), radarMode or radarSky
- *     changed.
+ *   {boolean} radarProviderChanged radarProvider (the radar source), radarMode or
+ *     radarSky changed.
  *   {boolean} renderSettingsChanged renderSignature() differs across the save.
  *   {boolean} fetchToggle The one-shot "Force weather fetch" toggle.
  *   {boolean} acked The notice-ack flag rode the save.

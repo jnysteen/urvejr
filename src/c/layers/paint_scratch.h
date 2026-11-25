@@ -12,7 +12,7 @@
 
 // The paint scratch: the per-draw buffers of the update procs, in one block of .bss
 // they share. Each member is one proc's (or one pass's) working set, too big for the
-// app stack (aplite's overflows: PC=0/LR=0), and dead between its uses. Pebble runs
+// app stack (an overflow shows as PC=0/LR=0), and dead between its uses. Pebble runs
 // update procs and event handlers one at a time and never nests them, and every user
 // fills its member at the start of its pass before reading it, so the members can
 // overlay: the block is as big as the largest one, the forecast's, not their sum.
@@ -22,31 +22,22 @@
 // they fill and consume within one call.
 //
 // The member types live here, with their owners named, so the union sees them all.
-// aplite links only the forecast's (its status row is the twin, it has no health
-// graph and no radar), so there the block is the forecast's buffers alone.
 
 // forecast_layer.c's per-redraw dataset: every series, reloaded at the top of each
 // paint (load_dataset).
 typedef struct {
     int    num_entries;          // clamped to FORECAST_MAX_ENTRIES (forecast_span.h)
-#if defined(PBL_PLATFORM_EMERY)
     int    fit_entries;          // emery: the hours the scale and the labels cover (on screen)
     int    sent_entries;         // emery: the hours sent; num_entries is the hours the graph
                                  // style draws of them (graph_style.h), at most as many
     uint8_t scale_undrawn;       // emery: the trends on the temperature's scale (graph_style.h
                                  // GS_SCALE bits) this style draws no line of
-#endif
     time_t forecast_start;
     Series series[SERIES_COUNT];
 } ForecastDataset;
 
-// The hours the scale and the labels cover: `n`, every hour sent (the caller's
-// ds->num_entries), off emery.
-#if defined(PBL_PLATFORM_EMERY)
-#define FORECAST_FIT_N(ds, n) ((ds)->fit_entries)   // emery: the hours on screen
-#else
-#define FORECAST_FIT_N(ds, n) (n)
-#endif
+// The hours the scale and the labels cover: the hours on screen.
+#define FORECAST_FIT_N(ds, n) ((ds)->fit_entries)
 
 // forecast_update_proc: the dataset, its layer list (the plot's, then each stripe
 // band's), the lines' vertices and the area fill's contour (one buffer: chart.h
@@ -59,10 +50,8 @@ typedef struct {
     ChartAxisSlot   axis_slots[FORECAST_MAX_ENTRIES];
     ChartBand       night_bands[FORECAST_NIGHTS_MAX];   // forecast_night.h NightSegments' cap
     ChartColorStop  scaled_bar_stops[PALETTE_MAX_STOPS];
-#if defined(PBL_PLATFORM_EMERY)
     ChartColorStop  style_bar_stops[PALETTE_MAX_STOPS];   // emery: a graph style's own palette
     int16_t         scale_trend[FORECAST_MAX_ENTRIES];    // emery: an undrawn scale trend's bytes
-#endif
 } ForecastPaint;
 
 // health_graph_update_proc: its layer list (sleep, gridlines, bars, HR, clamp dots,
@@ -95,9 +84,7 @@ typedef union {
     HealthPaint   health;
     RadarPaint    radar;
     StatusRowPass row;
-#if defined(PBL_HEALTH)
     HealthMinuteData health_minutes[HEALTH_MINUTE_RECORDS];   // services/health.c's reads
-#endif
 } PaintScratch;
 
 extern PaintScratch g_paint_scratch;

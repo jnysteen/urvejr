@@ -1,8 +1,7 @@
 // src/pkjs/weather/adapter/weather-tab-cache.js — the phone's copy of the settings page's Weather
 // tab data, so the tab fetches on its own at most once a day.
 //
-// The config page is a data: URI: its storage doesn't survive a close
-// (news-cache.js), and it can hand data back only on Save — some phone apps never
+// The config page is a data: URI: its storage doesn't survive a close, and it can hand data back only on Save — some phone apps never
 // fire webviewclosed on a dismiss. So the PHONE keeps the day's data for the place
 // the tab opens on (its provider and location picks, the Current chip's seed) and
 // injects it at every open as userData.weatherTabCache. The page serves it without
