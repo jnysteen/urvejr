@@ -89,7 +89,7 @@ var PConf = (typeof PConf !== 'undefined') ? PConf
 
   /**
    * The Undo after a delete, in the list the thing went from, for as long as its flash lasts.
-   * @param {string} text What went ("Flick 1 deleted.").
+   * @param {string} text What went ("Screen 2 deleted.").
    * @param {Object} at Undo's attributes.
    * @returns {string} Markup
    */

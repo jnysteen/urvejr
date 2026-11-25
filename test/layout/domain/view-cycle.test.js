@@ -520,7 +520,7 @@ test('keys → spec → keys round-trips a graphless view', () => {
 });
 
 test('a flick left with nothing on it compiles to a disabled slot', () => {
-  // Flick 1's only element is the Health bar: a status bar like the others, it stays in
+  // Screen 2's only element is the Health bar: a status bar like the others, it stays in
   // every health mode (3.0.0) ...
   const S = customState({ viewCount: '2', viewTop1: 'none', viewBody1: 'none', viewUpper1: 'health',
     viewLower1: 'off', viewOrder1: 'TACB', viewClockOff1: true, viewStripOff1: false });

@@ -286,7 +286,7 @@ var PConf = (typeof global !== 'undefined' && global.PConf) ? global.PConf
     }
 
     /**
-     * Where something shows, by the screens' names: "On Default and Flick 1", "On no screen".
+     * Where something shows, by the screens' names: "On Default and Screen 2", "On no screen".
      * @param {string[]} names The screens' names.
      * @returns {string}
      */
@@ -295,7 +295,7 @@ var PConf = (typeof global !== 'undefined' && global.PConf) ? global.PConf
     }
 
     /**
-     * A graph's row line: its length and the screens it shows on (screenNames), "66 h · Flick 1",
+     * A graph's row line: its length and the screens it shows on (screenNames), "66 h · Screen 2",
      * "24 h · No screen".
      * @param {Object} Sk The graph's settings.
      * @param {string[]} names The screens it shows on.

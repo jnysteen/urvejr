@@ -68,7 +68,7 @@ test('generated page renders the Watchface tab preview without require() (webvie
     var rows = card(S, { platform: 'basalt', color: true });
     assert.deepEqual((rows.match(/<span class="ui-n">[^<]*<\/span>/g) || []).map(function (t) {
       return t.replace(/<[^>]*>/g, '');
-    }), ['Default', 'Flick 1', 'Flick 2'], 'one row per screen');
+    }), ['Default', 'Screen 2', 'Screen 3'], 'one row per screen');
     assert.equal(rows.indexOf('data-action="addScreen"'), -1, 'three screens: no more to add');
     var pic = sandbox.PConf.pictureResolvers.get('timeFontPicture');
     assert.ok(pic, 'timeFontPicture is registered');

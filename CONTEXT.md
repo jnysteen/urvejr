@@ -37,10 +37,10 @@ as sent once the watch acknowledges it. It is a send queue; the term does not me
 transactional outbox.
 
 **Stop (flick)**:
-One position in the wrist-flick cycle: a view spec shown when the user flicks.
-A layout preset sets its stops; the custom layout's stops are the user's screens, in
-their order. With *Double flick* on, the cursor advances only on the
-second accepted flick within the pairing window (layout.h `view_flick_accept`).
+One position in the screen cycle: a view spec shown when the user taps the screen (the
+cycle was once driven by a wrist flick, hence the name). A layout preset sets its stops;
+the custom layout's stops are the user's screens, in their order. A touch counts as a tap
+when it lifts near where it landed, soon after (layout.h `view_tap_up`).
 
 **Screen (settings page)**:
 One view of the flick cycle as the settings page edits it: a list of rows, top to bottom

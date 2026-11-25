@@ -83,7 +83,7 @@ var PConf = (typeof global !== 'undefined' && global.PConf) ? global.PConf
     var NO_GRAPH_ROOM = 'You have ' + GS.MAX_STYLES + ' graphs already. Delete one on the Graphs tab to edit this one.';
     // How to reorder, under the Screens card's screens and the screen editor's rows; "Drag ≡" kept
     // on one line (a no-break space).
-    var REORDER_HINT = 'Each flick shows the next one. Drag\u00a0≡ to change the order.';
+    var REORDER_HINT = 'Each tap on the screen shows the next one. Drag\u00a0≡ to change the order.';
     var ROWS_HINT = 'Drag\u00a0≡ to change the order.';
     // The screen editor's Add groups, in the order they show (the owner's ask, 2026-11-09: the
     // chips grouped by what they add), each with its caption, or capOf, which writes it from the

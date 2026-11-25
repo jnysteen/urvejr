@@ -37,7 +37,7 @@ function customViewItems(i) {
         {type: 'hidden', messageKey: 'viewAlign' + i, defaultValue: 'clock'},
         // The forecast graph's graph style: '1'|'2'|'3' (Pebble Time 2; graph-styles.js).
         {type: 'hidden', messageKey: 'viewStyle' + i, defaultValue: '1'},
-        // The screen's name ('' = its place's: Default, Flick 1, Flick 2). The page's own:
+        // The screen's name ('' = its place's: Default, Screen 2, Screen 3). The page's own:
         // never compiled, never sent to the watch (screens.js nameOf).
         {type: 'hidden', messageKey: 'viewName' + i, defaultValue: ''}
     ];

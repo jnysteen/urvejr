@@ -27,7 +27,7 @@
 
 static Window *s_main_window;
 
-// Cycle cursor. A wrist-flick accepted by view_flick_accept (layout.h) advances to the
+// Cycle cursor. A screen tap accepted by view_tap_up (layout.h) advances to the
 // next enabled + available view and wraps back. Survives a relaunch (e.g. Pebble's Quiet Time forces a full app
 // process relaunch on real hardware) within config_get()->view_reset_min minutes, or
 // MAX_STALE_TIME_SEC when auto-return is disabled — see persist_get_view_cursor()
@@ -39,13 +39,12 @@ static uint8_t s_view_index;
 // keep the cursor). Whole words, so a change confined to the tier/top/custom bits (8-15)
 // or to the custom-layout ext word alone (a size or Position) is still detected.
 static uint32_t s_applied_view_word[3];
-// Epoch of the last view-switching flick (or relaunch-restore to a non-default view),
+// Epoch of the last view-switching tap (or relaunch-restore to a non-default view),
 // seeding the auto-return-to-default timer. 0 = on the default view / no timer running.
 static time_t s_flick_epoch;
-// Wrist-flick gate state (rules: layout.h view_flick_accept). RAM only, zeroed at launch:
-// a relaunch starts with no flick pending.
-static ViewFlickGate s_flick_gate;
-// Whether tap_handler is subscribed: only while the cycle can move (tap_follow_cycle).
+// Reset at each subscribe, so a touch that began before it is no tap.
+static ViewTapGate s_tap_gate;
+// Whether touch_handler is subscribed: only while the cycle can move (tap_follow_cycle).
 static bool s_tap_subscribed;
 
 // Radar data present? — the ONE availability predicate the ViewSpec resolves
@@ -293,36 +292,42 @@ static void show_view(void) {
     main_window_refresh();
 }
 
-static void tap_handler(AccelAxisType axis, int32_t direction) {
-    // view_flick_accept (layout.h) debounces one flick's per-axis echoes and, with Double
-    // flick on, passes only a pair's second flick. A rejected flick changes nothing here:
-    // no view, no auto-return restart, no health warm.
+// Idle-face touches (non_navigational) count too: a watchface has no "wake first" step.
+static void touch_handler(const TouchEvent *event, void *context) {
+    (void) context;
     time_t now_s;
     uint16_t now_ms_part = time_ms(&now_s, NULL);
-    if (!view_flick_accept(&s_flick_gate, (uint32_t) now_s * 1000u + now_ms_part,
-                           config_get()->view_double_flick)) {
-        return;
+    const uint32_t now_ms = (uint32_t) now_s * 1000u + now_ms_part;
+    switch (event->type) {
+        case TouchEvent_Touchdown:
+            view_tap_down(&s_tap_gate, event->x, event->y, now_ms);
+            return;
+        case TouchEvent_PositionUpdate:
+            view_tap_move(&s_tap_gate, event->x, event->y);
+            return;
+        case TouchEvent_Liftoff:
+            break;
     }
+    if (!view_tap_up(&s_tap_gate, event->x, event->y, now_ms)) { return; }
 
     uint8_t next = next_view_index(s_view_index);
-    if (next == s_view_index) { return; }   // nothing else enabled/available (pair consumed)
+    if (next == s_view_index) { return; }   // nothing else enabled/available
     s_view_index = next;
     s_flick_epoch = now_s;                   // restart the auto-return timer (time_ms's
                                              // seconds are time(NULL)'s UTC epoch)
     show_view();
 }
 
-// Take tap events only while a flick can move the cursor (layout.h view_cycle_flickable),
-// so a face with one view is not woken by every wrist flick. The cycle changes only with a
-// settings apply, and each one calls this, as the load does; the unload passes NULL.
+// Subscribe only while a tap can move the cursor: the touch sensor draws power while on.
 static void tap_follow_cycle(const uint32_t *words) {
     const bool want = words && view_cycle_flickable(words);
     if (want == s_tap_subscribed) { return; }
     s_tap_subscribed = want;
     if (want) {
-        accel_tap_service_subscribe(tap_handler);
+        s_tap_gate = (ViewTapGate){0};
+        touch_service_subscribe(touch_handler, NULL);
     } else {
-        accel_tap_service_unsubscribe();
+        touch_service_unsubscribe();
     }
 }
 

@@ -50,7 +50,7 @@ var PConf = (typeof global !== 'undefined' && global.PConf) ? global.PConf
         { id: 'welcome', title: 'Welcome to urvejr', body: stepWelcome, summary: welcomeRows },
         { id: 'forecast', title: 'Choose a forecast graph', body: stepForecast, summary: forecastRow },
         { id: 'layout', title: 'Choose your layout', body: stepLayout, summary: pickerRow('Layout', 'layoutPreset', 'layout') },
-        { id: 'screens', title: 'Flick to switch screens', body: stepScreens, summary: screensRows },
+        { id: 'screens', title: 'Tap to switch screens', body: stepScreens, summary: screensRows },
         { id: 'theme', title: 'Choose a theme', body: stepTheme,
             summary: pickerRow('Theme', 'theme', 'theme') },
         { id: 'done', title: 'You’re all set', body: stepDone }
@@ -692,8 +692,8 @@ var PConf = (typeof global !== 'undefined' && global.PConf) ? global.PConf
             + pic.svg + '</div></div></div>'
             + '<div class="wiz-flick-track"><span data-wiz-flick-dots>' + flickDotsHtml(list.length, i) + '</span>'
             + '<span class="wiz-flick-label" data-wiz-flick-label aria-live="polite">' + esc(name) + '</span></div>'
-            + '<button type="button" class="wiz-try" data-wiz-flick' + (many ? '' : ' disabled') + '>' + CSS.ICON_FLICK
-            + 'Try a flick</button>';
+            + '<button type="button" class="wiz-try" data-wiz-flick' + (many ? '' : ' disabled') + '>' + CSS.ICON_TAP
+            + 'Try a tap</button>';
     }
     /**
      * Every screen small: each in full, a ✕ on each flick screen; then each screen setup offers
@@ -806,8 +806,8 @@ var PConf = (typeof global !== 'undefined' && global.PConf) ? global.PConf
         if (lbl) { lbl.textContent = name; }
     }
     /**
-     * Flick to the next screen (wrapping to the Default): replay the tilt on the watch and swap the
-     * picture on the snap (150 ms into the 450 ms tilt). Under reduced motion the CSS drops the tilt.
+     * Tap to the next screen (wrapping to the Default): replay the press on the watch and swap the
+     * picture at its deepest point (120 ms into the 300 ms press). Under reduced motion the CSS drops it.
      * @returns {void}
      */
     function advanceFlick() {
@@ -819,9 +819,9 @@ var PConf = (typeof global !== 'undefined' && global.PConf) ? global.PConf
         if (watch) {
             watch.className = 'wiz-flick-watch';    // restart the animation:
             void watch.offsetWidth;                 // force a reflow between the class flips
-            watch.className = 'wiz-flick-watch tilt';
+            watch.className = 'wiz-flick-watch press';
         }
-        setTimeout(function () { showScreen(idx); }, 150);
+        setTimeout(function () { showScreen(idx); }, 120);
     }
 
     // --- step bodies ---
@@ -862,7 +862,7 @@ var PConf = (typeof global !== 'undefined' && global.PConf) ? global.PConf
         var cycle = VC.screensCycle(run.ctx.S), list = screens(cycle);
         if (run.screenIdx >= list.length) { run.screenIdx = 0; }
         return stepHead('screens')
-            + '<p class="wiz-lead">Add the screens you want to flick to. '
+            + '<p class="wiz-lead">Add the screens you want to tap to. '
             + 'The watch goes back to the Default screen by itself.</p>'
             + '<div class="wiz-flick">' + bigScreenHtml(list, cycle) + '</div>'
             + '<div class="wiz-scrs" role="group" aria-label="Your screens">' + smallScreensHtml(list, cycle) + '</div>'

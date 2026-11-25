@@ -58,7 +58,7 @@ Icons at the edge of a status bar that appear only when something needs your att
 
 ### Watch
 
-- Up to three screens, switched with a wrist flick
+- Up to three screens, switched with a tap on the screen
 - Dark, light and black & white themes, with a night theme at sunset or set hours
 - 12h/24h, clock color, smooth digits
 - Battery saver hours, night backlight

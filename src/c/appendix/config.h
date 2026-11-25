@@ -119,12 +119,7 @@ typedef struct {
     // zeros and renders exactly as it did. Appended at the END (append-only persist
     // offsets).
     uint16_t view_ext[3];
-    // --- double flick (v2.1): switch views only on the second of two flicks within
-    // VIEW_FLICK_PAIR_MS (layout.h view_flick_accept). false = one flick, the behaviour
-    // before the option. Wire: bit 8 of CLAY_VIEW_RESET_MIN (config_wire.h VIEW_RESET_DOUBLE_FLICK).
-    // Appended at the END (append-only persist offsets): an upgrader's shorter stored blob
-    // does not reach this byte, so config_read_or_default()'s seeded false applies until the
-    // phone sends the bit.
+    // RETIRED (Double flick; taps switch views now): kept so later fields keep their persist offsets.
     bool view_double_flick;
     // --- forecast left axis (v2.2): bits 1-7 of the CLAY_LARGE_GRAPH_FONT
     // graph-options word as sent (GRAPH_OPT_* below); 0 = every option at its default, today's

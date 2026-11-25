@@ -178,7 +178,7 @@ test('the last step sums up the picks as their pickers named them; Change goes b
   const row = (k) => (new RegExp('<span class="k">' + k + '</span><span class="v"[^>]*>([^<]*)</span>').exec(body) || [])[1];
   assert.equal(row('Country'), 'Germany');
   assert.equal(row('Layout'), 'No calendar');
-  assert.equal(row('Screens'), 'Default, Flick 1', 'No calendar with the Health bar: a flick screen of its own');
+  assert.equal(row('Screens'), 'Default, Screen 2', 'No calendar with the Health bar: a flick screen of its own');
   assert.equal(row('Theme'), 'Light');
   assert.ok(row('Weather'), 'the weather provider setup picked is named');
   assert.match(body, /data-wiz-goto="screens" aria-label="Change screens"/);
@@ -402,11 +402,11 @@ test('the copy promises the radar', () => {
 
 // --- the Screens step: the watch's own screens, + and ✕, the flick ---
 
-test('the Screens step on a new install: the Default alone, Try a flick off, Health and Rain radar to add', () => {
+test('the Screens step on a new install: the Default alone, Try a tap off, Health and Rain radar to add', () => {
   const { ctx, dom } = openSetup();
-  walkToTitle(dom, 'Flick to switch screens');
+  walkToTitle(dom, 'Tap to switch screens');
   const body = dom.body.innerHTML;
-  assert.match(body, /<p class="wiz-lead">Add the screens you want to flick to\. The watch goes back to the Default screen by itself\.<\/p>/);
+  assert.match(body, /<p class="wiz-lead">Add the screens you want to tap to\. The watch goes back to the Default screen by itself\.<\/p>/);
   assert.equal(dom.find('[data-wiz-flick-label]').textContent, 'Default');
   assert.match(body, /<button type="button" class="wiz-try" data-wiz-flick disabled>/, 'nothing to flick to yet');
   assert.deepEqual(dom.findAll('[data-wiz-scr-add]').map((b) => b.getAttribute('data-wiz-scr-add')),
@@ -422,7 +422,7 @@ test('the Screens step on a new install: the Default alone, Try a flick off, Hea
 
 test('+ puts a screen in where it goes and shows it big; ✕ takes it out again', () => {
   const { ctx, dom } = openSetup();
-  walkToTitle(dom, 'Flick to switch screens');
+  walkToTitle(dom, 'Tap to switch screens');
   addScreen(dom, 'radar');
   assert.deepEqual(screenNames(ctx), ['Default', 'Rain radar']);
   assert.equal(dom.find('[data-wiz-flick-label]').textContent, 'Rain radar', 'shown big');
@@ -456,7 +456,7 @@ test('the screens setup offers show the Layout\'s calendar; a layout picked late
   const { ctx, dom } = openSetup();
   walkTo(dom, 'layoutPreset');
   dom.pick('layoutPreset', 'noCal');
-  walkToTitle(dom, 'Flick to switch screens');
+  walkToTitle(dom, 'Tap to switch screens');
   const offeredPic = dom.find('[data-wiz-scr-add="health"]').getAttribute('aria-label');
   assert.equal(offeredPic, 'Add the Health screen');
   addScreen(dom, 'health');
@@ -479,7 +479,7 @@ test('the screens setup offers show the Layout\'s calendar; a layout picked late
 test('on emery the second forecast takes the other length: beside a Default of the long span, 24 hours', () => {
   const { ctx, dom } = openSetup({ platform: 'emery', fresh: true });
   assert.equal(FORECAST.spanOf(ctx.S), '48', 'premise: a new install\'s graph shows the long span');
-  walkToTitle(dom, 'Flick to switch screens');
+  walkToTitle(dom, 'Tap to switch screens');
   assert.deepEqual(dom.findAll('[data-wiz-scr-add]').map((b) => b.getAttribute('data-wiz-scr-add')),
     ['forecast2', 'health', 'radar']);
   assert.equal(dom.find('[data-wiz-scr-add="forecast2"]').getAttribute('aria-label'), 'Add the 24 h forecast screen',
@@ -524,7 +524,7 @@ test('on emery the second forecast takes the other length: beside a Default of t
 test('on emery a Default graph of 12 or 24 hours gets a Long forecast beside it, and keeps its length', () => {
   ['12', '24'].forEach((span) => {
     const { ctx, dom } = openSetup({ platform: 'emery', saved: { forecastHours: span } });
-    walkToTitle(dom, 'Flick to switch screens');
+    walkToTitle(dom, 'Tap to switch screens');
     assert.equal(dom.find('[data-wiz-scr-add="forecast2"]').getAttribute('aria-label'), 'Add the Long forecast screen', span);
     addScreen(dom, 'forecast2');
     assert.deepEqual(screenNames(ctx), ['Default', 'Long forecast'], span);
@@ -538,7 +538,7 @@ test('on emery a Default graph of 12 or 24 hours gets a Long forecast beside it,
 test('a screen setup adds brings its bar with the bar\'s default readings, not an empty row', () => {
   // A Health bar never set up: its slots stored Empty.
   const { ctx, dom } = openSetup({ saved: blankBar('health') });
-  walkToTitle(dom, 'Flick to switch screens');
+  walkToTitle(dom, 'Tap to switch screens');
   assert.match(dom.find('[data-wiz-scr-add="health"]').innerHTML, />6\.2k</, 'the Health screen offered draws them');
   assert.equal(ctx.S.statusHealthLeft, 'empty', 'drawing it writes nothing');
   addScreen(dom, 'health');
@@ -562,11 +562,11 @@ test('a layout that puts the Forecast bar back gives it its readings when it has
   assert.deepEqual(slotsOf(ctx.S, 'forecast'), ['temp', 'city', 'sun']);
 });
 
-test('Try a flick steps through the screens and back to Default', () => {
+test('Try a tap steps through the screens and back to Default', () => {
   mock.timers.enable({ apis: ['setTimeout'] });
   try {
     const { dom } = openSetup({ saved: { layoutPreset: 'compactCal', healthMode: 'all', radarMode: 'graph' } });
-    walkToTitle(dom, 'Flick to switch screens');
+    walkToTitle(dom, 'Tap to switch screens');
     const label = () => dom.find('[data-wiz-flick-label]').textContent;
     assert.equal(label(), 'Default', 'an upgraded install: its three screens, the Default shown');
     assert.equal(dom.findAll('[data-wiz-scr-add]').length, 0, 'Health and Rain radar are its flick screens');
@@ -588,7 +588,7 @@ test('Try a flick steps through the screens and back to Default', () => {
 
 test('adding the Rain radar screen turns the rain radar on, its source kept', () => {
   const { ctx, dom } = openSetup({ saved: { radarEnabled: false, radarProvider: 'dwd' } });
-  walkToTitle(dom, 'Flick to switch screens');
+  walkToTitle(dom, 'Tap to switch screens');
   addScreen(dom, 'radar');
   assert.equal(ctx.S.radarEnabled, true);
   assert.equal(ctx.S.radarProvider, 'dwd');
@@ -598,7 +598,7 @@ test('adding the Rain radar screen turns the rain radar on, its source kept', ()
 
 test('taking out the Rain radar screen setup added with the radar off turns the radar off again', () => {
   const { ctx, dom } = openSetup({ saved: { radarEnabled: false, radarProvider: 'dwd' } });
-  walkToTitle(dom, 'Flick to switch screens');
+  walkToTitle(dom, 'Tap to switch screens');
   addScreen(dom, 'radar');
   assert.equal(ctx.S.radarEnabled, true);
   removeScreen(dom, 1);
@@ -610,7 +610,7 @@ test('taking out the Rain radar screen setup added with the radar off turns the 
   // A Rain radar screen the radar was already on for leaves it on.
   addScreen(dom, 'radar');
   const own = openSetup({ saved: Object.assign({}, ctx.S, { radarEnabled: true, radarSource: 'dwd' }) });
-  walkToTitle(own.dom, 'Flick to switch screens');
+  walkToTitle(own.dom, 'Tap to switch screens');
   removeScreen(own.dom, 1);
   assert.equal(own.ctx.S.radarEnabled, true);
 });
@@ -621,7 +621,7 @@ test('with the rain radar off, a Rain radar screen is drawn as the watch draws i
   const saved = Object.assign({ layoutPreset: 'custom', viewCount: '2', radarEnabled: false, radarProvider: 'dwd' },
     M.compileKeys(M.screensOf(base.S)[0], 0), M.compileKeys(SCREENS.listOf(SCREENS.byId('radar'), ''), 1));
   const { ctx, dom } = openSetup({ saved });
-  walkToTitle(dom, 'Flick to switch screens');
+  walkToTitle(dom, 'Tap to switch screens');
   assert.deepEqual(screenNames(ctx), ['Default', 'Rain radar']);
   const drawn = SP.screenPicture(ctx.S, 1, ctx.ENV, ctx.USERDATA, 'x').label;
   assert.equal(drawn, 'Watch bar, Clock, Radar bar, Forecast', 'the radar graph folds to the forecast');
@@ -634,20 +634,20 @@ test('a screen of the user\'s own keeps its place\'s name, and only what fits is
     viewBody0: 'forecast', viewUpper0: 'weather', viewLower0: 'off', viewTop1: 'none', viewBody1: 'forecast',
     viewUpper1: 'weather', viewLower1: 'off', viewClockOff1: false, viewStripOff1: false };
   const { ctx, dom } = openSetup({ saved: own });
-  walkToTitle(dom, 'Flick to switch screens');
-  assert.deepEqual(screenNames(ctx), ['Default', 'Flick 1']);
-  assert.match(dom.body.innerHTML, /aria-label="Remove the Flick 1 screen"/);
+  walkToTitle(dom, 'Tap to switch screens');
+  assert.deepEqual(screenNames(ctx), ['Default', 'Screen 2']);
+  assert.match(dom.body.innerHTML, /aria-label="Remove the Screen 2 screen"/);
   assert.deepEqual(dom.findAll('[data-wiz-scr-add]').map((b) => b.getAttribute('data-wiz-scr-add')),
     ['forecast2', 'health', 'radar'], 'room for one more: any');
   addScreen(dom, 'radar');
-  assert.deepEqual(screenNames(ctx), ['Default', 'Flick 1', 'Rain radar']);
+  assert.deepEqual(screenNames(ctx), ['Default', 'Screen 2', 'Rain radar']);
   assert.equal(dom.findAll('[data-wiz-scr-add]').length, 0);
 });
 
 test('the Health screen added in setup keeps steps in the Health bar: the Watch bar keeps its own', () => {
   const finish = (add) => {
     const { ctx, dom } = openSetup();
-    walkToTitle(dom, 'Flick to switch screens');
+    walkToTitle(dom, 'Tap to switch screens');
     if (add) { addScreen(dom, 'health'); }
     dom.walkToSummary();
     dom.nav('tweak');

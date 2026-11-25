@@ -57,21 +57,14 @@ function resetWord(settings, platform) {
   return payload(settings, platform).CLAY_VIEW_RESET_MIN;
 }
 
-test('doubleFlick rides bit 8 of CLAY_VIEW_RESET_MIN; the minutes keep the low byte', () => {
+test('CLAY_VIEW_RESET_MIN carries the minutes alone: a stale doubleFlick never sets bit 8', () => {
   ['0', '1', '2', '5', '10'].forEach(function (m) {
-    const off = resetWord({ viewResetMin: m, doubleFlick: false }, 'basalt');
-    const on = resetWord({ viewResetMin: m, doubleFlick: true }, 'basalt');
-    assert.strictEqual(off, Number(m), m + ': off leaves the wire value unchanged');
-    // The low byte, all a pre-flag watch's uint8 cast reads, stays the minutes.
-    assert.strictEqual(on, Number(m) | 0x100, m + ': on sets bit 8');
+    assert.strictEqual(resetWord({ viewResetMin: m, doubleFlick: true }, 'basalt'), Number(m), m);
   });
-  // An upgrade (key absent until seedDefaults backfills it) sends exactly what OFF sends,
-  // so the outbox's change detector has nothing to resend; a toggle changes the payload.
   const json = function (extra) {
     return JSON.stringify(payload(Object.assign({ viewResetMin: '2' }, extra), 'basalt'));
   };
-  assert.strictEqual(json({}), json({ doubleFlick: false }), 'absent and off are the same payload');
-  assert.notStrictEqual(json({ doubleFlick: true }), json({ doubleFlick: false }), 'a toggle changes the payload');
+  assert.strictEqual(json({ doubleFlick: true }), json({}), 'the retired toggle changes nothing');
 });
 
 test('a junk viewResetMin can never set the double-flick bit', () => {

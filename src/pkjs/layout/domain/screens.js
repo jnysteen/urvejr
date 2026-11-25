@@ -24,7 +24,7 @@
 // screensOf reads every screen of a settings blob, a preset's too.
 //
 // THE NAMES. A screen's name is the page's own (viewName{i}, never compiled or sent): what the
-// user called it, else its place's (NAMES: Default, Flick 1, Flick 2), so a screen moved to
+// user called it, else its place's (NAMES: Default, Screen 2, Screen 3), so a screen moved to
 // the top reads as the Default until it is named. nameOf is THE reading, for every label. A
 // status bar's name is the page's own too (<prefix>Name, on-demand.js BARS' prefix): what the
 // user called it, else its kind's (Forecast bar, Radar bar, Health bar, Status bar 4 ...); barName reads
@@ -67,7 +67,7 @@
   // The most status bars one screen shows (the Watch bar aside).
   var SCREEN_BARS = 2;
   // The places' names, the Default first: a screen's name until it is given one (nameOf).
-  var NAMES = ['Default', 'Flick 1', 'Flick 2'];
+  var NAMES = ['Default', 'Screen 2', 'Screen 3'];
   // The longest name a screen, a bar or a graph keeps (cleanName).
   var NAME_MAX = 24;
   var CAL_ROWS = ['2', '3'];

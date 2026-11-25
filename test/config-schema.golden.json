@@ -128,13 +128,6 @@
             },
             "items": [
               {
-                "type": "toggle",
-                "messageKey": "doubleFlick",
-                "label": "Double flick to switch",
-                "defaultValue": false,
-                "hint": "Switch only on a second flick within a few seconds of the first."
-              },
-              {
                 "type": "segmented",
                 "messageKey": "viewResetMin",
                 "label": "Back to Default after",

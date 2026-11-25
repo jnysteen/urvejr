@@ -99,7 +99,7 @@ const EXPECTED_KEYS = [
   'conditionSlotLook', 'conditionSlotName', 'citySlotIcon',
   'barSource','rainBarColor','provider','owmApiKey','yandexApiKey','tomorrowioApiKey','tomorrowioFitBudget','rainbowApiKey','rainbowFitBudget','radarMode','radarProvider','radarColor','radarSky','radarNoRainText','rainCountdownHorizon',
   'layoutPreset','largeGraphFont','forecastHours',
-  'forecastAxisNumbers','forecastAxisScale','doubleFlick','viewResetMin','swapClockStatus','configTheme','vibe','btIcons','onboardingDone','startOnWeatherTab',
+  'forecastAxisNumbers','forecastAxisScale','viewResetMin','swapClockStatus','configTheme','vibe','btIcons','onboardingDone','startOnWeatherTab',
   // Setup › Misc › Hide info text: page-only like startOnWeatherTab (rides the saved blob,
   // never read watch-side), but a stored key all the same.
   'hideInfoText','reset',
@@ -1249,28 +1249,23 @@ test('startOnWeatherTab is a page-only toggle that defaults to Watchface', () =>
     'and a key the watch DOES receive shows up in it');
 });
 
-test('Screen switching: Double flick and Back to Default after, once there is a screen to flick to', () => {
+test('Screen switching: Back to Default after, once there is a screen to tap to', () => {
   const sec = schema.tabs.find((t) => t.id === 'watchface').sections.find((s) => s.id === 'screenSwitching');
   assert.equal(sec.title, 'Screen switching');
-  assert.deepEqual(sec.items.map((i) => i.messageKey), ['doubleFlick', 'viewResetMin']);
-  const [flick, reset] = sec.items;
-  assert.equal(flick.type, 'toggle');
-  assert.equal(flick.label, 'Double flick to switch');
-  assert.equal(flick.defaultValue, false, 'one flick switches until the user opts in');
-  // Not "quick": a second flick under the 500 ms debounce reads as the same flick, and
-  // a BMI160 watch delivers none sooner than ~1.28 s (layout.h VIEW_FLICK_PAIR_MS).
-  assert.equal(flick.hint, 'Switch only on a second flick within a few seconds of the first.');
+  // No Double flick: a tap on the screen switches screens, one tap each time.
+  assert.deepEqual(sec.items.map((i) => i.messageKey), ['viewResetMin']);
+  const [reset] = sec.items;
   assert.equal(reset.type, 'segmented');
   assert.equal(reset.label, 'Back to Default after');
   assert.equal(reset.defaultValue, '2');
   assert.deepEqual(reset.options, [['Never', '0'], ['1m', '1'], ['2m', '2'], ['5m', '5'], ['10m', '10']]);
-  [flick, reset].forEach((i) => assert.equal(i.showWhen, undefined, i.messageKey + ': the card\'s gate alone'));
-  // Shown on a watch with flick screens while there are two screens or more (manyScreens).
+  assert.equal(reset.showWhen, undefined, 'viewResetMin: the card\'s gate alone');
+  // Shown while there are two screens or more (manyScreens).
   const custom = (viewCount) => ({ layoutPreset: 'custom', customLayoutSeeded: true, viewCount,
     viewTop1: 'none', viewBody1: 'forecast', viewUpper1: 'weather', viewLower1: 'off' });
   const vis = (S) => showWhen.isVisible(sec, Object.assign({ env: {} }, S));
   assert.equal(vis(custom('1')), false, 'the Default screen alone');
-  assert.equal(vis(custom('2')), true, 'a screen to flick to');
+  assert.equal(vis(custom('2')), true, 'a screen to tap to');
 });
 
 

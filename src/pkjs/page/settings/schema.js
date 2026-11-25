@@ -1446,20 +1446,11 @@ module.exports = {
                 {type: 'hidden', messageKey: 'swapClockStatus', defaultValue: true}
             ]
         }, {
-            // How the watch switches screens, once there is a screen to flick to.
+            // When the watch goes back to the Default screen, once there is a screen to tap to.
             id: 'screenSwitching',
             title: 'Screen switching',
             showWhen: {when: 'manyScreens'},
             items: [{
-                type: 'toggle',
-                messageKey: 'doubleFlick',
-                label: 'Double flick to switch',
-                // OFF: one flick switches, as it always has. A fresh install lands here, and
-                // an upgrade too (seedDefaults backfills the missing key); off leaves
-                // CLAY_VIEW_RESET_MIN's word unchanged, so an upgrade resends nothing.
-                defaultValue: false,
-                hint: 'Switch only on a second flick within a few seconds of the first.'
-            }, {
                 type: 'segmented',
                 messageKey: 'viewResetMin',
                 label: 'Back to Default after',

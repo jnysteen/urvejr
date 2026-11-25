@@ -122,10 +122,10 @@ bool view_slot_available(uint32_t word, bool has_radar, bool has_health);
 // always a valid stop, so the cycle can never get stuck.
 uint8_t view_cursor_next(uint8_t from, const uint32_t word[3], bool has_radar, bool has_health);
 
-// Can a flick move the cursor at all before the next settings apply: is a slot besides the
+// Can a tap move the cursor at all before the next settings apply: is a slot besides the
 // default a stop? Data is not asked (radar and health count as present): it comes and goes
-// between applies, while the cycle changes only with one. main_window.c subscribes the tap
-// service only while this holds, so a face with one view takes no tap events.
+// between applies, while the cycle changes only with one. main_window.c subscribes the touch
+// service only while this holds, so a face with one view keeps the touch sensor off.
 static inline bool view_cycle_flickable(const uint32_t word[3]) {
     return view_cursor_next(0, word, true, true) != 0;
 }
@@ -146,36 +146,28 @@ uint8_t view_cursor_after_config(uint8_t cursor, const uint32_t old_word[3],
 // minute still gets its full window before snapping back to the default view.
 bool view_auto_return_due(int32_t now, int32_t flick_since, uint8_t reset_min);
 
-// ── Wrist-flick gate (pure) ── raw accel-tap callbacks -> view switches.
-// 1. Debounce: a callback within VIEW_FLICK_DEBOUNCE_MS of the last ACCEPTED one is part of
-//    the same physical flick (accel_tap_service fires per axis, e.g. X then Z).
-// 2. Pair (Double flick, need_pair): an accepted flick only ARMS; the next accepted flick
-//    within VIEW_FLICK_PAIR_MS switches and consumes the pair (a third flick re-arms). A
-//    later partner re-arms instead. Expiry is judged lazily on the next callback: no timer.
-// Time only: on Core-era firmware every shake reports as AXIS_Z, 0.
-#define VIEW_FLICK_DEBOUNCE_MS 500
-// 3 s: long enough for a deliberate flick, pause, flick; a partner pairs anywhere from the
-// 500 ms debounce up to 3 s. (The BMI160 driver of the older watches latched any-motion for
-// ~1.28 s, which is where the 3 s came from.)
-#define VIEW_FLICK_PAIR_MS 3000
-_Static_assert(VIEW_FLICK_PAIR_MS > VIEW_FLICK_DEBOUNCE_MS,
-               "a flick's partner must be able to clear the debounce");
+// Screen-tap gate: a swipe, a long press or a sleeve brushing the glass must not switch views.
+#define VIEW_TAP_SLOP_PX 16
+#define VIEW_TAP_MAX_MS 700
 typedef struct {
-    uint32_t last_ms;  // ms clock of the last accepted callback (0 = none yet)
-    bool armed;        // need_pair: the flick at last_ms awaits its partner
-} ViewFlickGate;
-// True = advance the view. A 32-bit ms clock (epoch ms mod 2^32): the unsigned elapsed time
-// absorbs its 49.7-day wrap and reads a wall-clock step back (time_ms is UTC wall time) as
-// "long ago", so the callback counts and a stale arm re-arms rather than pairing. need_pair
-// is read live from config; single mode always clears the arm, so a settings toggle needs no
-// reset. static inline, 32-bit: tap_handler is its one caller.
-static inline bool view_flick_accept(ViewFlickGate *gate, uint32_t now_ms, bool need_pair) {
-    uint32_t since = now_ms - gate->last_ms;
-    if (since < VIEW_FLICK_DEBOUNCE_MS) { return false; }   // same physical flick
-    gate->last_ms = now_ms;
-    // Fires on any flick in single mode, or on an armed flick's in-window partner. A flick
-    // that does not fire (a first, or a late partner) arms; one that fires disarms.
-    bool fire = !need_pair || (gate->armed && since < VIEW_FLICK_PAIR_MS);
-    gate->armed = !fire;
-    return fire;
+    uint32_t down_ms;  // ms clock at Touchdown
+    int16_t x, y;      // Touchdown position
+    bool down;         // a touch is in progress and can still be a tap
+} ViewTapGate;
+static inline bool view_tap_near(const ViewTapGate *gate, int16_t x, int16_t y) {
+    int dx = x - gate->x, dy = y - gate->y;
+    return dx * dx + dy * dy <= VIEW_TAP_SLOP_PX * VIEW_TAP_SLOP_PX;
+}
+static inline void view_tap_down(ViewTapGate *gate, int16_t x, int16_t y, uint32_t now_ms) {
+    *gate = (ViewTapGate){ .down_ms = now_ms, .x = x, .y = y, .down = true };
+}
+static inline void view_tap_move(ViewTapGate *gate, int16_t x, int16_t y) {
+    if (gate->down && !view_tap_near(gate, x, y)) { gate->down = false; }
+}
+// Unsigned elapsed time: a wall-clock step back reads as "long ago", so no tap.
+static inline bool view_tap_up(ViewTapGate *gate, int16_t x, int16_t y, uint32_t now_ms) {
+    bool tap = gate->down && view_tap_near(gate, x, y)
+               && (uint32_t) (now_ms - gate->down_ms) < VIEW_TAP_MAX_MS;
+    gate->down = false;
+    return tap;
 }

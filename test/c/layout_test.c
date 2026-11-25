@@ -2243,83 +2243,46 @@ static void view_timer_tests(void) {
     expect("timer.5min.after_300s_returns", view_auto_return_due(t0 + 300, t0, 5), true);
 }
 
-// A gate that has just taken one flick at `t` (armed when need_pair).
-static ViewFlickGate flicked_at(uint32_t t, bool need_pair) {
-    ViewFlickGate g = {0};
-    view_flick_accept(&g, t, need_pair);
-    return g;
-}
-
-static void view_flick_tests(void) {
-    // The wrist-flick gate (view_flick_accept): today's 500 ms debounce in single mode, and
-    // Double flick's arm-then-pair rule. t0 is an arbitrary point on the 32-bit ms clock.
+static void view_tap_tests(void) {
+    // The screen-tap gate (view_tap_down/move/up, touch watches): a short touch that lifts
+    // near where it landed switches; a swipe, a long press or a stray Liftoff does not.
     const uint32_t t0 = 1700000000u;
-    ViewFlickGate g = {0};
-    // Single flick: exactly the pre-option rule.
-    expect("flick.boot.first_callback_counts", view_flick_accept(&g, t0, false), true);
-    expect("flick.single.axis_echo_swallowed", view_flick_accept(&g, t0 + 120, false), false);
-    expect("flick.single.499ms_swallowed", view_flick_accept(&g, t0 + 499, false), false);
-    expect("flick.single.500ms_fires", view_flick_accept(&g, t0 + 500, false), true);
-    expect("flick.single.never_arms", g.armed, false);
-    expect("flick.single.debounce_from_accepted", view_flick_accept(&g, t0 + 800, false), false);
-    expect("flick.single.debounce_from_accepted_fires", view_flick_accept(&g, t0 + 1000, false), true);
-    // Double flick: the first only arms; its echo is swallowed and keeps the arm.
-    g = (ViewFlickGate){0};
-    expect("flick.double.first_only_arms", view_flick_accept(&g, t0, true), false);
-    expect("flick.double.armed", g.armed, true);
-    expect("flick.double.echo_swallowed", view_flick_accept(&g, t0 + 150, true), false);
-    expect("flick.double.echo_keeps_armed", g.armed, true);
-    expect("flick.double.second_fires", view_flick_accept(&g, t0 + 700, true), true);
-    expect("flick.double.pair_consumed", g.armed, false);
-    expect("flick.double.third_rearms", view_flick_accept(&g, t0 + 1400, true), false);
-    expect("flick.double.fourth_fires", view_flick_accept(&g, t0 + 2000, true), true);
-    // Any partner inside the window pairs: the earliest a BMI160 watch (basalt, ~1.28 s
-    // any-motion latch) can deliver, a deliberate flick-pause-flick, and the window's edge.
-    const struct { const char *name; uint32_t gap; } pairs[] = {
-        { "flick.double.bmi160_gap_pairs", 1300 },
-        { "flick.double.slow_cadence_pairs", 2500 },
-        { "flick.double.window_edge_fires", VIEW_FLICK_PAIR_MS - 1 },
-    };
-    for (unsigned i = 0; i < sizeof(pairs) / sizeof(pairs[0]); i++) {
-        g = flicked_at(t0, true);
-        expect(pairs[i].name, view_flick_accept(&g, t0 + pairs[i].gap, true), true);
-    }
-    // At the window's end the partner is late: it re-arms as a new first flick.
-    g = flicked_at(t0, true);
-    expect("flick.double.window_expired_rearms",
-           view_flick_accept(&g, t0 + VIEW_FLICK_PAIR_MS, true), false);
-    expect("flick.double.expired_is_new_first", g.armed, true);
-    expect("flick.double.late_pair_fires",
-           view_flick_accept(&g, t0 + VIEW_FLICK_PAIR_MS + 600, true), true);
-    // Faster than the debounce reads as ONE flick: still armed.
-    g = flicked_at(t0, true);
-    expect("flick.double.under_debounce_one_flick", view_flick_accept(&g, t0 + 400, true), false);
-    expect("flick.double.under_debounce_still_armed", g.armed, true);
-    // A shake train of N accepted flicks switches at most N/2 times.
-    g = (ViewFlickGate){0};
-    int fires = 0;
-    for (int i = 0; i < 6; i++) { fires += view_flick_accept(&g, t0 + (uint32_t) i * 600, true); }
-    expect("flick.double.burst_of_6_switches_3", fires == 3, true);
-    // Settings toggled mid-gesture (need_pair is read live).
-    g = flicked_at(t0, true);
-    expect("flick.toggle.double_to_single_fires", view_flick_accept(&g, t0 + 700, false), true);
-    expect("flick.toggle.single_clears_arm", g.armed, false);
-    g = flicked_at(t0, false);
-    expect("flick.toggle.single_to_double_needs_two", view_flick_accept(&g, t0 + 700, true), false);
-    // Wall-clock steps (time_ms is UTC wall time).
-    g = flicked_at(t0, true);
-    expect("flick.clock_back.not_paired", view_flick_accept(&g, t0 - 5000, true), false);
-    expect("flick.clock_back.rearmed", g.armed, true);
-    expect("flick.clock_back.pairs_after", view_flick_accept(&g, t0 - 5000 + 700, true), true);
-    g = flicked_at(t0, false);
-    expect("flick.clock_back.single_fires", view_flick_accept(&g, t0 - 100, false), true);
-    g = flicked_at(t0, true);
-    expect("flick.clock_fwd.stale_arm_rearms", view_flick_accept(&g, t0 + 3600000, true), false);
-    // The 32-bit ms clock wraps every 49.7 days: a pair across the wrap still pairs, and an
-    // echo across it is still debounced.
-    g = flicked_at(0xFFFFFF00u, true);
-    expect("flick.wrap.echo_swallowed", view_flick_accept(&g, 0x00000010u, true), false);
-    expect("flick.wrap.pair_fires", view_flick_accept(&g, 0x00000300u, true), true);
+    ViewTapGate g = {0};
+    expect("tap.liftoff_without_touchdown", view_tap_up(&g, 50, 50, t0), false);
+    view_tap_down(&g, 100, 100, t0);
+    expect("tap.clean_tap_fires", view_tap_up(&g, 102, 99, t0 + 120), true);
+    expect("tap.liftoff_consumes", view_tap_up(&g, 102, 99, t0 + 130), false);
+    // Jitter inside the slop keeps it a tap; the slop edge still counts.
+    view_tap_down(&g, 100, 100, t0);
+    view_tap_move(&g, 105, 103);
+    expect("tap.jitter_still_fires", view_tap_up(&g, 100 + VIEW_TAP_SLOP_PX, 100, t0 + 200), true);
+    // A slide out of the slop is no tap, even if it slides back before lifting.
+    view_tap_down(&g, 100, 100, t0);
+    view_tap_move(&g, 100 + VIEW_TAP_SLOP_PX + 1, 100);
+    view_tap_move(&g, 100, 100);
+    expect("tap.slide_out_and_back_no_tap", view_tap_up(&g, 100, 100, t0 + 200), false);
+    view_tap_down(&g, 100, 100, t0);
+    expect("tap.lift_far_no_tap", view_tap_up(&g, 100, 140, t0 + 150), false);
+    // Diagonal: 12,12 is ~17 px, out of a 16 px slop.
+    view_tap_down(&g, 100, 100, t0);
+    expect("tap.diagonal_out_no_tap", view_tap_up(&g, 112, 112, t0 + 150), false);
+    // Held too long.
+    view_tap_down(&g, 100, 100, t0);
+    expect("tap.just_under_max_fires", view_tap_up(&g, 100, 100, t0 + VIEW_TAP_MAX_MS - 1), true);
+    view_tap_down(&g, 100, 100, t0);
+    expect("tap.long_press_no_tap", view_tap_up(&g, 100, 100, t0 + VIEW_TAP_MAX_MS), false);
+    // Wall clock stepped back between down and up: no tap.
+    view_tap_down(&g, 100, 100, t0);
+    expect("tap.clock_back_no_tap", view_tap_up(&g, 100, 100, t0 - 1000), false);
+    // Across the 32-bit ms wrap.
+    view_tap_down(&g, 100, 100, 0xFFFFFF00u);
+    expect("tap.wrap_fires", view_tap_up(&g, 100, 100, 0x00000010u), true);
+    // Two quick taps switch twice (no debounce between separate touches).
+    view_tap_down(&g, 100, 100, t0);
+    int fires = view_tap_up(&g, 100, 100, t0 + 80);
+    view_tap_down(&g, 100, 100, t0 + 200);
+    fires += view_tap_up(&g, 100, 100, t0 + 280);
+    expect("tap.double_tap_switches_twice", fires == 2, true);
 }
 
 // ── Seating invariant: no band the layout produces may clamp ─────────────────
@@ -3220,7 +3183,7 @@ int main(int argc, char **argv) {
     if (!s_dump) peek_tests();
     if (!s_dump) view_cursor_tests();
     if (!s_dump) view_timer_tests();
-    if (!s_dump) view_flick_tests();
+    if (!s_dump) view_tap_tests();
     if (!s_dump) radar_placement_tests();
     if (!s_dump) test_geometry_lower_only();
     if (!s_dump) test_resolve_tier_lower_only();

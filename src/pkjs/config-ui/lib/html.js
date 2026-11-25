@@ -85,8 +85,8 @@ function swatchReadout(hex, live) {
 function nbClass(mode) { return mode === 'loose' ? ' nbl' : (mode ? ' nb' : ''); }
 
 /**
- * Names as a sentence lists them: "Default", "Default and Flick 1", "Default, Flick 1 and
- * Flick 2" ('' for none), or with another word before the last ("the calendar or the clock").
+ * Names as a sentence lists them: "Default", "Default and Screen 2", "Default, Screen 2 and
+ * Screen 3" ('' for none), or with another word before the last ("the calendar or the clock").
  * Plain text, as given: escape the result where it goes into HTML.
  *
  * @param {string[]} names The names.

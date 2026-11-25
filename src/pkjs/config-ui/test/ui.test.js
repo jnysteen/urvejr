@@ -69,10 +69,10 @@ test('the header of a full-screen view: the way out, the kicker over the title a
   assert.ok(ui.header(Object.assign({}, o, { titleHtml: 'Flick <b>1</b>' })).indexOf('id="t1">Flick <b>1</b></span>') !== -1,
     'titleHtml is markup (the engine glues its \'?\' on)');
   const renaming = ui.header(Object.assign({}, o, { rename: { at: { 'data-se-name': true }, okAt: { 'data-se': 'renameok' },
-    label: 'Screen name', maxlength: 24, placeholder: 'Flick 1', value: 'Flick <1>' } }));
+    label: 'Screen name', maxlength: 24, placeholder: 'Screen 2', value: 'Flick <1>' } }));
   assert.equal(renaming, '<div class="dlg-hdr renaming"><button type="button" class="dlg-x" data-se="close" aria-label="Back">&#8249;'
     + '</button><span class="ssel-modal-ttl sr-only" id="t1">Flick &lt;1&gt;</span>' + ui.renameField({ at: { 'data-se-name': true },
-    okAt: { 'data-se': 'renameok' }, label: 'Screen name', maxlength: 24, placeholder: 'Flick 1', value: 'Flick <1>' }) + '</div>');
+    okAt: { 'data-se': 'renameok' }, label: 'Screen name', maxlength: 24, placeholder: 'Screen 2', value: 'Flick <1>' }) + '</div>');
 });
 
 test('a popup\'s header: its title escaped, then the × that closes it, named for assistive tech', () => {
